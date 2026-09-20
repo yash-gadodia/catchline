@@ -134,3 +134,10 @@ _From the 2026-07-02 E2E pass — details in `docs/E2E_FINDINGS_2026-07-02.md`._
 - [ ] (Claude) Memory-informed read (the Plus thesis): 90-day local entries fed to the read, no patterns page. Only after the test passes.
 - [ ] (Claude) Native mic recogniser (expo-speech-recognition) — needs a new EAS build; keyboard dictation ships in 2.1.0.
 - [ ] (Claude) Expo SDK 56 → 58 migration before April 2027 (iOS 27 SDK mandate, scene lifecycle).
+
+### From Yash's 2026-09-20 TestFlight pass (fixes shipped same day, open calls below)
+- [ ] (Yash) Copy gate: the greyed Copy + "Use it as is" read as a broken button to you. Decide: keep the edit-first gate, or make Copy always live and drop the escape line.
+- [ ] (Yash) Receipts → "analysis of fights over time". Reverses the Sept decision (no patterns page; memory-informed read was the Plus thesis). Needs a product call + Claude Design pass before any build.
+- [ ] (Yash) Direction: keep One Side (what to say after a fight) vs pivot to a personal feelings-processing app that understands you over time. Decide before the next binary.
+- [ ] (Yash) Rename binary: "One Side" / "What to say after a fight" (fallback "Unsaid"), IPOS check first. Name, subtitle, keywords, screenshots all ship in one build.
+- [ ] (Claude) Read latency floor is the model (11–13s measured on prod, Sonnet 5, ~500 output tokens). Levers if Yash wants <6s: Haiku 4.5 read (was rejected for quality) or a shorter tool schema. Watch `refocus_v2_timing` in function logs first.

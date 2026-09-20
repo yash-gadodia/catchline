@@ -2,7 +2,7 @@
   "expo": {
     "name": "parallax",
     "slug": "parallax",
-    "version": "2.1.0",
+    "version": "2.2.0",
     "orientation": "portrait",
     "scheme": "parallax",
     "icon": "./assets/icon.png",
@@ -29,6 +29,12 @@
           "backgroundColor": "#FBF1F2",
           "image": "./assets/splash-icon.png",
           "imageWidth": 180
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "To read a chat screenshot you choose. It is never stored."
         }
       ]
     ],

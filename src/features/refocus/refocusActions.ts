@@ -1,3 +1,4 @@
+import type { ChatLine } from '../../domain/chatPaste';
 import { supabase } from '../../lib/supabase';
 import { notifyRefocus } from '../notifications';
 import type {
@@ -28,6 +29,33 @@ function isReadV2(v: unknown): v is RefocusReadV2 {
     typeof r.no_bridge.noticed === 'string' &&
     typeof r.no_bridge.let_go === 'string'
   );
+}
+
+/**
+ * A chat screenshot in, the visible messages out as chat lines, exactly the
+ * shape a paste produces. Nothing is stored server-side. Null = failure.
+ */
+export async function transcribeScreenshot(
+  base64: string,
+  mediaType: string
+): Promise<ChatLine[] | null> {
+  try {
+    const { data, error } = await supabase.functions.invoke<{
+      lines?: unknown;
+    }>('refocus', {
+      body: { schema: 'transcribe', imageBase64: base64, mediaType },
+    });
+    if (error || !data || !Array.isArray(data.lines)) return null;
+    return data.lines.filter(
+      (l): l is ChatLine =>
+        typeof l === 'object' &&
+        l !== null &&
+        typeof (l as ChatLine).who === 'string' &&
+        typeof (l as ChatLine).text === 'string'
+    );
+  } catch {
+    return null;
+  }
 }
 
 /**

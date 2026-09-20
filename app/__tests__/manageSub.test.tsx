@@ -115,7 +115,7 @@ describe('ManageSubScreen', () => {
 
     expect(getByText('● active · free trial')).toBeTruthy();
     expect(getByText('Plan')).toBeTruthy();
-    expect(getByText('parallax_plus_annual')).toBeTruthy();
+    expect(getByText('Plus · Annual')).toBeTruthy();
     expect(getByText('Renews')).toBeTruthy();
     expect(getByText('Jul 15, 2026')).toBeTruthy();
     expect(getByText('Cancel subscription')).toBeTruthy();
@@ -136,7 +136,7 @@ describe('ManageSubScreen', () => {
     const { getByText, queryByText } = await render(<ManageSubScreen />);
 
     expect(getByText('● active')).toBeTruthy();
-    expect(getByText('parallax_plus_monthly')).toBeTruthy();
+    expect(getByText('Plus · Monthly')).toBeTruthy();
     expect(queryByText('Renews')).toBeNull();
     expect(queryByText('Expires')).toBeNull();
   });

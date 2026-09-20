@@ -1,5 +1,23 @@
 import * as Haptics from 'expo-haptics';
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const KEY = 'haptics_enabled';
+let enabled = true;
+AsyncStorage.getItem(KEY)
+  .then((v) => {
+    if (v === '0') enabled = false;
+  })
+  .catch(() => {});
+
+export function isHapticsEnabled(): boolean {
+  return enabled;
+}
+
+export function setHapticsEnabled(v: boolean): void {
+  enabled = v;
+  AsyncStorage.setItem(KEY, v ? '1' : '0').catch(() => {});
+}
 
 // Thin, safe wrappers over expo-haptics. Every call is a no-op on web and
 // swallows native failures (simulator, jest) — a haptic must never crash a
@@ -8,7 +26,7 @@ import { Platform } from 'react-native';
 const supported = Platform.OS === 'ios' || Platform.OS === 'android';
 
 async function safely(fn: () => Promise<unknown>): Promise<void> {
-  if (!supported) return;
+  if (!supported || !enabled) return;
   try {
     await fn();
   } catch {

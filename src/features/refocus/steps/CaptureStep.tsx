@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Clipboard from 'expo-clipboard';
+import * as ImagePicker from 'expo-image-picker';
 import Btn from '../../../components/Btn';
 import Press from '../../../components/Press';
 import { Serif } from '../../../components/Text';
@@ -17,12 +18,12 @@ import { fontFamily } from '../../../design/typography';
 import { CAPTURE_COPY, STEMS } from '../../../content/refocus';
 import { parseChatPaste, chatToText, ChatLine } from '../../../domain/chatPaste';
 import { loadDraft } from '../receipts';
+import { transcribeScreenshot } from '../refocusActions';
 
 export interface CaptureStepProps {
   insets: ReturnType<typeof useSafeAreaInsets>;
   /** Submit the account (and the pasted chat, when one is attached). */
   onRead: (text: string, pastedChat: string | null) => void;
-  onJustSave: (text: string, pastedChat: string | null) => void;
   onOpenReceipts: () => void;
   onOpenSettings: () => void;
 }
@@ -30,14 +31,13 @@ export interface CaptureStepProps {
 /**
  * ONE SIDE capture — the launch surface. No onboarding, no tour: a serif
  * question, a prose-primary box (keyboard up on arrival), sentence stems, a
- * Speak affordance that leans on keyboard dictation, and a named "Just save".
+ * Speak affordance that leans on keyboard dictation, and one action: Read it.
  * The raw entry is restored from the draft store, so a crash or failed read
  * never loses what was written (Working/Retry is built first, PRD §10).
  */
 export function CaptureStep({
   insets,
   onRead,
-  onJustSave,
   onOpenReceipts,
   onOpenSettings,
 }: CaptureStepProps) {
@@ -45,6 +45,7 @@ export function CaptureStep({
   const [chat, setChat] = useState<ChatLine[] | null>(null);
   const [speakHint, setSpeakHint] = useState(false);
   const [pasteMiss, setPasteMiss] = useState(false);
+  const [shot, setShot] = useState<'idle' | 'reading' | 'miss'>('idle');
   const inputRef = useRef<TextInput>(null);
 
   useEffect(() => {
@@ -77,6 +78,27 @@ export function CaptureStep({
       // Not chat-shaped: it is still their words — into the box, not lost.
       setText((t) => (t.trim() ? `${t.trim()}\n${raw.trim()}` : raw.trim()));
       setPasteMiss(true);
+    }
+  };
+
+  const addScreenshot = async () => {
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      base64: true,
+      quality: 0.7,
+    });
+    const asset = res.canceled ? null : res.assets[0];
+    if (!asset?.base64) return;
+    setShot('reading');
+    const lines = await transcribeScreenshot(
+      asset.base64,
+      asset.mimeType ?? 'image/jpeg'
+    );
+    if (lines && lines.length) {
+      setChat(lines);
+      setShot('idle');
+    } else {
+      setShot('miss');
     }
   };
 
@@ -282,6 +304,22 @@ export function CaptureStep({
               Tap the mic on your keyboard and just talk. Fragments are fine.
             </Text>
           )}
+          {shot !== 'idle' && (
+            <Text
+              testID="screenshot-status"
+              style={{
+                fontSize: 12.5,
+                color: colors.inkSoft,
+                fontFamily: fontFamily.ui,
+                textAlign: 'center',
+                marginBottom: 8,
+              }}
+            >
+              {shot === 'reading'
+                ? CAPTURE_COPY.readingScreenshot
+                : CAPTURE_COPY.screenshotMiss}
+            </Text>
+          )}
           {pasteMiss && (
             <Text
               style={{
@@ -312,25 +350,6 @@ export function CaptureStep({
               >
                 {CAPTURE_COPY.readIt}
               </Btn>
-              <Press
-                onPress={() => onJustSave(text, chat ? chatToText(chat) : null)}
-                scale={false}
-              >
-                <Text
-                  testID="capture-save"
-                  allowFontScaling={false}
-                  style={{
-                    fontSize: 14,
-                    fontWeight: '500',
-                    color: colors.inkSoft,
-                    fontFamily: fontFamily.ui,
-                    textAlign: 'center',
-                    paddingVertical: 12,
-                  }}
-                >
-                  {CAPTURE_COPY.justSave}
-                </Text>
-              </Press>
             </View>
           )}
 
@@ -390,6 +409,31 @@ export function CaptureStep({
                   }}
                 >
                   {CAPTURE_COPY.pasteChat}
+                </Text>
+              </View>
+            </Press>
+            <Press onPress={addScreenshot} scale={false}>
+              <View
+                testID="capture-screenshot"
+                style={{
+                  borderWidth: 1.5,
+                  borderStyle: 'dashed',
+                  borderColor: 'rgba(112,100,230,0.5)',
+                  borderRadius: 10,
+                  paddingHorizontal: 12,
+                  paddingVertical: 11,
+                }}
+              >
+                <Text
+                  allowFontScaling={false}
+                  style={{
+                    fontSize: 14,
+                    color: colors.p2Deep,
+                    fontFamily: fontFamily.ui,
+                    fontWeight: '600',
+                  }}
+                >
+                  {CAPTURE_COPY.addScreenshot}
                 </Text>
               </View>
             </Press>

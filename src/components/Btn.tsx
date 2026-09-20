@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Press from './Press';
+import { lightTick } from '../lib/haptics';
 import { colors, gradients, radius, shadows } from '../design/tokens';
 import { fontFamily } from '../design/typography';
 
@@ -122,7 +123,10 @@ export default function Btn({
 
   return (
     <Press
-      onPress={onPress}
+      onPress={() => {
+        lightTick();
+        onPress?.();
+      }}
       disabled={disabled}
       style={style}
       testID={testID}

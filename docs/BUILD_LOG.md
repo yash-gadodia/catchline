@@ -117,3 +117,10 @@ _This log is meant to be appended to. When a session produces a reusable lesson,
 - **v1.0 passed App Review** (email "Ready for Distribution", 14 Jul 8:24 PM SGT) — rejection #2 fixes held.
 - **ASC gotcha:** the Apps page then showed "Removed from App Store", which looks like Apple pulled the app. Real cause: review approval and distribution availability are independent gates — App Availability had never been set up (zero territories), and ASC labels that state "Removed from App Store" instead of "not yet available". No rejection/removal email = check Pricing and Availability first.
 - Fix: Pricing and Availability → Set Up Availability → All Countries or Regions (175). Status flipped back to "iOS 1.0 Ready for Distribution"; territories show "Processing to Available" (App Store propagation up to 24h).
+
+## 2026-09-20 · TestFlight pass fixes (no build yet — Yash wants all fixes in one binary)
+- Shipped: screenshot chat import (expo-image-picker → `schema: 'transcribe'` in the refocus fn, Haiku vision → chat lines, same shape as a paste), Read it as the only capture action, real haptics (Btn tick + success thump on read/copy, persisted toggle), human plan label on Manage Plus, paired card hidden under ONE_SIDE.
+- **Bug found by the new test:** `reset()` in OneSideFlow never set step back to capture, so the 40s "Save what you wrote" hatch left the user on the working screen. Fixed.
+- **Latency:** prod read measured 12–14s before, 11–13s after running the safety screen concurrently with the read + prompt caching. The floor is Sonnet 5 generating the read; logged as `refocus_v2_timing`.
+- **Gotcha:** jest path args with parentheses (`app/(tabs)/...`) are regexes → "No tests found". Use a bare name pattern like `oneSideFlow`.
+- **Gotcha:** expo-image-picker is a native module → the existing dev/TestFlight binary crashes on the capture screen until rebuilt. Fast Refresh is not enough.

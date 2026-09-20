@@ -126,19 +126,28 @@ describe('OneSideFlow', () => {
     expect(screen.getByText('Try again')).toBeTruthy();
   });
 
-  it('Just save records a saved receipt and resets capture', async () => {
+  it('Save instead (the 40s hatch) records a saved receipt and resets capture', async () => {
+    jest.useFakeTimers();
+    mockInvoke.mockReturnValueOnce(new Promise(() => {}));
     const screen = await render(<RefocusScreen />);
     await act(async () => {
       fireEvent.changeText(screen.getByTestId('capture-input'), 'just logging this');
     });
     await act(async () => {
-      fireEvent.press(screen.getByTestId('capture-save'));
+      fireEvent.press(screen.getByTestId('capture-read'));
     });
+    await act(async () => {
+      jest.advanceTimersByTime(40_000);
+    });
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('working-save-instead'));
+      await jest.runOnlyPendingTimersAsync();
+    });
+    jest.useRealTimers();
 
     const receipts = await listReceipts();
     expect(receipts).toHaveLength(1);
     expect(receipts[0].kind).toBe('saved');
-    expect(mockInvoke).not.toHaveBeenCalled();
     await waitFor(() =>
       expect(screen.getByTestId('capture-input').props.value).toBe('')
     );

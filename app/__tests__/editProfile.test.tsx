@@ -38,8 +38,6 @@ describe('EditProfileScreen', () => {
     expect(getByText('edit profile')).toBeTruthy();
     expect(getByText('Your name')).toBeTruthy();
     expect(getByText('Together since')).toBeTruthy();
-    expect(getByText('paired with')).toBeTruthy();
-    expect(getByText('LINKED')).toBeTruthy();
     expect(getByText('Save changes')).toBeTruthy();
   });
 
@@ -81,15 +79,11 @@ describe('EditProfileScreen', () => {
     await waitFor(() => expect(getByText('Save changes')).toBeTruthy());
   });
 
-  it('renders real partner name from useProfile', async () => {
-    const { getByText } = await render(<EditProfileScreen />);
+  it('shows no paired-with card in One Side (solo, no pairing exists)', async () => {
+    const { queryByText } = await render(<EditProfileScreen />);
 
-    expect(getByText('Jordan')).toBeTruthy();
-  });
-
-  it('renders together since from useProfile', async () => {
-    const { getByText } = await render(<EditProfileScreen />);
-
-    expect(getByText('paired · March 2023')).toBeTruthy();
+    expect(queryByText('paired with')).toBeNull();
+    expect(queryByText('LINKED')).toBeNull();
+    expect(queryByText('Jordan')).toBeNull();
   });
 });

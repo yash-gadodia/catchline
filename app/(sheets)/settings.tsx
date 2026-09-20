@@ -10,6 +10,7 @@ import { colors, space } from '../../src/design/tokens';
 import { fontFamily } from '../../src/design/typography';
 import { usePurchases } from '../../src/features/purchases/usePurchases';
 import { signOut } from '../../src/features/auth/authActions';
+import { isHapticsEnabled, setHapticsEnabled } from '../../src/lib/haptics';
 import {
   listReceipts,
   purgeReceipts,
@@ -103,7 +104,7 @@ function Group({ children }: { children: React.ReactNode }) {
 export default function Settings() {
   const router = useRouter();
   const isPro = usePurchases((s) => s.isPro);
-  const [haptics, setHaptics] = useState(true);
+  const [haptics, setHaptics] = useState(isHapticsEnabled);
   const [notifications, setNotifications] = useState(false);
 
   const exportAll = async () => {
@@ -180,7 +181,10 @@ export default function Settings() {
               <Switch
                 testID="settings-haptics"
                 value={haptics}
-                onValueChange={setHaptics}
+                onValueChange={(v) => {
+                  setHaptics(v);
+                  setHapticsEnabled(v);
+                }}
               />
             }
           />

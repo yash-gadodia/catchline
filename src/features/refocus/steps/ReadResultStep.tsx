@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, ScrollView, Text, TextInput } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Clipboard from 'expo-clipboard';
+import { success } from '../../../lib/haptics';
 import Btn from '../../../components/Btn';
 import Press from '../../../components/Press';
 import Card from '../../../components/Card';
@@ -199,6 +200,7 @@ export function ReadResultStep({
                 disabled={!unlocked}
                 onPress={async () => {
                   await Clipboard.setStringAsync(msg.trim());
+                  success();
                   setCopied(true);
                   onCopied();
                 }}

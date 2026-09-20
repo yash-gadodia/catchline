@@ -221,6 +221,8 @@ interface ToolCallArgs {
   toolName: string;
   userMsg: string;
   maxTokens: number;
+  /** Optional screenshot, sent ahead of the text as a vision block. */
+  image?: { mediaType: string; base64: string };
 }
 
 // One forced-tool-use Messages call; returns the tool input or null.
@@ -237,10 +239,29 @@ async function anthropicToolCall(
     body: JSON.stringify({
       model: args.model,
       max_tokens: args.maxTokens,
-      system: args.system,
-      tools: [args.tool],
+      // The system prompt and tool are identical across every call, so they
+      // are cached: a warm read skips re-reading ~5k tokens of instructions.
+      system: [{ type: "text", text: args.system, cache_control: { type: "ephemeral" } }],
+      tools: [{ ...args.tool, cache_control: { type: "ephemeral" } }],
       tool_choice: { type: "tool", name: args.toolName },
-      messages: [{ role: "user", content: args.userMsg }],
+      messages: [
+        {
+          role: "user",
+          content: args.image
+            ? [
+                {
+                  type: "image",
+                  source: {
+                    type: "base64",
+                    media_type: args.image.mediaType,
+                    data: args.image.base64,
+                  },
+                },
+                { type: "text", text: args.userMsg },
+              ]
+            : args.userMsg,
+        },
+      ],
     }),
   });
   if (!resp.ok) {
@@ -732,6 +753,90 @@ function validateRead(input: Record<string, unknown>): ReadProblem | null {
   return null;
 }
 
+// ── Screenshot → chat lines ────────────────────────────────────────────────
+// body.schema === 'transcribe': a chat screenshot in, the visible messages
+// out as {who, text} lines. Nothing is stored; the lines go back into the
+// capture box exactly like a paste, and are screened with the read.
+
+const TRANSCRIBE_SYSTEM = `You transcribe screenshots of chat conversations (WhatsApp, iMessage, Telegram, Instagram) into plain lines.
+
+Rules:
+- One entry per message bubble, in reading order (top to bottom).
+- "who" is "me" for bubbles sent by the phone's owner (right-aligned, coloured), otherwise the sender's displayed name, or "them" when no name is visible.
+- "text" is the message exactly as written, including typos and emoji. Never paraphrase, summarise, or add anything.
+- Skip timestamps, read receipts, "typing", and system lines like "Messages are end-to-end encrypted".
+- If the image is not a chat, return an empty list.
+
+Always answer by calling transcribe_chat.`;
+
+const TRANSCRIBE_TOOL = {
+  name: "transcribe_chat",
+  description: "The messages visible in the screenshot, in order.",
+  input_schema: {
+    type: "object",
+    properties: {
+      lines: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            who: { type: "string" },
+            text: { type: "string" },
+          },
+          required: ["who", "text"],
+        },
+      },
+    },
+    required: ["lines"],
+  },
+};
+
+const TRANSCRIBE_MEDIA = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+
+async function handleTranscribe(
+  req: Request,
+  body: { imageBase64?: string; mediaType?: string }
+): Promise<Response> {
+  const base64 = (body.imageBase64 ?? "").trim();
+  const mediaType = (body.mediaType ?? "image/jpeg").toLowerCase();
+  if (!base64) return json({ error: "missing_image" }, 400);
+  if (!TRANSCRIBE_MEDIA.has(mediaType)) return json({ error: "bad_media_type" }, 400);
+  // ~5MB of base64 is Anthropic's per-image ceiling; the client downsizes first.
+  if (base64.length > 6_500_000) return json({ error: "image_too_large" }, 413);
+  if (await overRateLimit(req)) return json({ error: "rate_limited" }, 429);
+
+  let input: Record<string, unknown> | null;
+  try {
+    input = await anthropicToolCall({
+      model: SCREEN_MODEL,
+      system: TRANSCRIBE_SYSTEM,
+      tool: TRANSCRIBE_TOOL,
+      toolName: "transcribe_chat",
+      userMsg: "Transcribe this chat screenshot.",
+      maxTokens: 2048,
+      image: { mediaType, base64 },
+    });
+  } catch (e) {
+    if (e instanceof AnthropicError) {
+      return json({ error: "anthropic_error", status: e.status, detail: e.detail }, 502);
+    }
+    return json({ error: "fetch_failed", detail: String(e) }, 502);
+  }
+  const raw = Array.isArray(input?.lines) ? (input!.lines as unknown[]) : [];
+  const lines = raw
+    .filter(
+      (l): l is { who: string; text: string } =>
+        typeof l === "object" && l !== null &&
+        typeof (l as { who?: unknown }).who === "string" &&
+        typeof (l as { text?: unknown }).text === "string" &&
+        (l as { text: string }).text.trim().length > 0
+    )
+    .map((l) => ({ who: l.who.trim() || "them", text: l.text.trim() }))
+    .slice(0, 200);
+  console.log(JSON.stringify({ event: "refocus_transcribe", lines: lines.length }));
+  return json({ schema: "transcribe", lines });
+}
+
 async function handleSoloV2(
   req: Request,
   body: { userText?: string; pastedChat?: string; partnerName?: string }
@@ -741,21 +846,16 @@ async function handleSoloV2(
   if (!userText && !pastedChat) return json({ error: "missing_userText" }, 400);
 
   if (await overRateLimit(req)) return json({ error: "rate_limited" }, 429);
+  const startedAt = Date.now();
 
   // Screening covers the pasted transcript too — a selected excerpt sharpens
-  // the DARVO risk, it never softens it.
-  const verdict = await screenForSafety(
+  // the DARVO risk, it never softens it. It runs CONCURRENTLY with the read
+  // (the two calls are independent); the read is discarded, never returned,
+  // when the verdict is crisis or abuse.
+  const verdictPromise = screenForSafety(
     [userText, pastedChat].filter(Boolean),
     "solo"
   );
-  if (verdict === "crisis") {
-    console.log(JSON.stringify({ event: "refocus_escalation", mode: "solo_v2", type: "crisis" }));
-    return json({ safety: crisisResult() });
-  }
-  if (verdict === "abuse") {
-    console.log(JSON.stringify({ event: "refocus_escalation", mode: "solo_v2", type: "abuse" }));
-    return json({ safety: safetyStopResult() });
-  }
 
   const chatBlock = pastedChat
     ? `\n\nAn excerpt of the actual chat, selected and pasted by the user (the partner's quoted lines are real words, everything else about the partner stays inference):\n"""\n${pastedChat}\n"""`
@@ -768,6 +868,7 @@ async function handleSoloV2(
   // a rule; a second pass naming the violation almost always lands. A SOFT
   // problem keeps the second answer either way, so a stylistic slip never
   // costs the user their read.
+  let readError: Response | null = null;
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       input = await anthropicToolCall({
@@ -782,14 +883,29 @@ async function handleSoloV2(
         maxTokens: 1024,
       });
     } catch (e) {
-      if (e instanceof AnthropicError) {
-        return json({ error: "anthropic_error", status: e.status, detail: e.detail }, 502);
-      }
-      return json({ error: "fetch_failed", detail: String(e) }, 502);
+      readError =
+        e instanceof AnthropicError
+          ? json({ error: "anthropic_error", status: e.status, detail: e.detail }, 502)
+          : json({ error: "fetch_failed", detail: String(e) }, 502);
+      break;
     }
     problem = input ? validateRead(input) : { reason: "no_tool_use", hard: true };
     if (!problem) break;
   }
+
+  const verdict = await verdictPromise;
+  console.log(
+    JSON.stringify({ event: "refocus_v2_timing", ms: Date.now() - startedAt, verdict })
+  );
+  if (verdict === "crisis") {
+    console.log(JSON.stringify({ event: "refocus_escalation", mode: "solo_v2", type: "crisis" }));
+    return json({ safety: crisisResult() });
+  }
+  if (verdict === "abuse") {
+    console.log(JSON.stringify({ event: "refocus_escalation", mode: "solo_v2", type: "abuse" }));
+    return json({ safety: safetyStopResult() });
+  }
+  if (readError) return readError;
   if (!input || problem?.hard) {
     console.log(
       JSON.stringify({ event: "refocus_v2_invalid", reason: problem?.reason })
@@ -1066,6 +1182,8 @@ Deno.serve(async (req: Request) => {
     sessionId?: string;
     schema?: string;
     pastedChat?: string;
+    imageBase64?: string;
+    mediaType?: string;
   };
   try {
     body = await req.json();
@@ -1079,6 +1197,9 @@ Deno.serve(async (req: Request) => {
     }
     if (body.schema === "v2") {
       return await handleSoloV2(req, body);
+    }
+    if (body.schema === "transcribe") {
+      return await handleTranscribe(req, body);
     }
     return await handleSolo(req, body);
   } catch (e) {

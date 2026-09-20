@@ -1,6 +1,13 @@
 import React from 'react';
 import { render, fireEvent, cleanup, act } from '@testing-library/react-native';
 import { CaptureStep } from './CaptureStep';
+import { supabase } from '../../../lib/supabase';
+
+jest.mock('../../../lib/supabase', () => ({
+  supabase: { functions: { invoke: jest.fn() } },
+}));
+
+const mockInvoke = supabase.functions.invoke as jest.Mock;
 
 // Same pollution guard as IntroStep.test: the animated Btn/Press leave state
 // that empties later mounts in a file.
@@ -27,13 +34,11 @@ const insets = { top: 0, bottom: 0, left: 0, right: 0 } as any;
 
 function setup() {
   const onRead = jest.fn();
-  const onJustSave = jest.fn();
   const onOpenReceipts = jest.fn();
   const onOpenSettings = jest.fn();
   return {
-    props: { insets, onRead, onJustSave, onOpenReceipts, onOpenSettings },
+    props: { insets, onRead, onOpenReceipts, onOpenSettings },
     onRead,
-    onJustSave,
     onOpenReceipts,
   };
 }
@@ -55,7 +60,6 @@ describe('CaptureStep', () => {
     const { getByTestId, queryByTestId } = await render(<CaptureStep {...props} />);
 
     expect(queryByTestId('capture-read')).toBeNull();
-    expect(queryByTestId('capture-save')).toBeNull();
     expect(getByTestId('capture-speak')).toBeTruthy();
 
     await act(async () => {
@@ -82,15 +86,57 @@ describe('CaptureStep', () => {
     expect(onRead).toHaveBeenCalledWith('She said ', null);
   });
 
-  it('Just save hands the words to the local path, no model call', async () => {
-    const { props, onJustSave } = setup();
-    const { getByTestId } = await render(<CaptureStep {...props} />);
+  it('Read it is the only action once words exist', async () => {
+    const { props } = setup();
+    const { getByTestId, queryByText } = await render(<CaptureStep {...props} />);
 
     await act(async () => {
       fireEvent.changeText(getByTestId('capture-input'), 'flat all morning');
     });
-    fireEvent.press(getByTestId('capture-save'));
-    expect(onJustSave).toHaveBeenCalledWith('flat all morning', null);
+    expect(getByTestId('capture-read')).toBeTruthy();
+    expect(queryByText('Just save')).toBeNull();
+  });
+
+  it('a screenshot is transcribed into attached chat lines', async () => {
+    const ImagePicker = require('expo-image-picker');
+    ImagePicker.launchImageLibraryAsync.mockResolvedValueOnce({
+      canceled: false,
+      assets: [{ base64: 'QUJD', mimeType: 'image/png' }],
+    });
+    mockInvoke.mockResolvedValueOnce({
+      data: { schema: 'transcribe', lines: [{ who: 'Dani', text: 'you hung up on me' }] },
+      error: null,
+    });
+    const { props, onRead } = setup();
+    const { getByTestId, findByText } = await render(<CaptureStep {...props} />);
+
+    await act(async () => {
+      fireEvent.press(getByTestId('capture-screenshot'));
+    });
+    expect(mockInvoke).toHaveBeenCalledWith('refocus', {
+      body: { schema: 'transcribe', imageBase64: 'QUJD', mediaType: 'image/png' },
+    });
+    expect(await findByText('Dani')).toBeTruthy();
+    fireEvent.press(getByTestId('capture-read'));
+    expect(onRead).toHaveBeenCalledWith('', 'Dani: you hung up on me');
+  });
+
+  it('an unreadable screenshot says so instead of attaching nothing', async () => {
+    const ImagePicker = require('expo-image-picker');
+    ImagePicker.launchImageLibraryAsync.mockResolvedValueOnce({
+      canceled: false,
+      assets: [{ base64: 'QUJD', mimeType: 'image/png' }],
+    });
+    mockInvoke.mockResolvedValueOnce({ data: { schema: 'transcribe', lines: [] }, error: null });
+    const { props } = setup();
+    const { getByTestId, findByTestId } = await render(<CaptureStep {...props} />);
+
+    await act(async () => {
+      fireEvent.press(getByTestId('capture-screenshot'));
+    });
+    expect((await findByTestId('screenshot-status')).props.children).toBe(
+      "Couldn't read a chat in that screenshot. Try a clearer one, or paste the text."
+    );
   });
 
   it('Speak points at keyboard dictation (hint appears, input keeps focus path)', async () => {

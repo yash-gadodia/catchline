@@ -95,9 +95,17 @@ function StatusCard({ status, badge }: { status: string; badge?: string }) {
   );
 }
 
+const PLAN_LABELS: Record<string, string> = {
+  parallax_plus_monthly: 'Plus · Monthly',
+  parallax_plus_annual: 'Plus · Annual',
+  parallax_plus_lifetime: 'Plus · Lifetime',
+};
+
 // Plan details built only from fields RevenueCat actually returned.
 function PlanDetailsCard({ entitlement }: { entitlement: PurchasesEntitlementInfo }) {
-  const rows: [string, string][] = [['Plan', entitlement.productIdentifier]];
+  const rows: [string, string][] = [
+    ['Plan', PLAN_LABELS[entitlement.productIdentifier] ?? entitlement.productIdentifier],
+  ];
   if (entitlement.expirationDate) {
     rows.push([
       entitlement.willRenew ? 'Renews' : 'Expires',

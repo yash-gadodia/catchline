@@ -20,6 +20,7 @@ import {
 import { CaptureStep } from './steps/CaptureStep';
 import { WorkingStep } from './steps/WorkingStep';
 import { ReadResultStep } from './steps/ReadResultStep';
+import { success } from '../../lib/haptics';
 import { ErrorStep } from './steps/ErrorStep';
 import { SafetyStep } from './steps/SafetyStep';
 
@@ -53,6 +54,7 @@ export function OneSideFlow() {
   };
 
   const reset = () => {
+    setStep('capture');
     setCaptureKey((k) => k + 1);
     setText('');
     setPastedChat(null);
@@ -83,6 +85,7 @@ export function OneSideFlow() {
 
   const handleDone = async (outcome: SoloV2Outcome) => {
     track(EVENTS.REFOCUS_COMPLETED);
+    success();
     await clearDraft();
     if ('safety' in outcome) {
       const r = await addReceipt(fullAccount(text, pastedChat), 'read', 'safety');
@@ -108,7 +111,6 @@ export function OneSideFlow() {
           key={captureKey}
           insets={insets}
           onRead={handleRead}
-          onJustSave={handleJustSave}
           onOpenReceipts={() => router.push('/(sheets)/receipts')}
           onOpenSettings={() => router.push('/(sheets)/settings')}
         />

@@ -231,6 +231,13 @@ jest.mock('expo-haptics', () => ({
   NotificationFeedbackType: { Success: 'success', Warning: 'warning', Error: 'error' },
 }));
 
+// expo-image-picker is native — the library picker resolves cancelled unless a
+// test overrides it.
+jest.mock('expo-image-picker', () => ({
+  __esModule: true,
+  launchImageLibraryAsync: jest.fn(() => Promise.resolve({ canceled: true, assets: null })),
+}));
+
 // expo-clipboard is native — stub it for the share sheet's Copy action.
 jest.mock('expo-clipboard', () => ({
   __esModule: true,

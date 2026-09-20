@@ -75,6 +75,9 @@ export const CAPTURE_COPY = {
   justSave: 'Just save',
   readIt: 'Read it',
   pasteChat: 'Paste the chat',
+  addScreenshot: 'Add a screenshot',
+  readingScreenshot: 'Reading the screenshot…',
+  screenshotMiss: "Couldn't read a chat in that screenshot. Try a clearer one, or paste the text.",
   chatConsent:
     'Their words go with yours when you tap Read it. Only what you pasted, nothing else.',
   savedAnnounce: 'Saved on this phone. Nothing sent.',

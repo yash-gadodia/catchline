@@ -20,6 +20,7 @@ import Btn from '../src/components/Btn';
 import Toast from '../src/components/Toast';
 import { DawnBlobs } from '../src/components/DawnBlobs';
 import { useProfile } from '../src/features/profile/useProfile';
+import { ONE_SIDE } from '../src/content/refocus';
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -187,7 +188,8 @@ export default function EditProfileScreen() {
           <Field label="Your name" value={name} onChange={setName} />
           <Field label="Together since" value={since} onChange={setSince} hint="📅" />
 
-          {/* Paired with read-only card */}
+          {/* Paired with read-only card (couples mode only) */}
+          {!ONE_SIDE && (
           <View>
             <Text
               allowFontScaling={false}
@@ -263,6 +265,7 @@ export default function EditProfileScreen() {
               </Text>
             </View>
           </View>
+          )}
         </View>
       </ScrollView>
 
