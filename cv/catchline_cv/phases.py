@@ -54,9 +54,22 @@ def segment_snatch(bar_h, knee, fps, knee_pass=None, elbow=None, setup_s=1.0, mi
         m = int(np.argmax(descent))
         slow = np.where(descent[m:] < 0.25 * descent[m])[0]
         caught = peak + m + (int(slow[0]) if len(slow) else len(descent) - 1 - m)
-    # catch phase runs to the bottom of the squat; recovery stands until the bar is ~90% of the way back up
-    bottom = caught + int(np.argmin(bar_h[caught: min(n, caught + int(4 * fps))]))
-    after = bar_h[bottom:]
+    # the overhead hold ends when the bar is lowered or dropped (or lost in a miss); search only inside it
+    gone = np.where(bar_h[caught:] < floor + 0.35 * rng)[0]
+    hold_end = caught + int(gone[0]) if len(gone) else n
+    # catch phase runs to the bottom of the catch (squat or power); recovery stands until the bar is ~90% back up
+    # bottom = lowest bar between the catch and the stand-up (the bar passing halfway from the catch height back
+    # to the top of the hold); squat and power ride-downs alike. Without a stand-up (a miss) search the next 4 s.
+    hold = bar_h[caught: max(caught + 1, min(hold_end, n))]
+    dipped = np.where(hold < hold[0] - 0.03 * rng)[0]
+    if len(dipped):
+        up_again = np.where(hold >= hold[0] + 0.5 * (hold.max() - hold[0]))[0]
+        up_again = up_again[up_again > dipped[0]]
+        stop = int(up_again[0]) if len(up_again) else int(4 * fps)
+    else:
+        stop = int(0.5 * fps)
+    bottom = caught + int(np.argmin(hold[: max(1, stop)]))
+    after = bar_h[bottom: max(bottom + 1, hold_end)]
     stood = np.where(after >= bar_h[bottom] + 0.9 * (after.max() - bar_h[bottom]))[0]
     recovered = bottom + int(stood[0]) if len(stood) and after.max() - bar_h[bottom] > 0.05 * rng else n - 1
 
@@ -69,7 +82,7 @@ def segment_snatch(bar_h, knee, fps, knee_pass=None, elbow=None, setup_s=1.0, mi
     phases = [{"name": name, "startFrame": int(s), "endFrame": int(max(s, e))}
               for name, (s, e) in zip(SNATCH_PHASES, spans)]
     events = {"liftoff": liftoff, "first_ext": k1, "rebend": trans, "second_ext": s2, "peak": peak,
-              "caught": caught, "catch_bottom": bottom, "recovered": recovered, "double_knee_bend": double_bend}
+              "caught": caught, "catch_bottom": bottom, "recovered": recovered, "hold_end": hold_end, "double_knee_bend": double_bend}
     return phases, events
 
 
@@ -92,7 +105,11 @@ def find_reps(wrist_h, nose_h, knee_h, fps, min_overhead_s=0.3):
                 j += 1
             if (j - i) >= min_overhead_s * fps:
                 lows = np.where(low[:i])[0]
-                if len(lows):
+                if reps and not low[reps[-1][1]: i].any():
+                    # back overhead without the bar coming down past the knees (a catch dip, an overhead squat,
+                    # or a pose glitch): still the same rep
+                    reps[-1] = (reps[-1][0], j - 1, reps[-1][2])
+                elif len(lows):
                     start = int(lows[-1])
                     if not reps or start > reps[-1][1]:
                         reps.append((start, j - 1, i))
@@ -100,3 +117,14 @@ def find_reps(wrist_h, nose_h, knee_h, fps, min_overhead_s=0.3):
         else:
             i += 1
     return reps
+
+
+def catch_depth(hip_h, knee_h, knee_ang, start, end, squat_knee_deg=65.0):
+    """Deepest point of the catch: the frame in [start, end] where the hip is lowest. Returns (frame, cm-free depth =
+    how far the hip joint sits below the knee joint, up-positive inputs, kind). Joint centres sit near level even in a
+    full squat, so the kind comes from the knee angle: under squat_knee_deg is a squat catch, else a power catch."""
+    hip_h, knee_h, knee_ang = (np.asarray(x, float) for x in (hip_h, knee_h, knee_ang))
+    end = max(start, min(end, len(hip_h) - 1))
+    f = start + int(np.argmin(hip_h[start: end + 1]))
+    kind = "squat" if np.min(knee_ang[start: end + 1]) < squat_knee_deg else "power"
+    return f, float(knee_h[f] - hip_h[f]), kind

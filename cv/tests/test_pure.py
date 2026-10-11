@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 
 from catchline_cv import rules
-from catchline_cv.geometry import angle, lowpass, normalise, trunk_angle
-from catchline_cv.phases import SNATCH_PHASES, find_reps, segment_snatch
+from catchline_cv.geometry import angle, bar_from_wrists, lowpass, normalise, rise_ratio, trunk_angle
+from catchline_cv.phases import SNATCH_PHASES, catch_depth, find_reps, segment_snatch
 
 
 def test_angle_right_and_straight():
@@ -118,3 +118,94 @@ def test_rules_pick_most_severe_and_cap_confidence_off_side_on():
     assert len(rules.CUES["jump_forward"].split()) < 8
     assert rules.why_sentence("jump_forward", vals) == (
         "Your feet landed 7 cm forward because you chased a bar that swung 13 cm forward off your hips.")
+
+
+def synthetic_power_snatch(fps=30):
+    """Power snatch: pull, peak, a small drop into a quarter-squat ride, stand up, hold, then the bar is lowered."""
+    h = np.concatenate([
+        np.full(30, 22.0),                      # 0-29 floor
+        np.linspace(22, 140, 26),               # 30-55 pull
+        np.linspace(141, 150, 6),               # 56-61 to the peak
+        np.linspace(149, 135, 10),              # 62-71 ride down
+        np.linspace(136, 160, 15),              # 72-86 stand
+        np.full(30, 160.0),                     # 87-116 hold
+        np.linspace(158, 30, 20),               # 117-136 lowered
+    ])
+    knee = np.concatenate([np.full(30, 60.0), np.linspace(60, 175, 26), np.full(6, 175.0),
+                           np.linspace(170, 110, 10), np.linspace(115, 175, 15), np.full(50, 175.0)])
+    elbow = np.full(len(h), 100.0)
+    elbow[60:] = 165.0
+    return h, knee, elbow
+
+
+def test_segment_power_snatch_bottom_ignores_the_bar_being_lowered():
+    h, knee, elbow = synthetic_power_snatch()
+    phases, ev = segment_snatch(h, knee, 30, elbow=elbow)
+    assert ev["peak"] == 61
+    assert ev["caught"] == 61
+    assert ev["catch_bottom"] == 71
+    assert ev["recovered"] == 85
+    assert ev["hold_end"] == 131
+    assert [p["name"] for p in phases] == SNATCH_PHASES
+
+
+def test_squat_snatch_bottom_and_hold_end():
+    h, knee, elbow = synthetic_snatch()
+    _, ev = segment_snatch(h, knee, 30, elbow=elbow)
+    assert ev["catch_bottom"] == 97
+    assert ev["hold_end"] == len(h)
+
+
+def test_catch_depth_kind_from_knee_angle():
+    hip = np.array([90.0, 70, 52, 55, 80])
+    knee = np.array([50.0, 50, 50, 50, 50])
+    f, depth, kind = catch_depth(hip, knee, np.array([170.0, 120, 55, 60, 150]), 0, 4)
+    assert (f, depth, kind) == (2, -2.0, "squat")
+    f, depth, kind = catch_depth(hip, knee, np.array([170.0, 120, 85, 90, 150]), 0, 4)
+    assert (f, depth, kind) == (2, -2.0, "power")
+
+
+def test_find_reps_keeps_one_rep_across_an_overhead_dip():
+    n = 300
+    wrist = np.full(n, 20.0)
+    wrist[50:60] = np.linspace(20, 180, 10)
+    wrist[60:120] = 180.0
+    wrist[120:130] = 140.0                      # dips under the nose (catch or pose glitch), not to the knees
+    wrist[130:200] = 180.0
+    nose = np.full(n, 150.0)
+    knee = np.full(n, 50.0)
+    assert find_reps(wrist, nose, knee, 30) == [(51, 199, 58)]
+
+
+def test_rise_ratio_is_the_depth_ratio_of_two_points_on_a_rigid_bar():
+    plate = np.array([800.0, 780, 740, np.nan, 600])
+    wrist = 500 + (plate - 800) * 0.8
+    assert rise_ratio(plate, wrist) == pytest.approx(0.8)
+    assert rise_ratio(np.full(5, 3.0), wrist) is None
+
+
+def test_bar_from_wrists_drops_a_parked_wrist_by_continuity():
+    lw = np.array([[100.0, 500], [100, 400], [100, 300], [100, 300]])
+    rw = np.array([[104.0, 504], [104, 404], [104, 700], [104, 700]])  # far hand parked at the knee from frame 2
+    out = bar_from_wrists(lw, rw, 80)
+    assert out.tolist() == [[102.0, 502.0], [102.0, 402.0], [100.0, 300.0], [100.0, 300.0]]
+
+
+def test_rep_confidence_needs_two_agreeing_reps_for_clear():
+    assert rules.rep_confidence("clear", 1, 1) == "worth_checking"
+    assert rules.rep_confidence("clear", 1, 2) == "worth_checking"
+    assert rules.rep_confidence("clear", 2, 2) == "clear"
+    assert rules.rep_confidence("low", 3, 3) == "low"
+
+
+def test_refine_plate_ignores_shadow_and_finds_a_circle():
+    import cv2
+    from catchline_cv.track import refine_plate
+    img = np.full((800, 600, 3), 200, np.uint8)
+    cv2.circle(img, (300, 400), 100, (20, 20, 20), -1)                 # plate, 200 px
+    cv2.rectangle(img, (285, 480), (315, 700), (20, 20, 20), -1)       # its floor shadow
+    cv2.rectangle(img, (295, 380), (420, 405), (220, 220, 220), -1)    # bright sleeve notch
+    coarse = {"centre": np.array([300.0, 440]), "axes": (300.0, 200.0), "score": 0.7, "side": "near"}
+    r = refine_plate(img, coarse)
+    assert r["centre"] == pytest.approx([300, 400], abs=3)
+    assert r["axes"] == pytest.approx((200, 200), abs=4)

@@ -102,28 +102,112 @@ def ellipse_search(mask, centres, majors, ratios):
     return best[1]
 
 
-def find_plates(img, wrist_a, wrist_b, body_h):
-    """Plates on the wrist line beyond either hand. Returns [near, far] dicts (near = larger), or fewer if not found."""
+def _best_plate(m, cands, majors, ratios, prefer_large=False):
+    if prefer_large:
+        # fill scores are size-free, so a small dark blob (a shadow, the rim beside a light hub) can outscore the
+        # real plate; side-on the near plate is the big disc under the hands: take the largest close-scoring fit
+        fits = [q for q in (ellipse_search(m, cands, [M], ratios) for M in majors) if q]
+        top = max((q["score"] for q in fits), default=-1)
+        p = max((q for q in fits if q["score"] >= top - 0.15), key=lambda q: q["axes"][0], default=None)
+    else:
+        p = ellipse_search(m, cands, majors, ratios)
+    if p:
+        g = np.linspace(-0.06, 0.06, 9) * p["axes"][0]
+        M0, q0 = p["axes"][0], p["axes"][1] / p["axes"][0]
+        p = ellipse_search(m, [p["centre"] + [dx, dy] for dx in g for dy in g],
+                           M0 * np.linspace(0.92, 1.08, 9), np.clip(q0 + np.linspace(-0.1, 0.1, 11), 0.3, 1.0))
+    return p if p and p["score"] > 0.5 else None
+
+
+def find_plates(img, wrist_a, wrist_b, body_h, setup_h=None):
+    """Plates on the wrist line beyond either hand. Returns [near, far] dicts (near = larger), or fewer if not found.
+    Side-on (hands overlap) or when the line search finds nothing: one near plate from a box around the hands,
+    sized by the lifter's box height at setup (crouched, so roughly the plate's own scale)."""
     m = plate_mask(img)
     wa, wb = np.asarray(wrist_a, float), np.asarray(wrist_b, float)
     d = wb - wa
     L = np.linalg.norm(d)
-    u, nrm = d / L, np.array([-d[1], d[0]]) / L
-    majors = np.linspace(0.12, 0.5, 20) * body_h
     ratios = np.linspace(0.5, 1.0, 6)
     out = []
-    for side, ts in (("a", np.linspace(-3.0, -0.15, 50)), ("b", np.linspace(1.15, 4.0, 50))):
-        cands = [wa + t * d + o * nrm * L for t in ts for o in np.linspace(-0.4, 0.4, 9)]
-        p = ellipse_search(m, cands, majors, ratios)
+    if L >= 0.35 * body_h:
+        nrm = np.array([-d[1], d[0]]) / L
+        for side, ts in (("a", np.linspace(-3.0, -0.15, 50)), ("b", np.linspace(1.15, 4.0, 50))):
+            cands = [wa + t * d + o * nrm * L for t in ts for o in np.linspace(-0.4, 0.4, 9)]
+            p = _best_plate(m, cands, np.linspace(0.12, 0.5, 20) * body_h, ratios)
+            if p:
+                p["side"] = side
+                out.append(p)
+    if not out:
+        c = (wa + wb) / 2
+        sh = setup_h or body_h
+        cands = [c + [dx * sh, dy * sh] for dx in np.linspace(-0.5, 0.5, 31) for dy in np.linspace(-0.1, 0.8, 28)]
+        p = _best_plate(m, cands, np.linspace(0.15, 1.3, 30) * sh, ratios, prefer_large=True)
         if p:
-            g = np.linspace(-0.06, 0.06, 9) * p["axes"][0]
-            M0, q0 = p["axes"][0], p["axes"][1] / p["axes"][0]
-            p = ellipse_search(m, [p["centre"] + [dx, dy] for dx in g for dy in g],
-                               M0 * np.linspace(0.92, 1.08, 9), np.clip(q0 + np.linspace(-0.1, 0.1, 11), 0.3, 1.0))
-        if p and p["score"] > 0.5:
-            p["side"] = side
+            p["side"] = "near"
             out.append(p)
     return sorted(out, key=lambda p: -p["axes"][0])
+
+
+def ellipse_residual(pts, centre, axes, tilt_deg):
+    """|normalised radius - 1| of points against an ellipse (cv2.fitEllipse convention: axes are full widths)."""
+    t = np.radians(tilt_deg)
+    d = np.asarray(pts, float) - centre
+    x = d[:, 0] * np.cos(t) + d[:, 1] * np.sin(t)
+    y = -d[:, 0] * np.sin(t) + d[:, 1] * np.cos(t)
+    return np.abs(np.sqrt((x / (axes[0] / 2)) ** 2 + (y / (axes[1] / 2)) ** 2) - 1)
+
+
+def refine_plate(img, plate):
+    """Re-fit a coarse plate ellipse to the plate's own outline. The dark mask also catches the plate's floor shadow
+    and the lifter's shoes; an opening removes thin attachments and a RANSAC ellipse fit ignores the rest
+    (and the bright sleeve notch). A thick kernel cuts shadows but erases a thin ring around a change plate, so both
+    scales are tried and the fit that explains more of its outline wins.
+    Returns the plate with axes = (vertical, horizontal) full lengths, or None."""
+    m = plate_mask(img)
+    fits = [f for f in (_refine(m, plate, kf) for kf in (0.6, 0.35)) if f is not None]
+    return max(fits, key=lambda f: f["fit_inliers"]) if fits else None
+
+
+def _refine(m, plate, kf, iters=300, tol=0.035, seed=0):
+    r = plate["axes"][1] / 2
+    k = max(5, int(kf * r) | 1)
+    m = cv2.morphologyEx(m, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k, k)))
+    c = np.asarray(plate["centre"], float)
+    roi = np.zeros_like(m)
+    cv2.circle(roi, (int(c[0]), int(c[1])), int(1.4 * plate["axes"][0] / 2), 255, -1)
+    m &= roi
+    cs, _ = cv2.findContours(m, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    if not cs:
+        return None
+    pts = max(cs, key=lambda q: cv2.pointPolygonTest(q, tuple(float(v) for v in c), True)).reshape(-1, 2).astype(float)
+    if len(pts) < 20:
+        return None
+    rng = np.random.default_rng(seed)
+    best, best_in = None, 0
+    for _ in range(iters):
+        s = pts[rng.choice(len(pts), 6, replace=False)]
+        try:
+            (ex, ey), (w, h), ang = cv2.fitEllipse(s.astype(np.float32))
+        except cv2.error:
+            continue
+        if not (0.5 * r < min(w, h) / 2 and max(w, h) / 2 < 2.0 * r) or np.hypot(ex - c[0], ey - c[1]) > r:
+            continue
+        n_in = int((ellipse_residual(pts, (ex, ey), (w, h), ang) < tol).sum())
+        if n_in > best_in:
+            best, best_in = ((ex, ey), (w, h), ang), n_in
+    if best is None or best_in < 0.4 * len(pts):
+        return None
+    inl = pts[ellipse_residual(pts, *best) < tol]
+    (ex, ey), (w, h), ang = cv2.fitEllipse(inl.astype(np.float32))
+    # vertical / horizontal extent of the fitted ellipse
+    t = np.radians(ang)
+    a, b = w / 2, h / 2
+    half_w = np.sqrt((a * np.cos(t)) ** 2 + (b * np.sin(t)) ** 2)
+    half_h = np.sqrt((a * np.sin(t)) ** 2 + (b * np.cos(t)) ** 2)
+    out = dict(plate)
+    out.update({"centre": np.array([ex, ey]), "axes": (float(2 * half_h), float(2 * half_w)),
+                "fit_inliers": best_in / len(pts)})
+    return out
 
 
 def track_plate(frames, start, plate, stop=None):

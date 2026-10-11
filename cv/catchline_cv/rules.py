@@ -43,6 +43,13 @@ def confidence(fault_id, severity, side_on_off_deg):
     return "worth_checking" if severity >= 1.5 else "low"
 
 
+def rep_confidence(conf, seen, total):
+    """Repetition gates 'clear': the fault must fire on every rep, and on at least two of them."""
+    if conf == "clear" and (seen < 2 or seen < total):
+        return "worth_checking"
+    return conf
+
+
 def why_sentence(fault_id, values):
     hip, fwd, jump = (values.get(k) for k in ("hips_rise_early", "bar_forward_off_hips", "jump_forward"))
     hip_bad = hip is not None and hip >= RULES["hips_rise_early"]["threshold"]

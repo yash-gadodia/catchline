@@ -8,12 +8,12 @@ import cv2
 import numpy as np
 
 from . import rules
-from .geometry import angle, lowpass, normalise, trunk_angle
+from .geometry import angle, bar_from_wrists, lowpass, normalise, rise_ratio, trunk_angle
 from .lifter import select_lifter
-from .phases import SNATCH_PHASES, find_reps, key_frames, segment_snatch
+from .phases import SNATCH_PHASES, catch_depth, find_reps, key_frames, segment_snatch
 from .pose import (L_ANK, L_BIGTOE, L_ELB, L_HEEL, R_ELB, L_HIP, L_KNEE, L_SHO, L_WRI, NOSE, R_ANK, R_BIGTOE, R_HEEL,
                    R_HIP, R_KNEE, R_SHO, R_WRI, run_pose)
-from .track import find_plates, foreground_mask, from_ref, stabilise, to_ref, track_plate
+from .track import find_plates, foreground_mask, from_ref, refine_plate, stabilise, to_ref, track_plate
 from .video import frames, probe
 
 INFER_H = 1280
@@ -135,7 +135,11 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
     ksm = lowpass(kr.reshape(len(fr), -1), fps, 6.0).reshape(len(fr), 26, 2)
 
     up = lambda y: -y
-    bar = (ksm[:, L_WRI] + ksm[:, R_WRI]) / 2
+    hands_overlap = np.nanmedian(np.linalg.norm(kr[:, L_WRI] - kr[:, R_WRI], axis=1)) < 0.15 * body_h
+    if hands_overlap:
+        bar = lowpass(bar_from_wrists(kr[:, L_WRI], kr[:, R_WRI], 0.12 * body_h), fps, 6.0)
+    else:
+        bar = (ksm[:, L_WRI] + ksm[:, R_WRI]) / 2
     knee_ang = (angle(ksm[:, L_HIP], ksm[:, L_KNEE], ksm[:, L_ANK]) + angle(ksm[:, R_HIP], ksm[:, R_KNEE], ksm[:, R_ANK])) / 2
     hip_ang = (angle(ksm[:, L_SHO], ksm[:, L_HIP], ksm[:, L_KNEE]) + angle(ksm[:, R_SHO], ksm[:, R_HIP], ksm[:, R_KNEE])) / 2
     sho, hip = mid(ksm, L_SHO, R_SHO), mid(ksm, L_HIP, R_HIP)
@@ -151,11 +155,15 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
 
     # 2. plates at setup (sharp, static) -> scale + camera angle; near plate tracked through the pull
     seed = max(0, lo - 3)
-    plates = find_plates(fr[seed], kw[seed, L_WRI], kw[seed, R_WRI], body_h)
+    setup_h = float(np.nanmedian(boxes[s0 + max(0, lo - 24): s0 + lo + 1, 3] - boxes[s0 + max(0, lo - 24): s0 + lo + 1, 1]))
+
+    def plates_at(f):
+        return [refine_plate(fr[f], p) or p for p in find_plates(fr[f], kw[f, L_WRI], kw[f, R_WRI], body_h, setup_h)]
+    plates = plates_at(seed)
     if not plates:
         return None
     # single-frame ellipse fits wander ~7% on static setup frames: use the median axes over the setup
-    samples = [find_plates(fr[f], kw[f, L_WRI], kw[f, R_WRI], body_h) for f in range(max(0, lo - 24), lo, 3)]
+    samples = [plates_at(f) for f in range(max(0, lo - 24), lo, 3)]
     for i, pl in enumerate(plates):
         axes = [s[i]["axes"] for s in samples if len(s) == len(plates) and s[i]["side"] == pl["side"]]
         if len(axes) >= 3:
@@ -169,16 +177,30 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
         px_per_cm = 2 / (1 / scale_near + 1 / scale_far)
         span_cm = np.linalg.norm(near["centre"] - far["centre"]) / px_per_cm
         # three estimates of how far the camera sits off side-on: bar span, and each plate's ellipse (minor/major = cos)
-        est = [np.arcsin(np.clip(span_cm / PLATE_SPAN_CM, 0, 1))] + [np.arccos(p["axes"][1] / p["axes"][0]) for p in (near, far)]
+        est = [np.arcsin(np.clip(span_cm / PLATE_SPAN_CM, 0, 1))] + [np.arccos(min(1.0, p["axes"][1] / p["axes"][0])) for p in (near, far)]
         off_est = [float(np.degrees(e)) for e in est]
         off_side = float(np.median(off_est))
+        scale_method = "harmonic mean of near and far plates"
     else:
-        px_per_cm, span_cm = scale_near, None
-        off_est = [float(np.degrees(np.arccos(near["axes"][1] / near["axes"][0])))]
+        span_cm = None
+        off_est = [float(np.degrees(np.arccos(min(1.0, near["axes"][1] / near["axes"][0]))))]
         off_side = off_est[0]
     foreshort = 1 / np.cos(np.radians(off_side))
     plate_raw, plate_score = track_plate(fr, seed, near)
     plate_ref = to_ref(plate_raw, Ms)
+    depth_ratio = None
+    if far is None:
+        # side-on, only the near plate is visible and it sits ~75 cm closer to the camera than the lifter.
+        # The bar is rigid, so wrist-midpoint px rise / near-plate px rise over the pull = scale at the bar centre / near scale.
+        pull_end = min(ev["second_ext"], len(fr) - 1)
+        rise = -(plate_ref[pull_end, 1] - plate_ref[lo, 1]) if np.isfinite(plate_ref[pull_end, 1]) else np.nanmax(plate_ref[lo:pull_end + 1, 1]) - np.nanmin(plate_ref[lo:pull_end + 1, 1])
+        depth_ratio = rise_ratio(plate_ref[lo: pull_end + 1, 1], bar[lo: pull_end + 1, 1]) if rise > 0.5 * near["axes"][0] else None
+        if depth_ratio is not None and 0.2 < depth_ratio <= 1.2:
+            px_per_cm = scale_near * depth_ratio
+            scale_method = f"near plate x parallax depth ratio {depth_ratio:.2f}"
+        else:
+            px_per_cm = scale_near
+            scale_method = "near plate only (no parallax: plate rise too small or lost)"
 
     # forward = direction the toes point at setup
     toe = mid(ksm, L_BIGTOE, R_BIGTOE)[lo] - mid(ksm, L_HEEL, R_HEEL)[lo]
@@ -202,6 +224,10 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
     vals["jump_forward"] = cm(fwd * (ank[ev["caught"], 0] - ank[lo, 0])) * foreshort
     detail["jump_forward"] = {"frame": ev["caught"], "from_frame": lo}
 
+    knee_h = mid(ksm, L_KNEE, R_KNEE)
+    depth_end = min(ev["recovered"], ev["hold_end"] - 1)
+    depth_f, depth_px, catch_kind = catch_depth(-hip[:, 1], -knee_h[:, 1], knee_ang, ev["caught"], depth_end)
+    vals_depth = cm(depth_px)
     peak_h = cm(bar[lo, 1] - bar[ev["peak"], 1])
     drop = cm(bar[ev["caught"], 1] - bar[ev["peak"], 1])
     turnover_s = (ev["caught"] - ev["second_ext"]) / fps
@@ -216,7 +242,7 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
         wv = np.gradient(bar[pull, 1])[okp]
         agree = float(np.corrcoef(pv, wv)[0, 1])
 
-    made = bool(ev["recovered"] < len(fr) - 1 and knee_ang[ev["recovered"]] > 150)
+    made = bool(ev["recovered"] < len(fr) - 1 and knee_ang[ev["recovered"]: ev["recovered"] + int(0.5 * fps) + 1].max() > 150)
     g = lambda f: s0 + int(f)
     raw = lambda p, f: from_ref(p, Ms[f])
     path = [{"frame": g(f)} | normalise(raw(bar[f], f), W, H) for f in range(phases[0]["startFrame"], len(fr))
@@ -228,10 +254,12 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
         "keys": {kk: g(v) for kk, v in key_frames(ev).items()},
         "events": {kk: (g(v) if not isinstance(v, bool) else v) for kk, v in ev.items()},
         "path": path, "values": vals, "detail": detail, "px_per_cm": px_per_cm, "off_side_deg": off_side, "off_side_estimates": off_est,
-        "span_cm": span_cm, "plates": plates, "plate_tracked": int(np.isfinite(plate_raw[:, 0]).sum()),
+        "span_cm": span_cm, "plates": plates, "scale_method": scale_method, "depth_ratio": depth_ratio,
+        "catch_depth": vals_depth, "catch_depth_frame": g(depth_f), "catch_kind": catch_kind,
+        "catch_knee_min": float(np.min(knee_ang[ev["caught"]: max(ev["caught"], depth_end) + 1])), "plate_tracked": int(np.isfinite(plate_raw[:, 0]).sum()),
         "plate_lost_at": g(int(np.where(np.isfinite(plate_raw[:, 0]))[0].max())), "plate_wrist_corr": agree,
         "peak_h": peak_h, "drop": drop, "turnover_s": turnover_s, "standing_h": standing_h,
-        "stab_inliers_min": int(min(inliers)) if inliers else 0, "fwd": fwd,
+        "hands_overlap": bool(hands_overlap), "stab_inliers_min": int(min(inliers)) if inliers else 0, "fwd": fwd,
         "severity": max(rules.fired(vals).values(), default=0.0),
         "_ref": {"s0": s0, "Ms": Ms, "ksm": ksm, "bar": bar, "plate_ref": plate_ref, "knee_ang": knee_ang,
                  "hip_ang": hip_ang, "trunk": trunk, "hip": hip, "sho": sho, "ank": ank, "frames": fr,
@@ -273,6 +301,9 @@ def build_cue(r, reps, best_rep, W, H):
     meas += [
         {"id": "bar_peak_height", "label": "Bar peak height", "value": round(r["peak_h"], 1), "unit": "cm",
          "frame": r["events"]["peak"], "status": "normal", "note": "above lift-off (wrist midpoint)"},
+        {"id": "catch_depth", "label": "Catch depth", "value": round(abs(r["catch_depth"]), 1), "unit": "cm",
+         "frame": r["catch_depth_frame"], "status": "normal",
+         "note": f"{r['catch_kind']} catch, hip {'below' if r['catch_depth'] > 0 else 'above'} knee, knee {r['catch_knee_min']:.0f}°"},
         {"id": "turnover_time", "label": "Extension to catch", "value": round(r["turnover_s"], 2), "unit": "s",
          "frame": r["events"]["second_ext"], "status": "normal", "note": "± 1 frame at 30 fps"},
     ]
@@ -280,10 +311,8 @@ def build_cue(r, reps, best_rep, W, H):
         return meas, None
 
     sev = fired[cue_id]
-    conf = rules.confidence(cue_id, sev, off)
     seen = sum(1 for x in reps if cue_id in rules.fired(x["values"]))
-    if seen < len(reps) and conf == "clear":
-        conf = "worth_checking"
+    conf = rules.rep_confidence(rules.confidence(cue_id, sev, off), seen, len(reps))
     d = det[cue_id]
     f = d["frame"]
     Ms = ref["Ms"]

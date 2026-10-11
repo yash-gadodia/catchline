@@ -29,14 +29,15 @@ To ship into the app: copy `<id>.json` to `src/analysis/fixtures/` and `keyframe
    - **Scale:** pxPerCm comes from the 45 cm plate height. It is the harmonic mean of the near and far plates, which gives the scale at the bar centre's depth.
    - **Camera angle:** it is the median of three estimates: the plate-centre span, and each plate's ellipse (minor/major = cos θ).
    - **Cross-check:** the plate trace validates the wrist trace through the pull, as the correlation of their vertical velocities.
-6. **Phases** (`phases.py`, pure): lift-off (bar leaves floor), double knee bend from knee-angle extrema (first extension → re-bend → second extension), turnover peak (first real local max of bar height; a squat snatch stands up higher later), catch (first elbow lockout ≥150° from the peak; catch phase runs to the squat bottom), recovery (stand until the bar is 90% back up).
+   - **Side-on** (hands overlap, < 0.15 of body height apart): only the near plate is visible. It is found in a box under the hands, sized by the crouched setup box, and the search keeps the largest close-scoring disc. A RANSAC ellipse is then fitted to the mask outline at two opening scales, which drops the floor shadow, the shoes and the sleeve notch. The near plate sits ~75 cm closer to the camera than the lifter, so its size alone overstates the scale. **Scale** = near-plate scale × (wrist px rise ÷ plate px rise over the pull), since a rigid bar rises the same cm at both depths. When one wrist strays from the other by more than 12% of body height, it is a guess made behind the plate, and the bar uses the wrist that continues its path.
+6. **Phases** (`phases.py`, pure): lift-off (bar leaves floor), double knee bend from knee-angle extrema (first extension → re-bend → second extension), turnover peak (first real local max of bar height; a squat snatch stands up higher later), catch (first elbow lockout ≥150° from the peak). The catch phase runs to the catch bottom, the lowest bar point before the stand-up gets halfway back, for squat and power ride-downs alike, and only inside the overhead hold (so the bar being lowered or dropped is ignored). Recovery runs until the bar is 90% back up. **Made** means it recovered and the knees straighten (>150°) within 0.5 s. A rep only ends when the bar comes back below the knees. **Catch type**: a squat catch if the knee goes under 65° in the catch, otherwise a power catch (`catch_depth` measurement).
 7. **Rules** (`rules.py`, from 03-fault-taxonomy.md):
    - **Hips rise early.** Hip rise minus shoulder rise from lift-off to the bar passing the knee, threshold 8 cm. It uses vertical distances only, so it is robust to the camera angle; the taxonomy's 12° back-angle drop ≈ 9 cm for a 50 cm torso.
    - **Bar forward off hips.** Forward bar excursion from hip contact to the peak, threshold 10 cm.
    - **Jump forward.** Ankle-midpoint shift from lift-off to the catch, threshold 5 cm (lenient for phone noise).
    - **Angle correction.** Horizontal values are divided by cos(camera angle).
    - **Picking the cue.** The most severe fault wins.
-   - **Confidence.** It is capped to `low` for horizontal faults filmed more than 20° off side-on. It is never `clear` unless every rep agrees.
+   - **Confidence.** It is capped to `low` for horizontal faults filmed more than 20° off side-on. It is `clear` only when the fault fires on every rep, and on at least two reps.
 
 ## Known limits
 

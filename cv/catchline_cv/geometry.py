@@ -53,3 +53,30 @@ def apply_affine(M, pts):
 def invert_affine(M):
     A = np.vstack([M, [0, 0, 1]])
     return np.linalg.inv(A)[:2]
+
+
+def rise_ratio(ref_y, other_y):
+    """Least-squares slope of other's displacement on ref's (both from their first finite sample), NaNs skipped.
+    Two points on one rigid bar rise the same cm, so the px ratio is the ratio of their image scales (depths)."""
+    a, b = np.asarray(ref_y, float), np.asarray(other_y, float)
+    ok = np.isfinite(a) & np.isfinite(b)
+    if ok.sum() < 3:
+        return None
+    a, b = a[ok] - a[ok][0], b[ok] - b[ok][0]
+    den = float(np.sum(a * a))
+    return float(np.sum(a * b) / den) if den > 0 else None
+
+
+def bar_from_wrists(lw, rw, max_gap):
+    """Bar centre per frame from the two wrists (n,2). Both hands hold one rigid bar, so filmed side-on (hands
+    overlapping) their heights agree; when they differ by more than max_gap px one is a guess (the far hand hides
+    behind the plate and the pose model parks it at the knee). Pose scores do not tell which, so keep the wrist that
+    continues the bar's previous position."""
+    lw, rw = np.asarray(lw, float), np.asarray(rw, float)
+    out = (lw + rw) / 2
+    for f in range(len(out)):
+        if not (np.isfinite(lw[f]).all() and np.isfinite(rw[f]).all()):
+            out[f] = lw[f] if np.isfinite(lw[f]).all() else rw[f]
+        elif abs(lw[f, 1] - rw[f, 1]) > max_gap and f > 0 and np.isfinite(out[f - 1]).all():
+            out[f] = min((lw[f], rw[f]), key=lambda w: np.linalg.norm(w - out[f - 1]))
+    return out
