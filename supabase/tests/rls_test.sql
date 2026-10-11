@@ -1,204 +1,98 @@
--- RLS and function tests using pgTAP
--- Tests data integrity, RLS policies, and pairing functions
-
+-- RLS enforcement: owner-only on every table and on the storage buckets.
+-- Switches into the authenticated / anon roles with request.jwt.claims so
+-- auth.uid() is a real user, and asserts the rows each one can actually touch.
 begin;
-  create extension if not exists pgtap;
-  select no_plan();
+create extension if not exists pgtap;
+select plan(28);
 
-  -- ========================================================================
-  -- SETUP: Create test users and their profiles
-  -- ========================================================================
+insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at)
+values
+  ('b1000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'rls-alice@test.dev', '', now(), now(), now()),
+  ('b1000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'rls-bob@test.dev', '', now(), now(), now());
 
-  insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at)
-  values
-    ('11111111-1111-1111-1111-111111111111'::uuid, '00000000-0000-0000-0000-000000000000'::uuid, 'authenticated', 'authenticated', 'alice@test.com', '', now(), now(), now()),
-    ('22222222-2222-2222-2222-222222222222'::uuid, '00000000-0000-0000-0000-000000000000'::uuid, 'authenticated', 'authenticated', 'bob@test.com', '', now(), now(), now()),
-    ('33333333-3333-3333-3333-333333333333'::uuid, '00000000-0000-0000-0000-000000000000'::uuid, 'authenticated', 'authenticated', 'charlie@test.com', '', now(), now(), now())
-  on conflict do nothing;
+insert into public.consents (user_id, kind, version, granted)
+values ('b1000000-0000-0000-0000-000000000001', 'upload_privacy', '1', true),
+       ('b1000000-0000-0000-0000-000000000002', 'upload_privacy', '1', true);
 
-  insert into public.profiles (id, display_name)
-  values
-    ('11111111-1111-1111-1111-111111111111'::uuid, 'Alice'),
-    ('22222222-2222-2222-2222-222222222222'::uuid, 'Bob'),
-    ('33333333-3333-3333-3333-333333333333'::uuid, 'Charlie')
-  on conflict (id) do update set display_name = excluded.display_name;
+insert into public.lifts (id, user_id, movement, status, clip_path)
+values
+  ('b2000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001', 'snatch', 'done',
+   'b1000000-0000-0000-0000-000000000001/b2000000-0000-0000-0000-000000000001'),
+  ('b2000000-0000-0000-0000-000000000002', 'b1000000-0000-0000-0000-000000000001', 'clean', 'uploading',
+   'b1000000-0000-0000-0000-000000000001/b2000000-0000-0000-0000-000000000002'),
+  ('b2000000-0000-0000-0000-000000000003', 'b1000000-0000-0000-0000-000000000002', 'jerk', 'uploading',
+   'b1000000-0000-0000-0000-000000000002/b2000000-0000-0000-0000-000000000003');
 
-  -- Clean up test couples from previous runs
-  delete from public.couples where invite_code in ('TEST-0001', 'TEST-0002', 'TEST-X');
+insert into public.analyses (lift_id, user_id, analysis)
+values ('b2000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001', '{"version": 1, "id": "rls-a"}');
 
-  -- ========================================================================
-  -- TEST GROUP 1: Couple Creation (via direct insert, RLS policy prevents normal INSERT)
-  -- ========================================================================
+insert into public.cues (id, user_id, movement, fault_id, text)
+values ('b3000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001', 'snatch', 'hips_rise_early', 'Push the floor away');
 
-  insert into public.couples (member_a, invite_code, status)
-  select '11111111-1111-1111-1111-111111111111'::uuid, 'TEST-0001', 'pending';
+insert into public.coach_links (user_id, lift_id)
+values ('b1000000-0000-0000-0000-000000000001', 'b2000000-0000-0000-0000-000000000001');
 
-  select is(
-    (select status from public.couples where invite_code = 'TEST-0001'),
-    'pending'::text,
-    'couple created with pending status'
-  );
+insert into storage.objects (bucket_id, name)
+values ('keyframes', 'b1000000-0000-0000-0000-000000000001/b2000000-0000-0000-0000-000000000001/r1-1-setup.jpg'),
+       ('raw-clips', 'b1000000-0000-0000-0000-000000000001/b2000000-0000-0000-0000-000000000001');
 
-  select ok(
-    (select id from public.couples where invite_code = 'TEST-0001') IS NOT NULL,
-    'couple has a valid uuid id'
-  );
+-- ---- Bob reads none of Alice's rows ----------------------------------------
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"b1000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
 
-  select is(
-    (select member_a from public.couples where invite_code = 'TEST-0001'),
-    '11111111-1111-1111-1111-111111111111'::uuid,
-    'couple member_a is creator'
-  );
+select is((select count(*)::int from public.lifts where user_id = 'b1000000-0000-0000-0000-000000000001'), 0, 'Bob reads 0 of Alice''s lifts');
+select is((select count(*)::int from public.analyses), 0, 'Bob reads 0 analyses');
+select is((select count(*)::int from public.cues), 0, 'Bob reads 0 cues');
+select is((select count(*)::int from public.coach_links), 0, 'Bob reads 0 coach links');
+select is((select count(*)::int from public.consents), 1, 'Bob reads only his own consent');
+select is((select count(*)::int from public.usage_counters), 1, 'Bob reads only his own usage row');
+select is((select count(*)::int from public.profiles), 1, 'Bob reads only his own profile');
+select is((select count(*)::int from storage.objects where bucket_id = 'keyframes'), 0, 'Bob reads 0 of Alice''s keyframes');
 
-  select ok(
-    (select member_b from public.couples where invite_code = 'TEST-0001') IS NULL,
-    'couple member_b is null (pending)'
-  );
+update public.cues set status = 'dropped' where id = 'b3000000-0000-0000-0000-000000000001';
+delete from public.lifts where id = 'b2000000-0000-0000-0000-000000000001';
 
-  -- ========================================================================
-  -- TEST GROUP 2: Manually Activate Couple (join_couple requires auth context)
-  -- ========================================================================
+select throws_ok($$insert into public.lifts (user_id, movement, clip_path) values ('b1000000-0000-0000-0000-000000000002', 'snatch', 'x/y')$$,
+  '42501', null, 'Clients cannot insert lifts directly (create_lift only)');
+select throws_ok($$insert into public.analyses (lift_id, user_id, analysis) values ('b2000000-0000-0000-0000-000000000003', 'b1000000-0000-0000-0000-000000000002', '{"version": 1}')$$,
+  '42501', null, 'Clients cannot write analyses');
+select throws_ok($$update public.lifts set status = 'done'$$, '42501', null, 'Clients cannot update lift status');
+select throws_ok($$select * from public.claim_lift_job()$$, '42501', null, 'Clients cannot claim worker jobs');
+select throws_ok($$insert into public.consents (user_id, kind, version, granted) values ('b1000000-0000-0000-0000-000000000001', 'upload_privacy', '1', false)$$,
+  '42501', null, 'Bob cannot record a consent for Alice');
+select throws_ok($$insert into storage.objects (bucket_id, name) values ('raw-clips', 'b1000000-0000-0000-0000-000000000001/b2000000-0000-0000-0000-000000000002')$$,
+  '42501', null, 'Bob cannot upload into Alice''s pending lift path');
+reset role;
 
-  -- In production, join_couple(code) is called by authenticated users.
-  -- Here we manually create an active couple to test RLS and data integrity
-  update public.couples
-  set member_b = '22222222-2222-2222-2222-222222222222'::uuid,
-      status = 'active',
-      together_since = current_date
-  where invite_code = 'TEST-0001';
+select is((select status from public.cues where id = 'b3000000-0000-0000-0000-000000000001'), 'trying', 'Bob''s update of Alice''s cue changed nothing');
+select is((select count(*)::int from public.lifts where id = 'b2000000-0000-0000-0000-000000000001'), 1, 'Bob''s delete of Alice''s lift removed nothing');
 
-  select is(
-    (select status from public.couples where invite_code = 'TEST-0001'),
-    'active'::text,
-    'couple can be activated (status = active)'
-  );
+-- ---- Alice reads and edits her own -----------------------------------------
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"b1000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
 
-  select is(
-    (select member_b from public.couples where invite_code = 'TEST-0001'),
-    '22222222-2222-2222-2222-222222222222'::uuid,
-    'couple has member_b set after activation'
-  );
+select is((select count(*)::int from public.lifts), 2, 'Alice reads her 2 lifts');
+select is((select analysis ->> 'id' from public.analyses), 'rls-a', 'Alice reads her analysis');
+select is((select count(*)::int from public.coach_links), 1, 'Alice reads her coach link');
+select is((select count(*)::int from storage.objects where bucket_id = 'keyframes'), 1, 'Alice reads her keyframe');
+select is((select count(*)::int from storage.objects where bucket_id = 'raw-clips'), 0, 'Raw clips are never readable by the client, even the owner');
 
-  select is(
-    (select together_since from public.couples where invite_code = 'TEST-0001'),
-    current_date::date,
-    'couple has together_since set to today'
-  );
+update public.cues set status = 'stuck' where id = 'b3000000-0000-0000-0000-000000000001';
+select is((select status from public.cues where id = 'b3000000-0000-0000-0000-000000000001'), 'stuck', 'Alice updates her cue status');
+select throws_ok($$update public.cues set text = 'edited'$$, '42501', null, 'Cue text is not client-writable');
+select throws_ok($$update public.profiles set plan = 'platform'$$, '42501', null, 'Plan is not client-writable');
+select lives_ok($$insert into storage.objects (bucket_id, name) values ('raw-clips', 'b1000000-0000-0000-0000-000000000001/b2000000-0000-0000-0000-000000000002')$$,
+  'Alice uploads into her own pending lift path');
+select throws_ok($$insert into storage.objects (bucket_id, name) values ('raw-clips', 'b1000000-0000-0000-0000-000000000001/somewhere-else')$$,
+  '42501', null, 'Alice cannot upload a raw clip outside a pending lift');
+reset role;
 
-  -- ========================================================================
-  -- TEST GROUP 3: Couples Table Structure and Constraints
-  -- ========================================================================
+-- ---- anon reads nothing -----------------------------------------------------
+set local role anon;
+select set_config('request.jwt.claims', '{"role":"anon"}', true);
+select throws_ok($$select count(*) from public.lifts$$, '42501', null, 'anon has no access to lifts');
+select throws_ok($$select count(*) from public.coach_links$$, '42501', null, 'anon has no access to coach_links');
+reset role;
 
-  select ok(
-    exists(select 1 from public.couples where invite_code = 'TEST-0001'),
-    'test couple exists with correct invite code'
-  );
-
-  select ok(
-    (select invite_code from public.couples where invite_code = 'TEST-0001') is not null,
-    'TEST-0001 couple has invite_code'
-  );
-
-  -- Verify status constraint
-  select ok(
-    not exists(select 1 from public.couples where status not in ('pending', 'active')),
-    'all couples have valid status (pending or active)'
-  );
-
-  -- ========================================================================
-  -- TEST GROUP 4: Profiles Table (RLS policy structure verification)
-  -- ========================================================================
-
-  -- Verify the test profiles exist by their UUIDs (hermetic: not by global count)
-  select ok(
-    exists(select 1 from public.profiles where id = '11111111-1111-1111-1111-111111111111'::uuid and display_name = 'Alice'),
-    'Alice profile exists with correct UUID'
-  );
-
-  select ok(
-    exists(select 1 from public.profiles where id = '22222222-2222-2222-2222-222222222222'::uuid and display_name = 'Bob'),
-    'Bob profile exists with correct UUID'
-  );
-
-  select ok(
-    exists(select 1 from public.profiles where id = '33333333-3333-3333-3333-333333333333'::uuid and display_name = 'Charlie'),
-    'Charlie profile exists with correct UUID'
-  );
-
-  -- ========================================================================
-  -- TEST GROUP 5: RLS Policy Verification
-  -- ========================================================================
-  -- Note: RLS policies are verified via integration tests (REST API)
-  -- Here we verify the policies are defined correctly
-
-  select ok(
-    exists(
-      select 1 from pg_policies
-      where schemaname = 'public'
-        and tablename = 'couples'
-        and policyname = 'select_own_couple'
-    ),
-    'select_own_couple RLS policy exists'
-  );
-
-  select ok(
-    exists(
-      select 1 from pg_policies
-      where schemaname = 'public'
-        and tablename = 'profiles'
-        and policyname = 'select_own_profile'
-    ),
-    'select_own_profile RLS policy exists'
-  );
-
-  select ok(
-    exists(
-      select 1 from pg_policies
-      where schemaname = 'public'
-        and tablename = 'profiles'
-        and policyname = 'select_partner_profile'
-    ),
-    'select_partner_profile RLS policy exists'
-  );
-
-  -- ========================================================================
-  -- TEST GROUP 6: Data Integrity Across Pairing
-  -- ========================================================================
-
-  -- Verify the test couple is active with both members
-  select is(
-    (select status from public.couples where invite_code = 'TEST-0001'),
-    'active'::text,
-    'Test couple is active with both members'
-  );
-
-  select ok(
-    (select member_b from public.couples where invite_code = 'TEST-0001') is not null,
-    'Test couple has both member_a and member_b set'
-  );
-
-  -- Verify profiles exist for both active couple members
-  select ok(
-    exists(
-      select 1 from public.profiles p
-      inner join public.couples c on c.member_a = p.id
-      where c.status = 'active'
-    ),
-    'active couple member_a has profile'
-  );
-
-  select ok(
-    exists(
-      select 1 from public.profiles p
-      inner join public.couples c on c.member_b = p.id
-      where c.status = 'active'
-    ),
-    'active couple member_b has profile'
-  );
-
-  -- ========================================================================
-  -- SUMMARY
-  -- ========================================================================
-
-  select finish();
+select * from finish();
 rollback;

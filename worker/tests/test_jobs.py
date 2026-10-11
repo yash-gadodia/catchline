@@ -1,0 +1,172 @@
+import os
+
+import pytest
+
+from catchline_worker.jobs import MAX_ATTEMPTS, Job, Result, drain, process_one
+
+ROW = {
+    "msg_id": 7,
+    "lift_id": "lift-1",
+    "user_id": "user-1",
+    "movement": "snatch",
+    "load_kg": 70.0,
+    "clip_path": "user-1/lift-1",
+    "attempt": 1,
+}
+
+
+class FakeDb:
+    def __init__(self, jobs=(), fail_on=None):
+        self.jobs = list(jobs)
+        self.calls = []
+        self.fail_on = fail_on
+
+    def _maybe_fail(self, name):
+        if self.fail_on == name:
+            raise ConnectionError(f"{name} down")
+
+    def rpc(self, fn, args):
+        self.calls.append(("rpc", fn, args))
+        self._maybe_fail(fn)
+        if fn == "claim_lift_job":
+            return [self.jobs.pop(0)] if self.jobs else []
+        if fn == "complete_lift_job":
+            return {"status": "done", "cue_id": "cue-1"}
+        if fn == "fail_lift_job":
+            return "queued" if args["p_retry"] else "failed"
+        return None
+
+    def download(self, bucket, path, dest):
+        self.calls.append(("download", bucket, path))
+        self._maybe_fail("download")
+        with open(dest, "wb") as fh:
+            fh.write(b"clip")
+
+    def upload(self, bucket, path, src, content_type):
+        self.calls.append(("upload", bucket, path, content_type))
+
+    def remove(self, bucket, paths):
+        self.calls.append(("remove", bucket, paths))
+        self._maybe_fail("remove")
+
+    def names(self):
+        return [c[1] if c[0] == "rpc" else c[0] for c in self.calls]
+
+
+def fake_analyse(clip, job, workdir):
+    kf = os.path.join(workdir, "keyframes")
+    os.makedirs(kf)
+    paths = []
+    for name in ("r1-1-setup.jpg", "r1-2-first_pull.jpg"):
+        p = os.path.join(kf, name)
+        open(p, "wb").close()
+        paths.append(p)
+    with open(clip, "rb") as fh:
+        assert fh.read() == b"clip"
+    return Result({"version": 1, "id": job.lift_id, "cue": {"faultId": "hips_rise_early"}}, paths)
+
+
+def crashing_analyse(clip, job, workdir):
+    raise RuntimeError("pose model exploded")
+
+
+def test_empty_queue_returns_none():
+    db = FakeDb()
+    assert process_one(db, fake_analyse) is None
+    assert db.calls == [("rpc", "claim_lift_job", {"p_vt": 600, "p_max_attempts": MAX_ATTEMPTS})]
+
+
+def test_success_runs_download_analyse_upload_complete_then_deletes_clip():
+    db = FakeDb([ROW])
+    out = process_one(db, fake_analyse)
+    assert out == {"lift_id": "lift-1", "status": "done", "cue_id": "cue-1", "keyframes": 2, "clip_deleted": True}
+    assert db.names() == [
+        "claim_lift_job",
+        "download",
+        "upload",
+        "upload",
+        "complete_lift_job",
+        "remove",
+        "mark_clip_deleted",
+    ]
+    assert db.calls[1] == ("download", "raw-clips", "user-1/lift-1")
+    assert db.calls[2] == ("upload", "keyframes", "user-1/lift-1/r1-1-setup.jpg", "image/jpeg")
+    assert db.calls[3] == ("upload", "keyframes", "user-1/lift-1/r1-2-first_pull.jpg", "image/jpeg")
+    assert db.calls[4] == (
+        "rpc",
+        "complete_lift_job",
+        {
+            "p_msg_id": 7,
+            "p_lift_id": "lift-1",
+            "p_analysis": {"version": 1, "id": "lift-1", "cue": {"faultId": "hips_rise_early"}},
+        },
+    )
+    assert db.calls[5] == ("remove", "raw-clips", ["user-1/lift-1"])
+    assert db.calls[6] == ("rpc", "mark_clip_deleted", {"p_lift_id": "lift-1"})
+
+
+def test_error_with_attempts_left_requeues_and_keeps_the_clip():
+    db = FakeDb([ROW])
+    out = process_one(db, crashing_analyse)
+    assert out == {
+        "lift_id": "lift-1",
+        "status": "queued",
+        "error": "RuntimeError: pose model exploded",
+        "attempt": 1,
+        "clip_deleted": False,
+    }
+    assert db.calls[-1] == (
+        "rpc",
+        "fail_lift_job",
+        {"p_msg_id": 7, "p_lift_id": "lift-1", "p_error": "RuntimeError: pose model exploded", "p_retry": True},
+    )
+    assert "remove" not in db.names()
+
+
+def test_error_on_last_attempt_fails_for_good_and_deletes_the_clip():
+    db = FakeDb([ROW | {"attempt": MAX_ATTEMPTS}])
+    out = process_one(db, crashing_analyse)
+    assert out["status"] == "failed"
+    assert out["clip_deleted"] is True
+    assert db.names()[-3:] == ["fail_lift_job", "remove", "mark_clip_deleted"]
+    assert db.calls[-3][2]["p_retry"] is False
+
+
+def test_download_error_is_retried_like_any_other():
+    db = FakeDb([ROW], fail_on="download")
+    out = process_one(db, fake_analyse)
+    assert out["status"] == "queued"
+    assert out["error"] == "ConnectionError: download down"
+
+
+def test_storage_delete_failure_is_logged_not_raised_and_reported():
+    db = FakeDb([ROW], fail_on="remove")
+    out = process_one(db, fake_analyse)
+    assert out["status"] == "done"
+    assert out["clip_deleted"] is False
+    assert "mark_clip_deleted" not in db.names()
+
+
+def test_drain_processes_until_the_queue_is_empty():
+    db = FakeDb([ROW, ROW | {"msg_id": 8, "lift_id": "lift-2", "clip_path": "user-1/lift-2"}])
+    out = drain(db, fake_analyse)
+    assert [r["lift_id"] for r in out] == ["lift-1", "lift-2"]
+    assert db.names().count("claim_lift_job") == 3
+
+
+def test_job_keyframe_prefix_is_user_then_lift():
+    assert Job(**ROW).keyframe_prefix == "user-1/lift-1"
+
+
+def test_drain_respects_the_limit():
+    db = FakeDb([ROW] * 5)
+    assert len(drain(db, fake_analyse, limit=2)) == 2
+    assert len(db.jobs) == 3
+
+
+@pytest.mark.parametrize("attempt,retry", [(1, True), (2, True), (3, False)])
+def test_retry_decision_by_attempt(attempt, retry):
+    db = FakeDb([ROW | {"attempt": attempt}])
+    process_one(db, crashing_analyse)
+    fail = next(c for c in db.calls if c[0] == "rpc" and c[1] == "fail_lift_job")
+    assert fail[2]["p_retry"] is retry
