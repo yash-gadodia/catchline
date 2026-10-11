@@ -1,388 +1,257 @@
-import { usePurchases } from './usePurchases';
+import type { CustomerInfo, PurchasesPackage } from 'react-native-purchases';
+import { classifyPurchaseError, planFromInfo, presentCustomerCenter, usePurchases } from './usePurchases';
 
 jest.mock('./client', () => ({
   loadPurchases: jest.fn(),
-  ENTITLEMENT_ID: 'Parallax Pro',
   RC_IOS_KEY: 'test-ios-key',
   RC_ANDROID_KEY: 'test-android-key',
 }));
 
+const mockPlatform = { OS: 'ios' };
 jest.mock('react-native', () => ({
-  Platform: { OS: 'ios' },
+  get Platform() {
+    return mockPlatform;
+  },
 }));
 
 import { loadPurchases } from './client';
 
 const mockLoadPurchases = loadPurchases as jest.Mock;
 
-describe('usePurchases', () => {
-  beforeEach(() => {
-    // Reset store state before each test
-    usePurchases.setState({
-      ready: false,
-      isPro: false,
-      offering: null,
-      customerInfo: null,
-    });
-    jest.clearAllMocks();
+function info(entitlements: Record<string, { productIdentifier: string; expirationDate: string | null }>) {
+  return { entitlements: { active: entitlements } } as unknown as CustomerInfo;
+}
+
+const PULL_ANNUAL = info({
+  hook: { productIdentifier: 'catchline_pull_annual', expirationDate: '2027-10-11T00:00:00Z' },
+  pull: { productIdentifier: 'catchline_pull_annual', expirationDate: '2027-10-11T00:00:00Z' },
+});
+
+function pkg(identifier: string) {
+  return { identifier } as PurchasesPackage;
+}
+
+function offerings() {
+  return {
+    current: null,
+    all: {
+      default: { availablePackages: [pkg('hook_annual'), pkg('pull_annual'), pkg('pull_monthly'), pkg('founding')] },
+      ad_trial: { availablePackages: [pkg('$rc_annual'), pkg('$rc_monthly')] },
+    },
+  };
+}
+
+function sdk() {
+  return {
+    configure: jest.fn(),
+    setLogHandler: jest.fn(),
+    addCustomerInfoUpdateListener: jest.fn(),
+    getCustomerInfo: jest.fn(),
+    getOfferings: jest.fn(() => Promise.resolve(offerings())),
+    purchasePackage: jest.fn(),
+    restorePurchases: jest.fn(),
+    STORE_REPLACEMENT_MODE: { CHARGE_PRORATED_PRICE: 'CHARGE_PRORATED_PRICE', DEFERRED: 'DEFERRED' },
+  };
+}
+
+beforeEach(() => {
+  usePurchases.setState({
+    ready: false,
+    demo: true,
+    tier: 'free',
+    period: null,
+    expiresAt: null,
+    offerings: null,
+    customerInfo: null,
+    demoOutcome: 'success',
+  });
+  mockPlatform.OS = 'ios';
+  jest.clearAllMocks();
+});
+
+describe('planFromInfo', () => {
+  it('reads the top tier, its period and expiry', () => {
+    expect(planFromInfo(PULL_ANNUAL)).toEqual({ tier: 'pull', period: 'annual', expiresAt: '2027-10-11T00:00:00Z' });
   });
 
-  describe('setDemoPro', () => {
-    it('setDemoPro(true) sets isPro to true', () => {
-      const { setDemoPro } = usePurchases.getState();
-
-      expect(usePurchases.getState().isPro).toBe(false);
-
-      setDemoPro(true);
-
-      expect(usePurchases.getState().isPro).toBe(true);
+  it('reads a founding seat as founding with no period', () => {
+    const founding = info({
+      pull: { productIdentifier: 'catchline_founding_lifetime', expirationDate: null },
+      founding: { productIdentifier: 'catchline_founding_lifetime', expirationDate: null },
     });
-
-    it('setDemoPro(false) sets isPro to false', () => {
-      usePurchases.setState({ isPro: true });
-      const { setDemoPro } = usePurchases.getState();
-
-      setDemoPro(false);
-
-      expect(usePurchases.getState().isPro).toBe(false);
-    });
+    expect(planFromInfo(founding)).toEqual({ tier: 'founding', period: null, expiresAt: null });
   });
 
-  describe('purchase', () => {
-    it('demo mode (no SDK) sets isPro to true and returns true', async () => {
-      mockLoadPurchases.mockReturnValue({ Purchases: null, RevenueCatUI: null });
+  it('is free with no entitlements or no info', () => {
+    expect(planFromInfo(info({}))).toEqual({ tier: 'free', period: null, expiresAt: null });
+    expect(planFromInfo(null)).toEqual({ tier: 'free', period: null, expiresAt: null });
+  });
+});
 
-      const { purchase } = usePurchases.getState();
-      const mockPackage = { identifier: 'test-pkg' };
+describe('classifyPurchaseError', () => {
+  it('maps RevenueCat errors to paywall states', () => {
+    expect(classifyPurchaseError({ userCancelled: true })).toBe('cancelled');
+    expect(classifyPurchaseError({ code: '1' })).toBe('cancelled');
+    expect(classifyPurchaseError({ code: '10' })).toBe('offline');
+    expect(classifyPurchaseError({ code: '35' })).toBe('offline');
+    expect(classifyPurchaseError({ code: '2' })).toBe('failed');
+    expect(classifyPurchaseError(new Error('boom'))).toBe('failed');
+    expect(classifyPurchaseError(undefined)).toBe('failed');
+  });
+});
 
-      const result = await purchase(mockPackage as any);
+describe('demo mode (no SDK)', () => {
+  beforeEach(() => mockLoadPurchases.mockReturnValue({ Purchases: null, RevenueCatUI: null }));
 
-      expect(result).toBe(true);
-      expect(usePurchases.getState().isPro).toBe(true);
-    });
-
-    it('with SDK: successful purchase sets isPro true when entitlement exists', async () => {
-      const mockPurchases = {
-        configure: jest.fn(),
-        setLogHandler: jest.fn(),
-        addCustomerInfoUpdateListener: jest.fn(),
-        getCustomerInfo: jest.fn(),
-        getOfferings: jest.fn(),
-        purchasePackage: jest.fn(),
-      };
-
-      mockLoadPurchases.mockReturnValue({ Purchases: mockPurchases, RevenueCatUI: null });
-
-      // Mock successful purchase with pro entitlement
-      const proCustomerInfo = {
-        entitlements: { active: { 'Parallax Pro': {} } },
-      };
-      mockPurchases.purchasePackage.mockResolvedValue({
-        customerInfo: proCustomerInfo,
-      });
-
-      const { purchase } = usePurchases.getState();
-      const mockPackage = { identifier: 'test-pkg' };
-
-      const result = await purchase(mockPackage as any);
-
-      expect(result).toBe(true);
-      expect(usePurchases.getState().isPro).toBe(true);
-      expect(usePurchases.getState().customerInfo).toEqual(proCustomerInfo);
-    });
-
-    it('with SDK: purchase without entitlement sets isPro false and returns false', async () => {
-      const mockPurchases = {
-        configure: jest.fn(),
-        setLogHandler: jest.fn(),
-        addCustomerInfoUpdateListener: jest.fn(),
-        getCustomerInfo: jest.fn(),
-        getOfferings: jest.fn(),
-        purchasePackage: jest.fn(),
-      };
-
-      mockLoadPurchases.mockReturnValue({ Purchases: mockPurchases, RevenueCatUI: null });
-
-      // Mock purchase response without pro entitlement
-      const noproCustomerInfo = {
-        entitlements: { active: {} },
-      };
-      mockPurchases.purchasePackage.mockResolvedValue({
-        customerInfo: noproCustomerInfo,
-      });
-
-      const { purchase } = usePurchases.getState();
-      const mockPackage = { identifier: 'test-pkg' };
-
-      const result = await purchase(mockPackage as any);
-
-      expect(result).toBe(false);
-      expect(usePurchases.getState().isPro).toBe(false);
-    });
-
-    it('user cancellation returns false without throwing', async () => {
-      const mockPurchases = {
-        configure: jest.fn(),
-        setLogHandler: jest.fn(),
-        addCustomerInfoUpdateListener: jest.fn(),
-        getCustomerInfo: jest.fn(),
-        getOfferings: jest.fn(),
-        purchasePackage: jest.fn(),
-      };
-
-      mockLoadPurchases.mockReturnValue({ Purchases: mockPurchases, RevenueCatUI: null });
-
-      // Mock user cancellation
-      const cancelError = new Error('User cancelled');
-      (cancelError as any).userCancelled = true;
-      mockPurchases.purchasePackage.mockRejectedValue(cancelError);
-
-      const { purchase } = usePurchases.getState();
-      const mockPackage = { identifier: 'test-pkg' };
-
-      const result = await purchase(mockPackage as any);
-
-      expect(result).toBe(false);
-      expect(usePurchases.getState().isPro).toBe(false);
-    });
-
-    it('other errors are thrown', async () => {
-      const mockPurchases = {
-        configure: jest.fn(),
-        setLogHandler: jest.fn(),
-        addCustomerInfoUpdateListener: jest.fn(),
-        getCustomerInfo: jest.fn(),
-        getOfferings: jest.fn(),
-        purchasePackage: jest.fn(),
-      };
-
-      mockLoadPurchases.mockReturnValue({ Purchases: mockPurchases, RevenueCatUI: null });
-
-      const networkError = new Error('Network failed');
-      mockPurchases.purchasePackage.mockRejectedValue(networkError);
-
-      const { purchase } = usePurchases.getState();
-      const mockPackage = { identifier: 'test-pkg' };
-
-      await expect(purchase(mockPackage as any)).rejects.toThrow('Network failed');
-    });
+  it('configure marks ready and demo', async () => {
+    await usePurchases.getState().configure();
+    expect(usePurchases.getState().ready).toBe(true);
+    expect(usePurchases.getState().demo).toBe(true);
+    expect(usePurchases.getState().tier).toBe('free');
   });
 
-  describe('configure', () => {
-    it('sets ready=true in demo mode (no SDK)', async () => {
-      mockLoadPurchases.mockReturnValue({ Purchases: null, RevenueCatUI: null });
+  it('a successful demo purchase unlocks the plan locally', async () => {
+    const status = await usePurchases.getState().purchase({ kind: 'sub', tier: 'pull', period: 'annual' });
+    expect(status).toBe('success');
+    expect(usePurchases.getState().tier).toBe('pull');
+    expect(usePurchases.getState().period).toBe('annual');
+  });
 
-      const { configure } = usePurchases.getState();
+  it('a founding demo purchase sets founding', async () => {
+    await usePurchases.getState().purchase({ kind: 'founding' });
+    expect(usePurchases.getState().tier).toBe('founding');
+    expect(usePurchases.getState().period).toBeNull();
+  });
 
-      expect(usePurchases.getState().ready).toBe(false);
+  it('a failing demo outcome leaves the tier alone', async () => {
+    usePurchases.getState().setDemoOutcome('offline');
+    const status = await usePurchases.getState().purchase({ kind: 'sub', tier: 'hook', period: 'monthly' });
+    expect(status).toBe('offline');
+    expect(usePurchases.getState().tier).toBe('free');
+  });
 
-      await configure();
+  it('restore returns the current tier', async () => {
+    usePurchases.getState().setDemoPlan('hook', 'annual');
+    expect(await usePurchases.getState().restore()).toBe('hook');
+  });
 
-      expect(usePurchases.getState().ready).toBe(true);
-      expect(usePurchases.getState().isPro).toBe(false);
-    });
+  it('customer center is unavailable', async () => {
+    expect(await presentCustomerCenter()).toBe(false);
+  });
+});
 
-    it('with SDK: calls configure and fetches customer info and offerings', async () => {
-      const mockPurchases = {
-        configure: jest.fn(),
-        setLogHandler: jest.fn(),
-        addCustomerInfoUpdateListener: jest.fn(),
-        getCustomerInfo: jest.fn(),
-        getOfferings: jest.fn(),
-      };
+describe('with the SDK', () => {
+  it('configure sets the plan and offerings from RevenueCat', async () => {
+    const Purchases = sdk();
+    Purchases.getCustomerInfo.mockResolvedValue(PULL_ANNUAL);
+    mockLoadPurchases.mockReturnValue({ Purchases, RevenueCatUI: null });
+    await usePurchases.getState().configure();
+    expect(Purchases.configure).toHaveBeenCalledWith({ apiKey: 'test-ios-key' });
+    const s = usePurchases.getState();
+    expect(s.ready).toBe(true);
+    expect(s.demo).toBe(false);
+    expect(s.tier).toBe('pull');
+    expect(s.offerings).toEqual(offerings());
+  });
 
-      mockLoadPurchases.mockReturnValue({ Purchases: mockPurchases, RevenueCatUI: null });
+  it('configure survives an SDK failure', async () => {
+    const Purchases = sdk();
+    Purchases.getCustomerInfo.mockRejectedValue(new Error('SDK error'));
+    mockLoadPurchases.mockReturnValue({ Purchases, RevenueCatUI: null });
+    await usePurchases.getState().configure();
+    expect(usePurchases.getState().ready).toBe(true);
+    expect(usePurchases.getState().tier).toBe('free');
+  });
 
-      const customerInfo = {
-        entitlements: { active: { 'Parallax Pro': {} } },
-      };
-      const offerings = {
-        current: { identifier: 'offering-1', packages: [] },
-      };
+  it('does not reconfigure once ready', async () => {
+    const Purchases = sdk();
+    mockLoadPurchases.mockReturnValue({ Purchases, RevenueCatUI: null });
+    usePurchases.setState({ ready: true });
+    await usePurchases.getState().configure();
+    expect(Purchases.configure).not.toHaveBeenCalled();
+  });
 
-      mockPurchases.getCustomerInfo.mockResolvedValue(customerInfo);
-      mockPurchases.getOfferings.mockResolvedValue(offerings);
+  it('the customer-info listener updates the plan', async () => {
+    const Purchases = sdk();
+    Purchases.getCustomerInfo.mockResolvedValue(info({}));
+    mockLoadPurchases.mockReturnValue({ Purchases, RevenueCatUI: null });
+    await usePurchases.getState().configure();
+    const listener = Purchases.addCustomerInfoUpdateListener.mock.calls[0][0] as (i: CustomerInfo) => void;
+    listener(PULL_ANNUAL);
+    expect(usePurchases.getState().tier).toBe('pull');
+  });
 
-      const { configure } = usePurchases.getState();
+  it('buys the package for the plan from the default offering', async () => {
+    const Purchases = sdk();
+    Purchases.purchasePackage.mockResolvedValue({ customerInfo: PULL_ANNUAL });
+    mockLoadPurchases.mockReturnValue({ Purchases, RevenueCatUI: null });
+    const status = await usePurchases.getState().purchase({ kind: 'sub', tier: 'pull', period: 'annual' });
+    expect(status).toBe('success');
+    expect(Purchases.purchasePackage).toHaveBeenCalledWith(pkg('pull_annual'), null, null);
+    expect(usePurchases.getState().tier).toBe('pull');
+  });
 
-      await configure();
+  it('buys the trial package from the ad_trial offering', async () => {
+    const Purchases = sdk();
+    Purchases.purchasePackage.mockResolvedValue({ customerInfo: PULL_ANNUAL });
+    mockLoadPurchases.mockReturnValue({ Purchases, RevenueCatUI: null });
+    await usePurchases.getState().purchase({ kind: 'sub', tier: 'pull', period: 'annual', trial: true });
+    expect(Purchases.purchasePackage).toHaveBeenCalledWith(pkg('$rc_annual'), null, null);
+  });
 
-      expect(mockPurchases.configure).toHaveBeenCalledWith({
-        apiKey: 'test-ios-key',
-      });
-      expect(usePurchases.getState().ready).toBe(true);
-      expect(usePurchases.getState().isPro).toBe(true);
-      expect(usePurchases.getState().customerInfo).toEqual(customerInfo);
-      expect(usePurchases.getState().offering).toEqual(offerings.current);
-    });
+  it('fails when the offering has no such package', async () => {
+    const Purchases = sdk();
+    mockLoadPurchases.mockReturnValue({ Purchases, RevenueCatUI: null });
+    const status = await usePurchases.getState().purchase({ kind: 'sub', tier: 'platform', period: 'annual' });
+    expect(status).toBe('failed');
+    expect(Purchases.purchasePackage).not.toHaveBeenCalled();
+  });
 
-    it('with SDK: handles null offering gracefully', async () => {
-      const mockPurchases = {
-        configure: jest.fn(),
-        setLogHandler: jest.fn(),
-        addCustomerInfoUpdateListener: jest.fn(),
-        getCustomerInfo: jest.fn(),
-        getOfferings: jest.fn(),
-      };
+  it('returns cancelled and offline from SDK errors', async () => {
+    const Purchases = sdk();
+    mockLoadPurchases.mockReturnValue({ Purchases, RevenueCatUI: null });
+    Purchases.purchasePackage.mockRejectedValueOnce({ userCancelled: true, code: '1' });
+    expect(await usePurchases.getState().purchase({ kind: 'founding' })).toBe('cancelled');
+    Purchases.purchasePackage.mockRejectedValueOnce({ code: '35' });
+    expect(await usePurchases.getState().purchase({ kind: 'founding' })).toBe('offline');
+    expect(usePurchases.getState().tier).toBe('free');
+  });
 
-      mockLoadPurchases.mockReturnValue({ Purchases: mockPurchases, RevenueCatUI: null });
-
-      const customerInfo = {
-        entitlements: { active: {} },
-      };
-      const offerings = {
-        current: null,
-      };
-
-      mockPurchases.getCustomerInfo.mockResolvedValue(customerInfo);
-      mockPurchases.getOfferings.mockResolvedValue(offerings);
-
-      const { configure } = usePurchases.getState();
-
-      await configure();
-
-      expect(usePurchases.getState().ready).toBe(true);
-      expect(usePurchases.getState().isPro).toBe(false);
-      expect(usePurchases.getState().offering).toBeNull();
-    });
-
-    it('sets ready=true even when SDK init throws', async () => {
-      const mockPurchases = {
-        configure: jest.fn(),
-        setLogHandler: jest.fn(),
-        addCustomerInfoUpdateListener: jest.fn(),
-        getCustomerInfo: jest.fn(),
-        getOfferings: jest.fn(),
-      };
-
-      mockLoadPurchases.mockReturnValue({ Purchases: mockPurchases, RevenueCatUI: null });
-
-      mockPurchases.getCustomerInfo.mockRejectedValue(new Error('SDK error'));
-
-      const { configure } = usePurchases.getState();
-
-      // Should not throw
-      await configure();
-
-      expect(usePurchases.getState().ready).toBe(true);
-    });
-
-    it('does not reconfigure if already ready', async () => {
-      const mockPurchases = {
-        configure: jest.fn(),
-        setLogHandler: jest.fn(),
-        addCustomerInfoUpdateListener: jest.fn(),
-        getCustomerInfo: jest.fn(),
-        getOfferings: jest.fn(),
-      };
-
-      mockLoadPurchases.mockReturnValue({ Purchases: mockPurchases, RevenueCatUI: null });
-
-      usePurchases.setState({ ready: true });
-
-      const { configure } = usePurchases.getState();
-
-      await configure();
-
-      expect(mockPurchases.configure).not.toHaveBeenCalled();
-    });
-
-    it('addCustomerInfoUpdateListener updates state when called', async () => {
-      const mockPurchases = {
-        configure: jest.fn(),
-        setLogHandler: jest.fn(),
-        addCustomerInfoUpdateListener: jest.fn(),
-        getCustomerInfo: jest.fn(),
-        getOfferings: jest.fn(),
-      };
-
-      mockLoadPurchases.mockReturnValue({ Purchases: mockPurchases, RevenueCatUI: null });
-
-      mockPurchases.getCustomerInfo.mockResolvedValue({ entitlements: { active: {} } });
-      mockPurchases.getOfferings.mockResolvedValue({ current: null });
-
-      const { configure } = usePurchases.getState();
-      await configure();
-
-      // The customer-info listener registered during configure; invoke it.
-      const listenerCallback = mockPurchases.addCustomerInfoUpdateListener.mock.calls[0]?.[0] as
-        | ((info: unknown) => void)
-        | undefined;
-      const updatedInfo = { entitlements: { active: { 'Parallax Pro': {} } } };
-      listenerCallback?.(updatedInfo);
-
-      expect(usePurchases.getState().isPro).toBe(true);
-      expect(usePurchases.getState().customerInfo).toEqual(updatedInfo);
+  it('on Play, an upgrade charges the prorated price against the old subscription', async () => {
+    mockPlatform.OS = 'android';
+    const Purchases = sdk();
+    Purchases.purchasePackage.mockResolvedValue({ customerInfo: PULL_ANNUAL });
+    mockLoadPurchases.mockReturnValue({ Purchases, RevenueCatUI: null });
+    usePurchases.setState({ tier: 'hook', period: 'annual' });
+    await usePurchases.getState().purchase({ kind: 'sub', tier: 'pull', period: 'annual' });
+    expect(Purchases.purchasePackage).toHaveBeenCalledWith(pkg('pull_annual'), null, {
+      oldProductIdentifier: 'catchline_hook',
+      replacementMode: 'CHARGE_PRORATED_PRICE',
     });
   });
 
-  describe('restore', () => {
-    it('demo mode (no SDK) returns current isPro value', async () => {
-      mockLoadPurchases.mockReturnValue({ Purchases: null, RevenueCatUI: null });
-
-      usePurchases.setState({ isPro: true });
-      const { restore } = usePurchases.getState();
-
-      const result = await restore();
-
-      expect(result).toBe(true);
-    });
-
-    it('with SDK: restores purchases and updates isPro', async () => {
-      const mockPurchases = {
-        configure: jest.fn(),
-        setLogHandler: jest.fn(),
-        addCustomerInfoUpdateListener: jest.fn(),
-        getCustomerInfo: jest.fn(),
-        getOfferings: jest.fn(),
-        restorePurchases: jest.fn(),
-      };
-
-      mockLoadPurchases.mockReturnValue({ Purchases: mockPurchases, RevenueCatUI: null });
-
-      const restoredInfo = {
-        entitlements: { active: { 'Parallax Pro': {} } },
-      };
-      mockPurchases.restorePurchases.mockResolvedValue(restoredInfo);
-
-      const { restore } = usePurchases.getState();
-
-      const result = await restore();
-
-      expect(result).toBe(true);
-      expect(usePurchases.getState().isPro).toBe(true);
-      expect(usePurchases.getState().customerInfo).toEqual(restoredInfo);
-    });
-
-    it('with SDK: restore error returns false', async () => {
-      const mockPurchases = {
-        configure: jest.fn(),
-        setLogHandler: jest.fn(),
-        addCustomerInfoUpdateListener: jest.fn(),
-        getCustomerInfo: jest.fn(),
-        getOfferings: jest.fn(),
-        restorePurchases: jest.fn(),
-      };
-
-      mockLoadPurchases.mockReturnValue({ Purchases: mockPurchases, RevenueCatUI: null });
-
-      mockPurchases.restorePurchases.mockRejectedValue(new Error('Restore failed'));
-
-      const { restore } = usePurchases.getState();
-
-      const result = await restore();
-
-      expect(result).toBe(false);
-    });
+  it('restore reads the restored plan', async () => {
+    const Purchases = sdk();
+    Purchases.restorePurchases.mockResolvedValue(PULL_ANNUAL);
+    mockLoadPurchases.mockReturnValue({ Purchases, RevenueCatUI: null });
+    expect(await usePurchases.getState().restore()).toBe('pull');
   });
 
-  describe('state isolation between tests', () => {
-    it('can verify clean state at test start', () => {
-      const state = usePurchases.getState();
-      expect(state.ready).toBe(false);
-      expect(state.isPro).toBe(false);
-      expect(state.offering).toBeNull();
-      expect(state.customerInfo).toBeNull();
-    });
+  it('a failed restore keeps the current tier', async () => {
+    const Purchases = sdk();
+    Purchases.restorePurchases.mockRejectedValue(new Error('Restore failed'));
+    mockLoadPurchases.mockReturnValue({ Purchases, RevenueCatUI: null });
+    usePurchases.setState({ tier: 'hook' });
+    expect(await usePurchases.getState().restore()).toBe('hook');
+  });
+
+  it('presents the customer center and refreshes', async () => {
+    const Purchases = sdk();
+    Purchases.restorePurchases.mockResolvedValue(PULL_ANNUAL);
+    const RevenueCatUI = { presentCustomerCenter: jest.fn(() => Promise.resolve()) };
+    mockLoadPurchases.mockReturnValue({ Purchases, RevenueCatUI });
+    expect(await presentCustomerCenter()).toBe(true);
+    expect(RevenueCatUI.presentCustomerCenter).toHaveBeenCalledTimes(1);
+    expect(usePurchases.getState().tier).toBe('pull');
   });
 });

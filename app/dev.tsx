@@ -36,6 +36,7 @@ const ENTRIES: { label: string; href: string; library?: 'seeded' | 'empty' }[] =
   { label: 'Real CV · reveal', href: '/analysis/reveal?fixture=snatch-real' },
   { label: 'Real CV · cue', href: '/analysis/cue?fixture=snatch-real' },
   { label: 'Real CV · player', href: '/analysis/player?fixture=snatch-real' },
+  { label: 'Paywall and plans', href: '/paywall/dev' },
 ];
 
 export default function DevEntry() {

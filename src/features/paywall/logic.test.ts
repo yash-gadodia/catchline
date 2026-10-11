@@ -1,0 +1,138 @@
+import { foundingState, getFoundingSeats, localSeats, seatsFraction, seatsLeftLabel, setSeatsSource } from './seats';
+import { QUIZ_LENGTH, quizMovement, quizQuestion } from './quiz';
+import { offeringFor, packageIdFor, periodFromProductId, planKey, playSubscriptionId, productIdFor } from './products';
+import { cueStatusLabel, getProofCues } from './proofCues';
+import { setWebCheckoutOverride, webCheckoutEnabled } from './flags';
+import { useUsage } from './usageStore';
+
+describe('founding seats', () => {
+  afterEach(() => setSeatsSource(localSeats));
+
+  it('the local stub reports 137 of 500', async () => {
+    expect(await getFoundingSeats()).toEqual({ total: 500, remaining: 137 });
+  });
+
+  it('reads through the swappable source', async () => {
+    setSeatsSource({ getFoundingSeats: async () => ({ total: 500, remaining: 41 }) });
+    expect(await getFoundingSeats()).toEqual({ total: 500, remaining: 41 });
+  });
+
+  it('is low under 10% and sold out at 0', () => {
+    expect(foundingState({ total: 500, remaining: 137 })).toBe('open');
+    expect(foundingState({ total: 500, remaining: 50 })).toBe('open');
+    expect(foundingState({ total: 500, remaining: 49 })).toBe('low');
+    expect(foundingState({ total: 500, remaining: 1 })).toBe('low');
+    expect(foundingState({ total: 500, remaining: 0 })).toBe('soldOut');
+  });
+
+  it('labels and fractions', () => {
+    expect(seatsLeftLabel({ total: 500, remaining: 137 })).toBe('137 of 500 left');
+    expect(seatsFraction({ total: 500, remaining: 125 })).toBe(0.25);
+    expect(seatsFraction({ total: 0, remaining: 0 })).toBe(0);
+  });
+});
+
+describe('quiz', () => {
+  it('has four questions, the second shaped by the first', () => {
+    expect(QUIZ_LENGTH).toBe(4);
+    expect(quizQuestion(0, []).title).toBe('What are you working on?');
+    expect(quizQuestion(1, ['Snatch'])).toEqual({
+      title: 'Where does your snatch go wrong?',
+      options: ['Bar swings out front', 'I miss behind', "Can't get under it", "Not sure, that's the problem"],
+    });
+    expect(quizQuestion(1, ['Muscle-ups']).title).toBe('Where does your muscle-up go wrong?');
+    expect(quizQuestion(2, ['Snatch', 'I miss behind']).title).toBe('How often do you train it?');
+    expect(quizQuestion(3, []).title).toBe('Do you film your lifts?');
+  });
+
+  it('maps the answer to the movement to film', () => {
+    expect(quizMovement(['Handstand push-ups'])).toBe('HSPU');
+    expect(quizMovement([])).toBe('snatch');
+  });
+});
+
+describe('products', () => {
+  const pullAnnual = { kind: 'sub', tier: 'pull', period: 'annual' } as const;
+  const trial = { kind: 'sub', tier: 'pull', period: 'monthly', trial: true } as const;
+
+  it('package ids per offering', () => {
+    expect(packageIdFor(pullAnnual)).toBe('pull_annual');
+    expect(packageIdFor({ kind: 'sub', tier: 'platform', period: 'monthly' })).toBe('platform_monthly');
+    expect(packageIdFor({ kind: 'founding' })).toBe('founding');
+    expect(packageIdFor(trial)).toBe('$rc_monthly');
+    expect(offeringFor(pullAnnual)).toBe('default');
+    expect(offeringFor(trial)).toBe('ad_trial');
+  });
+
+  it('store product ids', () => {
+    expect(productIdFor(pullAnnual, 'ios')).toBe('catchline_pull_annual');
+    expect(productIdFor(pullAnnual, 'android')).toBe('catchline_pull:annual');
+    expect(productIdFor(trial, 'ios')).toBe('catchline_pull_monthly_trial7');
+    expect(productIdFor(trial, 'android')).toBe('catchline_pull:monthly-trial7');
+    expect(productIdFor({ kind: 'founding' }, 'android')).toBe('catchline_founding_lifetime');
+    expect(playSubscriptionId('hook')).toBe('catchline_hook');
+  });
+
+  it('period from product id', () => {
+    expect(periodFromProductId('catchline_pull_annual')).toBe('annual');
+    expect(periodFromProductId('catchline_hook:monthly')).toBe('monthly');
+    expect(periodFromProductId('catchline_founding_lifetime')).toBeNull();
+  });
+
+  it('plan keys', () => {
+    expect(planKey(pullAnnual)).toBe('pull_annual');
+    expect(planKey(trial)).toBe('pull_monthly_trial');
+    expect(planKey({ kind: 'founding' })).toBe('founding');
+  });
+});
+
+describe('proof cues', () => {
+  it('labels each status', () => {
+    expect(getProofCues().map(cueStatusLabel)).toEqual(['Stuck', 'Trying · 3 of 6', 'Trying · 1 of 6']);
+    expect(cueStatusLabel({ text: 'x', status: 'didnt' })).toBe("Didn't stick");
+    expect(cueStatusLabel({ text: 'x', status: 'dropped' })).toBe('Dropped');
+    expect(cueStatusLabel({ text: 'x', status: 'trying' })).toBe('Trying');
+  });
+});
+
+describe('web checkout flag', () => {
+  afterEach(() => setWebCheckoutOverride(null));
+
+  it('is off by default and can be overridden', () => {
+    expect(webCheckoutEnabled()).toBe(false);
+    setWebCheckoutOverride(true);
+    expect(webCheckoutEnabled()).toBe(true);
+  });
+});
+
+describe('usage store', () => {
+  beforeEach(() => useUsage.getState().reset());
+
+  it('records analyses through the entitlement model', () => {
+    const oct = new Date(2026, 9, 11);
+    useUsage.getState().record('free', oct);
+    useUsage.getState().record('free', oct);
+    useUsage.getState().record('pull', oct);
+    expect(useUsage.getState().usage).toEqual({ lifetime: 3, month: '2026-10', thisMonth: 1 });
+  });
+
+  it('queues a clip once and hands it back first in, first out', () => {
+    const s = useUsage.getState();
+    s.queueClip({ id: 'a', movement: 'snatch' });
+    s.queueClip({ id: 'a', movement: 'snatch' });
+    s.queueClip({ id: 'b', movement: 'clean' });
+    expect(useUsage.getState().queue).toEqual([
+      { id: 'a', movement: 'snatch' },
+      { id: 'b', movement: 'clean' },
+    ]);
+    expect(useUsage.getState().takeQueued()).toEqual({ id: 'a', movement: 'snatch' });
+    expect(useUsage.getState().queue).toEqual([{ id: 'b', movement: 'clean' }]);
+    useUsage.getState().takeQueued();
+    expect(useUsage.getState().takeQueued()).toBeNull();
+  });
+
+  it('sets the funnel variant', () => {
+    useUsage.getState().setVariant('ad');
+    expect(useUsage.getState().variant).toBe('ad');
+  });
+});
