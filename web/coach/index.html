@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Catchline · shared lift</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Schibsted+Grotesk:wght@400;500;700&family=Sometype+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="coach.css">
+</head>
+<body>
+<main id="app" hidden>
+  <header class="top">
+    <span>Shared by <strong id="shared-by"></strong> from Catchline</span>
+    <span class="mono muted" id="shared-at"></span>
+  </header>
+
+  <section class="stage" id="stage" aria-label="Slow-motion key frames with the bar path. Tap to pause.">
+    <svg id="overlay" class="overlay" aria-hidden="true">
+      <path id="path-halo" class="halo"></path>
+      <path id="path" class="path"></path>
+      <circle id="dot" class="dot" r="7"></circle>
+    </svg>
+    <div class="stage-bar">
+      <div class="track"><div class="fill" id="progress"></div></div>
+      <span class="mono readout" id="readout"></span>
+    </div>
+    <span class="mono play-state" id="play-state"></span>
+  </section>
+
+  <section class="body">
+    <p class="mono muted lift" id="lift-title"></p>
+    <div id="cue" class="cue">
+      <p class="smallcaps muted" id="cue-label"></p>
+      <h1 class="display" id="cue-text"></h1>
+      <p class="muted why" id="cue-why"></p>
+    </div>
+    <div class="rows" id="measurements"></div>
+  </section>
+
+  <footer class="actions">
+    <button type="button" class="btn secondary" id="override">Override the cue</button>
+    <div class="links">
+      <button type="button" class="link" id="add-note">Add a note</button>
+      <button type="button" class="link" id="refilm">Ask for a refilm</button>
+    </div>
+  </footer>
+</main>
+
+<main id="error" class="error" hidden>
+  <h1 class="display">This link has expired or the lift was removed.</h1>
+  <p class="muted">Links last 30 days. Ask your athlete to send it again from Catchline.</p>
+</main>
+
+<div class="backdrop" id="backdrop" hidden>
+  <form class="sheet" id="sheet-override" hidden>
+    <div class="grip"></div>
+    <h2>Your cue for <span class="athlete"></span></h2>
+    <p class="muted">Replaces the app's suggestion. <span class="athlete"></span> sees it as "From your coach".</p>
+    <textarea id="override-text" rows="3" aria-label="Your cue"></textarea>
+    <div class="chips" id="quick-cues"></div>
+    <label class="field"><span class="muted">Your name, shown to <span class="athlete"></span></span><input id="override-name" autocomplete="name"></label>
+    <p class="form-error" id="override-error" role="alert"></p>
+    <button type="submit" class="btn primary">Send to <span class="athlete"></span></button>
+  </form>
+
+  <form class="sheet" id="sheet-note" hidden>
+    <div class="grip"></div>
+    <h2>Note for <span class="athlete"></span></h2>
+    <p class="muted">Sits under the cue. It does not replace it.</p>
+    <textarea id="note-text" rows="4" aria-label="Your note"></textarea>
+    <label class="field"><span class="muted">Your name, shown to <span class="athlete"></span></span><input id="note-name" autocomplete="name"></label>
+    <p class="form-error" id="note-error" role="alert"></p>
+    <button type="submit" class="btn primary">Send note</button>
+  </form>
+
+  <form class="sheet" id="sheet-refilm" hidden>
+    <div class="grip"></div>
+    <h2>Ask for a refilm</h2>
+    <p class="muted">What should change next time?</p>
+    <div class="chips" id="refilm-reasons"></div>
+    <label class="field"><span class="muted">Your name, shown to <span class="athlete"></span></span><input id="refilm-name" autocomplete="name"></label>
+    <p class="form-error" id="refilm-error" role="alert"></p>
+    <button type="submit" class="btn primary">Send request</button>
+  </form>
+
+  <div class="sheet" id="sheet-sent" hidden>
+    <div class="grip"></div>
+    <h2>Sent</h2>
+    <p class="muted" id="sent-text"></p>
+    <button type="button" class="btn secondary" data-close>Done</button>
+  </div>
+</div>
+
+<script src="coach.js"></script>
+</body>
+</html>
