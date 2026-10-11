@@ -78,6 +78,17 @@ export default function RevealScreen({
   const [typed, setTyped] = useState(0);
   const done = useRef(onDone);
   done.current = onDone;
+  const typerRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
+  // Wrapped-style tap zones: a tap mid-typewriter finishes the cue, the next one continues.
+  const onTap = () => {
+    if (typed > 0 && typed < cue.text.length) {
+      clearInterval(typerRef.current);
+      setTyped(cue.text.length);
+      impact('rigid');
+      return;
+    }
+    onDone();
+  };
 
   useEffect(() => {
     const timers: ReturnType<typeof setTimeout>[] = [];
@@ -119,7 +130,7 @@ export default function RevealScreen({
     at(REVEAL.numberAt, () => setShowNumber(true));
     at(REVEAL.typeAt, () => {
       let n = 0;
-      typer = setInterval(() => {
+      typer = typerRef.current = setInterval(() => {
         n += 1;
         setTyped(n);
         if (n >= text.length) {
@@ -153,7 +164,7 @@ export default function RevealScreen({
   const path = liftPath(rep).map(s);
 
   return (
-    <Pressable style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top + 56 }} onPress={onDone} testID="reveal-screen">
+    <Pressable style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top + 56 }} onPress={onTap} testID="reveal-screen">
       <View style={{ width: box.width, height: box.height, overflow: 'hidden' }}>
         <Animated.View style={[{ width: box.width, height: box.height }, zoomStyle]}>
           <Animated.View style={[{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 }, strobeStyle]}>
@@ -181,7 +192,7 @@ export default function RevealScreen({
       <View style={{ paddingHorizontal: space.gutter, paddingTop: space.s5, gap: space.s2 }}>
         {typed > 0 ? (
           <>
-            <SmallCaps size={12}>One thing to fix</SmallCaps>
+            <SmallCaps size={13}>One thing to fix</SmallCaps>
             <Text style={[display(34), { color: colors.text }]} testID="reveal-cue">
               {cue.text.slice(0, typed)}
               {typed < cue.text.length ? <Text style={{ color: colors.flare }}>|</Text> : null}

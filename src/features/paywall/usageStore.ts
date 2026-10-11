@@ -11,6 +11,8 @@ type UsageState = {
   usage: Usage;
   variant: Variant;
   queue: QueuedClip[];
+  warnedAt: number | null;
+  warnLastFree: () => void;
   record: (tier: Tier, now: Date) => void;
   queueClip: (clip: QueuedClip) => void;
   takeQueued: () => QueuedClip | null;
@@ -24,6 +26,8 @@ export const useUsage = create<UsageState>()(
       usage: EMPTY_USAGE,
       variant: 'organic',
       queue: [],
+      warnedAt: null,
+      warnLastFree: () => set({ warnedAt: get().usage.lifetime }),
       record: (tier, now) => set({ usage: recordAnalysis(get().usage, tier, now) }),
       queueClip: (clip) => {
         if (get().queue.some((c) => c.id === clip.id)) return;
@@ -36,12 +40,12 @@ export const useUsage = create<UsageState>()(
         return first;
       },
       setVariant: (variant) => set({ variant }),
-      reset: () => set({ usage: EMPTY_USAGE, variant: 'organic', queue: [] }),
+      reset: () => set({ usage: EMPTY_USAGE, variant: 'organic', queue: [], warnedAt: null }),
     }),
     {
       name: 'catchline-usage',
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: (s) => ({ usage: s.usage, variant: s.variant, queue: s.queue }),
+      partialize: (s) => ({ usage: s.usage, variant: s.variant, queue: s.queue, warnedAt: s.warnedAt }),
     }
   )
 );

@@ -76,7 +76,7 @@ export default function TrialPaywall({
                   </Text>
                 </View>
                 {p === 'annual' ? (
-                  <Text style={{ color: colors.flare, fontFamily: fontFamily.mono, fontSize: 12, lineHeight: 16 }}>
+                  <Text style={{ color: colors.text, fontFamily: fontFamily.mono, fontSize: 12, lineHeight: 16 }}>
                     {`save ${annualSavingPct('pull')}%`}
                   </Text>
                 ) : null}

@@ -123,6 +123,13 @@ export function gateFor(tier: Tier, usage: Usage, now: Date, variant: Variant = 
   return variant === 'ad' ? 'trial' : 'paywall';
 }
 
+// Organic free tier, one video left and not yet warned for it: say so before
+// the lifter films, so the paywall at video 4 is never a surprise.
+export function lastFreeDue(tier: Tier, usage: Usage, variant: Variant, warnedAt: number | null): boolean {
+  if (tier !== 'free' || variant !== 'organic') return false;
+  return FREE_VIDEOS.organic - usage.lifetime === 1 && warnedAt !== usage.lifetime;
+}
+
 // The ad funnel shows the trial paywall straight after its one free analysis.
 export function trialDue(tier: Tier, usage: Usage, variant: Variant): boolean {
   return variant === 'ad' && tier === 'free' && usage.lifetime >= FREE_VIDEOS.ad;

@@ -83,14 +83,21 @@ export function measurementReadout(m: Measurement): string {
   return parts.join(' · ');
 }
 
-export type CompareRow = { id: string; label: string; arrow: '▲' | '▼' | '—'; text: string };
+// No ▲/▼: an up-arrow reads as "better" even when a bigger number is worse.
+// The delta is plain signed text against the other lift.
+export type CompareRow = { id: string; label: string; value: string; delta: string };
 
 export const COMPARE_IDS = ['bar_drift_hip', 'pull_time', 'catch_depth'];
+
+export function signed(n: number): string {
+  const v = Number(n.toFixed(2));
+  return `${v > 0 ? '+' : v < 0 ? '−' : ''}${fmt(Math.abs(v))}`;
+}
 
 export function compareRows(
   today: Measurement[],
   other: Measurement[],
-  word: 'best' | 'was',
+  word: 'best' | 'last',
   ids: string[] = COMPARE_IDS
 ): CompareRow[] {
   const rows: CompareRow[] = [];
@@ -103,8 +110,8 @@ export function compareRows(
     rows.push({
       id,
       label: a.label,
-      arrow: same ? '—' : diff > 0 ? '▲' : '▼',
-      text: `${fmt(a.value)} ${a.unit} · ${word} ${fmt(b.value)}`,
+      value: `${fmt(a.value)} ${a.unit}`,
+      delta: same ? `same as ${word}` : `${signed(diff)} vs ${word}`,
     });
   }
   return rows;

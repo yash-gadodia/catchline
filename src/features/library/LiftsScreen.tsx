@@ -18,14 +18,17 @@ import {
   groupMovements,
   latestCue,
   liftDetail,
+  newestDone,
+  STATUS_LABEL,
   liftTitle,
   sessionsCounter,
   type Group,
 } from './derive';
 import { SHORT_MOVEMENT } from './metrics';
 import { useLibrary } from './repository';
-import { FREE_VIDEOS, type Lift, type Session, type CueRecord } from './types';
+import type { Lift, Session, CueRecord } from './types';
 import { Chip, Frame, Pulse, StatusDot, Title, Underlined } from './ui';
+import FadeRow from '../analysis/FadeRow';
 
 export type LiftsNav = {
   onOpen: (lift: Lift) => void;
@@ -33,6 +36,7 @@ export type LiftsNav = {
   onUnlock: () => void;
   onRecord: () => void;
   onImport: () => void;
+  onSample: () => void;
   onCue: (id: string) => void;
 };
 
@@ -46,19 +50,8 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
       <Title>Lifts</Title>
       {chip ? (
-        <Pressable
-          onPress={lib.freeVideosUsed >= FREE_VIDEOS ? nav.onUnlock : undefined}
-          testID="free-chip"
-          style={{
-            height: 36,
-            paddingHorizontal: 12,
-            justifyContent: 'center',
-            borderWidth: 1,
-            borderColor: colors.hairline,
-            borderRadius: radius.control,
-          }}
-        >
-          <Text style={{ color: colors.text, fontFamily: fontFamily.bodyMedium, fontSize: 15, lineHeight: 20 }}>{chip}</Text>
+        <Pressable onPress={nav.onUnlock} testID="free-chip" hitSlop={8} style={{ height: 44, justifyContent: 'center' }}>
+          <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>{chip}</Text>
         </Pressable>
       ) : null}
     </View>
@@ -81,6 +74,9 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
             <Btn kind="secondary" onPress={nav.onImport} testID="empty-import">
               Import
             </Btn>
+            <Btn kind="text" onPress={nav.onSample} testID="empty-sample" style={{ alignSelf: 'center' }}>
+              See a sample analysis
+            </Btn>
           </View>
         </View>
       </View>
@@ -90,6 +86,7 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
   const cue = activeCue(lib.cues);
   const visible = filterLifts(lib.lifts, group, movement);
   const days = groupByDay(visible, lib.today);
+  const newest = newestDone(lib.lifts);
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: colors.bg }}
@@ -115,14 +112,17 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
             }}
           >
             <View style={{ flex: 1, gap: 2 }}>
-              <SmallCaps size={12}>Trying</SmallCaps>
-              <Text numberOfLines={1} style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 17, lineHeight: 22 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <StatusDot status="trying" />
+                <SmallCaps size={12}>Trying</SmallCaps>
+              </View>
+              <Text numberOfLines={2} style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 17, lineHeight: 22 }}>
                 {cue.text}
               </Text>
+              <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>
+                {`${sessionsCounter(cue, lib.sessions)} sessions`}
+              </Text>
             </View>
-            <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>
-              {`${sessionsCounter(cue, lib.sessions)} sessions`}
-            </Text>
           </Pressable>
         ) : null}
         <View style={{ gap: 6 }}>
@@ -141,7 +141,8 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
               ]}
             />
           </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+          <View style={{ marginHorizontal: -space.gutter }}>
+          <FadeRow testID="movement-chips" contentContainerStyle={{ gap: 6, paddingHorizontal: space.gutter }}>
             {groupMovements(group).map((m) => (
               <Chip
                 key={m}
@@ -151,7 +152,8 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
                 testID={`movement-${m}`}
               />
             ))}
-          </ScrollView>
+          </FadeRow>
+          </View>
         </View>
       </View>
       <View style={{ paddingTop: space.s2 }}>
@@ -166,7 +168,7 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
               <SmallCaps>{d.label}</SmallCaps>
             </View>
             {d.lifts.map((l) => (
-              <LiftRow key={l.id} lift={l} sessions={lib.sessions} cues={lib.cues} nav={nav} />
+              <LiftRow key={l.id} lift={l} sessions={lib.sessions} cues={lib.cues} newest={newest.has(l.id)} nav={nav} />
             ))}
           </View>
         ))}
@@ -181,9 +183,9 @@ function thumbPath(l: Lift) {
   return liftPath(repByIndex(a, a.bestRepIndex));
 }
 
-function LiftRow({ lift, sessions, cues, nav }: { lift: Lift; sessions: Session[]; cues: CueRecord[]; nav: LiftsNav }) {
+function LiftRow({ lift, sessions, cues, newest, nav }: { lift: Lift; sessions: Session[]; cues: CueRecord[]; newest: boolean; nav: LiftsNav }) {
   const muted = lift.status === 'queued';
-  const cue = lift.status === 'done' ? latestCue(cues, lift.movement) : undefined;
+  const cue = newest ? latestCue(cues, lift.movement) : undefined;
   const mono = lift.status === 'done' || lift.status === 'processing';
   const thumb =
     lift.status === 'processing' ? (
@@ -218,10 +220,17 @@ function LiftRow({ lift, sessions, cues, nav }: { lift: Lift; sessions: Session[
         >
           {liftDetail(lift, sessions)}
         </Text>
+        {cue ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <StatusDot status={cue.status} testID={`dot-${lift.id}-${cue.status}`} />
+            <Text numberOfLines={1} style={{ flex: 1, color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>
+              {`${STATUS_LABEL[cue.status]} · ${cue.text.toLowerCase()}`}
+            </Text>
+          </View>
+        ) : null}
       </View>
       {lift.status === 'failed' ? <Underlined onPress={() => nav.onRetake(lift)} testID={`retake-${lift.id}`}>Retake</Underlined> : null}
       {lift.status === 'queued' ? <Underlined onPress={nav.onUnlock} testID={`unlock-${lift.id}`}>Unlock</Underlined> : null}
-      {cue ? <StatusDot status={cue.status} testID={`dot-${lift.id}-${cue.status}`} /> : null}
     </Pressable>
   );
 }

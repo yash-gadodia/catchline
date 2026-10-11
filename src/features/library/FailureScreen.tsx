@@ -1,5 +1,6 @@
-import type { ReactNode } from 'react';
-import { Text, View, useWindowDimensions } from 'react-native';
+import { useState, type ReactNode } from 'react';
+import { Pressable, Text, View, useWindowDimensions } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Line, Path, Polyline, Rect, Text as SvgText } from 'react-native-svg';
@@ -59,7 +60,7 @@ export default function FailureScreen({
             {copy.links[0].label}
           </Underlined>
           {reason === 'unknown' ? (
-            <Text style={{ color: colors.text3, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>{`ref ${refCode}`}</Text>
+            <RefCode code={refCode} />
           ) : (
             <Underlined onPress={() => onAction(copy.links[1].action)} testID="failure-link-1">
               {copy.links[1].label}
@@ -207,5 +208,25 @@ function FailureStage({ reason, width, height }: { reason: FailureReason; width:
       ) : null}
       {reason === 'unsupported_movement' ? readout({ left: 24, bottom: 16 }) : null}
     </View>
+  );
+}
+
+// Tap to copy, so a support message carries the job reference.
+function RefCode({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <Pressable
+      testID="failure-ref"
+      accessibilityRole="button"
+      accessibilityHint="Copies the reference"
+      hitSlop={8}
+      onPress={() => {
+        Clipboard.setStringAsync(code).catch(() => undefined);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }}
+    >
+      <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>{copied ? 'Copied ref' : `ref ${code}`}</Text>
+    </Pressable>
   );
 }

@@ -1,5 +1,6 @@
 import { act, fireEvent, render } from '@testing-library/react-native';
 import CapSheet from './CapSheet';
+import LastFreeSheet from './LastFreeSheet';
 import FoundingSheet from './FoundingSheet';
 import PaywallSheet from './PaywallSheet';
 import PlansScreen from './PlansScreen';
@@ -334,5 +335,19 @@ describe('TrialPaywall', () => {
     const { getByText } = await render(<TrialPaywall webCheckout {...p} />);
     await press(getByText('Pay on the web instead'));
     expect(p.onWeb).toHaveBeenCalledWith('annual');
+  });
+});
+
+describe('LastFreeSheet', () => {
+  it('warns before the last free video and lets the lifter carry on or see plans', async () => {
+    const onContinue = jest.fn();
+    const onPlans = jest.fn();
+    const { getByText } = await render(<LastFreeSheet onContinue={onContinue} onPlans={onPlans} />);
+    expect(getByText('This is your last free video')).toBeOnTheScreen();
+    expect(getByText('video 3 of 3 free')).toBeOnTheScreen();
+    await press(getByText('Film it'));
+    await press(getByText('See plans'));
+    expect(onContinue).toHaveBeenCalledTimes(1);
+    expect(onPlans).toHaveBeenCalledTimes(1);
   });
 });

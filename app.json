@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "scheme": "catchline",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "dark",
     "android": {
       "predictiveBackGestureEnabled": false,
       "package": "com.yashgadodia.parallax",

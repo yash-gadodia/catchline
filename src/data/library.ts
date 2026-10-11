@@ -37,6 +37,7 @@ export function toLift(row: LiftRow, a: Analysis | undefined): Lift {
     analysisId: a && !a.failure ? a.id : undefined,
     thumb: catchImage(a),
     failure: a?.failure ?? undefined,
+    headline: a?.cue?.evidence.caption,
   };
 }
 

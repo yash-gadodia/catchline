@@ -54,3 +54,9 @@ Design source: `~/dev/liftcheck-research/design/` (Claude Design export; `Catchl
 - [ ] RevenueCat: import ASC products, attach to entitlements, offerings (default Pull; ad funnel)
 - [ ] app.json version 3.0; EAS env vars; `eas build -p ios --profile production` + submit to TestFlight
 - [ ] Smoke test on Yash's phone via TestFlight: onboarding → film/import → real cue
+
+## Polish pass (catchline-polish, 11 Oct)
+- [x] Mobbin P0 + S-effort P1 (27-mobbin-fitness, 28-mobbin-polish): baseline sentence, sample lift, last-free heads-up, chip fades, player toggles low, signed compare deltas, Lifts headline number, Trends recap + cue markers, small-text contrast
+- [ ] (Claude) Deferred, capture path owned elsewhere: import rep filmstrip (27 #3, 28 #32), capture failure wrong/right frames (27 #4), upload first-frame backdrop (28 #4, needs a clip thumbnail), Import `Cancel` underline (28 #33)
+- [ ] (Dani) Design-led: cue check before reveal (27 #7), coach-link disclosure + flags (27 #9), merge the tier table into the paywall sheet (27 #10; plans + founding are already one sheet), low-confidence copy template (28 #23, CV copy)
+- Note: `userInterfaceStyle: dark` needs a native rebuild before the photo picker turns dark. Never run `npx prettier` here: there is no config and it rewrites whole files.

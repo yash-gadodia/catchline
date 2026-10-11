@@ -1,3 +1,4 @@
+import * as Clipboard from 'expo-clipboard';
 import { act, fireEvent, render } from '@testing-library/react-native';
 import LiftsScreen from './LiftsScreen';
 import CuesScreen from './CuesScreen';
@@ -22,6 +23,7 @@ const liftsNav = () => ({
   onUnlock: jest.fn(),
   onRecord: jest.fn(),
   onImport: jest.fn(),
+  onSample: jest.fn(),
   onCue: jest.fn(),
 });
 
@@ -39,7 +41,7 @@ describe('LiftsScreen', () => {
     expect(getByText('4 of 6 sessions')).toBeOnTheScreen();
     expect(getByText('TODAY · SUN 11 OCT')).toBeOnTheScreen();
     expect(getAllByText('Snatch · 3 reps · 62.5 kg')).toHaveLength(2);
-    expect(getByText('bar drift at hip 6 cm · best 2')).toBeOnTheScreen();
+    expect(getByText('drift 6 cm · best 2 cm')).toBeOnTheScreen();
     expect(getByText('analysing · about 20 s')).toBeOnTheScreen();
     expect(getByText("Couldn't see the bar at the catch")).toBeOnTheScreen();
     expect(getByText('Queued · free videos used')).toBeOnTheScreen();
@@ -80,8 +82,10 @@ describe('LiftsScreen', () => {
     expect(getByText('Film your first lift from the side.')).toBeOnTheScreen();
     await press(getByTestId('empty-record'));
     await press(getByTestId('empty-import'));
+    await press(getByText('See a sample analysis'));
     expect(nav.onRecord).toHaveBeenCalledTimes(1);
     expect(nav.onImport).toHaveBeenCalledTimes(1);
+    expect(nav.onSample).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -174,6 +178,7 @@ describe('TrendsScreen', () => {
   it('shows the latest value, pinned best and the measurement chips for the movement', async () => {
     const { getByTestId, getByText } = await render(<TrendsScreen />);
     expect(getByTestId('trend-hero')).toHaveTextContent('6 cm');
+    expect(getByTestId('trend-recap')).toHaveTextContent('Bar drift at hip: 6 cm today. Best 2 cm on 18 Sep. Trying “Stay over the bar longer”: 4 of 6 sessions.');
     expect(getByText('65 kg · 18 Sep · drift 2 cm')).toBeOnTheScreen();
     expect(getByText('Bar drift at hip, cm forward. Lower is better. 10 sessions.')).toBeOnTheScreen();
     expect(getByTestId('cue-marker')).toBeOnTheScreen();
@@ -228,6 +233,9 @@ describe('FailureScreen', () => {
     const { getByText } = await render(<FailureScreen reason="unknown" header="Snatch" refCode="7f3a21" onAction={jest.fn()} />);
     expect(getByText('ref 7f3a21')).toBeOnTheScreen();
     expect(getByText(/didn't use one of your videos/)).toBeOnTheScreen();
+    await press(getByText('ref 7f3a21'));
+    expect(Clipboard.setStringAsync).toHaveBeenCalledWith('7f3a21');
+    expect(getByText('Copied ref')).toBeOnTheScreen();
   });
 });
 

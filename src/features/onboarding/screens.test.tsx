@@ -27,8 +27,9 @@ describe('Welcome', () => {
   it('stacks the sample strobe under the drawing path and offers start or import', async () => {
     const onStart = jest.fn();
     const onImport = jest.fn();
+    const onSample = jest.fn();
     const { getByTestId, getByText, getAllByTestId } = await render(
-      <WelcomeScreen sample={snatchMock} onStart={onStart} onImport={onImport} reduceMotion />
+      <WelcomeScreen sample={snatchMock} onStart={onStart} onImport={onImport} onSample={onSample} reduceMotion />
     );
     expect(getAllByTestId(/^welcome-strobe-/).map((n) => n.props.testID)).toEqual([
       'welcome-strobe-setup',
@@ -41,8 +42,10 @@ describe('Welcome', () => {
     expect(getByText('Film a lift.\nGet the one thing to fix.')).toBeOnTheScreen();
     await press(getByTestId('welcome-start'));
     await press(getByTestId('welcome-import'));
+    await press(getByText('Try a sample lift'));
     expect(onStart).toHaveBeenCalledTimes(1);
     expect(onImport).toHaveBeenCalledTimes(1);
+    expect(onSample).toHaveBeenCalledTimes(1);
   });
 });
 

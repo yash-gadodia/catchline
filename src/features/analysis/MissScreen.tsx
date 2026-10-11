@@ -33,6 +33,7 @@ export default function MissScreen({
             zoom={1}
             showPath
             heroSize={44}
+            readoutTop
           />
           <View style={{ flex: 1, paddingTop: space.s5, paddingHorizontal: space.gutter, gap: 10 }}>
             <SmallCaps>You missed because</SmallCaps>

@@ -105,7 +105,14 @@ export default function PlayerScreen({
     <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }} testID="player-screen">
       <TopBar title={liftTitle(analysis, rep.index)} onBack={onBack} />
       <View>
-        <Pressable onPress={() => setPlaying((p) => !p)} accessibilityLabel={playing ? 'Pause' : 'Play'} testID="stage-press">
+        <Pressable
+          onPress={() => {
+            impact('light');
+            setPlaying((p) => !p);
+          }}
+          accessibilityLabel={playing ? 'Pause' : 'Play'}
+          testID="stage-press"
+        >
           <Stage src={src} box={box} focus={focus} layers={layers} testID="player-stage">
             {(fit) => {
               const s = (p: { x: number; y: number }) => toScreen(p, fit);
@@ -134,7 +141,7 @@ export default function PlayerScreen({
             }}
           </Stage>
         </Pressable>
-        <View style={{ position: 'absolute', right: 16, top: 16, gap: 6 }}>
+        <View testID="overlay-toggles" style={{ position: 'absolute', left: space.gutter, bottom: 64, flexDirection: 'row', gap: 6 }}>
           {(['path', 'strobe', 'lines'] as const).map((k) => (
             <Pressable
               key={k}
@@ -143,8 +150,8 @@ export default function PlayerScreen({
               accessibilityState={{ checked: overlays[k] }}
               onPress={() => setOverlays((o) => ({ ...o, [k]: !o[k] }))}
               style={{
-                height: 32,
-                paddingHorizontal: 10,
+                height: 44,
+                paddingHorizontal: 12,
                 justifyContent: 'center',
                 alignItems: 'center',
                 backgroundColor: colors.scrim,
@@ -197,7 +204,15 @@ export default function PlayerScreen({
           onStep={(n) => setFrame(frameRef.current + n, 'frame')}
           onKeyStep={(dir) => setFrame(stepKeyFrame(rep, frameRef.current, dir))}
         />
-        <Text testID="frame-number" style={{ color: colors.text, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18, minWidth: 32, textAlign: 'right' }}>
+        <Text testID="frame-number" style={{
+            color: colors.text,
+            fontFamily: fontFamily.mono,
+            fontSize: 13,
+            lineHeight: 18,
+            minWidth: 40,
+            textAlign: 'right',
+            fontVariant: ['tabular-nums'],
+          }}>
           {frame}
         </Text>
       </View>

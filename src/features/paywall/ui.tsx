@@ -43,7 +43,7 @@ export function Fine({ children, center }: { children: string; center?: boolean 
   return (
     <Text
       style={{
-        color: colors.text3,
+        color: colors.text2,
         fontFamily: fontFamily.body,
         fontSize: 13,
         lineHeight: 18,

@@ -35,7 +35,7 @@ export default function TabBar({
         testID={`tab-${t.name}`}
         style={{ flex: 1, height: 56, alignItems: 'center', justifyContent: 'center' }}
       >
-        <Text style={{ color: on ? colors.text : colors.text3, fontFamily: fontFamily.bodyMedium, fontSize: 12, lineHeight: 16 }}>
+        <Text style={{ color: on ? colors.text : colors.text2, fontFamily: fontFamily.bodyMedium, fontSize: 12, lineHeight: 16 }}>
           {t.label}
         </Text>
       </Pressable>

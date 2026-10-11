@@ -2,6 +2,7 @@ import { Redirect, Tabs, useRouter, type Href } from 'expo-router';
 import { useHydrated, useOnboarding } from '../../src/features/onboarding/store';
 import { colors } from '../../src/design/tokens';
 import TabBar, { type TabName } from '../../src/features/library/TabBar';
+import { captureHref } from '../../src/features/paywall/hooks';
 
 export default function TabsLayout() {
   const router = useRouter();
@@ -15,7 +16,7 @@ export default function TabsLayout() {
         <TabBar
           active={state.routes[state.index].name as TabName}
           onTab={(name) => navigation.navigate(name)}
-          onRecord={() => router.push('/capture' as Href)}
+          onRecord={() => router.push(captureHref('/capture') as Href)}
         />
       )}
     >

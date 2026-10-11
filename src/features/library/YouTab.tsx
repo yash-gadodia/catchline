@@ -21,7 +21,7 @@ export default function YouTab({ onOpen, onDev }: { onOpen: () => void; onDev: (
       </Pressable>
       <View style={{ flex: 1 }} />
       <Pressable onLongPress={onDev} delayLongPress={600} testID="version" style={{ alignSelf: 'center', paddingVertical: space.s4 }}>
-        <Text style={{ color: colors.text3, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>
+        <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>
           {`Catchline ${Constants.expoConfig?.version ?? ''}`.trim()}
         </Text>
       </Pressable>

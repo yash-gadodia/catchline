@@ -79,17 +79,17 @@ describe('compareRows', () => {
   const today = [m({ id: 'a', label: 'A', value: 6 }), m({ id: 'b', label: 'B', value: 0.59, unit: 's' }), m({ id: 'c', label: 'C', value: 4 })];
   const best = [m({ id: 'a', value: 2 }), m({ id: 'b', value: 0.58, unit: 's' }), m({ id: 'c', value: 6 })];
 
-  it('arrows up, flat within 5 percent, and down', () => {
+  it('gives a signed delta, or "same" within 5 percent, with no arrows', () => {
     expect(compareRows(today, best, 'best', ['a', 'b', 'c'])).toEqual([
-      { id: 'a', label: 'A', arrow: '▲', text: '6 cm · best 2' },
-      { id: 'b', label: 'B', arrow: '—', text: '0.59 s · best 0.58' },
-      { id: 'c', label: 'C', arrow: '▼', text: '4 cm · best 6' },
+      { id: 'a', label: 'A', value: '6 cm', delta: '+4 vs best' },
+      { id: 'b', label: 'B', value: '0.59 s', delta: 'same as best' },
+      { id: 'c', label: 'C', value: '4 cm', delta: '−2 vs best' },
     ]);
   });
 
   it('skips metrics missing on either side', () => {
-    expect(compareRows(today, [best[0]], 'was', ['a', 'b'])).toEqual([
-      { id: 'a', label: 'A', arrow: '▲', text: '6 cm · was 2' },
+    expect(compareRows(today, [best[0]], 'last', ['a', 'b'])).toEqual([
+      { id: 'a', label: 'A', value: '6 cm', delta: '+4 vs last' },
     ]);
   });
 });
