@@ -56,6 +56,8 @@ The monthly caps reset on the 1st of each calendar month. Usage is counted on th
 
 ## RevenueCat
 
+**App user id:** the app identifies RevenueCat customers by the Supabase user id, and the `revenuecat-webhook` edge function writes `profiles.plan` from webhook events (setup in `BACKEND_SETUP.md` section 3).
+
 **Project:** Catchline, with one iOS app and one Android app. Put the public SDK keys (`appl_...`, `goog_...`) in EAS secrets and local `.env`, never in git:
 - `EXPO_PUBLIC_REVENUECAT_IOS_KEY`
 - `EXPO_PUBLIC_REVENUECAT_ANDROID_KEY`
@@ -98,10 +100,7 @@ The app reads the highest active entitlement: `platform`, then `founding`, then 
 
 ## Founding seat counter
 
-RevenueCat has no seat counter. The app reads seats through `getFoundingSeats()` (`src/features/paywall/seats.ts`). For now it is a local stub that returns 137 of 500. Phase 3 plan:
-- A `founding_seats` row in Supabase.
-- The RevenueCat webhook decrements it on `INITIAL_PURCHASE` / `NON_RENEWING_PURCHASE` of `catchline_founding_lifetime` and increments it again on `CANCELLATION` caused by a refund.
-- The app reads the row through an RPC, using `setSeatsSource()`.
+RevenueCat has no seat counter. The app reads seats through `getFoundingSeats()` (`src/features/paywall/seats.ts`): with the backend on it calls the public `founding_seats()` RPC (`{taken, cap: 500}`, counting `profiles.founding`, which the RevenueCat webhook sets on a `catchline_founding_lifetime` purchase or a `founding` entitlement); in fixture mode it is a local stub (137 of 500). A refund does not give the seat back.
 
 The stores cannot cap how many people buy, so two buyers racing for the last seat could both get through. Remove the package at a few seats left if that matters.
 

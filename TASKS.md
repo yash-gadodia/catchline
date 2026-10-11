@@ -38,7 +38,7 @@ Design source: `~/dev/liftcheck-research/design/` (Claude Design export; `Catchl
 - [x] Monogram "C" (from `~/dev/liftcheck-research/brand/`): app icon, Android adaptive foreground, splash mark on black, web favicon; `src/components/Mark` (static + launch draw after the native splash, Reduce Motion aware). Flare is now signal red `#FF1F3D` (light `#D90F2D`)
 - [x] One data source: Supabase via `src/lib/api` when `EXPO_PUBLIC_SUPABASE_*` is set, local fixtures otherwise (`src/data/`)
 - [x] Analyse → paywall gate → consent → createLift + TUS → live processing → reveal/cue on the real Analysis; failure and cap routes; usage recorded; `routeAfterAnalysis()` on leaving the cue
-- [ ] Founding seats counter: no backend table/RPC yet (`getFoundingSeats()` is still the local 137-of-500 stub; PRODUCTS.md "Founding seat counter")
+- [x] Founding seats counter: `founding_seats()` RPC (0004, live on hosted); the app reads it when the backend is on, stub in fixture mode (0b4f4dc)
 - [ ] Settings stay on-device (no settings table); usage gate reads the local counter, the server cap is authoritative and a `cap_reached` from `create_lift` opens the paywall
 - [ ] Trim and rep choice are not sent to the backend (the worker analyses the whole clip)
 - Notes: local smoke needs `enable_anonymous_sign_ins = true` (in `supabase/config.toml`; restart the stack after changing it) and the worker running (`uv run python -m catchline_worker`). The app reaches the Mini at `http://yash-mac-mini:55421` (Tailscale) through `.env.local`.
@@ -56,6 +56,10 @@ Design source: `~/dev/liftcheck-research/design/` (Claude Design export; `Catchl
 - [x] Mobbin P0 polish merged (29d3219)
 - [ ] app.json version 3.0 (done 6c1d236); EAS env vars; `eas build -p ios --profile production` + submit to TestFlight
 - [ ] Smoke test on Yash's phone via TestFlight: onboarding → film/import → real cue
+- [x] Purchases reach the server: RevenueCat app user id = Supabase user id; `revenuecat-webhook` (live) sets `profiles.plan` via `apply_plan`; app waits for the server plan after purchase/restore (ad93d8a, 9e36aa4, 9a023b6). Proven on hosted with a synthetic INITIAL_PURCHASE/EXPIRATION
+- [ ] (Yash) RevenueCat dashboard: Integrations → Webhooks, URL `https://slowxjhvrdswdabjfydk.supabase.co/functions/v1/revenuecat-webhook`, Authorization = `.secrets/catchline/revenuecat_webhook_auth.txt`, then send a test event
+- [ ] (Yash) RevenueCat secret API key (v1) into `.secrets/catchline/`, then (Claude) `sync-plan` edge function so the app need not wait on webhook latency
+- [ ] Founding refunds do not revoke the seat or plan (founding is permanent in `apply_plan`); consumable 10-packs not wired
 
 ## Polish pass (catchline-polish, 11 Oct)
 - [x] Mobbin P0 + S-effort P1 (27-mobbin-fitness, 28-mobbin-polish): baseline sentence, sample lift, last-free heads-up, chip fades, player toggles low, signed compare deltas, Lifts headline number, Trends recap + cue markers, small-text contrast

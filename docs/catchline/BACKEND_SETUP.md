@@ -1,12 +1,14 @@
 # Catchline backend: setup and go-live steps
 
-The backend is **hosted** since 2026-10-11: Supabase project `slowxjhvrdswdabjfydk` (the former Parallax project, wiped and renamed "Catchline") plus an always-on worker on the Mac Mini. See "Hosted backend" below. No Modal app, RevenueCat or store resource exists yet. The steps marked **(Yash)** need an account, a dashboard or a credential.
+The backend is **hosted** since 2026-10-11: Supabase project `slowxjhvrdswdabjfydk` (the former Parallax project, wiped and renamed "Catchline") plus an always-on worker on the Mac Mini. See "Hosted backend" below. No Modal app exists yet; the RevenueCat webhook function is live but not yet configured in the RevenueCat dashboard. The steps marked **(Yash)** need an account, a dashboard or a credential.
 
 ## What exists
 
 | Piece | Where | Proven by |
 |---|---|---|
-| Schema, RLS, caps, job queue, coach link, clip purge | `supabase/migrations/0001..0003` | `supabase test db` (5 files, 109 pgTAP assertions) |
+| Schema, RLS, caps, job queue, coach link, clip purge | `supabase/migrations/0001..0003` | `supabase test db` (6 files, 131 pgTAP assertions) |
+| Plan sync (`apply_plan`, `founding`, `revenuecat_events`) + `founding_seats()` | `supabase/migrations/0004_plan_sync.sql` | `supabase/tests/plan_sync_test.sql` (22) |
+| RevenueCat webhook -> `profiles.plan` | `supabase/functions/revenuecat-webhook/` | `deno test` in that folder (11) |
 | Parallax history (not applied) | `supabase/archive-parallax/` | kept for the record; excluded from tsc |
 | Worker (pgmq job -> `cv/catchline_cv` -> analysis + cue) | `worker/catchline_worker/` | `uv run pytest` (14), `ruff check` + `ruff format --check` |
 | Modal deploy file (not deployed) | `worker/modal_app.py` | lint only |
@@ -47,10 +49,10 @@ The e2e script signs a user up, records consent, creates a lift, uploads with th
 | Project | `slowxjhvrdswdabjfydk`, `https://slowxjhvrdswdabjfydk.supabase.co`, Singapore, **Free plan**, display name "Catchline". Keys: `.secrets/catchline/` (index in `.secrets/KEYS.md`), never committed. |
 | Parallax | Wiped. Backup first: `.secrets/catchline/parallax-final-backup.sql` (pg_dump of public/auth/storage, schema + data, 9 users). Then the remote DB was reset to `0001..0003` only (`supabase db reset --linked` from a scratch workdir holding just the Catchline migrations, run on the Mini because the laptop hook blocks `db reset`). Auth users were truncated; the 5 Parallax edge functions (refocus, notify-partner, generate-drops, scheduled-pushes, email-reengage) were deleted; `delete-account` redeployed from this repo (`--use-api`, no docker). The `ANTHROPIC_API_KEY` function secret is still set (unused for now). |
 | Unused project | A separate "catchline" project `qpmnupqfkzvlurosudwm` was created first, then **paused** when the plan changed to reuse Parallax. Delete it from the dashboard when sure. |
-| Verified on hosted | extensions pg_cron 1.6.4, pgmq 1.5.1, pg_net 0.20.3; pgmq queue `lift_jobs`; cron `catchline-purge-storage` (*/10); buckets `raw-clips` (500 MB, mov/mp4) + `keyframes` (5 MB, jpeg); `supabase_realtime` has `lifts` + `analyses`; RLS on all 9 public tables; migrations 0001-0003 only. |
+| Verified on hosted | extensions pg_cron 1.6.4, pgmq 1.5.1, pg_net 0.20.3; pgmq queue `lift_jobs`; cron `catchline-purge-storage` (*/10); buckets `raw-clips` (500 MB, mov/mp4) + `keyframes` (5 MB, jpeg); `supabase_realtime` has `lifts` + `analyses`; RLS on all public tables; migrations 0001-0004 (0004 via `supabase db push --linked`, no docker). |
 | Vault | `catchline_api_url`, `catchline_service_key` set; `select public.purge_storage()` returns `0`. No `catchline_worker_url`: the Mini worker polls every 5 s, so no wake is needed. |
 | Auth | Anonymous sign-ins **on** (the app starts anonymous); Email on; Apple + Google already enabled from Parallax with client id `com.yashgadodia.parallax` (same bundle id). Site URL `catchline://`, redirects `catchline://auth-callback`, `catchline://**`. Email subjects/templates can't be changed on Free without custom SMTP (API returns 400), so they are still Supabase defaults. |
-| pgTAP | 109/109 pass against the hosted DB, no docker: each `supabase/tests/*.sql` piped through `psql` (they are `begin ... rollback`, so nothing persists). The CLI temp login role needs `set role postgres` first, and `reset role` in the tests is rewritten to `set local role postgres` for that run. |
+| pgTAP | 131/131 (6 files) pass against the hosted DB, no docker: each `supabase/tests/*.sql` piped through `psql` (they are `begin ... rollback`, so nothing persists). The CLI temp login role needs `set role postgres` first, and `reset role` in the tests is rewritten to `set local role postgres` for that run. |
 | EAS env | `EXPO_PUBLIC_SUPABASE_URL` (plaintext) and `EXPO_PUBLIC_SUPABASE_ANON_KEY` (sensitive, the project's `sb_publishable_` key) were already set for production + preview from Parallax and match this project, so nothing changed. `EXPO_PUBLIC_REVENUECAT_IOS_KEY` kept. |
 
 ### Mini worker (always on)
@@ -88,8 +90,15 @@ Done on 2026-10-11 (see "Hosted backend"): project, migrations, Vault, auth URLs
 4. Put the printed `wake` URL into Vault as `catchline_worker_url` (1.3). The `sweep` cron drains the queue every 2 min anyway, so a lost wake only delays a result.
 5. Smoke test: upload one clip from a dev build; watch `modal app logs catchline-worker`; expect a `{"status": "done", ...}` line and the lift going `queued -> processing -> done` in the app.
 
-### 3. RevenueCat (needed before paid caps mean anything)
-`profiles.plan` defaults to `free` and only the service role can change it. Add a RevenueCat webhook (edge function, service-role write) that sets `plan` to `hook` / `pull` / `platform` / `founding` and back to `free` on expiry. Consumable 10-packs add to `usage_counters.bonus_credits`. Until then everyone is on the free 3-for-life cap.
+### 3. RevenueCat webhook
+Built and deployed (2026-10-11): `revenuecat-webhook`, `verify_jwt` off, secret `REVENUECAT_WEBHOOK_AUTH` (value in `.secrets/catchline/revenuecat_webhook_auth.txt`).
+- App: RevenueCat is configured with the Supabase user id (or `logIn(uid)` once the anonymous session exists, and always before a purchase or restore), so `app_user_id` = `profiles.id`. After a purchase or restore the app polls `lift_allowance()` (up to ~12 s) until the server plan catches up.
+- Function: checks `Authorization` (constant time, else 401), finds the profile from `app_user_id` / `original_app_user_id` / `aliases` (RevenueCat anonymous ids -> 200 no-op, logged), maps entitlements + product ids to the highest plan and calls `apply_plan` (dedupes by event id, skips events older than the last applied one). INITIAL_PURCHASE / RENEWAL / UNCANCELLATION / NON_RENEWING_PURCHASE set the plan; PRODUCT_CHANGE applies upgrades only (downgrades land with the RENEWAL); EXPIRATION -> free unless founding; TRANSFER moves the old owners' plan + founding to the new owner; TEST -> 200; anything else -> 200 ignored.
+- Founding is the `profiles.founding` flag and floors the plan at `founding` (Platform still ranks above it). Refunds do not revoke it. Consumable 10-packs are not wired.
+- **(Yash)** RevenueCat -> Integrations -> Webhooks: URL `https://slowxjhvrdswdabjfydk.supabase.co/functions/v1/revenuecat-webhook`, Authorization header = the whole contents of the secret file (it starts with `Bearer `). Send a test event (expect 200 `ignored: test`).
+- Not built: `sync-plan` (fetch `GET /v1/subscribers/{uid}` with a RevenueCat secret key so the app need not wait for the webhook). Needs a secret API key, which is not stored.
+- Deploy: `supabase functions deploy revenuecat-webhook --project-ref slowxjhvrdswdabjfydk --use-api --no-verify-jwt`.
+- Proven on hosted: wrong/missing header 401; synthetic INITIAL_PURCHASE (pull) on a throwaway anonymous user -> `profiles.plan = pull`, `lift_allowance` cap 40/month; replay -> `duplicate`; EXPIRATION -> free, cap 3 lifetime; user deleted after.
 
 ## Known gaps (not built here)
 - **Face blur.** Bystanders are blurred from pose boxes and head keypoints are dropped (CV v2). The lifter's face is not yet blurred in exports/coach links (`14-legal-privacy.md` s.9.2); do it before the coach link is public.
@@ -99,3 +108,4 @@ Done on 2026-10-11 (see "Hosted backend"): project, migrations, Vault, auth URLs
 - **Push on completion** (Expo push "your analysis is ready") is not wired; Realtime only.
 - **Plan gating** of coach links (Pull view-only, Platform full) is not enforced server-side; every user can mint one.
 - Abuse: deleting and re-creating an account restarts the free 3.
+- Usage gate on the device still uses the client tier; if the webhook is late, `create_lift` can still say `cap_reached` right after a purchase (the app waits up to ~12 s first).
