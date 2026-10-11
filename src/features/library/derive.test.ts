@@ -15,6 +15,7 @@ import {
   liftTitle,
   pastCueSummary,
   seriesFor,
+  trendRecap,
   sessionsCounter,
 } from './derive';
 import { emptyLibrary, seededLibrary, TODAY } from './seed';
@@ -58,13 +59,14 @@ describe('lift list', () => {
   });
 
   it('summarises each row state from the same numbers the trend uses', () => {
-    expect(liftDetail(lift('l-snatch-today'), lib.sessions)).toBe('bar drift at hip 6 cm · best 2');
-    expect(liftDetail(lift('l-mu'), lib.sessions)).toBe('hip to bar 8 cm · best 3');
+    expect(liftDetail(lift('l-snatch-today'), lib.sessions)).toBe('drift 6 cm · best 2 cm');
+    expect(liftDetail(lift('l-mu'), lib.sessions)).toBe('hip to bar 8 cm · best 3 cm');
     expect(liftDetail(lift('l-clean'), lib.sessions)).toBe('analysing · about 20 s');
     expect(liftDetail(lift('l-jerk'), lib.sessions)).toBe("Couldn't see the bar at the catch");
     expect(liftDetail(lift('l-snatch-queued'), lib.sessions)).toBe('Queued · free videos used');
     expect(liftDetail(lift('l-snatch-low'), lib.sessions)).toBe('possible · bar drifting at the knee');
     expect(liftDetail(lift('l-snatch-miss'), lib.sessions)).toBe('miss · the bar was out front at the turnover');
+    expect(liftDetail({ ...lift('l-snatch-real'), analysisId: 'gone', headline: 'hip · 5 cm fwd' }, [])).toBe('hip · 5 cm fwd');
   });
 
   it('opens each row in the right screen with the right fixture', () => {
@@ -128,5 +130,23 @@ describe('cue chart and outcomes', () => {
 
   it('says plainly why a cue did not stick', () => {
     expect(didntStickHeadline(cue('c-hips-mu'), lib.sessions)).toBe('Six sessions and the hips are still 8 cm off the bar.');
+  });
+});
+
+describe('trendRecap', () => {
+  const lib = seededLibrary();
+  const series = seriesFor(lib.sessions, 'snatch', 'bar_drift_hip');
+  const cue = lib.cues.find((c) => c.id === 'c-stay-over');
+
+  it('reads latest, best and the cue being tried', () => {
+    expect(trendRecap('bar_drift_hip', series, '2026-10-11', cue, lib.sessions)).toBe(
+      'Bar drift at hip: 6 cm today. Best 2 cm on 18 Sep. Trying “Stay over the bar longer”: 4 of 6 sessions.'
+    );
+  });
+
+  it('dates an older latest and skips a cue on another measurement', () => {
+    expect(trendRecap('bar_drift_hip', series.slice(0, 3), '2026-10-11', { ...cue!, metricId: 'pull_time' }, lib.sessions)).toBe(
+      'Bar drift at hip: 2 cm on 18 Sep. Your best yet.'
+    );
   });
 });

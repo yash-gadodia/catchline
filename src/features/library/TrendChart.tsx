@@ -31,6 +31,7 @@ export default function TrendChart({
   best,
   markerIndex,
   markerLabel,
+  markers = [],
   showDates,
   testID,
 }: {
@@ -40,12 +41,15 @@ export default function TrendChart({
   best?: number;
   markerIndex?: number | null;
   markerLabel?: string;
+  markers?: { index: number; label: string }[];
   showDates?: boolean;
   testID?: string;
 }) {
   const { points, bestY } = chartGeometry(series, width, height, best);
   const last = points[points.length - 1];
-  const marker = markerIndex != null && points[markerIndex] ? points[markerIndex] : null;
+  const all = [...(markerIndex != null ? [{ index: markerIndex, label: markerLabel }] : []), ...markers]
+    .map((m) => ({ point: points[m.index], label: m.label }))
+    .filter((m) => m.point);
   const text = { fontFamily: fontFamily.mono, fontSize: 11 };
   return (
     <View testID={testID} style={{ width, height }}>
@@ -58,16 +62,16 @@ export default function TrendChart({
             </SvgText>
           </G>
         ) : null}
-        {marker ? (
-          <G testID="cue-marker">
-            <Line x1={marker.x} y1={8} x2={marker.x} y2={height - 14} stroke={colors.flare} />
-            {markerLabel ? (
-              <SvgText x={marker.x + 4} y={height - 4} fill={colors.flare} {...text}>
-                {markerLabel}
+        {all.map(({ point, label }) => (
+          <G testID="cue-marker" key={`m-${point.date}`}>
+            <Line x1={point.x} y1={8} x2={point.x} y2={height - 14} stroke={colors.flare} />
+            {label ? (
+              <SvgText x={point.x + 4} y={height - 4} fill={colors.text2} {...text}>
+                {label}
               </SvgText>
             ) : null}
           </G>
-        ) : null}
+        ))}
         <Polyline
           points={points.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')}
           stroke={colors.text}

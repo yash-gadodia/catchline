@@ -9,9 +9,10 @@ import SmallCaps from '../../components/SmallCaps';
 import { colors, radius, space } from '../../design/tokens';
 import { display, fontFamily } from '../../design/typography';
 import { BARBELL, GYMNASTICS, METRICS, MOVEMENT_METRICS, PLURAL_MOVEMENT, PRIMARY_METRIC, SINGULAR_MOVEMENT } from './metrics';
-import { activeCue, bestOf, inRange, latestCue, metricText, seriesFor, shortDate, type Range } from './derive';
+import { activeCue, bestOf, inRange, latestCue, metricText, seriesFor, shortDate, trendRecap, type Range } from './derive';
 import { useLibrary } from './repository';
 import TrendChart from './TrendChart';
+import FadeRow from '../analysis/FadeRow';
 import { Chip, Frame, Title } from './ui';
 
 const MOVEMENTS: Movement[] = [...BARBELL, ...GYMNASTICS];
@@ -61,7 +62,12 @@ export default function TrendsScreen({ initialMovement }: { initialMovement?: Mo
   const visible = inRange(all, today, range);
   const best = bestOf(all, metric.id);
   const pinned = bestOf(seriesFor(sessions, movement, PRIMARY_METRIC[movement]), PRIMARY_METRIC[movement]);
-  const cueMarker = cueFor && cueFor.metricId === metric.id ? visible.reduce((idx, p, i) => (p.date <= cueFor.givenAt ? i : idx), -1) : -1;
+  // One marker per cue started on this measurement, at the session it was given.
+  const markers = cues
+    .filter((c) => c.movement === movement && c.metricId === metric.id)
+    .map((c) => ({ index: visible.reduce((idx, p, i) => (p.date <= c.givenAt ? i : idx), -1), label: `cue · ${shortDate(c.givenAt).toLowerCase()}` }))
+    .filter((m) => m.index >= 0);
+  const recap = trendRecap(metric.id, all, today, cueFor, sessions);
   const latest = visible[visible.length - 1];
 
   return (
@@ -133,13 +139,20 @@ export default function TrendsScreen({ initialMovement }: { initialMovement?: Mo
                 </View>
               </View>
             ) : null}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+            <View style={{ marginHorizontal: -space.gutter }}>
+            <FadeRow testID="metric-chips" contentContainerStyle={{ gap: 6, paddingHorizontal: space.gutter }}>
               {chips.map((id) => (
                 <Chip key={id} label={METRICS[id].label} height={36} selected={id === metric.id} onPress={() => setMetricId(id)} testID={`metric-${id}`} />
               ))}
-            </ScrollView>
+            </FadeRow>
+            </View>
           </View>
           <View style={{ paddingTop: space.s5, gap: space.s3 }}>
+            {recap ? (
+              <Text testID="trend-recap" style={{ color: colors.text, fontFamily: fontFamily.body, fontSize: 17, lineHeight: 24 }}>
+                {recap}
+              </Text>
+            ) : null}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' }}>
               <Text style={[display(56, true), { color: colors.text }]} testID="trend-hero">
                 {latest ? metricText(metric.id, latest.value) : '–'}
@@ -163,8 +176,7 @@ export default function TrendsScreen({ initialMovement }: { initialMovement?: Mo
                 width={width - space.gutter * 2}
                 height={200}
                 best={best?.value}
-                markerIndex={cueMarker >= 0 ? cueMarker : null}
-                markerLabel={cueFor?.text.toLowerCase()}
+                markers={markers}
                 showDates
               />
             ) : (

@@ -1,5 +1,6 @@
 import type { Movement } from '../../analysis/types';
 import { ANALYSES } from '../../analysis/fixtures';
+import { liveAnalysis } from '../../analysis/live';
 import { fmt, movementLabel, plural } from '../../analysis/format';
 import { BARBELL, GYMNASTICS, METRICS, PRIMARY_METRIC } from './metrics';
 import { FREE_VIDEOS, type CueRecord, type CueStatus, type Day, type LibraryState, type Lift, type Session } from './types';
@@ -87,16 +88,17 @@ export function liftDetail(l: Lift, sessions: Session[]): string {
   if (l.status === 'processing') return 'analysing · about 20 s';
   if (l.status === 'queued') return 'Queued · free videos used';
   if (l.status === 'failed') return l.failure?.message ?? "Couldn't analyse";
-  const analysis = l.analysisId ? ANALYSES[l.analysisId] : undefined;
+  const analysis = l.analysisId ? (liveAnalysis(l.analysisId) ?? ANALYSES[l.analysisId]) : undefined;
   if (analysis?.cue && analysis.reps.every((r) => !r.made)) return `miss · ${analysis.cue.text.toLowerCase()}`;
   if (analysis?.cue && analysis.cue.confidence !== 'clear') return `possible · ${analysis.cue.text.toLowerCase()}`;
   const session = sessions.find((s) => s.liftId === l.id);
   const metricId = PRIMARY_METRIC[l.movement];
   const value = session?.values[metricId];
-  if (value == null) return analysis?.cue ? analysis.cue.text.toLowerCase() : 'analysed';
+  // The headline number first, so a row reads without opening it.
+  if (value == null) return analysis?.cue ? analysis.cue.evidence.caption : (l.headline ?? 'analysed');
   const best = bestOf(seriesFor(sessions, l.movement, metricId), metricId);
-  const head = `${METRICS[metricId].label.toLowerCase()} ${metricText(metricId, value)}`;
-  return best ? `${head} · best ${fmt(best.value)}` : head;
+  const head = `${METRICS[metricId].short} ${metricText(metricId, value)}`;
+  return best ? `${head} · best ${metricText(metricId, best.value)}` : head;
 }
 
 export type LiftLink =
@@ -112,6 +114,18 @@ export function liftLink(l: Lift): LiftLink | null {
   if (!analysis) return { pathname: '/trends', params: { movement: l.movement } };
   if (analysis.cue && analysis.reps.every((r) => !r.made)) return { pathname: '/analysis/miss', params: { fixture: analysis.id } };
   return { pathname: '/analysis/cue', params: { fixture: analysis.id } };
+}
+
+// The newest analysed lift of each movement carries that movement's cue status.
+export function newestDone(lifts: Lift[]): Set<string> {
+  const seen = new Set<string>();
+  const ids = new Set<string>();
+  for (const l of [...lifts].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))) {
+    if (l.status !== 'done' || seen.has(l.movement)) continue;
+    seen.add(l.movement);
+    ids.add(l.id);
+  }
+  return ids;
 }
 
 export function latestCue(cues: CueRecord[], movement: Movement): CueRecord | undefined {
@@ -208,4 +222,24 @@ export function trendDirection(series: { value: number }[], metricId: string): s
   if (first === last) return 'Holding steady.';
   const better = METRICS[metricId].lowerIsBetter ? last < first : last > first;
   return better ? 'Heading the right way.' : 'Not moving yet.';
+}
+
+// Trends opens with the sentence people actually read, then the chart:
+// "Bar drift at hip: 6 cm today. Best 2 cm on 18 Sep. Trying “Stay over the bar longer”: 4 of 6 sessions."
+export function trendRecap(
+  metricId: string,
+  series: { date: Day; value: number }[],
+  today: Day,
+  cue: CueRecord | undefined,
+  sessions: Session[]
+): string | null {
+  const latest = series[series.length - 1];
+  if (!latest) return null;
+  const when = latest.date === today ? 'today' : `on ${shortDate(latest.date)}`;
+  const parts = [`${METRICS[metricId].label}: ${metricText(metricId, latest.value)} ${when}.`];
+  const best = bestOf(series, metricId);
+  if (best && best.value !== latest.value) parts.push(`Best ${metricText(metricId, best.value)} on ${shortDate(best.date)}.`);
+  else parts.push('Your best yet.');
+  if (cue?.status === 'trying' && cue.metricId === metricId) parts.push(`Trying “${cue.text}”: ${sessionsCounter(cue, sessions)} sessions.`);
+  return parts.join(' ');
 }

@@ -14,6 +14,7 @@ export type Lift = {
   analysisId?: string;
   thumb?: string;
   failure?: Failure;
+  headline?: string;
 };
 
 export type Session = {
