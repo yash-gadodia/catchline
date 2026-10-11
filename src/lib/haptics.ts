@@ -64,3 +64,14 @@ export function celebration(): Promise<void> {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   });
 }
+
+const IMPACT = {
+  light: Haptics.ImpactFeedbackStyle.Light,
+  heavy: Haptics.ImpactFeedbackStyle.Heavy,
+  soft: Haptics.ImpactFeedbackStyle.Soft,
+  rigid: Haptics.ImpactFeedbackStyle.Rigid,
+} as const;
+
+export function impact(style: keyof typeof IMPACT): Promise<void> {
+  return safely(() => Haptics.impactAsync(IMPACT[style]));
+}

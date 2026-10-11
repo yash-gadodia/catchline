@@ -1,129 +1,52 @@
-import { useEffect, useState } from 'react';
-import { Redirect } from 'expo-router';
-import { View, Text } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useSession } from '../src/features/auth/useSession';
-import { useCouple } from '../src/features/pairing/useCouple';
-import { flushPendingIntents } from '../src/features/onboarding/flushIntents';
-import { supabase } from '../src/lib/supabase';
-import { BrandedLoading } from '../src/components/BrandedLoading';
-import { DawnBlobs } from '../src/components/DawnBlobs';
-import Btn from '../src/components/Btn';
-import { Serif } from '../src/components/Text';
-import { colors, gradients, space } from '../src/design/tokens';
-import { fontFamily } from '../src/design/typography';
-import { ONE_SIDE } from '../src/content/refocus';
+import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useRouter, type Href } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { colors, space } from '../src/design/tokens';
+import { display, fontFamily } from '../src/design/typography';
+import SmallCaps from '../src/components/SmallCaps';
+import { ANALYSES } from '../src/analysis/fixtures';
 
-export default function HomeScreen() {
-  // "Try again" remounts the gate: useCouple fetches once per mount and exposes
-  // no refetch handle, so a fresh key IS the refetch.
-  const [attempt, setAttempt] = useState(0);
-  return <Gate key={attempt} onRetry={() => setAttempt((a) => a + 1)} />;
-}
+// Dev entry: opens every analysis state with a fixture until the real home exists.
+const ENTRIES: { label: string; href: string }[] = [
+  { label: 'Processing (live)', href: '/analysis/processing' },
+  { label: 'Processing · in progress', href: '/analysis/processing?state=progress&step=2' },
+  { label: 'Processing · long wait', href: '/analysis/processing?state=long&elapsed=48' },
+  { label: 'Processing · done', href: '/analysis/processing?state=done' },
+  { label: 'Result reveal', href: '/analysis/reveal' },
+  { label: 'Cue', href: '/analysis/cue' },
+  { label: 'Why this drawer', href: '/analysis/cue?why=1' },
+  { label: 'Player', href: '/analysis/player' },
+  { label: 'Compare · ghost', href: '/analysis/compare?mode=ghost' },
+  { label: 'Compare · side by side', href: '/analysis/compare?mode=side' },
+  { label: 'Low confidence', href: '/analysis/cue?fixture=snatch-mock-low' },
+  { label: 'Why did I miss', href: '/analysis/miss?fixture=snatch-mock-miss' },
+];
 
-function Gate({ onRetry }: { onRetry: () => void }) {
-  const { session, loading: sessionLoading } = useSession();
-  const { status, loading: coupleLoading } = useCouple();
-  // useCouple reports a failed lookup identically to "no couple" (status 'none'),
-  // so before dumping a possibly-paired user into onboarding, probe whether the
-  // couples table is reachable at all. Probe error -> honest retry state.
-  const [probe, setProbe] = useState<'pending' | 'ok' | 'error'>('pending');
-
-  useEffect(() => {
-    if (session?.user?.id) {
-      flushPendingIntents(session.user.id);
-    }
-  }, [session?.user?.id]);
-
-  const needsProbe =
-    !ONE_SIDE && !sessionLoading && !coupleLoading && !!session && status === 'none';
-
-  useEffect(() => {
-    if (!needsProbe) return;
-    let cancelled = false;
-    supabase
-      .from('couples')
-      .select('id')
-      .limit(1)
-      .then(({ error }) => {
-        if (!cancelled) setProbe(error ? 'error' : 'ok');
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [needsProbe]);
-
-  // Wait for auth (and the couple lookup, once we know there's a session)
-  // before routing, so a returning user never flashes onboarding. Branded
-  // frame while we wait - never a blank one.
-  if (sessionLoading || (session && coupleLoading)) return <BrandedLoading />;
-
-  // A paired (active) OR pairing-pending user belongs in the app: pending users
-  // answer their own half ahead of time; the reveal stays server-held until the
-  // partner joins (migration 0011). Only a user with no couple yet ('none') goes
-  // to onboarding to create/join an invite.
-  // ONE SIDE is a one-person app: being signed in is the only requirement.
-  // Routing a solo user through the couples pairing gate (invite codes, "call
-  // their answer") was two products out of date and made the first run
-  // unusable for the product we actually ship.
-  // No couple probe here: it exists only to avoid dumping a possibly-paired
-  // user into the pairing flow, and One Side has no pairing flow. Signed in
-  // goes to capture, signed out gets the welcome, and the sign-in screen is
-  // where a connection problem honestly surfaces.
-  if (ONE_SIDE) {
-    return <Redirect href={session ? '/(tabs)/refocus' : '/welcome'} />;
-  }
-
-  if (session && (status === 'active' || status === 'pending')) {
-    return <Redirect href="/(tabs)/today" />;
-  }
-
-  if (needsProbe && probe === 'pending') return <BrandedLoading />;
-  if (needsProbe && probe === 'error') return <ConnectionError onRetry={onRetry} />;
-
-  return <Redirect href="/(onboarding)" />;
-}
-
-function ConnectionError({ onRetry }: { onRetry: () => void }) {
+export default function DevEntry() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
   return (
-    <LinearGradient
-      colors={gradients.dawn.colors}
-      locations={gradients.dawn.locations}
-      style={{ flex: 1 }}
+    <ScrollView
+      style={{ flex: 1, backgroundColor: colors.bg }}
+      contentContainerStyle={{ paddingTop: insets.top + space.s5, paddingHorizontal: space.gutter, paddingBottom: space.s8 }}
     >
-      <DawnBlobs />
-      <View
-        style={{
-          flex: 1,
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: space.gutter,
-        }}
-      >
-        <View style={{ alignItems: 'center', maxWidth: 320, width: '100%' }}>
-          <Serif s={26} style={{ textAlign: 'center', marginBottom: 10 }}>
-            can’t reach parallax
-          </Serif>
-          <Text
-            allowFontScaling={false}
-            style={{
-              color: colors.inkSoft,
-              fontFamily: fontFamily.ui,
-              fontSize: 15,
-              lineHeight: 22,
-              textAlign: 'center',
-              marginBottom: 24,
-            }}
+      <SmallCaps>Dev · analysis flow</SmallCaps>
+      <Text style={[display(56), { color: colors.text, marginTop: space.s2, marginBottom: space.s5 }]}>Catchline</Text>
+      <View style={{ borderTopWidth: 1, borderTopColor: colors.hairline }}>
+        {ENTRIES.map((e) => (
+          <Pressable
+            key={e.href}
+            onPress={() => router.push(e.href as Href)}
+            testID={`dev-${e.label}`}
+            style={{ paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.hairline }}
           >
-            Check your connection and try again.
-          </Text>
-          <View style={{ width: '100%' }}>
-            <Btn kind="us" onPress={onRetry} testID="retry-couple">
-              Try again
-            </Btn>
-          </View>
-        </View>
+            <Text style={{ color: colors.text, fontFamily: fontFamily.body, fontSize: 17, lineHeight: 24 }}>{e.label}</Text>
+          </Pressable>
+        ))}
       </View>
-    </LinearGradient>
+      <Text style={{ color: colors.text3, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18, marginTop: space.s5 }}>
+        {`fixtures: ${Object.keys(ANALYSES).join(' · ')}`}
+      </Text>
+    </ScrollView>
   );
 }
