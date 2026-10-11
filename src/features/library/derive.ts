@@ -171,3 +171,41 @@ export type Range = 7 | 30 | 90;
 export function inRange<T extends { date: Day }>(series: T[], today: Day, days: Range): T[] {
   return series.filter((p) => daysBetween(p.date, today) < days && daysBetween(p.date, today) >= 0);
 }
+
+// A cue's chart: a couple of sessions before it was given for context, the
+// marker on the session it was given, then everything since.
+export function cueWindow(
+  cue: CueRecord,
+  sessions: Session[],
+  before = 2
+): { series: { date: Day; value: number }[]; markerIndex: number | null } {
+  const all = seriesFor(sessions, cue.movement, cue.metricId).filter((p) => cue.endedAt == null || p.date <= cue.endedAt);
+  const given = all.reduce((idx, p, i) => (p.date <= cue.givenAt ? i : idx), -1);
+  const start = Math.max(0, given - before);
+  return {
+    series: all.slice(start).map(({ date, value }) => ({ date, value })),
+    markerIndex: given < 0 ? null : given - start,
+  };
+}
+
+const NUMBER_WORDS = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten'];
+
+export function didntStickHeadline(cue: CueRecord, sessions: Session[]): string {
+  const n = cueSessions(cue, sessions).length;
+  const count = `${NUMBER_WORDS[n] ?? String(n)} ${n === 1 ? 'session' : 'sessions'}`;
+  const series = cueSeries(cue, sessions);
+  if (series.length === 0) return `${count} and it hasn't moved yet.`;
+  const m = METRICS[cue.metricId];
+  const v = metricText(cue.metricId, series[series.length - 1].value);
+  const still = m.still ? m.still.replace('{v}', v) : `${m.label.toLowerCase()} is still ${v}`;
+  return `${count} and ${still}.`;
+}
+
+export function trendDirection(series: { value: number }[], metricId: string): string {
+  if (series.length < 2) return '';
+  const first = series[0].value;
+  const last = series[series.length - 1].value;
+  if (first === last) return 'Holding steady.';
+  const better = METRICS[metricId].lowerIsBetter ? last < first : last > first;
+  return better ? 'Heading the right way.' : 'Not moving yet.';
+}

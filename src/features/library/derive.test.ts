@@ -1,5 +1,8 @@
 import {
   activeCue,
+  cueWindow,
+  didntStickHeadline,
+  trendDirection,
   bestOf,
   cueSeries,
   dayLabel,
@@ -112,5 +115,18 @@ describe('trends', () => {
     expect(inRange(drift, TODAY, 7).map((p) => p.value)).toEqual([7, 6]);
     expect(inRange(drift, TODAY, 30)).toHaveLength(10);
     expect(inRange(drift, TODAY, 90)).toHaveLength(10);
+  });
+});
+
+describe('cue chart and outcomes', () => {
+  it('puts two sessions of context before the cue marker', () => {
+    const w = cueWindow(cue('c-stay-over'), lib.sessions);
+    expect(w.series.map((p) => p.value)).toEqual([8, 8, 8, 8, 7, 7, 6]);
+    expect(w.markerIndex).toBe(2);
+    expect(trendDirection(w.series, 'bar_drift_hip')).toBe('Heading the right way.');
+  });
+
+  it('says plainly why a cue did not stick', () => {
+    expect(didntStickHeadline(cue('c-hips-mu'), lib.sessions)).toBe('Six sessions and the hips are still 8 cm off the bar.');
   });
 });

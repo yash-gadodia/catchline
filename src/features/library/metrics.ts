@@ -7,6 +7,7 @@ export type Metric = {
   unit: 'cm' | 's' | 'deg';
   lowerIsBetter: boolean;
   caption: string;
+  still?: string;
 };
 
 export const METRICS: Record<string, Metric> = {
@@ -17,6 +18,7 @@ export const METRICS: Record<string, Metric> = {
     unit: 'cm',
     lowerIsBetter: true,
     caption: 'Bar drift at hip, cm forward.',
+    still: 'the bar still drifts {v} at the hip',
   },
   pull_time: { id: 'pull_time', label: 'Pull timing', short: 'pull', unit: 's', lowerIsBetter: true, caption: 'Pull time, seconds.' },
   catch_depth: { id: 'catch_depth', label: 'Catch depth', short: 'depth', unit: 'cm', lowerIsBetter: false, caption: 'Catch depth below parallel, cm.' },
@@ -31,6 +33,7 @@ export const METRICS: Record<string, Metric> = {
     unit: 'cm',
     lowerIsBetter: true,
     caption: 'Hip to bar at transition, cm.',
+    still: 'the hips are still {v} off the bar',
   },
   body_line: { id: 'body_line', label: 'Body-line angle', short: 'body line', unit: 'deg', lowerIsBetter: false, caption: 'Body-line angle at the drive, degrees.' },
   cycle_time: { id: 'cycle_time', label: 'Cycle time', short: 'cycle', unit: 's', lowerIsBetter: true, caption: 'Time per rep, seconds.' },
