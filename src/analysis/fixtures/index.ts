@@ -3,6 +3,7 @@ import { keyFrameForPhase, pointAt, repByIndex } from '../timeline';
 import mock from './snatch-mock.json';
 import real from './snatch-real.json';
 import { parseAnalysis } from '../parse';
+import { liveAnalysis } from '../live';
 
 export const snatchMock = parseAnalysis(mock);
 
@@ -119,5 +120,5 @@ export const ANALYSES: Record<string, Analysis> = {
 
 export function getAnalysis(key?: string | string[]): Analysis {
   const k = Array.isArray(key) ? key[0] : key;
-  return (k && ANALYSES[k]) || snatchMock;
+  return (k && (liveAnalysis(k) ?? ANALYSES[k])) || snatchMock;
 }

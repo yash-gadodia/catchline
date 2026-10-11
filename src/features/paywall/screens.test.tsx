@@ -26,7 +26,7 @@ describe('FreeVideosChip', () => {
       <FreeVideosChip state={{ label: 'Last free video', tone: 'last' }} />
     );
     expect(getByText('Last free video')).toBeOnTheScreen();
-    expect(getByTestId('free-chip-last')).toHaveStyle({ borderColor: '#FF3B2F' });
+    expect(getByTestId('free-chip-last')).toHaveStyle({ borderColor: '#FF1F3D' });
     await rerender(<FreeVideosChip state={null} />);
     expect(toJSON()).toBeNull();
   });
@@ -201,7 +201,7 @@ describe('FoundingSheet', () => {
   it('under 10% the bar goes flare and the copy stays flat', async () => {
     const { getByTestId, getByText } = await render(<FoundingSheet seats={{ total: 500, remaining: 41 }} {...props()} />);
     expect(getByText('of 500 left. Under 10%.')).toBeOnTheScreen();
-    expect(getByTestId('seats-bar-low')).toHaveStyle({ backgroundColor: '#FF3B2F' });
+    expect(getByTestId('seats-bar-low')).toHaveStyle({ backgroundColor: '#FF1F3D' });
   });
 
   it('sold out points to plans', async () => {

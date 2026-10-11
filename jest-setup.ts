@@ -184,13 +184,13 @@ jest.mock('expo-apple-authentication', () => ({
 jest.mock('expo-web-browser', () => ({
   __esModule: true,
   openAuthSessionAsync: jest.fn(() =>
-    Promise.resolve({ type: 'success', url: 'parallax://auth-callback?code=test-code' })
+    Promise.resolve({ type: 'success', url: 'catchline://auth-callback?code=test-code' })
   ),
   maybeCompleteAuthSession: jest.fn(),
 }));
 jest.mock('expo-linking', () => ({
   __esModule: true,
-  createURL: (path: string) => `parallax://${path}`,
+  createURL: (path: string) => `catchline://${path}`,
   parse: (url: string) => {
     const q: Record<string, string> = {};
     const query = url.split('?')[1];
@@ -270,7 +270,7 @@ jest.mock('expo-notifications', () => ({
   __esModule: true,
   getPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'undetermined', granted: false, canAskAgain: true, expires: 'never' })),
   requestPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted', granted: true, canAskAgain: false, expires: 'never' })),
-  scheduleNotificationAsync: jest.fn(() => Promise.resolve('parallax-daily-nudge')),
+  scheduleNotificationAsync: jest.fn(() => Promise.resolve('catchline-nudge')),
   cancelScheduledNotificationAsync: jest.fn(() => Promise.resolve()),
   getExpoPushTokenAsync: jest.fn(() => Promise.resolve({ data: 'ExponentPushToken[test-token]', type: 'expo' })),
   SchedulableTriggerInputTypes: { DAILY: 'daily' },

@@ -6,17 +6,15 @@ import { Database } from '@/types/db';
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
-if (!url || !anonKey) {
-  throw new Error(
-    'Missing EXPO_PUBLIC_SUPABASE_URL or EXPO_PUBLIC_SUPABASE_ANON_KEY - copy .env.example to .env and fill in your credentials'
-  );
-}
+// Without both env vars the app runs on its local fixture stores (dev mode) and
+// never calls this client; it is still constructed so imports stay static.
+export const supabaseConfigured = Boolean(url && anonKey);
 
-export const supabase = createClient<Database>(url, anonKey, {
+export const supabase = createClient<Database>(url || 'http://127.0.0.1:1', anonKey || 'not-configured', {
   auth: {
     storage: AsyncStorage,
-    autoRefreshToken: true,
-    persistSession: true,
+    autoRefreshToken: supabaseConfigured,
+    persistSession: supabaseConfigured,
     detectSessionInUrl: false,
     // PKCE is the recommended flow for native OAuth (Google/Apple via the browser).
     flowType: 'pkce',
@@ -24,4 +22,3 @@ export const supabase = createClient<Database>(url, anonKey, {
 });
 
 export type { Database, Profile } from '@/types/db';
-

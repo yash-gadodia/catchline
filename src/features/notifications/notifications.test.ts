@@ -2,7 +2,7 @@ import * as Notifications from 'expo-notifications';
 import { requestPermissions, registerPushToken } from './index';
 
 jest.mock('expo-notifications');
-// Stub supabase so notifyPartner tests control functions.invoke independently.
+// Stub supabase so push-token tests control the profile write.
 jest.mock('../../lib/supabase', () => ({
   supabase: {
     functions: { invoke: jest.fn(() => Promise.resolve({ data: null, error: null })) },

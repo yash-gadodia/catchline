@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { backendEnabled } from '../../data/backend';
+import { createCoachLink } from '../../lib/api';
 
 export type CoachLink = {
   id: string;
@@ -92,7 +94,31 @@ export function createLocalCoachRepository(now: () => Date = () => new Date()): 
   };
 }
 
-export const coachRepository = createLocalCoachRepository();
+// Backend mode: the link is a real coach_links row for the lift (Analysis.id is
+// the lift id); the coach's reply still arrives through the local store until
+// the coach page exists.
+export function createApiCoachRepository(): CoachRepository {
+  const local = createLocalCoachRepository();
+  return {
+    ...local,
+    async createLink(analysisId, opts) {
+      const row = await createCoachLink(analysisId, LINK_DAYS);
+      const link: CoachLink = {
+        id: row.id,
+        analysisId,
+        url: `${LINK_BASE}${row.token}`,
+        includeCue: opts.includeCue,
+        includeRecent: opts.includeRecent,
+        createdAt: row.created_at,
+        expiresAt: row.expires_at,
+      };
+      useCoachStore.setState((s) => ({ links: [...s.links, link] }));
+      return link;
+    },
+  };
+}
+
+export const coachRepository = backendEnabled() ? createApiCoachRepository() : createLocalCoachRepository();
 
 export function useCoachOverride(analysisId: string): CoachOverride | null {
   return useCoachStore((s) => s.overrides[analysisId] ?? null);

@@ -6,6 +6,7 @@ export {
   getLift,
   listLifts,
   getAnalysis,
+  listAnalyses,
   subscribeToLift,
   type CreateLiftInput,
   type UploadOptions,
@@ -13,5 +14,5 @@ export {
 } from './lifts';
 export { listCues, updateCue } from './cues';
 export { createCoachLink, revokeCoachLink } from './coach';
-export { recordConsent, getAllowance, type Allowance, type ConsentKind } from './account';
-export { tusUpload, TusError, TUS_CHUNK_BYTES } from './tus';
+export { ensureSession, recordConsent, getAllowance, type Allowance, type ConsentKind } from './account';
+export { tusUpload, TusError, TUS_CHUNK_BYTES, type UploadSource } from './tus';

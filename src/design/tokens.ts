@@ -19,7 +19,7 @@ export const dark: Palette = {
   text: '#EDE9E1',
   text2: '#A39F97',
   text3: '#6E6B65',
-  flare: '#FF3B2F',
+  flare: '#FF1F3D',
   onFlare: '#000000',
   scrim: 'rgba(0,0,0,0.7)',
 };
@@ -32,7 +32,7 @@ export const light: Palette = {
   text: '#101010',
   text2: '#5A5750',
   text3: '#8C8982',
-  flare: '#D92B1F',
+  flare: '#D90F2D',
   onFlare: '#FFFFFF',
   scrim: 'rgba(247,245,240,0.8)',
 };

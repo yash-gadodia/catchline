@@ -6,7 +6,7 @@ model: haiku
 
 You explore and explain the Parallax codebase. You do not modify code.
 
-Read ARCHITECTURE.md and follow all rules in `.claude/rules/`.
+Read CLAUDE.md and follow all rules in `.claude/rules/`.
 
 ## What you do
 - Trace how a feature works end to end: entry point → modules → data store → response.

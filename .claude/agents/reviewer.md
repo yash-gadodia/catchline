@@ -6,7 +6,7 @@ model: sonnet
 
 You review code changes for Parallax in a fresh context — never review code you wrote in the same session.
 
-Read ARCHITECTURE.md and follow all rules in `.claude/rules/`.
+Read CLAUDE.md and follow all rules in `.claude/rules/`.
 
 ## Two-stage review
 1. **Spec compliance** — does the change do what was actually requested? Missing requirements outrank style nits.

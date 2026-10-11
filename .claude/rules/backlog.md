@@ -1,6 +1,6 @@
 # Backlog (the shared task tracker)
 
-`docs/BACKLOG.md` is the source of truth for what's planned. Owners are tagged inline: `(Yash)` creds/infra · `(Dani)` product/design decisions · `(Claude)` agent-buildable.
+`TASKS.md` is the source of truth for what's planned. Owners are tagged inline: `(Yash)` creds/infra · `(Dani)` product/design decisions · `(Claude)` agent-buildable.
 
 Keep it current as part of normal work:
 

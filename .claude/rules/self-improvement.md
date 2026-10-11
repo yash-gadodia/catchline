@@ -6,7 +6,7 @@ How the agent gets better over time and fixes its own UI/bugs/UX instead of hand
 
 When a fix was **not obvious** — a real root cause, a gotcha, a tooling quirk, or anything that took 2+ attempts — record it before moving on:
 
-1. Append a one-line entry to **`docs/DECISIONS.md`** (for design/product/tech decisions) or note the gotcha in **`docs/BUILD_LOG.md`**.
+1. Add a one-line entry to the notes in **`TASKS.md`** (decisions and gotchas alike).
 2. Save a durable **memory** for cross-session facts (user preferences, project constraints, "X looks wrong but is correct").
 3. If it's a rule the agent should always follow, add it to the right **`.claude/rules/*.md`**.
 

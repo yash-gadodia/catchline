@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "parallax",
+    "name": "Catchline",
     "slug": "parallax",
     "version": "2.2.0",
     "orientation": "portrait",
-    "scheme": "parallax",
+    "scheme": "catchline",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "android": {
@@ -12,29 +12,29 @@
       "package": "com.yashgadodia.parallax",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#FBF1F2"
+        "backgroundColor": "#000000"
       }
     },
     "web": {
-      "output": "static"
+      "output": "static",
+      "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "@bacons/apple-targets",
       "expo-router",
       "expo-apple-authentication",
       "expo-web-browser",
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#FBF1F2",
+          "backgroundColor": "#000000",
           "image": "./assets/splash-icon.png",
-          "imageWidth": 180
+          "imageWidth": 160
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "To read a chat screenshot you choose. It is never stored."
+          "photosPermission": "Catchline opens the lift videos you pick so it can measure them. Nothing else in your library is read."
         }
       ],
       [
@@ -62,9 +62,9 @@
         ]
       },
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false,
-        "NSSupportsLiveActivities": true
-      }
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "icon": "./assets/icon.png"
     },
     "extra": {
       "router": {},

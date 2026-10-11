@@ -36,8 +36,10 @@ port = 55427
 
 [auth]
 enabled = true
-site_url = "parallax://"
-additional_redirect_urls = ["parallax://auth-callback"]
+site_url = "catchline://"
+additional_redirect_urls = ["catchline://auth-callback"]
+# The app starts on an anonymous account (no sign-in screen); Apple/Google link to it later.
+enable_anonymous_sign_ins = true
 
 [auth.email]
 enable_signup = true

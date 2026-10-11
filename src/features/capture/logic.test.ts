@@ -150,8 +150,8 @@ describe('submit', () => {
     });
   });
 
-  it('hands the clip to processing on the mock fixture for now', async () => {
+  it('sends the bundled sample clip (no uri) to the sample analysis and counts it', async () => {
     await submitClip(toSubmission(demoClip('ok'), '', 'kg'));
-    expect(router.push).toHaveBeenCalledWith({ pathname: '/analysis/processing', params: { fixture: 'snatch-mock' } });
+    expect(router.push).toHaveBeenCalledWith({ pathname: '/analysis/processing', params: { fixture: 'snatch-mock', count: '1' } });
   });
 });

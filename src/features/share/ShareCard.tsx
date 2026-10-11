@@ -10,6 +10,7 @@ import { keyFrameForPhase, liftPath, phaseSeconds, repByIndex } from '../../anal
 import { colors } from '../../design/tokens';
 import { display, fontFamily } from '../../design/typography';
 import Stage, { type StageLayer } from '../analysis/Stage';
+import Mark from '../../components/Mark';
 import { CurrentDot, FlarePath, KeyDots, OverlaySvg } from '../analysis/overlays';
 import {
   cardCopy,
@@ -73,15 +74,6 @@ function keyDots(analysis: Analysis, fit: Fit) {
     .map((k) => (k ? path.find((p) => p.frame >= k.frame) ?? path[path.length - 1] : null))
     .filter((p): p is NonNullable<typeof p> => !!p)
     .map((p) => toScreen(p, fit));
-}
-
-export function Mark({ size }: { size: number }) {
-  return (
-    <Svg viewBox="0 0 160 160" width={size} height={size} fill="none">
-      <Path d="M64 134 C60 110 62 92 74 78 C86 64 92 50 88 30" stroke={colors.flare} strokeWidth={12} strokeLinecap="round" />
-      <Circle cx={88} cy={30} r={14} fill={colors.flare} />
-    </Svg>
-  );
 }
 
 function Watermark({ text, top, left }: { text: string; top: number; left: number }) {
