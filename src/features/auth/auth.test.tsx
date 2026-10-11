@@ -89,7 +89,7 @@ describe('Auth Actions', () => {
           data: {
             display_name: 'John Doe',
           },
-          emailRedirectTo: 'parallax://auth-callback',
+          emailRedirectTo: 'catchline://auth-callback',
         },
       });
     });
@@ -152,7 +152,7 @@ describe('Auth Actions', () => {
       expect(mockSupabase.auth.resend).toHaveBeenCalledWith({
         type: 'signup',
         email: 'yash@example.com',
-        options: { emailRedirectTo: 'parallax://auth-callback' },
+        options: { emailRedirectTo: 'catchline://auth-callback' },
       });
     });
 
@@ -175,7 +175,7 @@ describe('Auth Actions', () => {
 
       expect(mockSupabase.auth.resetPasswordForEmail).toHaveBeenCalledWith(
         'yash@example.com',
-        { redirectTo: 'parallax://auth-callback' }
+        { redirectTo: 'catchline://auth-callback' }
       );
     });
 
@@ -449,7 +449,7 @@ describe('humanAuthError', () => {
 
   it('translates "User already registered" into the log-in-instead message', () => {
     expect(humanAuthError(new Error('User already registered'), 'fallback')).toBe(
-      'you two have met before — that email already has an account, log in instead'
+      'that email already has an account, log in instead'
     );
   });
 

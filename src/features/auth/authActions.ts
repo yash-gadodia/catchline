@@ -20,7 +20,7 @@ export function humanAuthError(err: unknown, fallback: string): string {
     return 'almost in — tap the confirmation link we emailed you first';
   }
   if (msg.includes('already registered') || msg.includes('already been registered')) {
-    return 'you two have met before — that email already has an account, log in instead';
+    return 'that email already has an account, log in instead';
   }
   if (msg.includes('rate limit') || msg.includes('too many requests')) {
     return 'a few too many tries — give it a minute, then go again';
@@ -78,7 +78,7 @@ export async function signUpWithEmail(
 }
 
 // Confirmation/recovery email links deep-link back as
-// parallax://auth-callback?token_hash=…&type=…
+// catchline://auth-callback?token_hash=…&type=…
 // The auth-callback route exchanges that hash for a session.
 export async function verifyEmailOtp(
   tokenHash: string,

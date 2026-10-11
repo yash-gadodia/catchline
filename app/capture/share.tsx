@@ -13,7 +13,7 @@ import { colors } from '../../src/design/tokens';
 type Params = { uri?: string; from?: string; movement?: string; fps?: string; duration?: string };
 
 // Share-sheet entry (stub). A share extension hands the shared video over as
-// parallax://capture/share?uri=…&from=WhatsApp and lands straight on Review.
+// catchline://capture/share?uri=…&from=WhatsApp and lands straight on Review.
 // Native setup it still needs: src/features/capture/share-sheet.md.
 // With no uri it shows the design's sample (a WhatsApp HSPU clip).
 export default function ShareRoute() {
