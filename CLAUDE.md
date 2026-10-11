@@ -22,7 +22,7 @@ Design source of truth: `~/dev/liftcheck-research/design/` (`Catchline Design Sy
 
 ## Invariants
 - **RN fidelity** (`.claude/rules/frontend.md`): `lineHeight` in px, explicit `color` on every `<Text>`, reuse `src/components` atoms and `src/design` tokens.
-- **Design rules beat the design file**: monochrome plus flare `#FF3B2F` only; no pill buttons (56pt, 4px radius); "Bar drift at hip"; the cue is labelled "AI estimate"; never "prevent injury" or "diagnose".
+- **Design rules beat the design file**: monochrome plus flare `#FF1F3D` only; no pill buttons (56pt, 4px radius); "Bar drift at hip"; the cue is labelled "AI estimate"; never "prevent injury" or "diagnose".
 - **Privacy**: raw clips are write-only for the client and deleted after analysis (24 h backstop); never log or store a clip elsewhere; consent before the first upload; caps, consent and job state are enforced server-side, never trust the client.
 - Realtime needs the table in `supabase_realtime`; supabase-js `never` inference → documented `// @ts-expect-error`, never `as any`.
 - No `any` / `@ts-ignore`. Keep it simple, no drive-by refactors.
