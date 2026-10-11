@@ -1,0 +1,16 @@
+{
+ "2026-01-01_AAAA": {"status": "ok", "analysis": {"video": {"fps": 30.0}, "failure": null,
+   "reps": [{"index": 1, "startFrame": 160, "endFrame": 200, "made": true}, {"index": 2, "startFrame": 45, "endFrame": 80, "made": true}],
+   "cue": {"faultId": "hips_rise_early", "evidence": {"rep": 2}}}},
+ "2026-01-01_BBBB": {"status": "ok", "analysis": {"video": {"fps": 30.0}, "failure": null,
+   "reps": [{"index": 1, "startFrame": 70, "endFrame": 110, "made": true}],
+   "cue": {"faultId": "jump_forward", "evidence": {"rep": 1}}}},
+ "2026-01-01_CCCC": {"status": "ok", "analysis": {"video": {"fps": 30.0}, "failure": null,
+   "reps": [{"index": 1, "startFrame": 40, "endFrame": 100, "made": true}],
+   "cue": {"faultId": "bar_forward_off_hips", "evidence": {"rep": 1}}}},
+ "2026-01-01_DDDD": {"status": "failure", "analysis": {"video": {"fps": 30.0}, "reps": [], "cue": null,
+   "failure": {"reason": "unsupported_movement", "message": "No floor-to-overhead lift found in this clip."}}},
+ "2026-01-01_EEEE": {"status": "ok", "analysis": {"video": {"fps": 30.0}, "failure": null,
+   "reps": [{"index": 1, "startFrame": 40, "endFrame": 100, "made": true}, {"index": 2, "startFrame": 130, "endFrame": 140, "made": false}],
+   "cue": null}}
+}

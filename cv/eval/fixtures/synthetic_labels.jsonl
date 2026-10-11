@@ -1,0 +1,15 @@
+{"clip_id": "power-snatch/2026-01-01_AAAA", "coach": "Coach One", "rep": 1, "movement": "power snatch", "outcome": "made", "primary": "S2", "secondary": null, "cue": "Chest up", "confidence": "high"}
+{"clip_id": "power-snatch/2026-01-01_AAAA", "coach": "Coach Two", "rep": 1, "movement": "power snatch", "outcome": "made", "primary": "S2", "secondary": "S3", "cue": "Push the floor", "confidence": "high"}
+{"clip_id": "power-snatch/2026-01-01_AAAA", "coach": "Coach Three", "rep": 1, "movement": "power snatch", "outcome": "made", "primary": "S2", "secondary": null, "cue": "Chest and bar together", "confidence": "med"}
+{"clip_id": "power-snatch/2026-01-01_AAAA", "coach": "Coach One", "rep": 2, "movement": "power snatch", "outcome": "made", "primary": "S2", "secondary": null, "cue": "Chest up", "confidence": "high"}
+{"clip_id": "power-snatch/2026-01-01_AAAA", "coach": "Coach Two", "rep": 2, "movement": "power snatch", "outcome": "made", "primary": "S2", "secondary": null, "cue": "Push the floor", "confidence": "high"}
+{"clip_id": "power-snatch/2026-01-01_AAAA", "coach": "Coach Three", "rep": 2, "movement": "power snatch", "outcome": "made", "primary": "S4", "secondary": null, "cue": "Land where you started", "confidence": "low"}
+{"clip_id": "2026-01-01_BBBB", "coach": "c1", "rep": 1, "movement": "snatch", "made": false, "primary_fault": "excessive_backward_lean", "secondary_fault": null, "cue_text": "Stay over the bar", "confidence": "high"}
+{"clip_id": "2026-01-01_BBBB", "coach": "c2", "rep": 1, "movement": "snatch", "made": "missed", "primary_fault": "S9", "secondary_fault": null, "cue_text": "Finish straight up", "confidence": "high"}
+{"clip_id": "2026-01-01_CCCC", "coach": "c1", "rep": 1, "movement": "snatch", "made": true, "primary_fault": "S7", "cue_text": "Bar comes to you", "confidence": "med"}
+{"clip_id": "2026-01-01_CCCC", "coach": "c2", "rep": 1, "movement": "snatch", "made": true, "primary_fault": "S3", "cue_text": "Brush the bar", "confidence": "med"}
+{"clip_id": "2026-01-01_DDDD", "coach": "c1", "rep": 1, "movement": "bar muscle-up", "made": true, "primary_fault": "none", "confidence": "high"}
+{"clip_id": "2026-01-01_EEEE", "coach": "c1", "rep": 1, "movement": "power snatch", "made": "made", "primary_fault": "S1", "confidence": "low"}
+{"clip_id": "2026-01-01_EEEE", "coach": "c1", "rep": 1, "movement": "power snatch", "made": "made", "primary_fault": "none", "confidence": "high"}
+{"clip_id": "2026-01-01_EEEE", "coach": "c2", "rep": 1, "movement": "power snatch", "made": "made", "primary_fault": "none", "confidence": "high"}
+{"clip_id": "2026-01-01_EEEE", "coach": "c3", "rep": 1, "skipped": true}
