@@ -68,7 +68,7 @@ The e2e script signs a user up, records consent, creates a lift, uploads with th
 Anonymous sign-up (publishable key) -> consent -> `create_lift` -> TUS upload with `src/lib/api/tus.ts` -> `enqueue_lift` -> Mini worker -> result:
 `lift: done`, `analysis: snatch reps=2`, `cue: jump_forward | Land where you started | low`, cue row `trying sessions=1`, 14 keyframes, raw clip objects left 0, deletion audit `worker`, queue 0, and the user signs a keyframe URL (HTTP 200 image/jpeg). The power-snatch reference `2026-08-26_FF600EFA.mov` also completes (`done`, 7 keyframes, raw deleted) but its rep measures all normal, so `cue: null`.
 
-**Free-plan blocker:** the project-wide upload limit is 50 MB, so the 58 MB reference clip fails with `413 Maximum size exceeded` before the bucket's 500 MB limit applies. The runs above used the same clips re-encoded under 50 MB (h264). Real iPhone 4K/slo-mo clips need **Pro + Storage file size limit >= 500 MB**, or compression in the app before upload.
+**Free-plan blocker:** the project-wide upload limit is 50 MB, so the 58 MB reference clip fails with `413 Maximum size exceeded` before the bucket's 500 MB limit applies. The runs above used the same clips re-encoded under 50 MB (h264). The app now trims and re-encodes every clip before upload (`modules/clip-transcoder`, `src/features/capture/compress.ts`): H.264, 1080 px long edge, source frame rate kept up to 120 fps, no audio, under 45 MB (the 58 MB reference goes up as 12.4 MB). Pro + a larger Storage file limit is no longer needed for uploads.
 
 ## Go-live steps (Yash)
 

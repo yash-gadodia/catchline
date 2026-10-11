@@ -54,3 +54,6 @@ Design source: `~/dev/liftcheck-research/design/` (Claude Design export; `Catchl
 - [ ] RevenueCat: import ASC products, attach to entitlements, offerings (default Pull; ad funnel)
 - [ ] app.json version 3.0; EAS env vars; `eas build -p ios --profile production` + submit to TestFlight
 - [ ] Smoke test on Yash's phone via TestFlight: onboarding → film/import → real cue
+- [x] Compress before upload (Free plan 50 MB cap): local Expo module `modules/clip-transcoder` (AVAssetReader/Writer on iOS, Media3 Transformer on Android) applies the trim, H.264, 1080 px long edge, source fps kept (240 → 120), no audio, 8/10/12 Mbps by fps, re-encode or "Too long to send" over 45 MB. Sim: 58.4 MB ref → 12.4 MB, 364/364 frames at 29.97 fps, hosted lift `done`. Android not compiled yet (no SDK on laptop or Mini).
+- [ ] (Claude) Send the chosen rep to the backend: `create_lift` only takes movement + load; the trim is baked into the uploaded clip.
+- [ ] (Claude) Simulator encoder overshoots the bitrate on synthetic high-motion clips (12 Mbps target → 17.7 Mbps); check on a real phone and add `AVVideoDataRateLimitsKey` if real clips overshoot too.

@@ -8,7 +8,8 @@ import { useUsage } from '../features/paywall/usageStore';
 import { useOnboarding } from '../features/onboarding/store';
 import { EMPTY_USAGE } from '../features/paywall/entitlements';
 import { resetConsentSync } from './backend';
-import { usePipeline } from './pipeline';
+import { uploadStep, usePipeline, type Job } from './pipeline';
+import Transcoder from '../../modules/clip-transcoder';
 import ProcessingRoute from '../../app/analysis/processing';
 import CueRoute from '../../app/analysis/cue';
 
@@ -134,7 +135,7 @@ describe('capture → upload → processing → cue (backend mode)', () => {
     expect(db.rpc.mock.calls.map((c) => c[0])).toEqual(['create_lift', 'enqueue_lift']);
     expect(db.rpc).toHaveBeenCalledWith('create_lift', { p_movement: 'snatch', p_load_kg: 62.5 });
     const tus = (tusUpload as jest.Mock).mock.calls[0][0];
-    expect(tus.metadata).toEqual({ bucketName: 'raw-clips', objectName: 'u1/lift-1', contentType: 'video/quicktime', cacheControl: '3600' });
+    expect(tus.metadata).toEqual({ bucketName: 'raw-clips', objectName: 'u1/lift-1', contentType: 'video/mp4', cacheControl: '3600' });
     expect(usePipeline.getState().job).toMatchObject({ liftId: 'lift-1', status: 'queued', error: null });
   });
 
@@ -212,6 +213,108 @@ describe('capture → upload → processing → cue (backend mode)', () => {
     await render(<ProcessingRoute />);
     const jobId = usePipeline.getState().job?.id;
     expect(nav.replace).toHaveBeenCalledWith({ pathname: '/paywall', params: { clip: jobId, movement: 'snatch' } });
+  });
+});
+
+describe('preparing the clip before upload', () => {
+  const transcoder = Transcoder as unknown as { probe: jest.Mock; transcode: jest.Mock };
+
+  it('uploads a trimmed H.264 copy (1080 px long edge) that keeps the source frame rate, not the original', async () => {
+    transcoder.probe.mockResolvedValueOnce({ width: 2160, height: 3840, fps: 120, durationS: 20 });
+    await submitClip({ ...CLIP, trim: { start: 2.5, end: 9.5 } });
+    await settle();
+
+    expect(transcoder.probe).toHaveBeenCalledWith('file:///clips/power-snatch.mov');
+    expect(transcoder.transcode).toHaveBeenCalledTimes(1);
+    expect(transcoder.transcode).toHaveBeenCalledWith({
+      uri: 'file:///clips/power-snatch.mov',
+      startS: 2.5,
+      endS: 9.5,
+      width: 608,
+      height: 1080,
+      fps: 120,
+      dropToFps: false,
+      bitrate: 12_000_000,
+    });
+    expect(usePipeline.getState().job).toMatchObject({ status: 'queued', prepared: 1, total: 0 });
+  });
+
+  it('re-encodes once at a lower bitrate when the first pass is still over 45 MB', async () => {
+    transcoder.transcode.mockResolvedValueOnce({ uri: 'file:///cache/clip-transcoder/big.mp4', size: 60 * 1024 * 1024, width: 1080, height: 1920, fps: 30, frames: 360, durationS: 12 });
+    await submitClip(CLIP);
+    await settle();
+
+    expect(transcoder.transcode).toHaveBeenCalledTimes(2);
+    expect(transcoder.transcode.mock.calls[0][0].bitrate).toBe(8_000_000);
+    expect(transcoder.transcode.mock.calls[1][0].bitrate).toBe(5_520_000);
+  });
+
+  it('asks for a shorter trim when the clip cannot fit, and never creates a lift', async () => {
+    transcoder.probe.mockResolvedValueOnce({ width: 3840, height: 2160, fps: 60, durationS: 240 });
+    await submitClip({ ...CLIP, trim: { start: 0, end: 200 } });
+    await waitFor(() => expect(usePipeline.getState().job?.status).toBe('failed'));
+
+    expect(usePipeline.getState().job).toMatchObject({ error: 'clip_too_long', maxS: 86 });
+    expect(transcoder.transcode).not.toHaveBeenCalled();
+    expect(db.rpc).not.toHaveBeenCalled();
+
+    params.current = { live: '1' };
+    const view = await render(<ProcessingRoute />);
+    expect(view.getByTestId('processing-too_long')).toBeOnTheScreen();
+    expect(view.getByText('Too long to send')).toBeOnTheScreen();
+    expect(view.getByText('max 86 s')).toBeOnTheScreen();
+    await act(async () => {
+      fireEvent.press(view.getByTestId('trim-clip'));
+    });
+    expect(nav.replace).toHaveBeenCalledWith('/capture/trim');
+  });
+
+  it('shows "Preparing your clip" with its progress, then "Uploading your clip"', async () => {
+    const base: Job = { id: 'job-1', movement: 'snatch', status: 'preparing', liftId: null, prepared: 0.42, sent: 0, total: 0, uploadUrl: null, error: null, maxS: null };
+    usePipeline.getState().start(base);
+    params.current = { live: '1' };
+    const view = await render(<ProcessingRoute />);
+    expect(view.getByText('Preparing your clip')).toBeOnTheScreen();
+    expect(view.getByText('preparing 42%')).toBeOnTheScreen();
+
+    await act(async () => {
+      usePipeline.getState().patch({ status: 'uploading', prepared: 1, sent: 6 * 1024 * 1024, total: 12 * 1024 * 1024 });
+    });
+    expect(view.getByText('Uploading your clip')).toBeOnTheScreen();
+    expect(view.getByText('uploading 50%')).toBeOnTheScreen();
+  });
+});
+
+describe('long wait while the clip is still on the phone', () => {
+  afterEach(() => jest.useRealTimers());
+
+  it('keeps showing progress past 45 s while preparing, not the queue message', async () => {
+    jest.useFakeTimers();
+    usePipeline.getState().start({ id: 'job-2', movement: 'snatch', status: 'preparing', liftId: null, prepared: 0.9, sent: 0, total: 0, uploadUrl: null, error: null, maxS: null });
+    params.current = { live: '1' };
+    const view = await render(<ProcessingRoute />);
+    await act(async () => {
+      jest.advanceTimersByTime(50_000);
+    });
+    expect(view.getByTestId('processing-progress')).toBeOnTheScreen();
+    expect(view.getByText('preparing 90%')).toBeOnTheScreen();
+
+    await act(async () => {
+      usePipeline.getState().patch({ status: 'queued', prepared: 1 });
+    });
+    expect(view.getByTestId('processing-long')).toBeOnTheScreen();
+  });
+});
+
+describe('uploadStep', () => {
+  const job: Job = { id: 'j', movement: 'snatch', status: 'preparing', liftId: null, prepared: 0, sent: 0, total: 0, uploadUrl: null, error: null, maxS: null };
+
+  it('labels each upload state', () => {
+    expect(uploadStep(null)).toEqual({ label: 'Uploading your clip', meta: null });
+    expect(uploadStep({ ...job, prepared: 0.666 })).toEqual({ label: 'Preparing your clip', meta: 'preparing 67%' });
+    expect(uploadStep({ ...job, status: 'uploading', total: 0 })).toEqual({ label: 'Uploading your clip', meta: null });
+    expect(uploadStep({ ...job, status: 'uploading', sent: 3, total: 4 })).toEqual({ label: 'Uploading your clip', meta: 'uploading 75%' });
+    expect(uploadStep({ ...job, status: 'queued', sent: 4, total: 4 })).toEqual({ label: 'Uploading your clip', meta: null });
   });
 });
 

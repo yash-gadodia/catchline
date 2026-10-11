@@ -4,18 +4,22 @@ import { File } from 'expo-file-system';
 import { ApiError, createLift, type ApiErrorCode, type UploadSource } from '../lib/api';
 import type { ClipSubmission } from '../features/capture/submit';
 import { syncConsent } from './backend';
+import { ClipTooLongError, discardPrepared, prepareClip } from './prepare';
 
-export type JobStatus = 'uploading' | 'queued' | 'processing' | 'done' | 'failed';
+export type JobStatus = 'preparing' | 'uploading' | 'queued' | 'processing' | 'done' | 'failed';
+export type JobError = ApiErrorCode | 'clip_too_long';
 
 export type Job = {
   id: string;
   movement: Movement;
   status: JobStatus;
   liftId: string | null;
+  prepared: number;
   sent: number;
   total: number;
   uploadUrl: string | null;
-  error: ApiErrorCode | null;
+  error: JobError | null;
+  maxS: number | null;
 };
 
 type PipelineState = {
@@ -53,38 +57,52 @@ export async function readClip(uri: string): Promise<UploadSource> {
   };
 }
 
-export function contentTypeFor(uri: string): 'video/quicktime' | 'video/mp4' {
-  return /\.mp4($|\?)/i.test(uri) ? 'video/mp4' : 'video/quicktime';
+// The first processing step: "Preparing your clip" while it is trimmed and
+// re-encoded on the phone, then "Uploading your clip" with the bytes sent.
+export function uploadStep(job: Job | null): { label: string; meta: string | null } {
+  if (job?.status === 'preparing') return { label: 'Preparing your clip', meta: `preparing ${Math.round(job.prepared * 100)}%` };
+  const meta = job?.status === 'uploading' && job.total > 0 ? `uploading ${Math.round((job.sent / job.total) * 100)}%` : null;
+  return { label: 'Uploading your clip', meta };
 }
 
-// Consent, then create_lift (cap checked server-side) + resumable upload +
-// enqueue. Never throws: the outcome lands on the job.
+// Consent, then the trimmed H.264 copy (1080 px long edge) (Supabase Free caps uploads at
+// 50 MB), then create_lift (cap checked server-side) + resumable upload +
+// enqueue. Never throws: the outcome lands on the job. The trim is baked into the
+// uploaded clip; the chosen rep is not sent (create_lift takes movement + load only).
 export async function startLift(sub: ClipSubmission & { uri: string }, read: (uri: string) => Promise<UploadSource> = readClip): Promise<void> {
   const { start, patch } = usePipeline.getState();
   start({
     id: `job-${Date.now()}`,
     movement: sub.movement,
-    status: 'uploading',
+    status: 'preparing',
     liftId: null,
+    prepared: 0,
     sent: 0,
     total: 0,
     uploadUrl: null,
     error: null,
+    maxS: null,
   });
+  let prepared: string | null = null;
   try {
     await syncConsent();
-    const file = await read(sub.uri);
-    patch({ total: file.size });
+    const clip = await prepareClip(sub.uri, sub.trim, (p) => patch({ prepared: p }));
+    prepared = clip.uri;
+    const file = await read(clip.uri);
+    patch({ status: 'uploading', prepared: 1, total: file.size });
     const lift = await createLift({
       movement: sub.movement,
       loadKg: sub.loadKg ?? undefined,
       file,
-      contentType: contentTypeFor(sub.uri),
+      contentType: 'video/mp4',
       onUploadUrl: (uploadUrl) => patch({ uploadUrl }),
       onProgress: (sent, total) => patch({ sent, total }),
     });
     patch({ liftId: lift.id, status: lift.status as JobStatus });
   } catch (e) {
-    patch({ status: 'failed', error: e instanceof ApiError ? e.code : 'upload_failed' });
+    if (e instanceof ClipTooLongError) patch({ status: 'failed', error: 'clip_too_long', maxS: e.maxS });
+    else patch({ status: 'failed', error: e instanceof ApiError ? e.code : 'upload_failed' });
+  } finally {
+    if (prepared) discardPrepared(prepared);
   }
 }
