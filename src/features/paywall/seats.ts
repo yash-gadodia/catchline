@@ -1,10 +1,12 @@
+import { backendEnabled } from '../../data/backend';
+import { foundingSeats } from '../../lib/api';
 import { FOUNDING_SEATS_TOTAL } from './entitlements';
 
 export type FoundingSeats = { total: number; remaining: number };
 export type FoundingState = 'open' | 'low' | 'soldOut';
 
-// The seam for the live counter. Phase 3 swaps the local stub for a Supabase RPC fed
-// by the RevenueCat webhook on the founding product.
+// The seam for the live counter: the founding_seats() RPC (founders set by the
+// RevenueCat webhook) when the backend is on, a local stub in fixture mode.
 export interface SeatsSource {
   getFoundingSeats(): Promise<FoundingSeats>;
 }
@@ -13,7 +15,14 @@ export const localSeats: SeatsSource = {
   getFoundingSeats: async () => ({ total: FOUNDING_SEATS_TOTAL, remaining: 137 }),
 };
 
-let source: SeatsSource = localSeats;
+export const remoteSeats: SeatsSource = {
+  getFoundingSeats: async () => {
+    const { taken, cap } = await foundingSeats();
+    return { total: cap, remaining: Math.max(cap - taken, 0) };
+  },
+};
+
+let source: SeatsSource = backendEnabled() ? remoteSeats : localSeats;
 
 export function setSeatsSource(next: SeatsSource): void {
   source = next;
