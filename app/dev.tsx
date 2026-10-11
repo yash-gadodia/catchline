@@ -5,9 +5,22 @@ import { colors, space } from '../src/design/tokens';
 import { display, fontFamily } from '../src/design/typography';
 import SmallCaps from '../src/components/SmallCaps';
 import { ANALYSES } from '../src/analysis/fixtures';
+import { FAILURE_REASONS } from '../src/features/library/failures';
+import { loadLibrary } from '../src/features/library/repository';
 
-// Dev entry: opens every analysis state with a fixture until the real home exists.
-const ENTRIES: { label: string; href: string }[] = [
+// Dev entry (long-press the version on the You tab): opens every state with a fixture.
+const ENTRIES: { label: string; href: string; library?: 'seeded' | 'empty' }[] = [
+  { label: 'Lifts · populated', href: '/', library: 'seeded' },
+  { label: 'Lifts · day one', href: '/', library: 'empty' },
+  { label: 'Cues · active + past', href: '/cues', library: 'seeded' },
+  { label: 'Cues · empty', href: '/cues', library: 'empty' },
+  { label: 'Cue detail', href: '/cue/c-stay-over', library: 'seeded' },
+  { label: 'It stuck', href: '/cue/c-finish-pull', library: 'seeded' },
+  { label: "Didn't stick", href: '/cue/c-hips-mu', library: 'seeded' },
+  { label: 'Trends · snatch', href: '/trends?movement=snatch', library: 'seeded' },
+  { label: 'Trends · bar muscle-up', href: '/trends?movement=bar_muscle_up', library: 'seeded' },
+  { label: 'Trends · fewer than 2 sessions', href: '/trends?movement=clean', library: 'seeded' },
+  ...FAILURE_REASONS.map((r) => ({ label: `Couldn't analyse · ${r}`, href: `/failure/demo?reason=${r}` })),
   { label: 'Processing (live)', href: '/analysis/processing' },
   { label: 'Processing · in progress', href: '/analysis/processing?state=progress&step=2' },
   { label: 'Processing · long wait', href: '/analysis/processing?state=long&elapsed=48' },
@@ -34,13 +47,16 @@ export default function DevEntry() {
       style={{ flex: 1, backgroundColor: colors.bg }}
       contentContainerStyle={{ paddingTop: insets.top + space.s5, paddingHorizontal: space.gutter, paddingBottom: space.s8 }}
     >
-      <SmallCaps>Dev · analysis flow</SmallCaps>
+      <SmallCaps>Dev · every state</SmallCaps>
       <Text style={[display(56), { color: colors.text, marginTop: space.s2, marginBottom: space.s5 }]}>Catchline</Text>
       <View style={{ borderTopWidth: 1, borderTopColor: colors.hairline }}>
         {ENTRIES.map((e) => (
           <Pressable
-            key={e.href}
-            onPress={() => router.push(e.href as Href)}
+            key={e.label}
+            onPress={() => {
+              if (e.library) loadLibrary(e.library);
+              router.push(e.href as Href);
+            }}
             testID={`dev-${e.label}`}
             style={{ paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.hairline }}
           >
