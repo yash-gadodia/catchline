@@ -7,13 +7,17 @@ import time
 import cv2
 import numpy as np
 
+from . import movement as mv
+from . import outcome
 from . import rules
 from .geometry import angle, bar_from_wrists, lowpass, normalise, rise_ratio, trunk_angle
 from .lifter import select_lifter
 from .phases import SNATCH_PHASES, catch_depth, find_reps, key_frames, segment_snatch
-from .pose import (L_ANK, L_BIGTOE, L_ELB, L_HEEL, R_ELB, L_HIP, L_KNEE, L_SHO, L_WRI, NOSE, R_ANK, R_BIGTOE, R_HEEL,
-                   R_HIP, R_KNEE, R_SHO, R_WRI, run_pose)
-from .track import find_plates, foreground_mask, from_ref, refine_plate, stabilise, to_ref, track_plate
+from .pose import (L_ANK, L_BIGTOE, L_ELB, L_HEEL, R_ELB, L_HIP, L_KNEE, L_SHO, L_WRI, R_ANK, R_BIGTOE, R_HEEL,
+                   R_HIP, R_KNEE, R_SHO, R_WRI, run_pose, strip_head)
+from .privacy import blur_bystanders, bystanders
+from .track import (camera_path, find_plates, foreground_mask, from_ref, refine_plate, stabilise, to_ref, to_world,
+                    track_plate)
 from .video import frames, probe
 
 INFER_H = 1280
@@ -26,30 +30,49 @@ def mid(k, a, b):
     return (k[:, a] + k[:, b]) / 2
 
 
-def run(clip, out_json, assets_dir, asset_prefix, debug_dir, cache_dir, analysis_id):
+def run(clip, out_json, assets_dir, asset_prefix, debug_dir, cache_dir, analysis_id, movement="snatch"):
     t0 = time.time()
     meta = probe(clip)
     fps = meta["fps"]
     os.makedirs(cache_dir, exist_ok=True)
-    cache = os.path.join(cache_dir, os.path.basename(clip) + ".pose.pkl")
+    two_pass = movement == "kipping_hspu"
+    cache = os.path.join(cache_dir, os.path.basename(clip) + (".2pass" if two_pass else "") + ".pose.pkl")
     if os.path.exists(cache):
         people, shape = pickle.load(open(cache, "rb")).values()
     else:
-        people, shape = run_pose(clip, INFER_H)
+        people, shape = run_pose(clip, INFER_H, two_pass=two_pass)
         pickle.dump({"people": people, "shape": shape}, open(cache, "wb"))
+    people = strip_head(people)  # caches written before head points were dropped at the pose step
     t_pose = time.time() - t0
     H, W = shape[:2]
     n = len(people)
     k, ks, boxes = select_lifter(people)
 
     def fail(reason, message, frame=None):
-        return write(out_json, base(analysis_id, meta, n) | {
+        return write(out_json, base(analysis_id, meta, n, movement) | {
             "reps": [], "bestRepIndex": 0, "cue": None, "measurements": [],
             "failure": {"reason": reason, "message": message} | ({"frame": int(frame)} if frame is not None else {})})
 
+    world = to_world(k, camera_path(clip, people, INFER_H))
+    ok, msg = mv.check(movement, mv.signals(world, fps))
+    if not ok:
+        return fail("unsupported_movement", msg)
+    ctx = {"clip": clip, "meta": meta, "people": people, "k": k, "ks": ks, "boxes": boxes, "fps": fps, "H": H, "W": W,
+           "n": n, "out_json": out_json, "assets_dir": assets_dir, "asset_prefix": asset_prefix, "debug_dir": debug_dir,
+           "analysis_id": analysis_id, "movement": movement, "fail": fail, "t0": t0, "t_pose": t_pose, "world": world}
+    if movement == "snatch":
+        return run_snatch(ctx)
+    from . import lifts
+    return lifts.run(ctx)
+
+
+def run_snatch(ctx):
+    clip, meta, people, k, ks, boxes, fps, H, W, n = (ctx[x] for x in ("clip", "meta", "people", "k", "ks", "boxes", "fps", "H", "W", "n"))
+    out_json, assets_dir, asset_prefix, debug_dir, analysis_id, fail = (ctx[x] for x in ("out_json", "assets_dir", "asset_prefix", "debug_dir", "analysis_id", "fail"))
+    t0, t_pose = ctx["t0"], ctx["t_pose"]
     up = lambda y: H - y
     wr_h = up(mid(k, L_WRI, R_WRI)[:, 1])
-    reps = find_reps(lowpass(wr_h, fps), lowpass(up(k[:, NOSE, 1]), fps), lowpass(up(mid(k, L_KNEE, R_KNEE)[:, 1]), fps), fps)
+    reps = find_reps(lowpass(wr_h, fps), lowpass(up(mv.head_y(k)), fps), lowpass(up(mid(k, L_KNEE, R_KNEE)[:, 1]), fps), fps)
     if not reps:
         return fail("unsupported_movement", "No floor-to-overhead lift found in this clip.")
 
@@ -66,7 +89,7 @@ def run(clip, out_json, assets_dir, asset_prefix, debug_dir, cache_dir, analysis
     for i, r in enumerate(rep_info):
         r["index"] = i + 1
     # the cue comes from the rep where the chosen fault is most severe; the others say whether it repeats
-    cue_rep = max(rep_info, key=lambda r: r["severity"])
+    cue_rep = next((r for r in rep_info if r["outcome"].startswith("missed")), None) or max(rep_info, key=lambda r: r["severity"])
     measurements, cue = build_cue(cue_rep, rep_info, best, W, H)
 
     keyframes_dir = assets_dir
@@ -76,7 +99,7 @@ def run(clip, out_json, assets_dir, asset_prefix, debug_dir, cache_dir, analysis
         for pi, phase in enumerate(SNATCH_PHASES):
             f = r["keys"][phase]
             name = f"r{r['index']}-{pi + 1}-{phase}.jpg"
-            export_frame(clip, f, fps, os.path.join(keyframes_dir, name))
+            export_keyframe(ctx, f, os.path.join(keyframes_dir, name))
             kfs.append({"phase": phase, "frame": int(f), "image": f"{asset_prefix}/{name}"})
         out_reps.append({"index": r["index"], "startFrame": r["start"], "endFrame": r["end"], "made": r["made"],
                          "phases": r["phases"], "keyFrames": kfs, "path": r["path"]})
@@ -96,13 +119,13 @@ def run(clip, out_json, assets_dir, asset_prefix, debug_dir, cache_dir, analysis
     return analysis, rep_info, timing
 
 
-def base(analysis_id, meta, n):
+def base(analysis_id, meta, n, movement="snatch"):
     vh = KEYFRAME_H
     vw = int(round(meta["width"] * vh / meta["height"]))
-    return {"version": 1, "id": analysis_id, "movement": "snatch",
+    return {"version": 1, "id": analysis_id, "movement": movement,
             "video": {"uri": f"assets/analysis/{analysis_id}", "width": vw, "height": vh, "fps": meta["fps"],
                       "frameCount": meta["frameCount"] or n},
-            "traceKind": "bar"}
+            "traceKind": "hip" if mv.FAMILY.get(movement, "barbell") != "barbell" else "bar"}
 
 
 def write(path, obj):
@@ -113,15 +136,28 @@ def write(path, obj):
     return obj
 
 
-def export_frame(clip, f, fps, path):
-    subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", f"{f / fps:.4f}", "-i", clip, "-frames:v", "1",
-                    "-vf", f"scale=-2:{KEYFRAME_H}", "-q:v", "3", path], check=True)
+def read_frame(clip, f, fps, height=KEYFRAME_H):
+    raw = subprocess.run(["ffmpeg", "-v", "error", "-ss", f"{f / fps:.4f}", "-i", clip, "-frames:v", "1",
+                          "-vf", f"scale=-2:{height}", "-f", "image2pipe", "-c:v", "png", "-"], check=True, capture_output=True).stdout
+    return cv2.imdecode(np.frombuffer(raw, np.uint8), cv2.IMREAD_COLOR)
 
 
-def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_dir, rep_no):
+def export_keyframe(ctx, f, path):
+    """Keyframe JPEG with every person but the lifter blurred (box from their body keypoints, padded)."""
+    f = int(min(max(f, 0), ctx["n"] - 1))
+    img = read_frame(ctx["clip"], f, ctx["fps"])
+    others = bystanders(ctx["people"][f], ctx["boxes"][f])
+    lifter = (ctx["k"][f], ctx["ks"][f]) if np.isfinite(ctx["boxes"][f]).all() else None
+    img = blur_bystanders(img, others, lifter, scale=img.shape[0] / ctx["H"])
+    cv2.imwrite(path, img, [cv2.IMWRITE_JPEG_QUALITY, 85])
+
+
+def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_dir, rep_no, kind="snatch"):
+    """One floor-to-catch rep. kind 'clean' catches in the front rack (bar at the shoulders, elbows forward) instead
+    of an overhead lockout, and the window stops at the end of the rack hold so a following jerk is not the peak."""
     n = len(people)
     s0 = max(0, start - int(2 * fps))
-    e0 = min(n, end + int(1.0 * fps))
+    e0 = min(n, end + (int(1.0 * fps) if kind == "snatch" else 1))
     fr = [im for _, im in frames(clip, H, s0, e0 - s0, fps)]
     e0 = s0 + len(fr)
     kw = k[s0:e0]
@@ -147,11 +183,15 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
     trunk = trunk_angle(sho, hip)
 
     elbow = np.minimum(angle(ksm[:, L_SHO], ksm[:, L_ELB], ksm[:, L_WRI]), angle(ksm[:, R_SHO], ksm[:, R_ELB], ksm[:, R_WRI]))
-    phases, ev = segment_snatch(up(bar[:, 1]), knee_ang, fps, elbow=elbow)
+    rack = None
+    if kind == "clean":
+        from .lifts import rack_mask
+        rack = rack_mask(ksm, bar, fps)
+    phases, ev = segment_snatch(up(bar[:, 1]), knee_ang, fps, elbow=elbow, catch_mask=rack)
     lo = ev["liftoff"]
     knee_pass = next((f for f in range(lo, ev["peak"]) if bar[f, 1] <= knee[f, 1]), None)
     if knee_pass is not None and not ev["double_knee_bend"]:
-        phases, ev = segment_snatch(up(bar[:, 1]), knee_ang, fps, knee_pass=knee_pass, elbow=elbow)
+        phases, ev = segment_snatch(up(bar[:, 1]), knee_ang, fps, knee_pass=knee_pass, elbow=elbow, catch_mask=rack)
 
     # 2. plates at setup (sharp, static) -> scale + camera angle; near plate tracked through the pull
     seed = max(0, lo - 3)
@@ -223,6 +263,11 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
     detail["bar_forward_off_hips"] = {"frame": contact + j, "from_frame": contact}
     vals["jump_forward"] = cm(fwd * (ank[ev["caught"], 0] - ank[lo, 0])) * foreshort
     detail["jump_forward"] = {"frame": ev["caught"], "from_frame": lo}
+    if kind == "clean":
+        from .lifts import clean_pull_values
+        cv_, cd_ = clean_pull_values(ksm, hip_ang, knee_ang, lo, ev, fps)
+        vals.update(cv_)
+        detail.update(cd_)
 
     knee_h = mid(ksm, L_KNEE, R_KNEE)
     depth_end = min(ev["recovered"], ev["hold_end"] - 1)
@@ -231,7 +276,7 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
     peak_h = cm(bar[lo, 1] - bar[ev["peak"], 1])
     drop = cm(bar[ev["caught"], 1] - bar[ev["peak"], 1])
     turnover_s = (ev["caught"] - ev["second_ext"]) / fps
-    standing_h = cm(np.nanmax(ank[:, 1] - ksm[:, NOSE, 1])) + 12.0  # nose sits ~12 cm below the crown
+    standing_h = cm(np.nanmax(ank[:, 1] - mv.head_y(ksm))) + 12.0  # the head stand-in sits ~12 cm below the crown
 
     # plate vs wrist agreement over the pull (bar proxy validation)
     pull = np.arange(lo, min(ev["second_ext"], len(fr) - 1) + 1)
@@ -243,6 +288,36 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
         agree = float(np.corrcoef(pv, wv)[0, 1])
 
     made = bool(ev["recovered"] < len(fr) - 1 and knee_ang[ev["recovered"]: ev["recovered"] + int(0.5 * fps) + 1].max() > 150)
+
+    # 4. outcome first (26 section 8.1): which way the bar left a missed lift, and the missed-behind causes (8.2)
+    midfoot = (mid(ksm, L_BIGTOE, R_BIGTOE) + mid(ksm, L_HEEL, R_HEEL)) / 2
+    f_end = int(min(max(ev["caught"], ev["hold_end"] - 1), len(fr) - 1))
+    k_back = max(1, int(0.2 * fps))
+    bar_vs_mid = cm(fwd * (bar[f_end, 0] - midfoot[f_end, 0])) * foreshort
+    bar_vx = cm(fwd * (bar[f_end, 0] - bar[max(0, f_end - k_back), 0])) * foreshort
+    if kind == "clean":
+        # made = stood up with the bar still in the rack (a power clean barely rides down, so no 90% stand-up rise)
+        made = bool((rack[ev["caught"]:] & (knee_ang[ev["caught"]:] > 155) & (hip_ang[ev["caught"]:] > 155)).any())
+    # a miss needs the bar to have left the lifter inside the window; a clip that ends mid-hold is not a miss
+    released = ev["hold_end"] < len(fr)
+    outcome_kind = outcome.classify(made, bar_vs_mid, bar_vx) if made or released else "unknown"
+    lean = lambda f: 90.0 - float(trunk[f])
+    ahead = lambda f: fwd * (sho[f, 0] - hip[f, 0]) > 0
+    vx = np.gradient(fwd * bar[:, 0]) * fps / px_per_cm * foreshort
+    swing_f = contact + int(np.argmax(xs))
+    miss = {"bar_vs_midfoot": bar_vs_mid, "bar_vx": bar_vx, "frame": f_end,
+            "fwd_excursion": vals["bar_forward_off_hips"],
+            "pvx_minus": float(np.min(vx[swing_f: min(len(fr), ev["caught"] + int(0.3 * fps)) + 1])),
+            "hip_past_ankle": cm(fwd * (hip[ev["second_ext"], 0] - ank[ev["second_ext"], 0])) * foreshort,
+            "trunk_back": 0.0 if ahead(ev["peak"]) else lean(ev["peak"]),
+            "foot_dx": vals["jump_forward"],
+            "trunk_fwd_catch": lean(ev["caught"]) if ahead(ev["caught"]) else 0.0,
+            "max_hip": float(np.max(hip_ang[lo: ev["peak"] + 1])),
+            "bar_behind": -cm(fwd * (bar[ev["peak"], 0] - sho[ev["peak"], 0])) * foreshort,
+            "midfoot": midfoot[f_end], "bar": bar[f_end]}
+    if outcome_kind == "missed_behind":
+        # the forward step after a miss behind is the bail, not a jump forward
+        vals["jump_forward"] = None
     g = lambda f: s0 + int(f)
     raw = lambda p, f: from_ref(p, Ms[f])
     path = [{"frame": g(f)} | normalise(raw(bar[f], f), W, H) for f in range(phases[0]["startFrame"], len(fr))
@@ -260,7 +335,7 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
         "plate_lost_at": g(int(np.where(np.isfinite(plate_raw[:, 0]))[0].max())), "plate_wrist_corr": agree,
         "peak_h": peak_h, "drop": drop, "turnover_s": turnover_s, "standing_h": standing_h,
         "hands_overlap": bool(hands_overlap), "stab_inliers_min": int(min(inliers)) if inliers else 0, "fwd": fwd,
-        "severity": max(rules.fired(vals).values(), default=0.0),
+        "severity": max(rules.fired(vals).values(), default=0.0), "outcome": outcome_kind, "miss": miss,
         "_ref": {"s0": s0, "Ms": Ms, "ksm": ksm, "bar": bar, "plate_ref": plate_ref, "knee_ang": knee_ang,
                  "hip_ang": hip_ang, "trunk": trunk, "hip": hip, "sho": sho, "ank": ank, "frames": fr,
                  "kraw": kw, "elbow": elbow, "ks": ks[s0:e0], "contact": contact, "knee_pass": knee_pass, "lo": lo},
@@ -285,8 +360,9 @@ def build_cue(r, reps, best_rep, W, H):
     for fid in ("hips_rise_early", "bar_forward_off_hips", "jump_forward"):
         v = vals.get(fid)
         if v is None:
-            meas.append({"id": fid, "label": LABELS[fid], "value": 0, "unit": "cm", "frame": r["start"],
-                         "status": "not_seen", "note": "could not measure"})
+            meas.append({"id": fid, "label": LABELS[fid], "value": 0, "unit": "cm", "frame": r["start"], "status": "not_seen",
+                         "note": "not judged: the step forward was the bail" if r["outcome"] == "missed_behind" and fid == "jump_forward"
+                         else "could not measure"})
             continue
         status = "cue" if fid == cue_id else ("follows" if fid in fired else "normal")
         note = NOTES[fid]
@@ -307,6 +383,14 @@ def build_cue(r, reps, best_rep, W, H):
         {"id": "turnover_time", "label": "Extension to catch", "value": round(r["turnover_s"], 2), "unit": "s",
          "frame": r["events"]["second_ext"], "status": "normal", "note": "± 1 frame at 30 fps"},
     ]
+    if r["outcome"] == "missed_behind":
+        return miss_behind_card(r, meas, W, H)
+    if r["outcome"] == "missed_forward":
+        # earliest window that fired is the cause (26 section 3), not the most severe
+        f_ = rules.gate(set(fired))
+        cue_id = min(f_, key=lambda k: rules.RULES[k]["order"]) if f_ else None
+        if cue_id is None:
+            return meas, miss_card(r, "missed_forward", meas, W, H)
     if cue_id is None:
         return meas, None
 
@@ -331,8 +415,49 @@ def build_cue(r, reps, best_rep, W, H):
     conf_text = f"Seen on {seen} of {len(reps)} reps"
     if off > 20:
         conf_text += f", filmed ~{off:.0f}° off side-on: film from the side to confirm"
-    cue = {"faultId": cue_id, "text": rules.CUES[cue_id], "why": rules.why_sentence(cue_id, vals),
+    why = rules.why_sentence(cue_id, vals, det[cue_id])
+    if r["outcome"] == "missed_forward":
+        meas.append({"id": "outcome", "label": "Missed forward", "value": round(r["miss"]["bar_vs_midfoot"], 1), "unit": "cm",
+                     "frame": s0 + r["miss"]["frame"], "status": "normal", "note": "bar vs mid-foot when it left you (+ = in front)"})
+        why = f"Missed forward. The bar left you {r['miss']['bar_vs_midfoot']:.0f} cm in front of mid-foot. Earliest thing I can see: {why[0].lower()}{why[1:]}"
+    cue = {"faultId": cue_id, "text": rules.CUES[cue_id], "why": why,
            "confidence": conf, "confidenceText": conf_text,
            "evidence": {"rep": r["index"], "frame": s0 + f, "from": normalise(frm, W, H), "to": normalise(to, W, H),
                         "value": round(vals[cue_id], 1), "unit": "cm", "caption": caption}}
     return meas, cue
+
+
+def miss_card(r, kind, meas, W, H, cause=None, sev=0.0):
+    """The cue card for a missed rep with no measured cause, or a missed-behind cause (26 sections 8.2, 8.4, 8.5)."""
+    m = r["miss"]
+    Ms, s0, f = r["_ref"]["Ms"], r["_ref"]["s0"], m["frame"]
+    raw = lambda p: from_ref(p, Ms[f])
+    off = r["off_side_deg"]
+    if kind == "missed_behind":
+        hips_text = (f"your hips drove {m['hip_past_ankle']:.0f} cm past your ankles at the top" if m["hip_past_ankle"] > 6
+                     else f"you leaned {m['trunk_back']:.0f} deg back at the top of the pull" if m["trunk_back"] > 10
+                     else f"your feet jumped {abs(m['foot_dx'] or 0):.0f} cm back")
+        why = outcome.behind_copy(m["bar_vs_midfoot"], cause, {"fwd": m["fwd_excursion"], "hips_text": hips_text,
+                                                               "trunk": m["trunk_fwd_catch"], "behind": m["bar_behind"]})
+        text = rules.CUES[outcome.CAUSE_CUE[cause]] if cause in outcome.CAUSE_CUE else "Film one more rep from the side."
+    else:
+        why = (f"Missed forward. The bar left you {m['bar_vs_midfoot']:.0f} cm in front of mid-foot. I can't tell why from "
+               "this clip: nothing in the pull was outside its window. Film one more rep, or a lighter make, and I'll compare.")
+        text = "Film one more rep from the side."
+    # one rep: the outcome is visible, a cause only counts at 1.5x its band (26 section 8.4)
+    conf = "worth_checking" if cause in outcome.CAUSE_CUE and sev >= 1.5 and (off is None or off <= 20) else "low"
+    conf_text = "One missed rep" + (f", filmed ~{off:.0f}° off side-on: film from the side to confirm" if off and off > 20 else "")
+    meas.append({"id": "outcome", "label": "Missed " + ("behind" if kind == "missed_behind" else "forward"),
+                 "value": round(m["bar_vs_midfoot"], 1), "unit": "cm", "frame": s0 + f, "status": "cue",
+                 "note": "bar vs mid-foot when it left you (+ = in front)"})
+    return {"faultId": kind, "text": text, "why": why, "confidence": conf, "confidenceText": conf_text,
+            "evidence": {"rep": r["index"], "frame": s0 + f, "from": normalise(raw(m["midfoot"]), W, H),
+                         "to": normalise(raw(m["bar"]), W, H), "value": round(m["bar_vs_midfoot"], 1), "unit": "cm",
+                         "caption": f"bar {abs(m['bar_vs_midfoot']):.0f} cm {'behind' if m['bar_vs_midfoot'] < 0 else 'in front of'} mid-foot"}}
+
+
+def miss_behind_card(r, meas, W, H):
+    m = r["miss"]
+    cause, sev = outcome.behind_cause(m["fwd_excursion"], m["pvx_minus"], m["hip_past_ankle"], m["trunk_back"],
+                                      m["foot_dx"], m["trunk_fwd_catch"], m["max_hip"], m["bar_behind"])
+    return meas, miss_card(r, "missed_behind", meas, W, H, cause, sev)

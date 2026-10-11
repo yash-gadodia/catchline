@@ -1,6 +1,7 @@
 # Catchline CV spike
 
-Phone video of a snatch in, one `Analysis` JSON (v1, `src/analysis/types.ts`) out. Runs on the Mac Mini, CPU only.
+Phone video of a lift in, one `Analysis` JSON (v1, `src/analysis/types.ts`) out. Runs on the Mac Mini, CPU only.
+Movements: `snatch` (below), `clean`, `jerk`, `kipping_pull_up`, `bar_muscle_up`, `kipping_hspu` (`--movement`; see "Other movements").
 
 ## Run (on the Mini)
 
@@ -38,6 +39,24 @@ To ship into the app: copy `<id>.json` to `src/analysis/fixtures/` and `keyframe
    - **Angle correction.** Horizontal values are divided by cos(camera angle).
    - **Picking the cue.** The most severe fault wins.
    - **Confidence.** It is capped to `low` for horizontal faults filmed more than 20° off side-on. It is `clear` only when the fault fires on every rep, and on at least two reps.
+
+## Other movements (`lifts.py`, `gym.py`, `movement.py`)
+
+- **Movement check.** The app passes the movement. Camera motion is removed for the whole clip (background KLT on 360 px frames), then the body says which family it is: **inverted** (ankles over shoulders for 1 s+), **hanging** (with the hands above the hips, the feet travel more than 2x the hands: a fixed bar), **barbell** (floor to above the hips, or a 0.5 s hold at the shoulders). A clear mismatch (a snatch tagged as a pull-up) is `unsupported_movement`; an unclear clip goes on to the analysis.
+- **Clean.** The snatch's per-rep analysis (plates, scale, stabilisation, double knee bend) with the catch = the first **front-rack** frame after the peak: bar (wrist midpoint) at shoulder height, wrists above the elbows, elbows forward of the shoulders (dropped when filmed front-on). The window ends with the rack hold, so a following jerk is not the peak. Faults: hips rise early, bar forward off hips, jump forward (as the snatch), **early arm bend** (both elbows < 160° for good, before the hip's widest angle; 0.1 s), **incomplete extension** (max hip angle short of 170°; 8°).
+- **Jerk.** Reps are a 0.3 s hold at the shoulders followed by one overhead. Phases: setup, drive (dip start to the bar leaving the shoulders), turnover (to landing = the knees' lowest point after the drive), catch, recovery. Split vs push from the front-back ankle gap (> 0.3 leg). Faults: **forward dip** (4 cm), **press-out** (elbow < 160° on landing and +15° within 0.3 s), **chest dive** (trunk 15° forward on landing), **bar forward overhead** (bar vs shoulders at lockout, 6 cm; the taxonomy's ear is a head point we no longer keep). Scale from body segments (no plate search at the shoulders).
+- **Gymnastics** (`traceKind: 'hip'`, path = hip trail). Reps from shoulder-height cycles (camera motion removed). Bar line = median wrist height while hanging, lifted 0.12 torso; HSPU wall = the heels at the top. Scale from body segments (shoulder-hip-knee-ankle ≈ 132 cm, ±8%). The cue is the earliest fault in the causal chain that fires on 2+ reps (23 §6.1).
+  - Kipping pull-up: **K2** knee range > 50° arch to top, **K1** elbows bent for good ≥ 0.13 s before the hip snap (fastest hip opening after the hollow), **K3** shoulders move back < 4 cm in 0.4 s after the top (not judged on the last rep). Standard: chin over bar, estimated as shoulders + 12 cm.
+  - Bar muscle-up: **B1** hips > 45 cm under the bar when the elbows break, **B2** hips peak > 30 cm under the bar before the first elbow goes over, **B3** L/R elbow heights > 12 cm apart at that moment (only with both elbows scored > 0.5). Standards: lockout elbow angle in support, shoulders over the bar.
+  - Kipping HSPU: pose runs twice (upright and 180° rotated, more confident pose per person kept; a rotation keeps left/right, so no swap). **H2** hip > 10 cm off the shoulder-ankle line, away from the wall, at lockout; **H1** press (fastest elbow extension) outside 0-0.25 s after the drive (fastest knee extension), 0.1 s. Standards: lockout elbow, tuck angle, depth.
+- **Cue copy** is the 25-cue-library.md section 4 table: the primary cue per fault and its why template with the measurement in section 5 units (integers; 1 cm, 2 deg, 10 ms). Two deviations: J7 says "shoulder line" not "ear" (no head points), and S1's library cue is 8 words. Causal gating: bar swing over jump, hips-rise over early arm bend, B2 over B3, H2 over H1. H1 is measured as the library's template reads it (knees above the hips at the deepest tuck, 10 cm); the drive-to-press timing is a measurement row.
+- **Outcome first** (26-mistakes-misses.md 8.1): a rep that is not made is classified by where the bar left the lifter (bar vs mid-foot and its direction): missed forward / missed behind (snatch, clean), could not stand (clean: racked, hips never past 120°; chest > 25° forward gets the rack cue, else "strength at this weight"), jerk dumped forward (bar > 5 cm in front of the shoulder line) / back (> 8 cm behind). A miss gets its own card. Missed behind (8.2) reports the earliest of: loop (bar > 10 cm forward off the hips and back faster than 55 cm/s), hips through (hip > 6 cm past the ankle, trunk > 10° past vertical, or feet > 5 cm back), dive (chest > 20° forward with the hip < 170°), else position only ("I can't see why"), always with the bail line; the forward step after a miss behind is the bail and is not judged as a jump forward. Press-out (8.3) = elbow still straightening after the hips' lowest point. Not built: crash/lost-under (needs 60 fps bar speed and a load), heel-rise ("feet") cause, make-vs-miss deltas, jump-back.
+- **Camera angle without plates**: from how far apart the L/R shoulders and hips sit in x. Projection-sensitive faults (horizontal distances, joint angles, timings from angles) are `low` past 20°; `clear` needs the fault on every rep and on 2+.
+
+## Privacy
+
+- Head keypoints (nose, eyes, ears, head top) are dropped straight after pose inference (`pose.strip_head`), so they are never cached, measured or stored. Anything that needed the nose uses a body stand-in (half a torso above the shoulders).
+- Keyframes are exported with every non-lifter person blurred: a box from their body keypoints, padded and grown upwards over the head, minus the lifter's own silhouette (`privacy.py`). No face detector. `debug/keyframes-sheet.jpg` shows exactly what is exported. Debug overlays are not blurred (internal only).
 
 ## Known limits
 

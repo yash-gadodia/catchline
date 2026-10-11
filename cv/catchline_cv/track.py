@@ -240,3 +240,38 @@ def to_ref(points, Ms):
 
 def from_ref(point, M):
     return apply_affine(invert_affine(M), np.asarray(point, float)[None])[0]
+
+
+def camera_path(clip, people, infer_h, small_h=360):
+    """Whole-clip camera motion, cheaply: background KLT on frames decoded small, people masked by their boxes.
+    Returns per-frame 2x3 affines mapping inference-px points in frame f to frame 0 (inference px)."""
+    from .video import frames
+    s = small_h / infer_h
+    S, Si = np.diag([s, s, 1.0]), np.diag([1 / s, 1 / s, 1.0])
+    out, prev, acc = [], None, np.eye(3)
+    for f, img in frames(clip, small_h):
+        cur = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        if prev is not None:
+            m = foreground_mask(cur.shape, [np.asarray(p[0]) * s for p in people[f - 1]] if f - 1 < len(people) else [], None, 0)
+            p0 = cv2.goodFeaturesToTrack(prev, 300, 0.01, 6, mask=cv2.bitwise_not(m))
+            M = IDENT.copy()
+            if p0 is not None and len(p0) >= 12:
+                p1, st, _ = cv2.calcOpticalFlowPyrLK(prev, cur, p0, None, winSize=(15, 15), maxLevel=2)
+                ok = st.ravel() == 1
+                if ok.sum() >= 12:
+                    est, _ = cv2.estimateAffinePartial2D(p1[ok], p0[ok], method=cv2.RANSAC, ransacReprojThreshold=1.5)
+                    if est is not None:
+                        M = est
+            acc = acc @ np.vstack([M, [0, 0, 1]])
+        out.append((Si @ acc @ S)[:2])
+        prev = cur
+    return out
+
+
+def to_world(k, Ms):
+    """Map (n, J, 2) keypoints through per-frame affines (frames past the end of Ms keep the last one)."""
+    out = np.full_like(k, np.nan)
+    for f in range(len(k)):
+        M = Ms[min(f, len(Ms) - 1)]
+        out[f] = k[f] @ M[:, :2].T + M[:, 2]
+    return out

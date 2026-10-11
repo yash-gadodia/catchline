@@ -6,7 +6,8 @@ JOB = Job(
 )
 
 
-def fake_run(clip, out_json, assets_dir, asset_prefix, debug_dir, cache_dir, analysis_id):
+def fake_run(clip, out_json, assets_dir, asset_prefix, debug_dir, cache_dir, analysis_id, movement):
+    assert movement == "snatch"
     import os
 
     os.makedirs(assets_dir)
@@ -47,12 +48,12 @@ def test_unsupported_movement_is_a_failure_analysis_without_running_pose(monkeyp
         raise AssertionError("pose must not run")
 
     monkeypatch.setattr(mod.pipeline, "run", boom)
-    r = mod.analyse("clip.mov", Job(**{**JOB.__dict__, "movement": "kipping_hspu", "load_kg": None}), str(tmp_path))
+    r = mod.analyse("clip.mov", Job(**{**JOB.__dict__, "movement": "ring_muscle_up", "load_kg": None}), str(tmp_path))
     assert r.keyframes == []
-    assert r.analysis["movement"] == "kipping_hspu"
+    assert r.analysis["movement"] == "ring_muscle_up"
     assert r.analysis["failure"] == {
         "reason": "unsupported_movement",
-        "message": "kipping hspu analysis is not available yet.",
+        "message": "ring muscle up analysis is not available yet.",
     }
     assert r.analysis["video"] == {"uri": "user-9/lift-9", "width": 608, "height": 1080, "fps": 60.0, "frameCount": 600}
     assert "loadKg" not in r.analysis

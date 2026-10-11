@@ -6,7 +6,7 @@ from catchline_cv.video import probe
 
 from .jobs import Job, Result
 
-SUPPORTED = {"snatch"}
+SUPPORTED = {"snatch", "clean", "jerk", "kipping_pull_up", "bar_muscle_up", "kipping_hspu"}
 
 
 def analyse(clip: str, job: Job, workdir: str) -> Result:
@@ -37,6 +37,7 @@ def analyse(clip: str, job: Job, workdir: str) -> Result:
         debug_dir,
         os.path.join(workdir, "cache"),
         job.lift_id,
+        job.movement,
     )
     analysis = res if isinstance(res, dict) else res[0]
     return Result(_finish(analysis, job), sorted(glob.glob(os.path.join(keyframes_dir, "*.jpg"))))
