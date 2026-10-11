@@ -1,6 +1,7 @@
 // delete-account - App-Store-grade account deletion.
-// delete_my_account() (RPC) erases the caller's profile/answers + dissolves the
-// couple, but a SQL RPC can't remove the Supabase Auth record. This function does
+// delete_my_account() (RPC) erases the caller's lifts, analyses, cues, coach links
+// and consents (storage is swept by purge_storage), but a SQL RPC can't remove the
+// Supabase Auth record. This function does
 // both: it runs the RPC as the caller, then uses the service_role admin API to
 // delete the auth user. The client calls it via supabase.functions.invoke('delete-account').
 // SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY are injected by Supabase.
@@ -42,7 +43,7 @@ Deno.serve(async (req: Request) => {
   const user = userData?.user;
   if (userErr || !user) return json({ error: "unauthorized" }, 401);
 
-  // 1) erase app data + dissolve the couple (SECURITY DEFINER RPC, scoped by auth.uid())
+  // 1) erase app data (SECURITY DEFINER RPC, scoped by auth.uid())
   const { error: rpcErr } = await userClient.rpc("delete_my_account");
   if (rpcErr) return json({ error: "data_delete_failed", detail: rpcErr.message }, 500);
 

@@ -1,15 +1,38 @@
-# Supabase configuration for Parallax
-project_id = "parallax"
+# Supabase configuration for Catchline (local stack).
+# Ports are offset from the CLI defaults (543xx -> 554xx) so this stack can run
+# next to the archived Parallax stack on the Mini without clashing.
+project_id = "catchline"
 
 [api]
 enabled = true
+port = 55421
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
 max_rows = 1000
 
 [db]
-major_version = 15
+port = 55422
+shadow_port = 55420
+major_version = 17
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
 
 [realtime]
 enabled = true
+
+[studio]
+enabled = true
+port = 55423
+
+[inbucket]
+enabled = true
+port = 55424
+
+[analytics]
+enabled = false
+port = 55427
 
 [auth]
 enabled = true
@@ -18,63 +41,17 @@ additional_redirect_urls = ["parallax://auth-callback"]
 
 [auth.email]
 enable_signup = true
-# Require a confirmed email before the account is usable (kills typo'd dead accounts).
 enable_confirmations = true
 
-# Confirmation email deep-links into the app (parallax://auth-callback?token_hash=…),
-# which calls verifyOtp to establish the session. Uses {{ .TokenHash }}, not the
-# default {{ .ConfirmationURL }}, so the link opens the native app.
 [auth.email.template.confirmation]
-subject = "Confirm your Parallax account"
+subject = "Confirm your Catchline account"
 content_path = "./supabase/templates/confirmation.html"
 
-# Production email is sent via custom SMTP (Resend — 3k/mo free, MCP support).
-# Local dev needs NO SMTP here: confirmation mails land in Mailpit
-# (http://127.0.0.1:54324). For prod, set these in the Supabase Dashboard
-# (Auth → SMTP) or uncomment and provide the env vars before `supabase config push`.
-# [auth.email.smtp]
-# host = "smtp.resend.com"
-# port = 465
-# user = "resend"
-# pass = "env(RESEND_SMTP_PASSWORD)"
-# admin_email = "noreply@<your-sending-domain>"
-# sender_name = "Parallax"
-
+# Raw clips are trimmed iPhone slo-mo (often 60-150 MB). The per-bucket limit
+# in 0003_storage.sql is the real gate; this is the global ceiling.
 [storage]
 enabled = true
-file_size_limit = 52428800
-
-# Refocus AI mediation — JWT off for local/demo serving. Production should gate
-# this (auth or rate-limit) since it spends Anthropic tokens per call.
-[functions.refocus]
-verify_jwt = true
-
-# notify-partner: send push notifications when a partner plays or reveal is ready.
-# JWT off for local/demo serving (matches refocus). Production should enable JWT
-# verification (verify_jwt = true) to prevent unauthenticated callers spending
-# Expo push quota — harden before going live.
-[functions.notify-partner]
-verify_jwt = true
+file_size_limit = "500MiB"
 
 [functions.delete-account]
 verify_jwt = true
-
-# generate-drops: ops/cron-only batch generation of candidate drops into the
-# review queue (docs/GENERATIVE_ENGINE.md). verify_jwt is OFF because the
-# function enforces a STRICTER gate itself: the Authorization bearer must be
-# exactly the service-role key — anon/user JWTs are rejected with 401.
-[functions.generate-drops]
-verify_jwt = false
-
-# scheduled-pushes: hourly ops cron — streak-saver + drift-reminder pushes
-# (IMPROVEMENT_PLAN 3.2). Same service-role-bearer gate as generate-drops
-# (verify_jwt off because the in-function gate is stricter). The dedupe
-# ledger + cron contract live in migrations/0022_scheduled_pushes.sql.
-[functions.scheduled-pushes]
-verify_jwt = false
-
-# email-reengage: hourly ops cron — one warm re-engagement email per silence
-# spell (IMPROVEMENT_PLAN 3.8, Resend). Same service-role-bearer gate;
-# no-ops with a clear log line until RESEND_API_KEY is set.
-[functions.email-reengage]
-verify_jwt = false
