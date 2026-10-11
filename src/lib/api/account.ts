@@ -35,3 +35,10 @@ export async function getAllowance(): Promise<Allowance> {
   if (error) throw toApiError(error);
   return data as Allowance;
 }
+
+/** Founding seats sold so far (public RPC, no PII). */
+export async function foundingSeats(): Promise<{ taken: number; cap: number }> {
+  const { data, error } = await supabase.rpc('founding_seats');
+  if (error) throw toApiError(error);
+  return data as { taken: number; cap: number };
+}

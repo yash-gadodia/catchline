@@ -1,14 +1,29 @@
-import { foundingState, getFoundingSeats, localSeats, seatsFraction, seatsLeftLabel, setSeatsSource } from './seats';
+import { foundingState, getFoundingSeats, localSeats, remoteSeats, seatsFraction, seatsLeftLabel, setSeatsSource } from './seats';
 import { QUIZ_LENGTH, quizMovement, quizQuestion } from './quiz';
 import { offeringFor, packageIdFor, periodFromProductId, planKey, playSubscriptionId, productIdFor } from './products';
 import { cueStatusLabel, getProofCues } from './proofCues';
 import { setWebCheckoutOverride, webCheckoutEnabled } from './flags';
 import { useUsage } from './usageStore';
+import { foundingSeats } from '../../lib/api';
+
+jest.mock('../../lib/api', () => ({ ...jest.requireActual('../../lib/api'), foundingSeats: jest.fn() }));
+const mockFoundingSeats = foundingSeats as jest.Mock;
 
 describe('founding seats', () => {
   afterEach(() => setSeatsSource(localSeats));
 
-  it('the local stub reports 137 of 500', async () => {
+  it('with the backend on, reads the founding_seats RPC', async () => {
+    mockFoundingSeats.mockResolvedValueOnce({ taken: 12, cap: 500 });
+    expect(await getFoundingSeats()).toEqual({ total: 500, remaining: 488 });
+  });
+
+  it('never reports fewer than 0 seats left', async () => {
+    mockFoundingSeats.mockResolvedValueOnce({ taken: 503, cap: 500 });
+    expect(await remoteSeats.getFoundingSeats()).toEqual({ total: 500, remaining: 0 });
+  });
+
+  it('the local stub (fixture mode) reports 137 of 500', async () => {
+    setSeatsSource(localSeats);
     expect(await getFoundingSeats()).toEqual({ total: 500, remaining: 137 });
   });
 

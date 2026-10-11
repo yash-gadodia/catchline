@@ -14,5 +14,5 @@ export {
 } from './lifts';
 export { listCues, updateCue } from './cues';
 export { createCoachLink, revokeCoachLink } from './coach';
-export { ensureSession, recordConsent, getAllowance, type Allowance, type ConsentKind } from './account';
+export { ensureSession, recordConsent, getAllowance, foundingSeats, type Allowance, type ConsentKind } from './account';
 export { tusUpload, TusError, TUS_CHUNK_BYTES, type UploadSource } from './tus';

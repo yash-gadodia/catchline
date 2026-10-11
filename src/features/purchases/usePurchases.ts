@@ -2,6 +2,9 @@ import { create } from 'zustand';
 import { Platform } from 'react-native';
 import type { CustomerInfo, PurchasesOfferings, StoreProductChangeInfo } from 'react-native-purchases';
 import { loadPurchases, RC_IOS_KEY, RC_ANDROID_KEY } from './client';
+import { supabase } from '../../lib/supabase';
+import { ensureSession, getAllowance } from '../../lib/api';
+import { backendEnabled } from '../../data/backend';
 import {
   ENTITLEMENT,
   TIER_RANK,
@@ -45,6 +48,23 @@ function apiKey(): string {
   return Platform.OS === 'ios' ? RC_IOS_KEY : RC_ANDROID_KEY || RC_IOS_KEY;
 }
 
+// The server's plan (profiles.plan) follows RevenueCat via the revenuecat-webhook
+// edge function. After a purchase or restore, poll until it catches up so the
+// next create_lift sees the new cap. Gives up quietly: the purchase still stands.
+export async function waitForServerPlan(tier: Tier, tries = 8, intervalMs = 1500): Promise<boolean> {
+  for (let i = 0; i < tries; i++) {
+    try {
+      const { plan } = await getAllowance();
+      if (TIER_RANK[plan] >= TIER_RANK[tier]) return true;
+    } catch {
+      // offline or no session yet: try again
+    }
+    if (i < tries - 1) await new Promise((r) => setTimeout(r, intervalMs));
+  }
+  console.log(`[RevenueCat] server plan has not reached ${tier} yet`);
+  return false;
+}
+
 // The real SDK only when it loaded AND a key is set; otherwise demo mode.
 function liveSdk() {
   const { Purchases } = loadPurchases();
@@ -54,11 +74,14 @@ function liveSdk() {
 interface PurchasesState extends ActivePlan {
   ready: boolean;
   demo: boolean;
+  /** The RevenueCat app user id: the Supabase user id once a session exists. */
+  appUserId: string | null;
   offerings: PurchasesOfferings | null;
   customerInfo: CustomerInfo | null;
   /** What a demo purchase resolves to, so every paywall state is reachable without keys. */
   demoOutcome: PurchaseStatus;
   configure: () => Promise<void>;
+  identify: (userId: string) => Promise<void>;
   purchase: (plan: Plan) => Promise<PurchaseStatus>;
   restore: () => Promise<Tier>;
   setDemoPlan: (tier: Tier, period?: Period | null) => void;
@@ -68,6 +91,7 @@ interface PurchasesState extends ActivePlan {
 export const usePurchases = create<PurchasesState>((set, get) => ({
   ready: false,
   demo: true,
+  appUserId: null,
   tier: 'free',
   period: null,
   expiresAt: null,
@@ -87,15 +111,31 @@ export const usePurchases = create<PurchasesState>((set, get) => ({
       Purchases.setLogHandler((level, message) => {
         console.log(`[RevenueCat] ${level}: ${message}`);
       });
-      Purchases.configure({ apiKey: apiKey() });
+      // The webhook maps app_user_id to profiles.id, so RevenueCat must know the
+      // Supabase user. Anonymous until a session exists; identify() logs in later.
+      const userId = backendEnabled() ? (await supabase.auth.getSession()).data.session?.user.id ?? null : null;
+      Purchases.configure({ apiKey: apiKey(), appUserID: userId });
+      set({ appUserId: userId });
       Purchases.addCustomerInfoUpdateListener((info: CustomerInfo) => {
         set({ customerInfo: info, ...planFromInfo(info) });
       });
+      if (backendEnabled()) {
+        supabase.auth.onAuthStateChange((_event, session) => {
+          if (session) get().identify(session.user.id).catch(() => undefined);
+        });
+      }
       const [info, offerings] = await Promise.all([Purchases.getCustomerInfo(), Purchases.getOfferings()]);
       set({ ready: true, demo: false, customerInfo: info, offerings, ...planFromInfo(info) });
     } catch {
       set({ ready: true, demo: false });
     }
+  },
+
+  identify: async (userId: string) => {
+    const Purchases = liveSdk();
+    if (!Purchases || get().appUserId === userId) return;
+    const { customerInfo } = await Purchases.logIn(userId);
+    set({ appUserId: userId, customerInfo, ...planFromInfo(customerInfo) });
   },
 
   purchase: async (plan: Plan) => {
@@ -111,6 +151,7 @@ export const usePurchases = create<PurchasesState>((set, get) => ({
       return outcome;
     }
     try {
+      if (backendEnabled()) await get().identify(await ensureSession());
       const offerings = get().offerings ?? (await Purchases.getOfferings());
       const pkg = offerings.all[offeringFor(plan)]?.availablePackages.find(
         (p) => p.identifier === packageIdFor(plan)
@@ -119,7 +160,9 @@ export const usePurchases = create<PurchasesState>((set, get) => ({
       const { customerInfo } = await Purchases.purchasePackage(pkg, null, playChangeInfo(get().tier, plan, Purchases));
       const next = planFromInfo(customerInfo);
       set({ customerInfo, ...next });
-      return next.tier === 'free' ? 'failed' : 'success';
+      if (next.tier === 'free') return 'failed';
+      if (backendEnabled()) await waitForServerPlan(next.tier);
+      return 'success';
     } catch (e) {
       return classifyPurchaseError(e);
     }
@@ -129,8 +172,10 @@ export const usePurchases = create<PurchasesState>((set, get) => ({
     const Purchases = liveSdk();
     if (!Purchases) return get().tier;
     try {
+      if (backendEnabled()) await get().identify(await ensureSession());
       const info = await Purchases.restorePurchases();
       set({ customerInfo: info, ...planFromInfo(info) });
+      if (backendEnabled() && get().tier !== 'free') await waitForServerPlan(get().tier);
       return get().tier;
     } catch {
       return get().tier;

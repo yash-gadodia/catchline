@@ -310,23 +310,50 @@ export type Database = {
         Row: {
           created_at: string
           display_name: string | null
+          founding: boolean
           id: string
           plan: string
+          plan_synced_at: string | null
           push_token: string | null
         }
         Insert: {
           created_at?: string
           display_name?: string | null
+          founding?: boolean
           id: string
           plan?: string
+          plan_synced_at?: string | null
           push_token?: string | null
         }
         Update: {
           created_at?: string
           display_name?: string | null
+          founding?: boolean
           id?: string
           plan?: string
+          plan_synced_at?: string | null
           push_token?: string | null
+        }
+        Relationships: []
+      }
+      revenuecat_events: {
+        Row: {
+          id: string
+          received_at: string
+          type: string
+          user_id: string | null
+        }
+        Insert: {
+          id: string
+          received_at?: string
+          type: string
+          user_id?: string | null
+        }
+        Update: {
+          id?: string
+          received_at?: string
+          type?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -362,6 +389,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_plan: {
+        Args: {
+          p_event_at: string
+          p_event_id: string
+          p_event_type: string
+          p_founding: boolean
+          p_plan: string
+          p_user: string
+        }
+        Returns: string
+      }
       claim_lift_job: {
         Args: { p_max_attempts?: number; p_vt?: number }
         Returns: {
@@ -463,6 +501,7 @@ export type Database = {
         }
         Returns: string
       }
+      founding_seats: { Args: never; Returns: Json }
       get_coach_link: { Args: { p_token: string }; Returns: Json }
       lift_allowance: { Args: never; Returns: Json }
       mark_clip_deleted: { Args: { p_lift_id: string }; Returns: undefined }

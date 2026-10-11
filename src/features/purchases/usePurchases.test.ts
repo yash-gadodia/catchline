@@ -1,5 +1,5 @@
 import type { CustomerInfo, PurchasesPackage } from 'react-native-purchases';
-import { classifyPurchaseError, planFromInfo, presentCustomerCenter, usePurchases } from './usePurchases';
+import { classifyPurchaseError, planFromInfo, presentCustomerCenter, usePurchases, waitForServerPlan } from './usePurchases';
 
 jest.mock('./client', () => ({
   loadPurchases: jest.fn(),
@@ -14,9 +14,23 @@ jest.mock('react-native', () => ({
   },
 }));
 
+jest.mock('../../data/backend', () => ({ backendEnabled: jest.fn(() => false) }));
+jest.mock('../../lib/api', () => ({ ensureSession: jest.fn(), getAllowance: jest.fn() }));
+jest.mock('../../lib/supabase', () => ({
+  supabase: { auth: { getSession: jest.fn(), onAuthStateChange: jest.fn() } },
+}));
+
 import { loadPurchases } from './client';
+import { backendEnabled } from '../../data/backend';
+import { ensureSession, getAllowance } from '../../lib/api';
+import { supabase } from '../../lib/supabase';
 
 const mockLoadPurchases = loadPurchases as jest.Mock;
+const mockBackendEnabled = backendEnabled as jest.Mock;
+const mockEnsureSession = ensureSession as jest.Mock;
+const mockGetAllowance = getAllowance as jest.Mock;
+const mockGetSession = supabase.auth.getSession as jest.Mock;
+const mockOnAuthStateChange = supabase.auth.onAuthStateChange as jest.Mock;
 
 function info(entitlements: Record<string, { productIdentifier: string; expirationDate: string | null }>) {
   return { entitlements: { active: entitlements } } as unknown as CustomerInfo;
@@ -50,6 +64,7 @@ function sdk() {
     getOfferings: jest.fn(() => Promise.resolve(offerings())),
     purchasePackage: jest.fn(),
     restorePurchases: jest.fn(),
+    logIn: jest.fn(),
     STORE_REPLACEMENT_MODE: { CHARGE_PRORATED_PRICE: 'CHARGE_PRORATED_PRICE', DEFERRED: 'DEFERRED' },
   };
 }
@@ -58,6 +73,7 @@ beforeEach(() => {
   usePurchases.setState({
     ready: false,
     demo: true,
+    appUserId: null,
     tier: 'free',
     period: null,
     expiresAt: null,
@@ -67,6 +83,7 @@ beforeEach(() => {
   });
   mockPlatform.OS = 'ios';
   jest.clearAllMocks();
+  mockBackendEnabled.mockReturnValue(false);
 });
 
 describe('planFromInfo', () => {
@@ -146,7 +163,8 @@ describe('with the SDK', () => {
     Purchases.getCustomerInfo.mockResolvedValue(PULL_ANNUAL);
     mockLoadPurchases.mockReturnValue({ Purchases, RevenueCatUI: null });
     await usePurchases.getState().configure();
-    expect(Purchases.configure).toHaveBeenCalledWith({ apiKey: 'test-ios-key' });
+    expect(Purchases.configure).toHaveBeenCalledWith({ apiKey: 'test-ios-key', appUserID: null });
+    expect(mockOnAuthStateChange).not.toHaveBeenCalled();
     const s = usePurchases.getState();
     expect(s.ready).toBe(true);
     expect(s.demo).toBe(false);
@@ -253,5 +271,112 @@ describe('with the SDK', () => {
     expect(await presentCustomerCenter()).toBe(true);
     expect(RevenueCatUI.presentCustomerCenter).toHaveBeenCalledTimes(1);
     expect(usePurchases.getState().tier).toBe('pull');
+  });
+});
+
+describe('with the SDK and the backend on', () => {
+  const UID = '4541fa15-7a51-4cf5-9402-ea669eb6b51f';
+  const session = (id: string) => ({ data: { session: { user: { id } } } });
+
+  beforeEach(() => mockBackendEnabled.mockReturnValue(true));
+
+  it('configures RevenueCat with the Supabase user id when a session exists', async () => {
+    const Purchases = sdk();
+    Purchases.getCustomerInfo.mockResolvedValue(info({}));
+    mockGetSession.mockResolvedValue(session(UID));
+    mockLoadPurchases.mockReturnValue({ Purchases, RevenueCatUI: null });
+    await usePurchases.getState().configure();
+    expect(Purchases.configure).toHaveBeenCalledWith({ apiKey: 'test-ios-key', appUserID: UID });
+    expect(usePurchases.getState().appUserId).toBe(UID);
+    const onAuth = mockOnAuthStateChange.mock.calls[0][0] as (e: string, s: unknown) => void;
+    onAuth('INITIAL_SESSION', session(UID).data.session);
+    expect(Purchases.logIn).not.toHaveBeenCalled();
+  });
+
+  it('starts anonymous, then logs in when the session appears', async () => {
+    const Purchases = sdk();
+    Purchases.getCustomerInfo.mockResolvedValue(info({}));
+    Purchases.logIn.mockResolvedValue({ customerInfo: PULL_ANNUAL, created: false });
+    mockGetSession.mockResolvedValue({ data: { session: null } });
+    mockLoadPurchases.mockReturnValue({ Purchases, RevenueCatUI: null });
+    await usePurchases.getState().configure();
+    expect(Purchases.configure).toHaveBeenCalledWith({ apiKey: 'test-ios-key', appUserID: null });
+    const onAuth = mockOnAuthStateChange.mock.calls[0][0] as (e: string, s: unknown) => void;
+    onAuth('SIGNED_IN', session(UID).data.session);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(Purchases.logIn).toHaveBeenCalledWith(UID);
+    expect(usePurchases.getState().appUserId).toBe(UID);
+    expect(usePurchases.getState().tier).toBe('pull');
+  });
+
+  it('identifies before buying, then waits for the server plan', async () => {
+    const Purchases = sdk();
+    const order: string[] = [];
+    Purchases.logIn.mockImplementation(async () => {
+      order.push('logIn');
+      return { customerInfo: info({}), created: true };
+    });
+    Purchases.purchasePackage.mockImplementation(async () => {
+      order.push('purchase');
+      return { customerInfo: PULL_ANNUAL };
+    });
+    mockEnsureSession.mockResolvedValue(UID);
+    mockGetAllowance.mockResolvedValue({ plan: 'pull' });
+    mockLoadPurchases.mockReturnValue({ Purchases, RevenueCatUI: null });
+    usePurchases.setState({ ready: true, demo: false });
+    const status = await usePurchases.getState().purchase({ kind: 'sub', tier: 'pull', period: 'annual' });
+    expect(status).toBe('success');
+    expect(order).toEqual(['logIn', 'purchase']);
+    expect(Purchases.logIn).toHaveBeenCalledWith(UID);
+    expect(mockGetAllowance).toHaveBeenCalledTimes(1);
+    expect(usePurchases.getState().tier).toBe('pull');
+  });
+
+  it('does not buy when no Supabase session can be made', async () => {
+    const Purchases = sdk();
+    mockEnsureSession.mockRejectedValue(new Error('not_authenticated'));
+    mockLoadPurchases.mockReturnValue({ Purchases, RevenueCatUI: null });
+    const status = await usePurchases.getState().purchase({ kind: 'founding' });
+    expect(status).toBe('failed');
+    expect(Purchases.purchasePackage).not.toHaveBeenCalled();
+  });
+
+  it('skips logIn when already identified as that user', async () => {
+    const Purchases = sdk();
+    Purchases.restorePurchases.mockResolvedValue(PULL_ANNUAL);
+    mockEnsureSession.mockResolvedValue(UID);
+    mockGetAllowance.mockResolvedValue({ plan: 'pull' });
+    mockLoadPurchases.mockReturnValue({ Purchases, RevenueCatUI: null });
+    usePurchases.setState({ appUserId: UID });
+    expect(await usePurchases.getState().restore()).toBe('pull');
+    expect(Purchases.logIn).not.toHaveBeenCalled();
+    expect(mockGetAllowance).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('waitForServerPlan', () => {
+  it('polls until the server plan reaches the tier', async () => {
+    mockGetAllowance
+      .mockResolvedValueOnce({ plan: 'free' })
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValueOnce({ plan: 'pull' });
+    expect(await waitForServerPlan('pull', 5, 0)).toBe(true);
+    expect(mockGetAllowance).toHaveBeenCalledTimes(3);
+  });
+
+  it('counts founding as reaching pull', async () => {
+    mockGetAllowance.mockResolvedValue({ plan: 'founding' });
+    expect(await waitForServerPlan('pull', 5, 0)).toBe(true);
+    expect(mockGetAllowance).toHaveBeenCalledTimes(1);
+  });
+
+  it('gives up after the last try', async () => {
+    const log = jest.spyOn(console, 'log').mockImplementation(() => undefined);
+    mockGetAllowance.mockResolvedValue({ plan: 'free' });
+    expect(await waitForServerPlan('platform', 3, 0)).toBe(false);
+    expect(mockGetAllowance).toHaveBeenCalledTimes(3);
+    expect(log).toHaveBeenCalledWith('[RevenueCat] server plan has not reached platform yet');
+    log.mockRestore();
   });
 });
