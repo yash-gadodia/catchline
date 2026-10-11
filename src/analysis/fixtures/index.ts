@@ -2,6 +2,7 @@ import type { Analysis, Point, Rep } from '../types';
 import { keyFrameForPhase, pointAt, repByIndex } from '../timeline';
 import mock from './snatch-mock.json';
 import real from './snatch-real.json';
+import sideon from './snatch-sideon.json';
 import { parseAnalysis } from '../parse';
 import { liveAnalysis } from '../live';
 
@@ -10,6 +11,12 @@ export const snatchMock = parseAnalysis(mock);
 export const snatchReal = parseAnalysis(
   JSON.parse(
     JSON.stringify(real).replace(/assets\/analysis\/snatch-real\/([^"]+)\.jpg/g, 'asset:snatch-real/$1'),
+  ),
+);
+
+export const snatchSideon = parseAnalysis(
+  JSON.parse(
+    JSON.stringify(sideon).replace(/assets\/analysis\/snatch-sideon\/([^"]+)\.jpg/g, 'asset:snatch-sideon/$1'),
   ),
 );
 

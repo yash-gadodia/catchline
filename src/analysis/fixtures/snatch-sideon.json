@@ -728,8 +728,8 @@
  "bestRepIndex": 1,
  "cue": {
   "faultId": "jump_forward",
-  "text": "Land where you started",
-  "why": "Your feet landed 6 cm forward because the bar drifted away from you in the pull.",
+  "text": "Land on the line you started on.",
+  "why": "Your feet landed 6 cm in front of where they started.",
   "confidence": "worth_checking",
   "confidenceText": "Seen on 1 of 1 reps",
   "evidence": {
