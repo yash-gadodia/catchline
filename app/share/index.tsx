@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { getAnalysis } from '../../src/analysis/fixtures';
 import { usePurchases } from '../../src/features/purchases/usePurchases';
+import { hasFeature } from '../../src/features/paywall/entitlements';
 import ShareScreen from '../../src/features/share/ShareScreen';
 import { STUCK_FIXTURE } from '../../src/features/share/stuck';
 import { ASPECTS, SHARE_TYPES, type ExportState } from '../../src/features/share/model';
@@ -14,7 +15,7 @@ function pick<T extends string>(value: string | undefined, allowed: readonly T[]
 export default function ShareRoute() {
   const p = useLocalSearchParams<{ fixture?: string; type?: string; aspect?: string; state?: string; tier?: string }>();
   const router = useRouter();
-  const isPro = usePurchases((s) => s.isPro);
+  const isPro = usePurchases((s) => hasFeature(s.tier, 'watermarkFreeExport'));
   const analysis = getAnalysis(p.fixture);
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
   return (
