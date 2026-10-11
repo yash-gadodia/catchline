@@ -123,6 +123,11 @@ export function gateFor(tier: Tier, usage: Usage, now: Date, variant: Variant = 
   return variant === 'ad' ? 'trial' : 'paywall';
 }
 
+// The ad funnel shows the trial paywall straight after its one free analysis.
+export function trialDue(tier: Tier, usage: Usage, variant: Variant): boolean {
+  return variant === 'ad' && tier === 'free' && usage.lifetime >= FREE_VIDEOS.ad;
+}
+
 export function capResetDate(now: Date): Date {
   return new Date(now.getFullYear(), now.getMonth() + 1, 1);
 }
@@ -258,4 +263,10 @@ export function upgradeQuote(
     return { deltaCents, chargeTodayCents: Math.round(deltaCents * fraction), creditCents: 0 };
   }
   return { deltaCents, chargeTodayCents: toCents, creditCents: Math.round(fromCents * fraction) };
+}
+
+// A founding seat is a one-off purchase, so Platform is a new subscription at full price.
+export function foundingUpgradeQuote(to: SubTier, period: Period): UpgradeQuote {
+  const cents = PRICE_CENTS[to][period];
+  return { deltaCents: cents, chargeTodayCents: cents, creditCents: 0 };
 }

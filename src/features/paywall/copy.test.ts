@@ -5,6 +5,7 @@ import {
   chargeNote,
   continueLabel,
   failedBody,
+  foundingUpgradeLine,
   failedTitle,
   longDate,
   purchasingLine,
@@ -117,6 +118,10 @@ describe('upgrade copy', () => {
     expect(upgradePriceLine(3000, 'annual', 5999, 600)).toBe(
       '+$30 a year · $59.99 today, $6 back for unused time'
     );
+  });
+
+  it('founding upgrade line', () => {
+    expect(foundingUpgradeLine('annual', 9999)).toBe('$99.99 a year · your founding seat stays');
   });
 
   it('cap upgrade labels', () => {

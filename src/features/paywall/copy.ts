@@ -121,3 +121,7 @@ export function capUpgradeNote(to: SubTier): string {
   if (to === 'platform') return 'Platform: 100 a month, coach link, CSV. Pro-rated from today.';
   return 'Pull: 40 a month, ghost of best, did it stick. Pro-rated from today.';
 }
+
+export function foundingUpgradeLine(period: Period, cents: number): string {
+  return `${formatUsd(cents)} ${per(period)} · your founding seat stays`;
+}

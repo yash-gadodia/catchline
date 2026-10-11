@@ -10,6 +10,7 @@ import {
   featureDelta,
   featuresFor,
   formatUsd,
+  foundingUpgradeQuote,
   gateFor,
   hasFeature,
   maxAnnualSavingPct,
@@ -17,6 +18,7 @@ import {
   nextTier,
   recordAnalysis,
   tierFromEntitlements,
+  trialDue,
   upgradeQuote,
   videosRemaining,
   type Usage,
@@ -296,5 +298,18 @@ describe('money', () => {
   it('clamps days left to the period', () => {
     expect(upgradeQuote('hook', 'pull', 'monthly', 45, 30, 'android').chargeTodayCents).toBe(500);
     expect(upgradeQuote('hook', 'pull', 'monthly', -3, 30, 'android').chargeTodayCents).toBe(0);
+  });
+});
+
+describe('ad funnel and founding upgrades', () => {
+  it('the trial is due after the one free ad analysis only', () => {
+    expect(trialDue('free', used(0), 'ad')).toBe(false);
+    expect(trialDue('free', used(1), 'ad')).toBe(true);
+    expect(trialDue('free', used(1), 'organic')).toBe(false);
+    expect(trialDue('pull', used(1), 'ad')).toBe(false);
+  });
+
+  it('founding to Platform is the full subscription price', () => {
+    expect(foundingUpgradeQuote('platform', 'annual')).toEqual({ deltaCents: 9999, chargeTodayCents: 9999, creditCents: 0 });
   });
 });
