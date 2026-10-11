@@ -1,0 +1,44 @@
+import { href, nextAfter, type FlowContext } from './flow';
+
+const fresh: FlowContext = { intent: 'film', guideHidden: false, camera: 'undetermined', consented: false, completed: false };
+
+describe('first-run flow', () => {
+  it('walks a new lifter through every step in design order', () => {
+    expect(nextAfter('launch', fresh)).toEqual({ kind: 'step', step: 'welcome' });
+    expect(nextAfter('welcome', fresh)).toEqual({ kind: 'step', step: 'lifts' });
+    expect(nextAfter('lifts', fresh)).toEqual({ kind: 'step', step: 'sample' });
+    expect(nextAfter('sample', fresh)).toEqual({ kind: 'step', step: 'guide' });
+    expect(nextAfter('guide', fresh)).toEqual({ kind: 'step', step: 'camera' });
+    expect(nextAfter('camera', { ...fresh, camera: 'granted' })).toEqual({ kind: 'step', step: 'privacy' });
+    expect(nextAfter('privacy', { ...fresh, camera: 'granted', consented: true })).toEqual({ kind: 'capture' });
+  });
+
+  it('skips the guide once hidden and the camera step once granted', () => {
+    expect(nextAfter('sample', { ...fresh, guideHidden: true })).toEqual({ kind: 'step', step: 'camera' });
+    expect(nextAfter('sample', { ...fresh, guideHidden: true, camera: 'granted' })).toEqual({ kind: 'step', step: 'privacy' });
+    expect(nextAfter('guide', { ...fresh, camera: 'granted', consented: true })).toEqual({ kind: 'capture' });
+  });
+
+  it('stays on the camera step while permission is refused', () => {
+    expect(nextAfter('camera', { ...fresh, camera: 'denied' })).toEqual({ kind: 'step', step: 'camera' });
+  });
+
+  it('sends an import straight to consent, then the library, never the camera', () => {
+    const imp = { ...fresh, intent: 'import' as const };
+    expect(nextAfter('welcome', imp)).toEqual({ kind: 'step', step: 'privacy' });
+    expect(nextAfter('camera', imp)).toEqual({ kind: 'step', step: 'privacy' });
+    expect(nextAfter('privacy', { ...imp, consented: true })).toEqual({ kind: 'import' });
+    expect(nextAfter('welcome', { ...imp, consented: true })).toEqual({ kind: 'import' });
+  });
+
+  it('opens straight on the viewfinder after first run', () => {
+    expect(nextAfter('launch', { ...fresh, completed: true, consented: true, camera: 'granted' })).toEqual({ kind: 'capture' });
+  });
+
+  it('builds hrefs that keep the import intent', () => {
+    expect(href({ kind: 'step', step: 'privacy' }, 'import')).toBe('/onboarding/privacy?intent=import');
+    expect(href({ kind: 'step', step: 'lifts' }, 'film')).toBe('/onboarding/lifts');
+    expect(href({ kind: 'capture' }, 'film')).toBe('/capture');
+    expect(href({ kind: 'import' }, 'import')).toBe('/capture/import');
+  });
+});
