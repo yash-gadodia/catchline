@@ -68,6 +68,8 @@ The e2e script signs a user up, records consent, creates a lift, uploads with th
 Anonymous sign-up (publishable key) -> consent -> `create_lift` -> TUS upload with `src/lib/api/tus.ts` -> `enqueue_lift` -> Mini worker -> result:
 `lift: done`, `analysis: snatch reps=2`, `cue: jump_forward | Land where you started | low`, cue row `trying sessions=1`, 14 keyframes, raw clip objects left 0, deletion audit `worker`, queue 0, and the user signs a keyframe URL (HTTP 200 image/jpeg). The power-snatch reference `2026-08-26_FF600EFA.mov` also completes (`done`, 7 keyframes, raw deleted) but its rep measures all normal, so `cue: null`.
 
+Re-run on 2026-10-11 with the worker at a8b790c (CV v2): `FF600EFA` (the re-encoded copy under 50 MB) still returns `cue: null`, but the original 58 MB clip gives `jump_forward` (6 cm) on the same Mini code. The re-encode changes the plate scale (2.96 vs 3.53 px/cm), which pushes the foot jump under the threshold. So the scale estimate depends on the input encoding, and the clip the app transcodes needs its own check on a device.
+
 **Free-plan blocker:** the project-wide upload limit is 50 MB, so the 58 MB reference clip fails with `413 Maximum size exceeded` before the bucket's 500 MB limit applies. The runs above used the same clips re-encoded under 50 MB (h264). The app now trims and re-encodes every clip before upload (`modules/clip-transcoder`, `src/features/capture/compress.ts`): H.264, 1080 px long edge, source frame rate kept up to 120 fps, no audio, under 45 MB (the 58 MB reference goes up as 12.4 MB). Pro + a larger Storage file limit is no longer needed for uploads.
 
 ## Go-live steps (Yash)
@@ -90,9 +92,9 @@ Done on 2026-10-11 (see "Hosted backend"): project, migrations, Vault, auth URLs
 `profiles.plan` defaults to `free` and only the service role can change it. Add a RevenueCat webhook (edge function, service-role write) that sets `plan` to `hook` / `pull` / `platform` / `founding` and back to `free` on expiry. Consumable 10-packs add to `usage_counters.bonus_credits`. Until then everyone is on the free 3-for-life cap.
 
 ## Known gaps (not built here)
-- **Face blur.** Keyframes are stored unblurred. `14-legal-privacy.md` s.9.2 requires blurring secondary people and (in exports/coach links) the lifter's face from a pose-derived head box. That is a `cv/` change; do it before the coach link is public.
+- **Face blur.** Bystanders are blurred from pose boxes and head keypoints are dropped (CV v2). The lifter's face is not yet blurred in exports/coach links (`14-legal-privacy.md` s.9.2); do it before the coach link is public.
 - **Coach page.** `get_coach_link` returns the analysis, but keyframe images are private storage paths; the public page needs an edge function that mints signed URLs for a valid token. No page exists yet.
-- **Movements.** The CV pipeline only analyses snatch; other v1 movements get a `failure: unsupported_movement` analysis (and the credit back).
+- **Movements.** CV v2 (worker at a8b790c) analyses all six v1 movements; jerk and kipping HSPU are validated on synthetic data only.
 - **Claude cue phrasing** (Haiku) is not wired; the cue text is the rules engine's canned text.
 - **Push on completion** (Expo push "your analysis is ready") is not wired; Realtime only.
 - **Plan gating** of coach links (Pull view-only, Platform full) is not enforced server-side; every user can mint one.
