@@ -63,7 +63,7 @@ export default function PhaseChips({
               gap: 6,
             }}
           >
-            <SmallCaps size={12} tracking={0.06} color={past && !on ? colors.text3 : colors.text}>
+            <SmallCaps size={12} tracking={0.06} color={past && !on ? colors.text2 : colors.text}>
               {chipLabel(p.name)}
             </SmallCaps>
             {UNTIMED.includes(p.name) ? null : (

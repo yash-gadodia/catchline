@@ -98,7 +98,7 @@ export default function LiftPickerScreen({
               <Text numberOfLines={2} style={{ color: colors.text3, fontFamily: fontFamily.bodyBold, fontSize: 15, lineHeight: 18 }}>
                 {name}
               </Text>
-              <Text style={{ color: colors.text3, fontFamily: fontFamily.mono, fontSize: 11, lineHeight: 14 }}>soon</Text>
+              <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 11, lineHeight: 14 }}>soon</Text>
             </View>
           ))}
         </View>

@@ -137,7 +137,7 @@ export default function PaywallSheet({
                     </Text>
                     <Text
                       testID="founding-seats"
-                      style={{ color: colors.flare, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}
+                      style={{ color: colors.text, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}
                     >
                       {seatsLeftLabel(seats)}
                     </Text>

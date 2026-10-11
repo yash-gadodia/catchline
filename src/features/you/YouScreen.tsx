@@ -176,7 +176,7 @@ function Value({ children }: { children: string }) {
 function FoundingBadge() {
   return (
     <View testID="founding-badge" style={{ height: 28, paddingHorizontal: 10, borderWidth: 1, borderColor: colors.flare, borderRadius: radius.control, justifyContent: 'center' }}>
-      <SmallCaps size={11} color={colors.flare}>Founding</SmallCaps>
+      <SmallCaps size={11} color={colors.text}>Founding</SmallCaps>
     </View>
   );
 }

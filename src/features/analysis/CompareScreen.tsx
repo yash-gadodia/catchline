@@ -102,7 +102,7 @@ export default function CompareScreen({
       <Rows rows={rows} topRule={mode === 'ghost'} />
       {mode === 'ghost' ? (
         <View style={{ paddingHorizontal: space.gutter, paddingTop: space.s3, paddingBottom: space.s7 }}>
-          <Text style={{ color: colors.text3, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }} testID="sync-caption">
+          <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }} testID="sync-caption">
             {syncCaption(sync.phase, sync.today.frame, sync.other.frame)}
           </Text>
         </View>

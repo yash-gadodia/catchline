@@ -108,7 +108,7 @@ function CoachMark({ index, top, onNext }: { index: number; top: number; onNext:
     >
       <Text style={{ color: colors.text, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>{COACH_MARKS[index]}</Text>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-        <Text style={{ color: colors.text3, fontFamily: fontFamily.mono, fontSize: 12, lineHeight: 16 }}>
+        <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 12, lineHeight: 16 }}>
           {`${index + 1} / ${COACH_MARKS.length}`}
         </Text>
         <Text style={{ color: colors.text, fontFamily: fontFamily.bodyMedium, fontSize: 15, lineHeight: 20, textDecorationLine: 'underline' }}>

@@ -43,7 +43,7 @@ export default function PrivacyScreen({
         <Checkbox checked={improve} onToggle={() => setImprove((v) => !v)} testID="consent-improve">
           <Text style={[small, { color: colors.text }]}>
             Let Catchline use my clips to improve accuracy.{' '}
-            <Text style={{ color: colors.text2 }}>Optional. Change it any time in You.</Text>
+            <Text style={{ color: colors.text2 }}>Optional. Change it any time in the You tab.</Text>
           </Text>
         </Checkbox>
       </ScrollView>
@@ -52,7 +52,7 @@ export default function PrivacyScreen({
           Continue
         </GateBtn>
         {/* TODO(legal): link the published privacy policy and terms once they exist. */}
-        <Text style={{ color: colors.text3, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18, textAlign: 'center' }}>
+        <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18, textAlign: 'center' }}>
           privacy policy · terms
         </Text>
       </View>
