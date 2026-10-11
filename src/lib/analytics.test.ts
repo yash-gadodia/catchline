@@ -33,7 +33,7 @@ describe('analytics — disabled mode (no key)', () => {
   it('track does not throw and does not fetch when disabled', () => {
     const { init: initFn, track: trackFn } = require('./analytics');
     initFn();
-    expect(() => trackFn(EVENTS.DROP_SUBMITTED, { offline: true })).not.toThrow();
+    expect(() => trackFn(EVENTS.PAYWALL_VIEWED, { offline: true })).not.toThrow();
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
@@ -90,7 +90,7 @@ describe('analytics — enabled mode (key set)', () => {
     process.env.EXPO_PUBLIC_ANALYTICS_HOST = 'https://my.posthog.io';
     const { init: initFn, track: trackFn } = require('./analytics');
     initFn();
-    trackFn(EVENTS.REVEAL_VIEWED);
+    trackFn(EVENTS.SIGNUP_STARTED);
 
     await Promise.resolve();
     await Promise.resolve();
@@ -102,7 +102,7 @@ describe('analytics — enabled mode (key set)', () => {
   it('track includes extra props in the body', async () => {
     const { init: initFn, track: trackFn } = require('./analytics');
     initFn();
-    trackFn(EVENTS.DROP_SUBMITTED, { offline: true });
+    trackFn(EVENTS.PAYWALL_VIEWED, { offline: true });
 
     await Promise.resolve();
     await Promise.resolve();
@@ -156,20 +156,8 @@ describe('EVENTS constant', () => {
     expect(EVENTS.APP_OPEN).toBe('app_open');
     expect(EVENTS.SIGNUP_STARTED).toBe('signup_started');
     expect(EVENTS.SIGNUP_COMPLETED).toBe('signup_completed');
-    expect(EVENTS.COUPLE_PAIRED).toBe('couple_paired');
-    expect(EVENTS.DROP_SUBMITTED).toBe('drop_submitted');
-    expect(EVENTS.REVEAL_VIEWED).toBe('reveal_viewed');
-    expect(EVENTS.REFOCUS_COMPLETED).toBe('refocus_completed');
     expect(EVENTS.PAYWALL_VIEWED).toBe('paywall_viewed');
     expect(EVENTS.PURCHASE_COMPLETED).toBe('purchase_completed');
     expect(EVENTS.ACCOUNT_DELETED).toBe('account_deleted');
-  });
-
-  it('exports the D0 activation funnel event names', () => {
-    expect(EVENTS.INVITE_SHARED).toBe('invite_shared');
-    expect(EVENTS.INVITE_LINK_OPENED).toBe('invite_link_opened');
-    expect(EVENTS.PARTNER_JOINED).toBe('partner_joined');
-    expect(EVENTS.FIRST_ANSWER_SUBMITTED).toBe('first_answer_submitted');
-    expect(EVENTS.D0_MUTUAL_REVEAL).toBe('d0_mutual_reveal');
   });
 });
