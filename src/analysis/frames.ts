@@ -1,0 +1,44 @@
+import type { ImageSourcePropType } from 'react-native';
+
+// v1 "video" is the keyframe image sequence. `asset:` ids resolve to bundled
+// frames; anything else is treated as a uri (e.g. frames the CV pipeline wrote).
+const BUNDLED: Record<string, { color: ImageSourcePropType; gray: ImageSourcePropType }> = {
+  'snatch/1-setup': {
+    color: require('../../assets/frames/snatch/1-setup.jpg'),
+    gray: require('../../assets/frames/snatch/gray/1-setup.jpg'),
+  },
+  'snatch/2-knee': {
+    color: require('../../assets/frames/snatch/2-knee.jpg'),
+    gray: require('../../assets/frames/snatch/gray/2-knee.jpg'),
+  },
+  'snatch/3-hip': {
+    color: require('../../assets/frames/snatch/3-hip.jpg'),
+    gray: require('../../assets/frames/snatch/gray/3-hip.jpg'),
+  },
+  'snatch/4-extension': {
+    color: require('../../assets/frames/snatch/4-extension.jpg'),
+    gray: require('../../assets/frames/snatch/gray/4-extension.jpg'),
+  },
+  'snatch/5-turnover': {
+    color: require('../../assets/frames/snatch/5-turnover.jpg'),
+    gray: require('../../assets/frames/snatch/gray/5-turnover.jpg'),
+  },
+  'snatch/6-catch': {
+    color: require('../../assets/frames/snatch/6-catch.jpg'),
+    gray: require('../../assets/frames/snatch/gray/6-catch.jpg'),
+  },
+  'snatch/7-recovery': {
+    color: require('../../assets/frames/snatch/7-recovery.jpg'),
+    gray: require('../../assets/frames/snatch/gray/7-recovery.jpg'),
+  },
+};
+
+export function frameSource(image: string | undefined, gray = false): ImageSourcePropType | null {
+  if (!image) return null;
+  if (image.startsWith('asset:')) {
+    const entry = BUNDLED[image.slice('asset:'.length)];
+    if (!entry) return null;
+    return gray ? entry.gray : entry.color;
+  }
+  return { uri: image };
+}

@@ -1,0 +1,116 @@
+import type { Analysis, Point, Rep } from '../types';
+import { keyFrameForPhase, pointAt, repByIndex } from '../timeline';
+import mock from './snatch-mock.json';
+import { parseAnalysis } from '../parse';
+
+export const snatchMock = parseAnalysis(mock);
+
+export function horizontalCm(a: Analysis, from: Point, to: Point): number {
+  return (Math.abs(to.x - from.x) * a.video.width) / (a.pxPerCm ?? 1);
+}
+
+function evidenceAt(a: Analysis, repIndex: number, phase: string) {
+  const rep = repByIndex(a, repIndex);
+  const key = keyFrameForPhase(rep, phase)!;
+  const to = pointAt(rep.path, key.frame)!;
+  const from = { x: rep.path[0].x, y: to.y };
+  return { rep: repIndex, frame: key.frame, from, to, value: Math.round(horizontalCm(a, from, to)) };
+}
+
+const knee = evidenceAt(snatchMock, 2, 'first_pull');
+
+export const snatchMockLow: Analysis = {
+  ...snatchMock,
+  id: 'snatch-mock-low',
+  cue: {
+    faultId: 'bar_drift_knee',
+    text: 'Bar drifting at the knee',
+    why: 'Film one more set side-on to confirm.',
+    confidence: 'worth_checking',
+    confidenceText: 'Seen on 2 of 3 reps and the hip was behind a plate on rep 1.',
+    evidence: { ...knee, unit: 'cm', caption: `knee · ${knee.value} cm fwd` },
+  },
+};
+
+const missRep: Rep = { ...repByIndex(snatchMock, 2), index: 1, made: false };
+const missBase: Analysis = { ...snatchMock, id: 'snatch-mock-miss', loadKg: 67.5, reps: [missRep], bestRepIndex: 1 };
+const turnover = evidenceAt(missBase, 1, 'turnover');
+
+export const snatchMockMiss: Analysis = {
+  ...missBase,
+  cue: {
+    faultId: 'bar_forward_turnover',
+    text: 'The bar was out front at the turnover',
+    why: `The pull finished early, so the bar swung forward ${turnover.value} cm and you couldn't get under it. Same root as your current cue.`,
+    confidence: 'clear',
+    confidenceText: 'Clear on this rep',
+    evidence: { ...turnover, unit: 'cm', caption: `turnover · bar ${turnover.value} cm in front` },
+  },
+};
+
+function variant(
+  a: Analysis,
+  id: string,
+  loadKg: number,
+  shiftCm: number,
+  values: Record<string, number>,
+  rotateImages: boolean
+): Analysis {
+  const dx = (shiftCm * (a.pxPerCm ?? 1)) / a.video.width;
+  const reps = a.reps.map((rep) => {
+    const pull = rep.phases.find((p) => p.name === 'transition')!;
+    const turn = rep.phases.find((p) => p.name === 'turnover')!;
+    const images = rep.keyFrames.map((k) => k.image);
+    return {
+      ...rep,
+      keyFrames: rep.keyFrames.map((k, i) => ({
+        ...k,
+        image: rotateImages ? images[Math.min(i + 1, images.length - 1)] : k.image,
+      })),
+      path: rep.path.map((p) =>
+        p.frame >= pull.startFrame && p.frame <= turn.endFrame ? { ...p, x: p.x + dx } : p
+      ),
+    };
+  });
+  return {
+    ...a,
+    id,
+    loadKg,
+    reps,
+    measurements: a.measurements.map((m) => (m.id in values ? { ...m, value: values[m.id] } : m)),
+  };
+}
+
+export type CompareTarget = {
+  kind: 'best' | 'last';
+  label: string;
+  dateLabel: string;
+  analysis: Analysis;
+};
+
+export const COMPARE_TARGETS: Record<CompareTarget['kind'], CompareTarget> = {
+  best: {
+    kind: 'best',
+    label: 'Your best',
+    dateLabel: '18 Sep',
+    analysis: variant(snatchMock, 'snatch-mock-best', 65, -4, { bar_drift_hip: 2, pull_time: 0.58, catch_depth: 6 }, true),
+  },
+  last: {
+    kind: 'last',
+    label: 'Last session',
+    dateLabel: '2 Oct',
+    analysis: variant(snatchMock, 'snatch-mock-last', 60, 2, { bar_drift_hip: 8, pull_time: 0.64, catch_depth: 4 }, false),
+  },
+};
+
+// Add the CV spike's output here (snatch-real.json) once it lands.
+export const ANALYSES: Record<string, Analysis> = {
+  'snatch-mock': snatchMock,
+  'snatch-mock-low': snatchMockLow,
+  'snatch-mock-miss': snatchMockMiss,
+};
+
+export function getAnalysis(key?: string | string[]): Analysis {
+  const k = Array.isArray(key) ? key[0] : key;
+  return (k && ANALYSES[k]) || snatchMock;
+}
