@@ -319,7 +319,7 @@ def clean_info(ctx, r):
         elif fid == "bar_forward_off_hips":
             d.update({"from": ref["bar"][d["from_frame"]], "to": ref["bar"][f], "caption": f"hip · {r['values'][fid]:.0f} cm fwd"})
         elif fid == "jump_forward":
-            d.update({"from": ref["ank"][d["from_frame"]], "to": ref["ank"][f], "caption": f"feet · {r['values'][fid]:.0f} cm fwd"})
+            d.update({"caption": f"feet · {r['values'][fid]:.0f} cm fwd"})
         elif fid == "early_arm_bend":
             e = mid(ksm, L_ELB, R_ELB)
             d.update({"from": e[d["from_frame"]], "to": ref["hip"][d["to_frame"]], "caption": f"elbows bend {r['values'][fid]:.2f} s early"})

@@ -261,8 +261,13 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
     j = int(np.argmax(xs))
     vals["bar_forward_off_hips"] = cm(xs[j]) * foreshort
     detail["bar_forward_off_hips"] = {"frame": contact + j, "from_frame": contact}
-    vals["jump_forward"] = cm(fwd * (ank[ev["caught"], 0] - ank[lo, 0])) * foreshort
-    detail["jump_forward"] = {"frame": ev["caught"], "from_frame": lo}
+    # feet: median over 0.3 s before lift-off (planted) vs 0.3 s from the catch (landed). Single frames moved with
+    # the encoding: the catch frame (elbow lockout) lands +-2 frames while the feet are still travelling.
+    w = max(1, int(0.3 * fps))
+    feet_from = np.median(ank[max(0, lo - w): lo + 1], axis=0)
+    feet_to = np.median(ank[ev["caught"]: ev["caught"] + w + 1], axis=0)
+    vals["jump_forward"] = cm(fwd * (feet_to[0] - feet_from[0])) * foreshort
+    detail["jump_forward"] = {"frame": ev["caught"], "from_frame": lo, "from": feet_from, "to": feet_to}
     if kind == "clean":
         from .lifts import clean_pull_values
         cv_, cd_ = clean_pull_values(ksm, hip_ang, knee_ang, lo, ev, fps)
@@ -410,7 +415,7 @@ def build_cue(r, reps, best_rep, W, H):
         frm, to = raw(ref["bar"][d["from_frame"]], f), raw(ref["bar"][f], f)
         caption = f"hip · {vals[cue_id]:.0f} cm fwd"
     else:
-        frm, to = raw(ref["ank"][d["from_frame"]], f), raw(ref["ank"][f], f)
+        frm, to = raw(d["from"], f), raw(d["to"], f)
         caption = f"feet · {vals[cue_id]:.0f} cm fwd"
     conf_text = f"Seen on {seen} of {len(reps)} reps"
     if off > 20:

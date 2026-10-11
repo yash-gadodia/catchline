@@ -214,3 +214,42 @@ def test_refine_plate_ignores_shadow_and_finds_a_circle():
     r = refine_plate(img, coarse)
     assert r["centre"] == pytest.approx([300, 400], abs=3)
     assert r["axes"] == pytest.approx((200, 200), abs=4)
+
+
+
+def _pull(n=24, jitter=4.0):
+    plate = 800 - 1.2 * np.arange(n) ** 1.6  # accelerating rise, like the pull
+    wrist = 600 + (plate - 800) * 0.85 + jitter * np.where(np.arange(n) % 2, 1, -1)  # +-4 px pose jitter
+    return plate, wrist
+
+
+def test_rise_ratio_does_not_move_with_the_lift_off_frame():
+    plate, wrist = _pull()
+    got = [round(rise_ratio(plate[s:], wrist[s:]), 4) for s in (0, 1, 2)]
+    assert got == [0.8451, 0.8489, 0.8444]  # anchored at the first sample these read 0.8136, 0.8827, 0.8130
+
+
+def _disc_frames(h, rise_px, n=12, start_y=0.75):
+    import cv2
+    frames = []
+    for i in range(n):
+        img = np.full((h, int(h * 0.5625), 3), 200, np.uint8)
+        c = (int(round(h * 0.3 * 16)), int(round((start_y * h - i * rise_px) * 16)))
+        cv2.circle(img, c, int(round(h * 0.08 * 16)), (20, 20, 20), -1, cv2.LINE_AA, 4)
+        frames.append(img)
+    return frames
+
+
+def test_plate_track_is_not_quantised_and_gives_the_same_depth_ratio_at_1280_and_1080():
+    from catchline_cv.track import track_plate
+    ratios = {}
+    for h in (1280, 1080):
+        rise = 0.0059 * h  # 7.55 px/frame at 1280, between the coarse grid's 0.05-diameter (10.2 px) steps
+        frames = _disc_frames(h, rise)
+        plate = {"centre": np.array([0.3 * h, 0.75 * h]), "axes": (0.16 * h, 0.16 * h), "score": 0.9}
+        c, _ = track_plate(frames, 0, plate)
+        assert np.isfinite(c).all()
+        assert np.abs(-np.diff(c[:, 1]) - rise).max() < 0.0012 * h  # 1.5 px at 1280; the coarse grid alone is off by up to 5
+        wrist = 500 + (c[:, 1] - 0.75 * h) * 0.85
+        ratios[h] = round(rise_ratio(c[:, 1], wrist), 4)
+    assert ratios == {1280: 0.85, 1080: 0.85}

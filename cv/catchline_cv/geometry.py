@@ -56,13 +56,15 @@ def invert_affine(M):
 
 
 def rise_ratio(ref_y, other_y):
-    """Least-squares slope of other's displacement on ref's (both from their first finite sample), NaNs skipped.
-    Two points on one rigid bar rise the same cm, so the px ratio is the ratio of their image scales (depths)."""
+    """Least-squares slope (with intercept) of other on ref, NaNs skipped.
+    Two points on one rigid bar rise the same cm, so the px ratio is the ratio of their image scales (depths).
+    Not anchored at the first sample: lift-off is where the far wrist is a guess behind the plate, and one bad
+    anchor tilted the slope by up to 15% between encodings of the same clip."""
     a, b = np.asarray(ref_y, float), np.asarray(other_y, float)
     ok = np.isfinite(a) & np.isfinite(b)
     if ok.sum() < 3:
         return None
-    a, b = a[ok] - a[ok][0], b[ok] - b[ok][0]
+    a, b = a[ok] - a[ok].mean(), b[ok] - b[ok].mean()
     den = float(np.sum(a * a))
     return float(np.sum(a * b) / den) if den > 0 else None
 
