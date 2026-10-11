@@ -6,6 +6,7 @@ Runs the pipeline (`cv/run.py`) on every clip in a manifest, joins coach labels 
 cd cv
 python eval/run_eval.py                       # defaults: side-on INDEX.md, labelling/labels/labels.jsonl, ~/dev/parallax/cv
 python eval/run_eval.py --labels <file> --gate   # exit 1 unless every target passes
+python eval/run_eval.py --cv-dir <rsynced copy> --cv-commit <sha>   # record the commit when cv-dir is not a git checkout
 python eval/run_eval.py --write-provisional ~/dev/liftcheck-research/eval/provisional-index-labels.jsonl
 ```
 

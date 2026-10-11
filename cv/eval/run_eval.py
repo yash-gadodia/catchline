@@ -85,6 +85,7 @@ def main(argv=None, runner=run_pipeline):
     ap.add_argument("--manifest", action="append", help="INDEX.md, video file or glob (repeatable)")
     ap.add_argument("--labels", default=os.path.join(RESEARCH, "labelling/labels/labels.jsonl"))
     ap.add_argument("--cv-dir", default=os.path.expanduser("~/dev/parallax/cv"))
+    ap.add_argument("--cv-commit", help="pipeline commit to record (default: git HEAD of --cv-dir, if it is a checkout)")
     ap.add_argument("--python", help="interpreter for run.py (default: <cv-dir>/.venv/bin/python, else uv run python)")
     ap.add_argument("--cache", default=os.path.join(RESEARCH, "eval/cache"))
     ap.add_argument("--out-root", default=os.path.join(RESEARCH, "eval"))
@@ -111,7 +112,9 @@ def main(argv=None, runner=run_pipeline):
 
     out = os.path.join(os.path.expanduser(a.out_root), a.date)
     os.makedirs(out, exist_ok=True)
-    meta = {"date": a.date, "cv_dir": a.cv_dir, "code_sha": csha, "labels": a.labels, "manifests": manifests,
+    commit = a.cv_commit or subprocess.run(["git", "-C", os.path.expanduser(a.cv_dir), "rev-parse", "--short", "HEAD"],
+                                           capture_output=True, text=True).stdout.strip() or "unknown"
+    meta = {"date": a.date, "cv_dir": a.cv_dir, "cv_commit": commit, "code_sha": csha, "labels": a.labels, "manifests": manifests,
             "label_rows": len(rows)}
     json.dump({"meta": meta, "metrics": m, "clips": per}, open(os.path.join(out, "metrics.json"), "w"), indent=1)
     open(os.path.join(out, "report.md"), "w").write(report.markdown(m, per, meta))

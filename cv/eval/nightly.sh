@@ -11,5 +11,5 @@ echo "== $(date '+%F %T') labels=$LABELS"
 "$CV_DIR/.venv/bin/python" -u eval/run_eval.py \
   --manifest "$ROOT/research/reference/side-on/INDEX.md" \
   --labels "$LABELS" --cv-dir "$CV_DIR" \
-  --cache "$ROOT/cache" --out-root "$ROOT/out" --gate
+  ${CV_COMMIT:+--cv-commit $CV_COMMIT} --cache "$ROOT/cache" --out-root "$ROOT/out" --gate
 echo "== exit $?"

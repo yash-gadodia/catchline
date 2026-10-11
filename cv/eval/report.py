@@ -19,7 +19,7 @@ def markdown(m, per, meta):
     lines = [
         f"# Catchline CV eval, {meta['date']}",
         "",
-        f"Pipeline `{meta['cv_dir']}` (code {meta['code_sha'][:12]}), labels `{meta['labels']}`, manifest {', '.join(meta['manifests'])}.",
+        f"Pipeline `{meta['cv_dir']}` (commit {meta['cv_commit']}, code {meta['code_sha'][:12]}), labels `{meta['labels']}`, manifest {', '.join(meta['manifests'])}.",
         "",
         f"{m['clips_in_manifest']} clips, {m['labelled']} labelled, {m['excluded_coach_disagreement']} dropped for coach disagreement, "
         f"{m['provisional_clips']} provisional (single labeller), {m['pipeline_errors']} pipeline crashes.",
@@ -37,7 +37,7 @@ def markdown(m, per, meta):
             ["Rep count exact (per clip)", fmt(s["rep_count_exact"])],
             ["Rep recall (matched / labelled reps)", f"{fmt(s['rep_recall'])} ({s['matched_reps']}/{s['truth_reps']})"],
             ["Rep precision (matched / CV reps)", f"{fmt(s['rep_precision'])} ({s['matched_reps']}/{s['cv_reps']})"],
-            ["Rep count MAE", fmt(s["rep_count_mae"])],
+            ["Rep count MAE (reps)", s["rep_count_mae"]],
             ["Made/missed agreement (matched reps)", f"{fmt(s['made_agreement'])} (n={s['made_n']})"],
             ["Abstain rate (no cue)", f"{fmt(s['abstain_rate'])} (n={s['abstain_n']})"],
             ["Cue precision", f"{fmt(s['cue_precision'])} (n={s['cued_with_fault_labels']})"],
