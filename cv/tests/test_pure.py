@@ -107,17 +107,22 @@ def test_find_reps_floor_to_overhead():
     assert find_reps(wrist, nose, knee, 30) == [(51, 119, 58)]
 
 
-def test_rules_pick_most_severe_and_cap_confidence_off_side_on():
+def test_rules_gate_the_jump_behind_the_bar_swing_and_cap_confidence_off_side_on():
     vals = {"hips_rise_early": -3.0, "bar_forward_off_hips": 13.0, "jump_forward": 7.0}
     assert rules.fired(vals) == {"bar_forward_off_hips": pytest.approx(1.3), "jump_forward": pytest.approx(1.4)}
-    assert rules.choose_cue(vals) == "jump_forward"
+    # the jump is more severe, but the swing comes first and causes it (25 section 4 causal gating)
+    assert rules.choose_cue(vals) == "bar_forward_off_hips"
+    assert rules.choose_cue({"hips_rise_early": -3.0, "bar_forward_off_hips": 2.0, "jump_forward": 7.0}) == "jump_forward"
     assert rules.confidence("jump_forward", 1.4, 36.0) == "low"
     assert rules.confidence("hips_rise_early", 1.6, 36.0) == "worth_checking"
     assert rules.confidence("jump_forward", 1.6, 5.0) == "clear"
     assert rules.choose_cue({"hips_rise_early": 1.0, "bar_forward_off_hips": None, "jump_forward": 0.0}) is None
     assert len(rules.CUES["jump_forward"].split()) < 8
-    assert rules.why_sentence("jump_forward", vals) == (
-        "Your feet landed 7 cm forward because you chased a bar that swung 13 cm forward off your hips.")
+    assert rules.why_sentence("jump_forward", vals) == "Your feet landed 7 cm in front of where they started."
+    assert rules.why_sentence("hips_rise_early", {"hips_rise_early": 9.0}, {"trunk_change": 13.4}) == (
+        "Your back angle dropped 14 deg between the floor and the knee, which put the bar in front of you.")
+    assert rules.why_sentence("early_arm_bend", {"early_arm_bend": 0.137}) == (
+        "Your elbows bent 140 ms before your hips finished, so the bar lost leg speed.")
 
 
 def synthetic_power_snatch(fps=30):

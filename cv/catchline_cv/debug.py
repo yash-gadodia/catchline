@@ -9,7 +9,10 @@ from .track import from_ref
 BONES = [(5, 7), (7, 9), (6, 8), (8, 10), (5, 6), (5, 11), (6, 12), (11, 12), (11, 13), (13, 15), (12, 14),
          (14, 16), (15, 24), (15, 20), (16, 25), (16, 21), (0, 18), (18, 5), (18, 6)]
 PHASE_COL = {"setup": (200, 200, 200), "first_pull": (0, 200, 255), "transition": (0, 255, 255),
-             "second_pull": (0, 255, 0), "turnover": (255, 200, 0), "catch": (255, 0, 255), "recovery": (0, 128, 255)}
+             "second_pull": (0, 255, 0), "turnover": (255, 200, 0), "catch": (255, 0, 255), "recovery": (0, 128, 255),
+             "drive": (0, 255, 0), "arch": (255, 128, 0), "hollow": (0, 200, 255), "hip_drive": (0, 255, 0),
+             "support": (255, 0, 255), "lockout": (255, 255, 0), "tuck": (0, 200, 255), "press": (255, 0, 255),
+             "hang": (200, 200, 200)}
 
 
 def phase_at(phases, f):
@@ -37,6 +40,12 @@ def draw(r, i):
         ax = r["plates"][0]["axes"]
         cv2.ellipse(im, ((float(c[0]), float(c[1])), (ax[1], ax[0]), 0), (0, 255, 255), 2)
         cv2.circle(im, tuple(int(v) for v in c), 5, (0, 255, 255), -1)
+    for kind, v in ref.get("lines", []):
+        if kind == "h":
+            a, b = from_ref((0, v), Ms[i]), from_ref((im.shape[1], v), Ms[i])
+        else:
+            a, b = from_ref((v, 0), Ms[i]), from_ref((v, im.shape[0]), Ms[i])
+        cv2.line(im, tuple(int(x) for x in a), tuple(int(x) for x in b), (0, 255, 0), 2)
     name = phase_at(r["phases"], s0 + i)
     cv2.rectangle(im, (0, 0), (im.shape[1], 70), (0, 0, 0), -1)
     cv2.putText(im, f"f{s0 + i} {name}", (14, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.5, PHASE_COL.get(name, (255, 255, 255)), 3)
@@ -86,7 +95,8 @@ def signal_plot(r, path):
     series = [(-ref["bar"][:, 1] / r["px_per_cm"], (0, 0, 255), "bar height cm"),
               (-ref["plate_ref"][:, 1] / r["px_per_cm"], (0, 160, 160), "near plate cm"),
               (ref["knee_ang"], (255, 0, 0), "knee deg"), (ref["hip_ang"], (0, 140, 0), "hip deg"),
-              (ref["bar"][:, 0] * r["fwd"] / r["px_per_cm"], (150, 0, 150), "bar fwd cm")]
+              (ref["bar"][:, 0] * r["fwd"] / r["px_per_cm"], (150, 0, 150), "bar fwd cm"),
+              (ref["elbow"], (120, 120, 120), "elbow deg")]
     for li, (y, col, label) in enumerate(series):
         ok = np.isfinite(y)
         if ok.sum() < 2:
@@ -105,4 +115,22 @@ def signal_plot(r, path):
     cv2.imwrite(path, img)
 
 
-SN = ["setup", "first_pull", "transition", "second_pull", "turnover", "catch", "recovery"]
+SN = list(PHASE_COL)
+
+
+def keyframe_sheet(keyframes_dir, path, cols=6, tile_h=480):
+    """The exported (bystander-blurred) keyframes in one image, to check what would actually be stored."""
+    names = sorted(f for f in os.listdir(keyframes_dir) if f.endswith(".jpg"))
+    tiles = []
+    for n in names:
+        im = cv2.imread(os.path.join(keyframes_dir, n))
+        im = cv2.resize(im, (int(im.shape[1] * tile_h / im.shape[0]), tile_h))
+        cv2.putText(im, n[:-4], (8, 28), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
+        tiles.append(im)
+    if not tiles:
+        return
+    w = max(t.shape[1] for t in tiles)
+    tiles = [cv2.copyMakeBorder(t, 0, 0, 0, w - t.shape[1], cv2.BORDER_CONSTANT) for t in tiles]
+    while len(tiles) % cols:
+        tiles.append(np.zeros_like(tiles[0]))
+    cv2.imwrite(path, np.vstack([np.hstack(tiles[i:i + cols]) for i in range(0, len(tiles), cols)]))
