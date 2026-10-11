@@ -28,7 +28,7 @@ Design source: `~/dev/liftcheck-research/design/` (Claude Design export; `Catchl
 - [x] `cv/` pipeline: RTMPose (Apache) + plate tracking (no Ultralytics/AGPL) on a real clip
 - [x] Phase segmentation + metrics + rule for "hips rise early" / bar drift
 - [x] Emits the Analysis JSON contract
-- [ ] Run on Yash's snatch clip; output committed as a fixture the UI loads
+- [x] Run on Yash's snatch clip; output committed as a fixture the UI loads (cee8b2f)
 
 ## Join
-- [ ] UI renders the spike's real JSON for Yash's snatch
+- [x] UI renders the spike's real JSON for Yash's snatch (dev entry "Real CV · cue")
