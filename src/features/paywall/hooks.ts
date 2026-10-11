@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import { track, EVENTS } from '../../lib/analytics';
 import { usePurchases, type PurchaseStatus } from '../purchases/usePurchases';
-import { chipState, gateFor, trialDue, type ChipState, type Gate, type StorePlatform } from './entitlements';
+import { chipState, gateFor, lastFreeDue, trialDue, type ChipState, type Gate, type StorePlatform } from './entitlements';
 import { planKey, type Plan } from './products';
 import { getFoundingSeats, type FoundingSeats } from './seats';
 import { useUsage } from './usageStore';
@@ -49,4 +49,11 @@ export function nextClipGate(now: Date = new Date()): Gate {
 export function routeAfterAnalysis(): '/paywall/funnel/trial' | null {
   const { usage, variant } = useUsage.getState();
   return trialDue(usePurchases.getState().tier, usage, variant) ? '/paywall/funnel/trial' : null;
+}
+
+// Where Record / Import go: through the "last free video" heads-up once.
+export function captureHref(next: string): string {
+  const { usage, variant, warnedAt } = useUsage.getState();
+  if (!lastFreeDue(usePurchases.getState().tier, usage, variant, warnedAt)) return next;
+  return `/paywall/last?next=${encodeURIComponent(next)}`;
 }
