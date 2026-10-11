@@ -1,153 +1,173 @@
 import { create } from 'zustand';
 import { Platform } from 'react-native';
-import type {
-  CustomerInfo,
-  PurchasesOffering,
-  PurchasesPackage,
-} from 'react-native-purchases';
+import type { CustomerInfo, PurchasesOfferings, StoreProductChangeInfo } from 'react-native-purchases';
+import { loadPurchases, RC_IOS_KEY, RC_ANDROID_KEY } from './client';
 import {
-  loadPurchases,
-  ENTITLEMENT_ID,
-  RC_IOS_KEY,
-  RC_ANDROID_KEY,
-} from './client';
+  ENTITLEMENT,
+  TIER_RANK,
+  tierFromEntitlements,
+  type Period,
+  type Tier,
+} from '../paywall/entitlements';
+import {
+  offeringFor,
+  packageIdFor,
+  periodFromProductId,
+  playSubscriptionId,
+  type Plan,
+} from '../paywall/products';
 
-function hasPro(info: CustomerInfo | null): boolean {
-  return !!info?.entitlements?.active?.[ENTITLEMENT_ID];
+export type PurchaseStatus = 'success' | 'cancelled' | 'failed' | 'offline';
+
+type ActivePlan = { tier: Tier; period: Period | null; expiresAt: string | null };
+
+export function planFromInfo(info: CustomerInfo | null): ActivePlan {
+  const active = info?.entitlements?.active ?? {};
+  const tier = tierFromEntitlements(Object.keys(active));
+  if (tier === 'free') return { tier, period: null, expiresAt: null };
+  const ent = active[ENTITLEMENT[tier]];
+  return {
+    tier,
+    period: ent?.productIdentifier ? periodFromProductId(ent.productIdentifier) : null,
+    expiresAt: ent?.expirationDate ?? null,
+  };
 }
 
-interface PurchasesState {
+// RevenueCat error codes: 1 cancelled, 10 network, 35 offline connection.
+export function classifyPurchaseError(e: unknown): PurchaseStatus {
+  const err = (e ?? {}) as { userCancelled?: boolean | null; code?: string };
+  if (err.userCancelled || err.code === '1') return 'cancelled';
+  if (err.code === '10' || err.code === '35') return 'offline';
+  return 'failed';
+}
+
+function apiKey(): string {
+  return Platform.OS === 'ios' ? RC_IOS_KEY : RC_ANDROID_KEY || RC_IOS_KEY;
+}
+
+// The real SDK only when it loaded AND a key is set; otherwise demo mode.
+function liveSdk() {
+  const { Purchases } = loadPurchases();
+  return Purchases && apiKey() ? Purchases : null;
+}
+
+interface PurchasesState extends ActivePlan {
   ready: boolean;
-  /** Source of truth for Plus everywhere (RevenueCat "Parallax Pro" entitlement). */
-  isPro: boolean;
-  offering: PurchasesOffering | null;
+  demo: boolean;
+  offerings: PurchasesOfferings | null;
   customerInfo: CustomerInfo | null;
-  /** Call once at app start. */
+  /** What a demo purchase resolves to, so every paywall state is reachable without keys. */
+  demoOutcome: PurchaseStatus;
   configure: () => Promise<void>;
-  /** Buy a package; resolves true if it unlocked Plus. */
-  purchase: (pkg: PurchasesPackage) => Promise<boolean>;
-  /** Restore prior purchases; resolves to the resulting Plus status. */
-  restore: () => Promise<boolean>;
-  /** Demo/Expo-Go fallback so the scripted Plus flow still works without the SDK. */
-  setDemoPro: (value: boolean) => void;
+  purchase: (plan: Plan) => Promise<PurchaseStatus>;
+  restore: () => Promise<Tier>;
+  setDemoPlan: (tier: Tier, period?: Period | null) => void;
+  setDemoOutcome: (outcome: PurchaseStatus) => void;
 }
 
 export const usePurchases = create<PurchasesState>((set, get) => ({
   ready: false,
-  isPro: false,
-  offering: null,
+  demo: true,
+  tier: 'free',
+  period: null,
+  expiresAt: null,
+  offerings: null,
   customerInfo: null,
+  demoOutcome: 'success',
 
   configure: async () => {
     if (get().ready) return;
-    const { Purchases } = loadPurchases();
-    const apiKey = Platform.OS === 'ios' ? RC_IOS_KEY : RC_ANDROID_KEY || RC_IOS_KEY;
-    // Expo Go or no key → demo mode (isPro driven locally by setDemoPro/purchase).
-    if (!Purchases || !apiKey) {
-      set({ ready: true });
+    const Purchases = liveSdk();
+    if (!Purchases) {
+      set({ ready: true, demo: true });
       return;
     }
     try {
-      // RevenueCat routes its own diagnostics through console.error at ERROR level,
-      // which RN LogBox surfaces as a fatal red screen. In dev the Test Store key has
-      // no products registered (payments are gated), so that diagnostic is expected
-      // noise — keep it visible in the JS console, but never as a red-box "error".
+      // RevenueCat logs through console.error, which LogBox shows as a red screen.
       Purchases.setLogHandler((level, message) => {
         console.log(`[RevenueCat] ${level}: ${message}`);
       });
-      Purchases.configure({ apiKey });
+      Purchases.configure({ apiKey: apiKey() });
       Purchases.addCustomerInfoUpdateListener((info: CustomerInfo) => {
-        set({ customerInfo: info, isPro: hasPro(info) });
+        set({ customerInfo: info, ...planFromInfo(info) });
       });
-      const [info, offerings] = await Promise.all([
-        Purchases.getCustomerInfo(),
-        Purchases.getOfferings(),
-      ]);
-      set({
-        ready: true,
-        customerInfo: info,
-        offering: offerings.current ?? null,
-        isPro: hasPro(info),
-      });
+      const [info, offerings] = await Promise.all([Purchases.getCustomerInfo(), Purchases.getOfferings()]);
+      set({ ready: true, demo: false, customerInfo: info, offerings, ...planFromInfo(info) });
     } catch {
-      set({ ready: true });
+      set({ ready: true, demo: false });
     }
   },
 
-  purchase: async (pkg: PurchasesPackage) => {
-    const { Purchases } = loadPurchases();
+  purchase: async (plan: Plan) => {
+    const Purchases = liveSdk();
     if (!Purchases) {
-      // demo: unlock locally so the in-app Checkout flow still works in Expo Go.
-      set({ isPro: true });
-      return true;
+      const outcome = get().demoOutcome;
+      if (outcome === 'success') {
+        set({
+          tier: plan.kind === 'founding' ? 'founding' : plan.tier,
+          period: plan.kind === 'founding' ? null : plan.period,
+        });
+      }
+      return outcome;
     }
     try {
-      const { customerInfo } = await Purchases.purchasePackage(pkg);
-      const pro = hasPro(customerInfo);
-      set({ customerInfo, isPro: pro });
-      return pro;
+      const offerings = get().offerings ?? (await Purchases.getOfferings());
+      const pkg = offerings.all[offeringFor(plan)]?.availablePackages.find(
+        (p) => p.identifier === packageIdFor(plan)
+      );
+      if (!pkg) return 'failed';
+      const { customerInfo } = await Purchases.purchasePackage(pkg, null, playChangeInfo(get().tier, plan, Purchases));
+      const next = planFromInfo(customerInfo);
+      set({ customerInfo, ...next });
+      return next.tier === 'free' ? 'failed' : 'success';
     } catch (e) {
-      // user cancelling is not an error worth surfacing
-      const cancelled = (e as { userCancelled?: boolean })?.userCancelled;
-      if (!cancelled) throw e;
-      return false;
+      return classifyPurchaseError(e);
     }
   },
 
   restore: async () => {
-    const { Purchases } = loadPurchases();
-    if (!Purchases) return get().isPro;
+    const Purchases = liveSdk();
+    if (!Purchases) return get().tier;
     try {
       const info = await Purchases.restorePurchases();
-      const pro = hasPro(info);
-      set({ customerInfo: info, isPro: pro });
-      return pro;
+      set({ customerInfo: info, ...planFromInfo(info) });
+      return get().tier;
     } catch {
-      return false;
+      return get().tier;
     }
   },
 
-  setDemoPro: (value: boolean) => set({ isPro: value }),
+  setDemoPlan: (tier, period = null) => set({ tier, period, expiresAt: null }),
+  setDemoOutcome: (demoOutcome) => set({ demoOutcome }),
 }));
 
-// ── RevenueCat UI: hosted Paywall + Customer Center ────────────────────────────
-// Both no-op (return false / nothing) when the SDK isn't present, so callers can
-// fall back to the in-app Checkout / ManageSub screens in Expo Go.
+type Sdk = NonNullable<ReturnType<typeof liveSdk>>;
 
-export async function presentPaywall(): Promise<boolean> {
-  const { RevenueCatUI } = loadPurchases();
-  if (!RevenueCatUI) return false;
-  try {
-    const result = await RevenueCatUI.presentPaywall();
-    const unlocked = result === 'PURCHASED' || result === 'RESTORED';
-    if (unlocked) await usePurchases.getState().restore();
-    return unlocked;
-  } catch {
-    return false;
-  }
+// Play needs the old subscription to switch tiers; upgrades charge the prorated
+// difference now (see upgradeQuote), downgrades wait for the renewal.
+function playChangeInfo(current: Tier, plan: Plan, Purchases: Sdk): StoreProductChangeInfo | null {
+  if (Platform.OS !== 'android' || plan.kind !== 'sub') return null;
+  if (current !== 'hook' && current !== 'pull' && current !== 'platform') return null;
+  if (current === plan.tier) return null;
+  const up = TIER_RANK[plan.tier] > TIER_RANK[current];
+  return {
+    oldProductIdentifier: playSubscriptionId(current),
+    replacementMode: up
+      ? Purchases.STORE_REPLACEMENT_MODE.CHARGE_PRORATED_PRICE
+      : Purchases.STORE_REPLACEMENT_MODE.DEFERRED,
+  };
 }
 
-export async function presentPaywallIfNeeded(): Promise<boolean> {
+// RevenueCat Customer Center for managing or cancelling. No-op without the SDK so the
+// caller can fall back to the in-app plans screen.
+export async function presentCustomerCenter(): Promise<boolean> {
   const { RevenueCatUI } = loadPurchases();
-  if (!RevenueCatUI) return usePurchases.getState().isPro;
-  try {
-    const result = await RevenueCatUI.presentPaywallIfNeeded({
-      requiredEntitlementIdentifier: ENTITLEMENT_ID,
-    });
-    await usePurchases.getState().restore();
-    return result === 'PURCHASED' || result === 'RESTORED' || usePurchases.getState().isPro;
-  } catch {
-    return false;
-  }
-}
-
-export async function presentCustomerCenter(): Promise<void> {
-  const { RevenueCatUI } = loadPurchases();
-  if (!RevenueCatUI) return;
+  if (!RevenueCatUI || !liveSdk()) return false;
   try {
     await RevenueCatUI.presentCustomerCenter();
     await usePurchases.getState().restore();
+    return true;
   } catch {
-    // swallow - managing the sub should never crash the screen
+    return false;
   }
 }

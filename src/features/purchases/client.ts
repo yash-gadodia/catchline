@@ -8,9 +8,6 @@ import type RevenueCatUI from 'react-native-purchases-ui';
 // never trigger native access.
 export const isExpoGo = Constants.executionEnvironment === 'storeClient';
 
-// The single entitlement that unlocks Plus everywhere (packs, banners, …).
-export const ENTITLEMENT_ID = 'Parallax Pro';
-
 // RevenueCat PUBLIC SDK keys are safe to ship in the client.
 export const RC_IOS_KEY = process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY ?? '';
 export const RC_ANDROID_KEY = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY ?? '';
