@@ -16,7 +16,8 @@
       }
     },
     "web": {
-      "output": "static"
+      "output": "static",
+      "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-router",
@@ -27,7 +28,7 @@
         {
           "backgroundColor": "#000000",
           "image": "./assets/splash-icon.png",
-          "imageWidth": 180
+          "imageWidth": 160
         }
       ],
       [
@@ -62,7 +63,8 @@
       },
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
-      }
+      },
+      "icon": "./assets/icon.png"
     },
     "extra": {
       "router": {},

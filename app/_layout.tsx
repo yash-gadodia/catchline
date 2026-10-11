@@ -1,4 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import * as SplashScreen from 'expo-splash-screen';
+import { LaunchOverlay } from '../src/components/Mark';
 import { Stack } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -18,8 +20,11 @@ import { init as initAnalytics, identify, reset, track, EVENTS } from '../src/li
 
 export const unstable_settings = { initialRouteName: '(tabs)' };
 
+SplashScreen.preventAutoHideAsync().catch(() => undefined);
+
 export default function RootLayout() {
   const fontsLoaded = useAppFonts();
+  const [launched, setLaunched] = useState(false);
 
   useEffect(() => {
     initAnalytics();
@@ -63,6 +68,9 @@ export default function RootLayout() {
           <AppErrorBoundary>
             <StatusBar style="light" />
             <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }} />
+            {launched ? null : (
+              <LaunchOverlay onShown={() => SplashScreen.hideAsync().catch(() => undefined)} onDone={() => setLaunched(true)} />
+            )}
           </AppErrorBoundary>
         </QueryClientProvider>
       </SafeAreaProvider>

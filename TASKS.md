@@ -35,7 +35,7 @@ Design source: `~/dev/liftcheck-research/design/` (Claude Design export; `Catchl
 
 ## Integration (catchline-integrate)
 - [x] Identity: display name Catchline, scheme `catchline`, Catchline permission copy; bundle id, package, slug, EAS projectId and updates URL unchanged (same App Store record). Parallax widget target + live-activity module removed; Parallax docs in `docs/archive/parallax/`
-- [ ] (Yash) App icon, adaptive icon and splash mark: no Catchline icon exists in the design export (`~/dev/liftcheck-research/design/`); `assets/icon.png`, `adaptive-icon.png` and `splash-icon.png` are still the Parallax mark (splash and adaptive backgrounds already black)
+- [x] Monogram "C" (from `~/dev/liftcheck-research/brand/`): app icon, Android adaptive foreground, splash mark on black, web favicon; `src/components/Mark` (static + launch draw after the native splash, Reduce Motion aware). Flare is now signal red `#FF1F3D` (light `#D90F2D`)
 - [x] One data source: Supabase via `src/lib/api` when `EXPO_PUBLIC_SUPABASE_*` is set, local fixtures otherwise (`src/data/`)
 - [x] Analyse → paywall gate → consent → createLift + TUS → live processing → reveal/cue on the real Analysis; failure and cap routes; usage recorded; `routeAfterAnalysis()` on leaving the cue
 - [ ] Founding seats counter: no backend table/RPC yet (`getFoundingSeats()` is still the local 137-of-500 stub; PRODUCTS.md "Founding seat counter")
