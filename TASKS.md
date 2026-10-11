@@ -32,3 +32,15 @@ Design source: `~/dev/liftcheck-research/design/` (Claude Design export; `Catchl
 
 ## Join
 - [x] UI renders the spike's real JSON for Yash's snatch (dev entry "Real CV · cue")
+
+## Goal: a fully working Catchline 3.0 on TestFlight (11-10-2026)
+- [ ] Integration: real flow capture → paywall gate → upload → processing → cue; rename to Catchline; signal red #FF1F3D; C monogram icon + launch animation (agent, worktree parallax-integrate)
+- [ ] Hosted backend: new Supabase project "catchline" (Singapore), migrations, storage, cron, RLS; keys in .secrets/catchline/ (agent)
+- [ ] Worker: always-on launchd service on the Mac Mini against the hosted project (Modal later)
+- [ ] CV v2: clean, jerk, kipping pull-up, bar muscle-up, kipping HSPU; bystander blur (agent, worktree parallax-cv2)
+- [x] ASC: version 3.0 created; name "Catchline: Lift Form Check" (en-GB)
+- [ ] ASC: Catchline subscription group + Hook/Pull/Platform (+ trial variants) + Founding lifetime
+- [x] RevenueCat: project renamed Catchline; entitlements hook/pull/platform/founding
+- [ ] RevenueCat: import ASC products, attach to entitlements, offerings (default Pull; ad funnel)
+- [ ] app.json version 3.0; EAS env vars; `eas build -p ios --profile production` + submit to TestFlight
+- [ ] Smoke test on Yash's phone via TestFlight: onboarding → film/import → real cue
