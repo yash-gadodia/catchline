@@ -121,7 +121,7 @@ export type StepState = 'done' | 'active' | 'todo';
 
 // With no analysis yet (a live lift) the first step is the upload and the rep
 // count is still unknown.
-export function processingSteps(a: Analysis | null, step: number): { label: string; state: StepState }[] {
+export function processingSteps(a: Analysis | null, step: number, firstLabel = 'Uploading your clip'): { label: string; state: StepState }[] {
   const labels = a
     ? [
         a.traceKind === 'bar' ? 'Found the bar' : 'Found your hips',
@@ -130,7 +130,7 @@ export function processingSteps(a: Analysis | null, step: number): { label: stri
         'Comparing to your best',
         'Choosing one cue',
       ]
-    : ['Uploading your clip', 'Finding the bar', 'Counting your reps', 'Finding your phases', 'Choosing one cue'];
+    : [firstLabel, 'Finding the bar', 'Counting your reps', 'Finding your phases', 'Choosing one cue'];
   return labels.map((label, i) => ({
     label,
     state: i < step ? 'done' : i === step ? 'active' : 'todo',

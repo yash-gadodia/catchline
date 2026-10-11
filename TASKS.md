@@ -52,7 +52,7 @@ Design source: `~/dev/liftcheck-research/design/` (Claude Design export; `Catchl
 - [x] ASC: Catchline subscription group + Hook/Pull/Platform (+ trial variants) + Founding lifetime (review screenshots still needed)
 - [x] RevenueCat: project renamed Catchline; entitlements hook/pull/platform/founding
 - [x] RevenueCat: 9 products imported and attached; offerings `default` (7 Catchline packages) and `ad_trial` (2 trial packages)
-- [ ] Clip compression before upload (50 MB free-plan cap) — agent, worktree parallax-compress
+- [x] Clip compression before upload (50 MB free-plan cap): 58 MB → 12.4 MB, fps kept
 - [x] Mobbin P0 polish merged (29d3219)
 - [ ] app.json version 3.0 (done 6c1d236); EAS env vars; `eas build -p ios --profile production` + submit to TestFlight
 - [ ] Smoke test on Yash's phone via TestFlight: onboarding → film/import → real cue
@@ -62,3 +62,6 @@ Design source: `~/dev/liftcheck-research/design/` (Claude Design export; `Catchl
 - [ ] (Claude) Deferred, capture path owned elsewhere: import rep filmstrip (27 #3, 28 #32), capture failure wrong/right frames (27 #4), upload first-frame backdrop (28 #4, needs a clip thumbnail), Import `Cancel` underline (28 #33)
 - [ ] (Dani) Design-led: cue check before reveal (27 #7), coach-link disclosure + flags (27 #9), merge the tier table into the paywall sheet (27 #10; plans + founding are already one sheet), low-confidence copy template (28 #23, CV copy)
 - Note: `userInterfaceStyle: dark` needs a native rebuild before the photo picker turns dark. Never run `npx prettier` here: there is no config and it rewrites whole files.
+- [x] Compress before upload (Free plan 50 MB cap): local Expo module `modules/clip-transcoder` (AVAssetReader/Writer on iOS, Media3 Transformer on Android) applies the trim, H.264, 1080 px long edge, source fps kept (240 → 120), no audio, 8/10/12 Mbps by fps, re-encode or "Too long to send" over 45 MB. Sim: 58.4 MB ref → 12.4 MB, 364/364 frames at 29.97 fps, hosted lift `done`. Android not compiled yet (no SDK on laptop or Mini).
+- [ ] (Claude) Send the chosen rep to the backend: `create_lift` only takes movement + load; the trim is baked into the uploaded clip.
+- [ ] (Claude) Simulator encoder overshoots the bitrate on synthetic high-motion clips (12 Mbps target → 17.7 Mbps); check on a real phone and add `AVVideoDataRateLimitsKey` if real clips overshoot too.

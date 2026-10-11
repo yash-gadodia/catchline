@@ -21,11 +21,13 @@ import Stage from './Stage';
 import DrawnPath from './DrawnPath';
 import { OverlaySvg } from './overlays';
 
-export type ProcessingState = 'progress' | 'long' | 'done';
+export type ProcessingState = 'progress' | 'long' | 'done' | 'too_long';
 
 type Props = {
   analysis: Analysis | null;
   meta?: string;
+  firstStep?: string;
+  maxS?: number;
   state: ProcessingState;
   step: number;
   elapsed: number;
@@ -34,9 +36,10 @@ type Props = {
   onNotify: () => void;
   onKeepWaiting: () => void;
   onSee: () => void;
+  onTrim?: () => void;
 };
 
-export default function ProcessingSheet({ analysis, meta, state, step, elapsed, etaSeconds = 20, ...on }: Props) {
+export default function ProcessingSheet({ analysis, meta, firstStep, maxS, state, step, elapsed, etaSeconds = 20, ...on }: Props) {
   const { width, height } = useWindowDimensions();
   const box = { width, height };
   useEffect(() => {
@@ -49,7 +52,21 @@ export default function ProcessingSheet({ analysis, meta, state, step, elapsed, 
       ) : (
         <View style={{ width, height, backgroundColor: colors.surface }} />
       )}
-      {state === 'progress' ? <InProgress analysis={analysis} step={step} meta={meta ?? `about ${etaSeconds} s`} onHide={on.onHide} /> : null}
+      {state === 'progress' ? <InProgress analysis={analysis} step={step} firstStep={firstStep} meta={meta ?? `about ${etaSeconds} s`} onHide={on.onHide} /> : null}
+      {state === 'too_long' ? (
+        <Sheet testID="sheet-too-long">
+          <Header title="Too long to send" meta={maxS ? `max ${maxS} s` : ''} strong />
+          <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 17, lineHeight: 24 }}>
+            Trim it to just the lift{maxS ? `, under ${maxS} s,` : ''} and send it again. The original stays on your phone.
+          </Text>
+          <Btn onPress={on.onTrim ?? on.onHide} testID="trim-clip">
+            Trim the clip
+          </Btn>
+          <Btn kind="secondary" onPress={on.onHide} testID="cancel-send">
+            Cancel
+          </Btn>
+        </Sheet>
+      ) : null}
       {state === 'long' ? (
         <Sheet testID="sheet-long">
           <Header title="Taking longer than usual" meta={`${Math.round(elapsed)} s`} strong />
@@ -140,12 +157,12 @@ function Header({ title, meta, strong }: { title: string; meta: string; strong?:
   );
 }
 
-function InProgress({ analysis, step, meta, onHide }: { analysis: Analysis | null; step: number; meta: string; onHide: () => void }) {
+function InProgress({ analysis, step, firstStep, meta, onHide }: { analysis: Analysis | null; step: number; firstStep?: string; meta: string; onHide: () => void }) {
   return (
     <Sheet testID="sheet-progress">
       <Header title="Watching your reps" meta={meta} />
       <View style={{ gap: 12 }}>
-        {processingSteps(analysis, step).map((s) => (
+        {processingSteps(analysis, step, firstStep).map((s) => (
           <View key={s.label} style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }} testID={`step-${s.state}`}>
             <View style={{ width: 20 }}>
               {s.state === 'active' ? (

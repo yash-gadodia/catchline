@@ -276,3 +276,22 @@ jest.mock('expo-notifications', () => ({
   SchedulableTriggerInputTypes: { DAILY: 'daily' },
   setNotificationHandler: jest.fn(),
 }));
+
+// The clip transcoder is a local native module (modules/clip-transcoder): a 12 s
+// 4K 30 fps source comes back as a 12 MB 1080p copy unless a test overrides it.
+jest.mock('./modules/clip-transcoder', () => ({
+  __esModule: true,
+  default: {
+    probe: jest.fn(async () => ({ width: 3840, height: 2160, fps: 30, durationS: 12 })),
+    transcode: jest.fn(async (o: { width: number; height: number; fps: number; startS: number; endS: number }) => ({
+      uri: 'file:///cache/clip-transcoder/out.mp4',
+      size: 12_000_000,
+      width: o.width,
+      height: o.height,
+      fps: o.fps,
+      frames: Math.round((o.endS - o.startS) * o.fps),
+      durationS: o.endS - o.startS,
+    })),
+    addListener: jest.fn(() => ({ remove: jest.fn() })),
+  },
+}));

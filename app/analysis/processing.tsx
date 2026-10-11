@@ -9,7 +9,7 @@ import { useUsage } from '../../src/features/paywall/usageStore';
 import { usePurchases } from '../../src/features/purchases/usePurchases';
 import { subscribeToLift } from '../../src/lib/api';
 import { syncLibrary } from '../../src/data/library';
-import { usePipeline, type JobStatus } from '../../src/data/pipeline';
+import { uploadStep, usePipeline, type JobStatus } from '../../src/data/pipeline';
 
 const STEP_MS = 1100;
 const CRAWL_MS = 4000;
@@ -70,7 +70,7 @@ function Processing({ params }: { params: Params }) {
   );
 }
 
-const STEP_FOR: Record<JobStatus, number> = { uploading: 0, queued: 1, processing: 2, done: 4, failed: 4 };
+const STEP_FOR: Record<JobStatus, number> = { preparing: 0, uploading: 0, queued: 1, processing: 2, done: 4, failed: 4 };
 
 // A real lift: upload progress from the pipeline job, then the lift row over
 // Realtime until the worker writes the Analysis.
@@ -83,7 +83,7 @@ function LiveProcessing() {
   const [elapsed, setElapsed] = useState(0);
   const [crawl, setCrawl] = useState(0);
   const [waiting, setWaiting] = useState(false);
-  const current = status ?? job?.status ?? 'uploading';
+  const current = status ?? job?.status ?? 'preparing';
 
   const fail = (id: string, reason: Failure['reason']) =>
     router.replace({ pathname: '/failure/[id]', params: { id, reason } });
@@ -99,6 +99,7 @@ function LiveProcessing() {
 
   useEffect(() => {
     if (!job || job.status !== 'failed') return;
+    if (job.error === 'clip_too_long') return;
     if (job.error === 'cap_reached') router.replace({ pathname: '/paywall', params: { clip: job.id, movement: job.movement } });
     else fail(job.id, 'unknown');
   }, [job?.status]);
@@ -122,14 +123,18 @@ function LiveProcessing() {
   }, [liftId]);
 
   const step = analysis ? 5 : STEP_FOR[current] + (current === 'processing' ? crawl : 0);
-  const state: ProcessingState = analysis ? 'done' : elapsed > LONG_WAIT_S && !waiting ? 'long' : 'progress';
-  const meta =
-    current === 'uploading' && job && job.total > 0 ? `uploading ${Math.round((job.sent / job.total) * 100)}%` : `${elapsed} s`;
+  const tooLong = job?.error === 'clip_too_long';
+  // "Taking longer" talks about the queue, so it waits until the clip is on the server.
+  const onPhone = current === 'preparing' || current === 'uploading';
+  const state: ProcessingState = tooLong ? 'too_long' : analysis ? 'done' : elapsed > LONG_WAIT_S && !waiting && !onPhone ? 'long' : 'progress';
+  const first = uploadStep(job);
 
   return (
     <ProcessingSheet
       analysis={analysis}
-      meta={meta}
+      meta={first.meta ?? `${elapsed} s`}
+      firstStep={first.label}
+      maxS={job?.maxS ?? undefined}
       state={state}
       step={step}
       elapsed={elapsed}
@@ -140,6 +145,7 @@ function LiveProcessing() {
       }}
       onKeepWaiting={() => setWaiting(true)}
       onSee={() => analysis && router.replace({ pathname: '/analysis/reveal', params: { fixture: analysis.id } })}
+      onTrim={() => router.replace('/capture/trim')}
     />
   );
 }
