@@ -29,7 +29,9 @@ def frames(path, height, start=0, count=None, fps=30.0):
     w = int(round(meta["width"] * height / meta["height"] / 2)) * 2
     cmd = ["ffmpeg", "-v", "error"]
     if start:
-        cmd += ["-ss", f"{start / fps:.4f}"]
+        # half a frame early: iPhone timestamps (600 timescale) put frame `start` just before start / fps, and an
+        # exact seek then skipped it (the window began one frame late on the original, not on a re-encode)
+        cmd += ["-ss", f"{(start - 0.5) / fps:.4f}"]
     cmd += ["-i", path]
     if count:
         cmd += ["-frames:v", str(count)]
