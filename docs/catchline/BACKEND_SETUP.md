@@ -1,6 +1,6 @@
 # Catchline backend: setup and go-live steps
 
-Everything below is built and tested **locally only** (Mac Mini, colima). No hosted Supabase project, Modal app, RevenueCat or store resource exists yet. The steps marked **(Yash)** need an account, a dashboard or a credential.
+The backend is **hosted** since 2026-10-11: Supabase project `slowxjhvrdswdabjfydk` (the former Parallax project, wiped and renamed "Catchline") plus an always-on worker on the Mac Mini. See "Hosted backend" below. No Modal app, RevenueCat or store resource exists yet. The steps marked **(Yash)** need an account, a dashboard or a credential.
 
 ## What exists
 
@@ -40,25 +40,44 @@ E2E_NODE_PATH=~/catchline-e2e/node_modules ./scripts/catchline-e2e.sh ~/catchlin
 
 The e2e script signs a user up, records consent, creates a lift, uploads with the app's own `src/lib/api/tus.ts` (Node 25), enqueues, runs `python -m catchline_worker --once`, and prints the lift, analysis, cue, keyframe count, deletion audit and the Realtime events. `E2E_NODE_PATH` needs `@supabase/supabase-js` installed (`npm i @supabase/supabase-js` in `~/catchline-e2e`). The archived Parallax stack can keep running on 543xx alongside.
 
+## Hosted backend (live, 2026-10-11)
+
+| What | State |
+|---|---|
+| Project | `slowxjhvrdswdabjfydk`, `https://slowxjhvrdswdabjfydk.supabase.co`, Singapore, **Free plan**, display name "Catchline". Keys: `.secrets/catchline/` (index in `.secrets/KEYS.md`), never committed. |
+| Parallax | Wiped. Backup first: `.secrets/catchline/parallax-final-backup.sql` (pg_dump of public/auth/storage, schema + data, 9 users). Then the remote DB was reset to `0001..0003` only (`supabase db reset --linked` from a scratch workdir holding just the Catchline migrations, run on the Mini because the laptop hook blocks `db reset`). Auth users were truncated; the 5 Parallax edge functions (refocus, notify-partner, generate-drops, scheduled-pushes, email-reengage) were deleted; `delete-account` redeployed from this repo (`--use-api`, no docker). The `ANTHROPIC_API_KEY` function secret is still set (unused for now). |
+| Unused project | A separate "catchline" project `qpmnupqfkzvlurosudwm` was created first, then **paused** when the plan changed to reuse Parallax. Delete it from the dashboard when sure. |
+| Verified on hosted | extensions pg_cron 1.6.4, pgmq 1.5.1, pg_net 0.20.3; pgmq queue `lift_jobs`; cron `catchline-purge-storage` (*/10); buckets `raw-clips` (500 MB, mov/mp4) + `keyframes` (5 MB, jpeg); `supabase_realtime` has `lifts` + `analyses`; RLS on all 9 public tables; migrations 0001-0003 only. |
+| Vault | `catchline_api_url`, `catchline_service_key` set; `select public.purge_storage()` returns `0`. No `catchline_worker_url`: the Mini worker polls every 5 s, so no wake is needed. |
+| Auth | Anonymous sign-ins **on** (the app starts anonymous); Email on; Apple + Google already enabled from Parallax with client id `com.yashgadodia.parallax` (same bundle id). Site URL `catchline://`, redirects `catchline://auth-callback`, `catchline://**`. Email subjects/templates can't be changed on Free without custom SMTP (API returns 400), so they are still Supabase defaults. |
+| pgTAP | 109/109 pass against the hosted DB, no docker: each `supabase/tests/*.sql` piped through `psql` (they are `begin ... rollback`, so nothing persists). The CLI temp login role needs `set role postgres` first, and `reset role` in the tests is rewritten to `set local role postgres` for that run. |
+| EAS env | `EXPO_PUBLIC_SUPABASE_URL` (plaintext) and `EXPO_PUBLIC_SUPABASE_ANON_KEY` (sensitive, the project's `sb_publishable_` key) were already set for production + preview from Parallax and match this project, so nothing changed. `EXPO_PUBLIC_REVENUECAT_IOS_KEY` kept. |
+
+### Mini worker (always on)
+- Code: `~/catchline-worker/{worker,cv}` on the Mini, exported with `git archive catchline worker cv` (revision in `~/catchline-worker/REVISION`); `uv sync --no-dev` in `worker/`.
+- Env: `~/.config/catchline-worker/env` (600; `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`), outside any repo. Wrapper `~/catchline-worker/run.sh` runs `uv run python -m catchline_worker --poll 5`.
+- launchd: `~/Library/LaunchAgents/com.catchline.worker.plist` (RunAtLoad, KeepAlive), log `~/Library/Logs/catchline-worker.log`. Status: `launchctl print gui/$(id -u)/com.catchline.worker | grep state`.
+- Update after a merge (from the laptop):
+  ```sh
+  rm -rf /tmp/wk && mkdir /tmp/wk && git archive catchline worker cv | tar -x -C /tmp/wk && git rev-parse --short catchline > /tmp/wk/REVISION
+  rsync -a --delete --exclude .venv --exclude tmp --exclude run.sh /tmp/wk/ mini:catchline-worker/
+  ssh mini 'export PATH=/opt/homebrew/bin:$PATH; cd ~/catchline-worker/worker && uv sync --no-dev && launchctl kickstart -k gui/$(id -u)/com.catchline.worker'
+  ```
+
+### Hosted end-to-end (2026-10-11, worker at 8d94028)
+Anonymous sign-up (publishable key) -> consent -> `create_lift` -> TUS upload with `src/lib/api/tus.ts` -> `enqueue_lift` -> Mini worker -> result:
+`lift: done`, `analysis: snatch reps=2`, `cue: jump_forward | Land where you started | low`, cue row `trying sessions=1`, 14 keyframes, raw clip objects left 0, deletion audit `worker`, queue 0, and the user signs a keyframe URL (HTTP 200 image/jpeg). The power-snatch reference `2026-08-26_FF600EFA.mov` also completes (`done`, 7 keyframes, raw deleted) but its rep measures all normal, so `cue: null`.
+
+**Free-plan blocker:** the project-wide upload limit is 50 MB, so the 58 MB reference clip fails with `413 Maximum size exceeded` before the bucket's 500 MB limit applies. The runs above used the same clips re-encoded under 50 MB (h264). Real iPhone 4K/slo-mo clips need **Pro + Storage file size limit >= 500 MB**, or compression in the app before upload.
+
 ## Go-live steps (Yash)
 
 ### 1. Supabase project
-1. Create a new project (region Singapore `ap-southeast-1`; permanent). Do not reuse the Parallax project (consent and data reasons, see `10-parallax-reuse.md`).
-2. `supabase link --project-ref <ref>` then `supabase db push`. This applies 0001-0003: tables, RLS, buckets, pgmq queue, pg_cron job. Check in the dashboard that the `pgmq`, `pg_cron`, `pg_net` extensions are enabled (Database -> Extensions) if the push complains.
-3. Vault secrets (SQL editor; values from Settings -> API, never committed):
-   ```sql
-   select vault.create_secret('https://<ref>.supabase.co', 'catchline_api_url');
-   select vault.create_secret('<service_role key>', 'catchline_service_key');
-   -- after step 2 below:
-   select vault.create_secret('https://<modal wake url>', 'catchline_worker_url');
-   select vault.create_secret('<random 32+ char token>', 'catchline_worker_token');
-   ```
-   Without the first two the purge job logs a warning and deletes nothing, so check: `select public.purge_storage();` returns a number, not `-1`.
-4. Storage: Settings -> Storage -> upload file size limit >= 500 MB (Pro plan; Free caps files at 50 MB, too small for slo-mo clips). The bucket limits come from 0003.
-5. Auth: Apple + Google providers, redirect URLs, Resend SMTP, as in `docs/archive/parallax/APP_DEPLOYMENT.md` and `docs/archive/parallax/PROD_SETUP.md`. `supabase/config.toml` uses the `catchline://` scheme and allows anonymous sign-ins (the app has no sign-in screen; enable Anonymous in the dashboard too).
-6. Deploy `delete-account`: `supabase functions deploy delete-account`.
-7. EAS env: `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY` for preview + production.
-8. Optional: TUS on the direct storage host (`https://<ref>.storage.supabase.co/storage/v1/upload/resumable`) is faster for large files; `uploadLiftClip` currently uses `<SUPABASE_URL>/storage/v1/upload/resumable`.
+Done on 2026-10-11 (see "Hosted backend"): project, migrations, Vault, auth URLs + anonymous, `delete-account`, EAS env. Left for Yash:
+1. **Upgrade to Pro and set Storage upload limit >= 500 MB** (Settings -> Storage). Free caps files at 50 MB, too small for slo-mo clips. Free projects also pause after a week without activity (the worker's polling should count as activity).
+2. Resend SMTP (then the Catchline email subjects/templates from `supabase/config.toml` can be applied) as in `docs/archive/parallax/APP_DEPLOYMENT.md` and `docs/archive/parallax/PROD_SETUP.md`.
+3. Delete the paused unused project `qpmnupqfkzvlurosudwm` when sure.
+4. Optional: TUS on the direct storage host (`https://<ref>.storage.supabase.co/storage/v1/upload/resumable`) is faster for large files; `uploadLiftClip` currently uses `<SUPABASE_URL>/storage/v1/upload/resumable`.
 
 ### 2. Modal worker
 1. `pip install modal && modal setup` (account).
