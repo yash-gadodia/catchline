@@ -16,13 +16,13 @@ Design source: `~/dev/liftcheck-research/design/` (Claude Design export; `Catchl
 - [x] typecheck + tests green; simulator screenshots of every state vs design
 
 ### Track A notes (11 Oct)
-- Run it: `npm run ios` builds the debug app (`expo run:ios`); Expo Go cannot run this repo (reanimated 4.5 / worklets 0.10 vs Expo Go SDK 56's 4.3.1 / 0.8.3, pre-existing). The dev entry at `/` opens every state; deep links work too, e.g. `parallax://analysis/player?frame=446`, `parallax://analysis/cue?fixture=snatch-mock-low`.
+- Run it: `npm run ios` builds the debug app (`expo run:ios`); Expo Go cannot run this repo (reanimated 4.5 / worklets 0.10 vs Expo Go SDK 56's 4.3.1 / 0.8.3, pre-existing). The dev entry at `/` opens every state; deep links work too, e.g. `catchline://analysis/player?frame=446`, `catchline://analysis/cue?fixture=snatch-mock-low`.
 - Fixtures: `src/analysis/fixtures/snatch-mock.json` (bar-end trace measured by eye on the 7 real frames, so the path sits on the far plate). Low-confidence, miss and compare targets are derived in `fixtures/index.ts`. To load the CV output, drop `snatch-real.json` next to it and add one line to `ANALYSES`; `parseAnalysis` rejects pixel (non-normalised) traces.
 - v1 "video" is the keyframe image sequence (`asset:` ids in `KeyFrame.image`, resolved by `src/analysis/frames.ts`; any other string is used as a uri). `Stage` is the seam for a real expo-video surface.
 - Join note: `snatch-real.json` parses, but its `KeyFrame.image` values are repo-relative paths (`assets/analysis/snatch-real/r1-1-setup.jpg`), which RN cannot load as a uri. Register them in `src/analysis/frames.ts` (bundled `require`s, keyed as `asset:snatch-real/r1-1-setup`) and emit those ids, then add the fixture to `ANALYSES`.
 - Contract unchanged. Assumption the CV side should match: `pxPerCm` is in the same pixel space as `video.width`, and the lifter faces +x (signed compare deltas use it).
 - Not built: 4c landscape (app is portrait-locked), 4e skeleton, 4f overflow sheet, 4g move markers, 5c compare empty, 7 gymnastics result (needs a bar MU fixture + hip trace). `···` is inert.
-- Left for later: `supabase/` migrations, `src/types/db.ts`, `targets/widget` + `modules/parallax-live-activity` (native Parallax widget), app.json name/bundle id/scheme, CLAUDE.md/ARCHITECTURE.md/docs still describe Parallax, auth UI screens (login/callback) were removed with the product; `authActions`/`useSession` remain.
+- Left for later: `supabase/` migrations, `src/types/db.ts`, auth UI screens (login/callback) were removed with the product; `authActions`/`useSession` remain.
 
 ## Track B: CV spike (runs on the Mini)
 - [x] `cv/` pipeline: RTMPose (Apache) + plate tracking (no Ultralytics/AGPL) on a real clip
@@ -32,3 +32,13 @@ Design source: `~/dev/liftcheck-research/design/` (Claude Design export; `Catchl
 
 ## Join
 - [x] UI renders the spike's real JSON for Yash's snatch (dev entry "Real CV · cue")
+
+## Integration (catchline-integrate)
+- [x] Identity: display name Catchline, scheme `catchline`, Catchline permission copy; bundle id, package, slug, EAS projectId and updates URL unchanged (same App Store record). Parallax widget target + live-activity module removed; Parallax docs in `docs/archive/parallax/`
+- [ ] (Yash) App icon, adaptive icon and splash mark: no Catchline icon exists in the design export (`~/dev/liftcheck-research/design/`); `assets/icon.png`, `adaptive-icon.png` and `splash-icon.png` are still the Parallax mark (splash and adaptive backgrounds already black)
+- [x] One data source: Supabase via `src/lib/api` when `EXPO_PUBLIC_SUPABASE_*` is set, local fixtures otherwise (`src/data/`)
+- [x] Analyse → paywall gate → consent → createLift + TUS → live processing → reveal/cue on the real Analysis; failure and cap routes; usage recorded; `routeAfterAnalysis()` on leaving the cue
+- [ ] Founding seats counter: no backend table/RPC yet (`getFoundingSeats()` is still the local 137-of-500 stub; PRODUCTS.md "Founding seat counter")
+- [ ] Settings stay on-device (no settings table); usage gate reads the local counter, the server cap is authoritative and a `cap_reached` from `create_lift` opens the paywall
+- [ ] Trim and rep choice are not sent to the backend (the worker analyses the whole clip)
+- Notes: local smoke needs `enable_anonymous_sign_ins = true` (in `supabase/config.toml`; restart the stack after changing it) and the worker running (`uv run python -m catchline_worker`). The app reaches the Mini at `http://yash-mac-mini:55421` (Tailscale) through `.env.local`.

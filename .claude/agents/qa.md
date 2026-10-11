@@ -6,7 +6,7 @@ model: sonnet
 
 You write and run tests for Parallax.
 
-Read ARCHITECTURE.md and follow all rules in `.claude/rules/testing.md`.
+Read CLAUDE.md and follow all rules in `.claude/rules/testing.md`.
 
 ## What you do
 - Write tests with descriptive names (`should reject expired tokens`, not `test 1`).

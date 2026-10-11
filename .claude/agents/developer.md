@@ -7,7 +7,7 @@ memory: project
 
 You implement features and fixes for Parallax.
 
-Read ARCHITECTURE.md and follow all rules in `.claude/rules/` (especially `testing.md` and `workflow.md`).
+Read CLAUDE.md and follow all rules in `.claude/rules/` (especially `testing.md` and `workflow.md`).
 
 ## Self-correction loop
 Repeat until the task is genuinely done — do not stop at the first green:

@@ -55,7 +55,7 @@ The e2e script signs a user up, records consent, creates a lift, uploads with th
    ```
    Without the first two the purge job logs a warning and deletes nothing, so check: `select public.purge_storage();` returns a number, not `-1`.
 4. Storage: Settings -> Storage -> upload file size limit >= 500 MB (Pro plan; Free caps files at 50 MB, too small for slo-mo clips). The bucket limits come from 0003.
-5. Auth: Apple + Google providers, redirect URLs, Resend SMTP, as in `docs/APP_DEPLOYMENT.md` and `docs/PROD_SETUP.md`. `supabase/config.toml` still uses the `parallax://` scheme until the app identity changes.
+5. Auth: Apple + Google providers, redirect URLs, Resend SMTP, as in `docs/archive/parallax/APP_DEPLOYMENT.md` and `docs/archive/parallax/PROD_SETUP.md`. `supabase/config.toml` uses the `catchline://` scheme and allows anonymous sign-ins (the app has no sign-in screen; enable Anonymous in the dashboard too).
 6. Deploy `delete-account`: `supabase functions deploy delete-account`.
 7. EAS env: `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY` for preview + production.
 8. Optional: TUS on the direct storage host (`https://<ref>.storage.supabase.co/storage/v1/upload/resumable`) is faster for large files; `uploadLiftClip` currently uses `<SUPABASE_URL>/storage/v1/upload/resumable`.

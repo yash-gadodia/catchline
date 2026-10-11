@@ -15,5 +15,5 @@ The user described something wrong — often in plain words or a screenshot. Fix
    - Visual fix → reload + `xcrun simctl io booted screenshot` and look at it.
    - Logic/crash → re-run the failing case / add a test; show the passing output.
    - Always: `npx tsc --noEmit` + relevant `npx jest`.
-6. **Capture the learning** if it was non-obvious (a gotcha, a root cause that wasn't obvious) → one line in `docs/DECISIONS.md` or a memory, per `.claude/rules/self-improvement.md`.
+6. **Capture the learning** if it was non-obvious (a gotcha, a root cause that wasn't obvious) → one line in `TASKS.md` notes or a memory, per `.claude/rules/self-improvement.md`.
 7. Tell the user what was wrong and that it's fixed, with the evidence (a screenshot or the passing check). Offer to `/ship` it.
