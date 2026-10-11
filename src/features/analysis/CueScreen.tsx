@@ -97,7 +97,7 @@ function LowConfidence({ analysis, nav }: { analysis: Analysis; nav: Nav }) {
   const cue = analysis.cue!;
   const rep = repByIndex(analysis, cue.evidence.rep);
   const key = keyFrameAt(rep, cue.evidence.frame);
-  const box = { width, height: Math.round(width * (400 / 390)) };
+  const box = { width, height: Math.round(width * (330 / 390)) };
   const src = { width: analysis.video.width, height: analysis.video.height };
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }} testID="low-confidence">

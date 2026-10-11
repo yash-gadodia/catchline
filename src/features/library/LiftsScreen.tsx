@@ -220,15 +220,17 @@ function LiftRow({ lift, sessions, cues, newest, nav }: { lift: Lift; sessions: 
         >
           {liftDetail(lift, sessions)}
         </Text>
+        {cue ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <StatusDot status={cue.status} testID={`dot-${lift.id}-${cue.status}`} />
+            <Text numberOfLines={1} style={{ flex: 1, color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>
+              {`${STATUS_LABEL[cue.status]} · ${cue.text.toLowerCase()}`}
+            </Text>
+          </View>
+        ) : null}
       </View>
       {lift.status === 'failed' ? <Underlined onPress={() => nav.onRetake(lift)} testID={`retake-${lift.id}`}>Retake</Underlined> : null}
       {lift.status === 'queued' ? <Underlined onPress={nav.onUnlock} testID={`unlock-${lift.id}`}>Unlock</Underlined> : null}
-      {cue ? (
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <StatusDot status={cue.status} testID={`dot-${lift.id}-${cue.status}`} />
-          <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>{STATUS_LABEL[cue.status]}</Text>
-        </View>
-      ) : null}
     </Pressable>
   );
 }

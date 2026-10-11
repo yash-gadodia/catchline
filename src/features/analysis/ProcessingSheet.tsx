@@ -52,7 +52,10 @@ export default function ProcessingSheet({ analysis, meta, state, step, elapsed, 
       {state === 'progress' ? <InProgress analysis={analysis} step={step} meta={meta ?? `about ${etaSeconds} s`} onHide={on.onHide} /> : null}
       {state === 'long' ? (
         <Sheet testID="sheet-long">
-          <Header title="Taking longer than usual" meta={`${Math.round(elapsed)} s · usually about ${etaSeconds} s`} strong />
+          <Header title="Taking longer than usual" meta={`${Math.round(elapsed)} s`} strong />
+          <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18, marginTop: -8 }}>
+            {`usually about ${etaSeconds} s`}
+          </Text>
           <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 17, lineHeight: 24 }}>
             Busy right now. Your lift is in the queue and nothing is lost. We'll ping you when the cue is ready.
           </Text>

@@ -39,7 +39,8 @@ describe('ProcessingSheet', () => {
       <ProcessingSheet analysis={snatchMock} state="long" step={3} elapsed={48} {...handlers} />
     );
     expect(getByText('Taking longer than usual')).toBeOnTheScreen();
-    expect(getByText('48 s · usually about 20 s')).toBeOnTheScreen();
+    expect(getByText('48 s')).toBeOnTheScreen();
+    expect(getByText('usually about 20 s')).toBeOnTheScreen();
     await press(getByText('Notify me'));
     await press(getByText('Keep waiting'));
     expect(handlers.onNotify).toHaveBeenCalledTimes(1);

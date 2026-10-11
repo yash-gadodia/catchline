@@ -56,7 +56,7 @@ export default function CompareScreen({
   const other = target.analysis;
   const sync = syncByPhase(analysis, other);
   const rows = compareRows(analysis.measurements, other.measurements, target.kind === 'best' ? 'best' : 'last');
-  const height = Math.round(width * (440 / 390));
+  const height = Math.round(width * (410 / 390));
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }} testID={`compare-${mode}`}>
       <TopBar
@@ -269,7 +269,7 @@ function Rows({ rows, topRule }: { rows: CompareRow[]; topRule: boolean }) {
             flexDirection: 'row',
             justifyContent: 'space-between',
             alignItems: 'baseline',
-            paddingVertical: 12,
+            paddingVertical: 8,
             borderBottomWidth: i === rows.length - 1 ? 0 : 1,
             borderBottomColor: colors.hairline,
           }}
