@@ -2,9 +2,17 @@ import type { Movement } from '../../analysis/types';
 import type { CueRecord, LibraryState, Lift, Session } from './types';
 import { useLibraryStore } from './store';
 import { emptyLibrary, seededLibrary } from './seed';
+import { backendEnabled } from '../../data/backend';
+import { syncLibrary } from '../../data/library';
+import { updateCue } from '../../lib/api';
 
-// The only door screens use into lifts, sessions and cues. Phase 3 swaps the
-// bodies for Supabase queries (react-query) without touching the screens.
+// The only door screens use into lifts, sessions and cues. The store holds the
+// fixture library in dev mode; with a backend, syncLibrary() fills it from
+// Supabase and cue changes are written through (a failed write re-syncs).
+function persistCue(id: string, status: CueRecord['status']): void {
+  if (!backendEnabled()) return;
+  updateCue(id, status).catch(() => syncLibrary().catch(() => undefined));
+}
 
 export function useLibrary(): LibraryState {
   const today = useLibraryStore((s) => s.today);
@@ -32,11 +40,13 @@ export function useSessions(movement: Movement): Session[] {
 export function markStuck(id: string): void {
   const { today, setCue } = useLibraryStore.getState();
   setCue(id, { status: 'stuck', endedAt: today });
+  persistCue(id, 'stuck');
 }
 
 export function dropCue(id: string): void {
   const { today, setCue } = useLibraryStore.getState();
   setCue(id, { status: 'dropped', endedAt: today });
+  persistCue(id, 'dropped');
 }
 
 export function keepTrying(id: string): void {
@@ -44,6 +54,7 @@ export function keepTrying(id: string): void {
   const cue = cues.find((c) => c.id === id);
   if (!cue) return;
   setCue(id, { status: 'trying', endedAt: undefined, sessionsTarget: cue.sessionsTarget + 3 });
+  persistCue(id, 'trying');
 }
 
 export function tryNewCue(id: string): string | null {

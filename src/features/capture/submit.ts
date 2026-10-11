@@ -4,6 +4,9 @@ import type { Units } from '../onboarding/store';
 import type { CheckId } from './checks';
 import { activeTrim, type Clip, type ClipSource } from './store';
 import type { Trim } from './trim';
+import { nextClipGate } from '../paywall/hooks';
+import { backendEnabled } from '../../data/backend';
+import { startLift } from '../../data/pipeline';
 
 export type ClipSubmission = {
   uri: string | null;
@@ -37,8 +40,18 @@ export function toSubmission(clip: Clip, weight: string, units: Units): ClipSubm
   };
 }
 
-// Phase 3: upload the trimmed clip with its metadata, create the analysis and
-// route to processing with its id. For now every clip lands on the mock.
-export async function submitClip(_clip: ClipSubmission): Promise<void> {
-  router.push({ pathname: '/analysis/processing', params: { fixture: 'snatch-mock' } });
+// Analyse: the paywall gate first (the clip stays on the phone either way),
+// then the backend pipeline, or the bundled sample in dev mode.
+export async function submitClip(clip: ClipSubmission): Promise<void> {
+  const gate = nextClipGate();
+  const params = { clip: `clip-${Date.now()}`, movement: clip.movement };
+  if (gate === 'paywall') return router.push({ pathname: '/paywall', params });
+  if (gate === 'cap') return router.push({ pathname: '/paywall/cap', params });
+  if (gate === 'trial') return router.push('/paywall/funnel/trial');
+  if (!backendEnabled() || !clip.uri) {
+    router.push({ pathname: '/analysis/processing', params: { fixture: 'snatch-mock', count: '1' } });
+    return;
+  }
+  startLift({ ...clip, uri: clip.uri });
+  router.push({ pathname: '/analysis/processing', params: { live: '1' } });
 }

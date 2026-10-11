@@ -11,6 +11,8 @@ import { View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { colors } from '../src/design/tokens';
 import { supabase } from '../src/lib/supabase';
+import { backendEnabled } from '../src/data/backend';
+import { syncLibrary } from '../src/data/library';
 import { registerPushToken } from '../src/features/notifications';
 import { init as initAnalytics, identify, reset, track, EVENTS } from '../src/lib/analytics';
 
@@ -25,6 +27,9 @@ export default function RootLayout() {
 
     // Initialise RevenueCat once (real SDK in a dev build; no-op in Expo Go).
     usePurchases.getState().configure();
+
+    if (!backendEnabled()) return;
+    syncLibrary().catch(() => undefined);
 
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) {

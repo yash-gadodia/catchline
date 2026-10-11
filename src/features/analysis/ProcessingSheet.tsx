@@ -23,7 +23,8 @@ import { OverlaySvg } from './overlays';
 export type ProcessingState = 'progress' | 'long' | 'done';
 
 type Props = {
-  analysis: Analysis;
+  analysis: Analysis | null;
+  meta?: string;
   state: ProcessingState;
   step: number;
   elapsed: number;
@@ -34,43 +35,17 @@ type Props = {
   onSee: () => void;
 };
 
-export default function ProcessingSheet({ analysis, state, step, elapsed, etaSeconds = 20, ...on }: Props) {
+export default function ProcessingSheet({ analysis, meta, state, step, elapsed, etaSeconds = 20, ...on }: Props) {
   const { width, height } = useWindowDimensions();
   const box = { width, height };
-  const rep = repByIndex(analysis, analysis.cue?.evidence.rep ?? analysis.bestRepIndex);
-  const bg =
-    state === 'done'
-      ? keyFrameForPhase(rep, 'catch') ?? rep.keyFrames[rep.keyFrames.length - 1]
-      : keyFrameForPhase(rep, 'first_pull') ?? rep.keyFrames[0];
-  const src = { width: analysis.video.width, height: analysis.video.height };
-  const draw = useSharedValue(0);
-  useEffect(() => {
-    if (state !== 'progress') return;
-    draw.value = withRepeat(
-      withSequence(withTiming(1, { duration: 2800, easing: Easing.linear }), withTiming(1, { duration: 1200 })),
-      -1
-    );
-  }, [state, draw]);
-
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }} testID={`processing-${state}`}>
-      <Stage
-        src={src}
-        box={box}
-        focus={{ x: 0.5, y: 0.45 }}
-        layers={[{ image: bg.image, gray: state !== 'done', opacity: state === 'done' ? 0.6 : 0.35 }]}
-      >
-        {(fit) => {
-          if (state !== 'progress') return null;
-          const pts = liftPath(rep).map((p) => toScreen(p, fit));
-          return (
-            <OverlaySvg box={box}>
-              <DrawnPath d={svgPath(pts)} length={polylineLength(pts)} progress={draw} halo={false} />
-            </OverlaySvg>
-          );
-        }}
-      </Stage>
-      {state === 'progress' ? <InProgress analysis={analysis} step={step} eta={etaSeconds} onHide={on.onHide} /> : null}
+      {analysis ? (
+        <Backdrop analysis={analysis} state={state} box={box} />
+      ) : (
+        <View style={{ width, height, backgroundColor: colors.surface }} />
+      )}
+      {state === 'progress' ? <InProgress analysis={analysis} step={step} meta={meta ?? `about ${etaSeconds} s`} onHide={on.onHide} /> : null}
       {state === 'long' ? (
         <Sheet testID="sheet-long">
           <Header title="Taking longer than usual" meta={`${Math.round(elapsed)} s`} strong />
@@ -85,7 +60,7 @@ export default function ProcessingSheet({ analysis, state, step, elapsed, etaSec
           </Btn>
         </Sheet>
       ) : null}
-      {state === 'done' ? (
+      {state === 'done' && analysis ? (
         <Sheet testID="sheet-done">
           <Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 22, lineHeight: 28 }}>
             {doneTitle(analysis)}
@@ -96,6 +71,41 @@ export default function ProcessingSheet({ analysis, state, step, elapsed, etaSec
         </Sheet>
       ) : null}
     </View>
+  );
+}
+
+function Backdrop({ analysis, state, box }: { analysis: Analysis; state: ProcessingState; box: { width: number; height: number } }) {
+  const rep = repByIndex(analysis, analysis.cue?.evidence.rep ?? analysis.bestRepIndex);
+  const bg =
+    state === 'done'
+      ? keyFrameForPhase(rep, 'catch') ?? rep.keyFrames[rep.keyFrames.length - 1]
+      : keyFrameForPhase(rep, 'first_pull') ?? rep.keyFrames[0];
+  const src = { width: analysis.video.width, height: analysis.video.height };
+  const draw = useSharedValue(0);
+  useEffect(() => {
+    if (state !== 'progress') return;
+    draw.value = withRepeat(
+      withSequence(withTiming(1, { duration: 2800, easing: Easing.linear }), withTiming(1, { duration: 1200 })),
+      -1
+    );
+  }, [state, draw]);
+  return (
+    <Stage
+      src={src}
+      box={box}
+      focus={{ x: 0.5, y: 0.45 }}
+      layers={[{ image: bg.image, gray: state !== 'done', opacity: state === 'done' ? 0.6 : 0.35 }]}
+    >
+      {(fit) => {
+        if (state !== 'progress') return null;
+        const pts = liftPath(rep).map((p) => toScreen(p, fit));
+        return (
+          <OverlaySvg box={box}>
+            <DrawnPath d={svgPath(pts)} length={polylineLength(pts)} progress={draw} halo={false} />
+          </OverlaySvg>
+        );
+      }}
+    </Stage>
   );
 }
 
@@ -117,10 +127,10 @@ function Header({ title, meta, strong }: { title: string; meta: string; strong?:
   );
 }
 
-function InProgress({ analysis, step, eta, onHide }: { analysis: Analysis; step: number; eta: number; onHide: () => void }) {
+function InProgress({ analysis, step, meta, onHide }: { analysis: Analysis | null; step: number; meta: string; onHide: () => void }) {
   return (
     <Sheet testID="sheet-progress">
-      <Header title="Watching your reps" meta={`about ${eta} s`} />
+      <Header title="Watching your reps" meta={meta} />
       <View style={{ gap: 12 }}>
         {processingSteps(analysis, step).map((s) => (
           <View key={s.label} style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }} testID={`step-${s.state}`}>

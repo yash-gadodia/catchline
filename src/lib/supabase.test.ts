@@ -25,6 +25,7 @@ describe('supabase client', () => {
     expect(supabase.auth).toBeDefined();
     expect(typeof supabase.auth.signInWithPassword).toBe('function');
     expect(typeof supabase.from).toBe('function');
+    expect(require('./supabase').supabaseConfigured).toBe(true);
   });
 
   it('should export supabase and types', () => {
@@ -35,14 +36,14 @@ describe('supabase client', () => {
 });
 
 describe('supabase client - missing env vars', () => {
-  it('throws a clear error when env vars are missing', () => {
+  it('builds an unconfigured client so the app falls back to local stores', () => {
     jest.resetModules();
     const prevUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
     const prevKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
     delete process.env.EXPO_PUBLIC_SUPABASE_URL;
     delete process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
-    expect(() => require('./supabase')).toThrow(/EXPO_PUBLIC_SUPABASE/);
+    expect(require('./supabase').supabaseConfigured).toBe(false);
 
     process.env.EXPO_PUBLIC_SUPABASE_URL = prevUrl;
     process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY = prevKey;

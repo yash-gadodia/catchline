@@ -112,14 +112,18 @@ export function compareRows(
 
 export type StepState = 'done' | 'active' | 'todo';
 
-export function processingSteps(a: Analysis, step: number): { label: string; state: StepState }[] {
-  const labels = [
-    a.traceKind === 'bar' ? 'Found the bar' : 'Found your hips',
-    plural(a.reps.length, 'rep'),
-    'Finding your phases',
-    'Comparing to your best',
-    'Choosing one cue',
-  ];
+// With no analysis yet (a live lift) the first step is the upload and the rep
+// count is still unknown.
+export function processingSteps(a: Analysis | null, step: number): { label: string; state: StepState }[] {
+  const labels = a
+    ? [
+        a.traceKind === 'bar' ? 'Found the bar' : 'Found your hips',
+        plural(a.reps.length, 'rep'),
+        'Finding your phases',
+        'Comparing to your best',
+        'Choosing one cue',
+      ]
+    : ['Uploading your clip', 'Finding the bar', 'Counting your reps', 'Finding your phases', 'Choosing one cue'];
   return labels.map((label, i) => ({
     label,
     state: i < step ? 'done' : i === step ? 'active' : 'todo',

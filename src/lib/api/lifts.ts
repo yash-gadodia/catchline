@@ -90,24 +90,41 @@ export async function listLifts(opts: { limit?: number; before?: string } = {}):
  * The lift's Analysis, with each keyframe's storage path swapped for a signed URL
  * the app can load. Null until the worker has written one.
  */
-export async function getAnalysis(liftId: string): Promise<Analysis | null> {
-  const { data, error } = await supabase.from('analyses').select('analysis').eq('lift_id', liftId).maybeSingle();
-  if (error) throw toApiError(error);
-  if (!data) return null;
-  const analysis = parseAnalysis(data.analysis);
-  const paths = analysis.reps.flatMap((r) => r.keyFrames.map((k) => k.image)).filter((p): p is string => !!p);
-  if (paths.length === 0) return analysis;
+async function withSignedKeyframes(analyses: Analysis[]): Promise<Analysis[]> {
+  const paths = analyses.flatMap((a) => a.reps.flatMap((r) => r.keyFrames.map((k) => k.image))).filter((p): p is string => !!p);
+  if (paths.length === 0) return analyses;
   const signed = await supabase.storage.from(KEYFRAME_BUCKET).createSignedUrls(paths, SIGNED_URL_SECONDS);
   if (signed.error) throw toApiError(signed.error);
   const byPath = new Map<string, string>();
   for (const s of signed.data) if (s.path && s.signedUrl) byPath.set(s.path, s.signedUrl);
-  return {
+  return analyses.map((analysis) => ({
     ...analysis,
     reps: analysis.reps.map((r) => ({
       ...r,
       keyFrames: r.keyFrames.map((k) => ({ ...k, image: (k.image && byPath.get(k.image)) || k.image })),
     })),
-  };
+  }));
+}
+
+/**
+ * The lift's Analysis, with each keyframe's storage path swapped for a signed URL
+ * the app can load. Null until the worker has written one.
+ */
+export async function getAnalysis(liftId: string): Promise<Analysis | null> {
+  const { data, error } = await supabase.from('analyses').select('analysis').eq('lift_id', liftId).maybeSingle();
+  if (error) throw toApiError(error);
+  if (!data) return null;
+  const [analysis] = await withSignedKeyframes([parseAnalysis(data.analysis)]);
+  return analysis;
+}
+
+/** Every analysis the lifter owns, keyed by lift id, keyframes signed in one call. */
+export async function listAnalyses(): Promise<{ liftId: string; analysis: Analysis }[]> {
+  const { data, error } = await supabase.from('analyses').select('lift_id, analysis');
+  if (error) throw toApiError(error);
+  const rows = (data ?? []).map((r) => ({ liftId: r.lift_id, analysis: parseAnalysis(r.analysis) }));
+  const signed = await withSignedKeyframes(rows.map((r) => r.analysis));
+  return rows.map((r, i) => ({ liftId: r.liftId, analysis: signed[i] }));
 }
 
 export type LiftListener = {
