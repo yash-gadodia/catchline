@@ -8,8 +8,7 @@ export default function YouRoute() {
       nav={{
         onWhatIsStored: () => router.push('/you/stored'),
         onDeleteAccount: () => router.push('/you/delete'),
-        // TODO(paywall): plan management lives with the paywall track.
-        onPlan: () => {},
+        onPlan: () => router.push('/paywall/plans'),
         onHelp: () => {},
       }}
     />

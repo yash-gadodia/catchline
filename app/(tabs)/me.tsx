@@ -1,7 +1,18 @@
 import { useRouter, type Href } from 'expo-router';
-import YouTab from '../../src/features/library/YouTab';
+import YouScreen from '../../src/features/you/YouScreen';
 
 export default function YouRoute() {
   const router = useRouter();
-  return <YouTab onOpen={() => router.push('/you' as Href)} onDev={() => router.push('/dev')} />;
+  return (
+    <YouScreen
+      nav={{
+        onWhatIsStored: () => router.push('/you/stored' as Href),
+        onDeleteAccount: () => router.push('/you/delete' as Href),
+        onPlan: () => router.push('/paywall/plans' as Href),
+        onHelp: () => {
+          if (__DEV__) router.push('/dev' as Href);
+        },
+      }}
+    />
+  );
 }
