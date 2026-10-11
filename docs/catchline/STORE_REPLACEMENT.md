@@ -12,17 +12,9 @@ The scripts are in `scripts/catchline-store/`. Each one is a dry run unless you 
 
 ## Order to run
 
-### 0. Parallax users: notice first (at least 14 days before step 7)
+### 0. Parallax users: none to notify (decided 11-10-2026)
 
-Decide the date the Parallax data will be deleted. Then send the notice by email to every `auth.users` row in the Parallax Supabase project, and as a push notification where push tokens exist. The notice should say:
-
-- Parallax is closing on <date>. The app updates to Catchline, a different product.
-- Before that date, you can export your data from Profile > Export my data.
-- On <date>, all Parallax data (accounts, vents, syntheses, pulses, memory) is deleted.
-- If you bought Parallax lifetime, you get Catchline Founding (Pull for life) free. Tap Restore Purchases in Catchline.
-- If you have a Parallax subscription, cancel it in App Store settings. Catchline does not honour it. Decide whether to give these users a refund or Hook for the rest of their term; the numbers come from the `revenuecat_replace` dry run.
-
-Update the hosted privacy policy and terms pages to say the same thing.
+Parallax had no real users or subscribers; Yash's own test account is the only one. No notice period, no refunds, no grandfathering needed. The `grandfather` step in `revenuecat_replace.py` is optional (it only covers Yash's own purchase). Parallax data can be deleted any time after Catchline 3.0 is live (see the end of this doc).
 
 ### 1. Accept the agreement (Yash, Account Holder)
 
@@ -137,11 +129,11 @@ In App Store Connect, open version 3.0:
 3. Check the App Privacy labels and the age rating.
 4. Add for Review.
 
-Leave release on manual. Then release it on the day after the deletion date from the notice in step 0.
+Leave release on manual. Then release it when ready; there is no notice period.
 
 ## Parallax data deletion (after release)
 
-On the date given in the notice:
+Approved by Yash on 11-10-2026: no users, so it can be deleted outright once Catchline 3.0 is live. Do it then, not before, so nothing the release depends on disappears early.
 
 1. Export a final encrypted backup of the Parallax Supabase project for your own records. Decide how long to keep it and write that in the privacy policy.
 2. Delete the Parallax user data: auth users, couples, vents, syntheses, pulses and memory. Then delete or pause the project.
