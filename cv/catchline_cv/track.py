@@ -210,6 +210,20 @@ def _refine(m, plate, kf, iters=300, tol=0.035, seed=0):
     return out
 
 
+def refine_centre(mask, plate, half=0.025, n=11):
+    """Sub-step centre: score a fine grid (+-half plate heights) around a coarse fit and return the centroid of the
+    top-scoring candidates. Fill scores on a binary mask tie across neighbouring sub-steps, so the first argmax
+    would drift to the grid's corner."""
+    M, m0 = plate["axes"]
+    ins, ring = _ellipse_offsets(M, m0 / M)
+    g = np.linspace(-half, half, n) * M
+    cands = np.asarray(plate["centre"], float) + np.array([[dx, dy] for dy in g for dx in g])
+    vi, oki = _sample(mask, cands[:, None, :] + ins[None])
+    vo, _ = _sample(mask, cands[:, None, :] + ring[None])
+    score = vi.mean(1) - vo.mean(1) - 0.5 * (1 - oki.mean(1))
+    return cands[score >= score.max() - 1e-9].mean(0)
+
+
 def track_plate(frames, start, plate, stop=None):
     """Re-detect the plate ellipse every frame near a constant-velocity prediction (blur keeps the dark disc).
     Returns centres (n,2) and scores, NaN where lost (score low or disc leaves the frame)."""
@@ -223,9 +237,13 @@ def track_plate(frames, start, plate, stop=None):
         pred = c + v
         g = np.linspace(-0.3, 0.3, 13) * M0
         cands = [pred + [dx, dy] for dx in g for dy in g]
-        p = ellipse_search(plate_mask(frames[f]), cands, M0 * np.array([0.92, 1.0, 1.08]), [m0 / M0 * k for k in (0.9, 1.0, 1.1)])
+        m = plate_mask(frames[f])
+        p = ellipse_search(m, cands, M0 * np.array([0.92, 1.0, 1.08]), [m0 / M0 * k for k in (0.9, 1.0, 1.1)])
         if p is None or p["score"] < 0.45 or p["centre"][1] - p["axes"][0] / 2 < 0:
             break
+        # the coarse grid steps 0.05 plate heights (~11 px at 1280 tall); refine to 0.005 so the plate's rise is
+        # not quantised (the steps fed the depth ratio, which then moved with the encoding of the same clip)
+        p["centre"] = refine_centre(m, p)
         v = p["centre"] - c
         c = p["centre"]
         centres[f], scores[f] = c, p["score"]
