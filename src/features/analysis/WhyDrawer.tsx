@@ -24,6 +24,8 @@ export default function WhyDrawer({ analysis, onClose }: { analysis: Analysis; o
         <View style={{ borderTopWidth: 1, borderTopColor: colors.hairline }}>
           {rows.map((m, i) => {
             const isCue = m.status === 'cue';
+            const readout = measurementReadout(m);
+            const value = readout.split(' · ')[0];
             return (
               <View
                 key={m.id}
@@ -44,14 +46,22 @@ export default function WhyDrawer({ analysis, onClose }: { analysis: Analysis; o
                 <Text
                   style={{
                     flexShrink: 1,
+                    maxWidth: '55%',
                     textAlign: 'right',
-                    color: isCue ? colors.flare : colors.text2,
+                    color: colors.text2,
                     fontFamily: fontFamily.mono,
                     fontSize: 13,
                     lineHeight: 18,
                   }}
                 >
-                  {measurementReadout(m)}
+                  {isCue ? (
+                    <>
+                      <Text style={{ color: colors.flare, fontFamily: fontFamily.monoMedium, fontSize: 15 }}>{value}</Text>
+                      {readout.slice(value.length)}
+                    </>
+                  ) : (
+                    readout
+                  )}
                 </Text>
               </View>
             );

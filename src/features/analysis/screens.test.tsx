@@ -39,7 +39,7 @@ describe('ProcessingSheet', () => {
       <ProcessingSheet analysis={snatchMock} state="long" step={3} elapsed={48} {...handlers} />
     );
     expect(getByText('Taking longer than usual')).toBeOnTheScreen();
-    expect(getByText('48 s')).toBeOnTheScreen();
+    expect(getByText('48 s · usually about 20 s')).toBeOnTheScreen();
     await press(getByText('Notify me'));
     await press(getByText('Keep waiting'));
     expect(handlers.onNotify).toHaveBeenCalledTimes(1);
@@ -51,6 +51,7 @@ describe('ProcessingSheet', () => {
       <ProcessingSheet analysis={snatchMock} state="done" step={5} elapsed={9} {...handlers} />
     );
     expect(getByText('Done. 3 reps, one cue.')).toBeOnTheScreen();
+    expect(Haptics.notificationAsync).toHaveBeenCalledWith('success');
     await press(getByText('See it'));
     expect(handlers.onSee).toHaveBeenCalledTimes(1);
   });
@@ -61,6 +62,7 @@ describe('CueScreen', () => {
     const { getByTestId, getByText } = await render(<CueScreen analysis={snatchMock} nav={nav} />);
     expect(getByTestId('cue-text')).toHaveTextContent('Stay over the bar longer');
     expect(getByText('Clear on all 3 reps')).toBeOnTheScreen();
+    expect(getByTestId('cue-baseline')).toHaveTextContent('6 cm today. Your best is 2 cm (18 Sep) and your last five average 7.6 cm.');
     expect(getByTestId('hero-number')).toHaveTextContent('6 cm');
     expect(getByTestId('evidence-readout')).toHaveTextContent('frame 422 · hip · 6 cm fwd · best 2 cm');
     await press(getByText('Try this next session'));
@@ -71,7 +73,7 @@ describe('CueScreen', () => {
     const screen = await render(<CueScreen analysis={snatchMock} nav={nav} />);
     expect(screen.queryByTestId('why-drawer')).toBeNull();
     await act(async () => {
-      fireEvent.press(screen.getByText('Why this and not something else?'));
+      fireEvent.press(screen.getByText('Why this?'));
     });
     const drawer = screen.getByTestId('why-drawer');
     expect(within(drawer).getByText('Why this and not something else?')).toBeOnTheScreen();
@@ -86,8 +88,11 @@ describe('CueScreen', () => {
     expect(getByText('Seen on 2 of 3 reps and the hip was behind a plate on rep 1.')).toBeOnTheScreen();
     expect(getByText('Bar drifting at the knee')).toBeOnTheScreen();
     expect(getByTestId('dashed-path')).toBeOnTheScreen();
+    expect(getByText('dashed path = lower confidence')).toBeOnTheScreen();
     await press(getByText('Film another set'));
     expect(nav.onFilmAgain).toHaveBeenCalledTimes(1);
+    await press(getByText('Keep it anyway'));
+    expect(nav.onTry).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -150,8 +155,8 @@ describe('CompareScreen', () => {
       <CompareScreen analysis={snatchMock} target={COMPARE_TARGETS.best} mode="ghost" onMode={noop} onTarget={noop} onBack={noop} />
     );
     expect(getByText('vs Your best · 65 kg · 18 Sep')).toBeOnTheScreen();
-    expect(getByTestId('compare-row-bar_drift_hip')).toHaveTextContent('Bar drift at hip▲ 6 cm · best 2');
-    expect(getByTestId('compare-row-pull_time')).toHaveTextContent('Pull time— 0.59 s · best 0.58');
+    expect(getByTestId('compare-row-bar_drift_hip')).toHaveTextContent('Bar drift at hip6 cm+4 vs best');
+    expect(getByTestId('compare-row-pull_time')).toHaveTextContent('Pull time0.59 ssame as best');
     expect(getByTestId('hero-number')).toHaveTextContent('+4 cm');
     expect(getByTestId('sync-caption')).toHaveTextContent('synced at the hip · frame 422 vs 422');
   });
@@ -162,7 +167,7 @@ describe('CompareScreen', () => {
       <CompareScreen analysis={snatchMock} target={COMPARE_TARGETS.last} mode="side" onMode={onMode} onTarget={noop} onBack={noop} />
     );
     expect(getByText('vs Last session · 60 kg · 2 Oct')).toBeOnTheScreen();
-    expect(getByTestId('compare-row-bar_drift_hip')).toHaveTextContent('Bar drift at hip▼ 6 cm · was 8');
+    expect(getByTestId('compare-row-bar_drift_hip')).toHaveTextContent('Bar drift at hip6 cm−2 vs last');
     expect(getByTestId('phase-rail')).toHaveTextContent('SETUP1ST PULLHIP2NDTURNCATCHREC');
     await press(getByTestId('compare-mode-ghost'));
     expect(onMode).toHaveBeenCalledWith('ghost');
@@ -205,6 +210,24 @@ describe('RevealScreen', () => {
     expect(onDone).not.toHaveBeenCalled();
     await act(async () => {
       jest.advanceTimersByTime(700);
+    });
+    expect(onDone).toHaveBeenCalledTimes(1);
+  });
+
+  it('a tap mid-typewriter finishes the cue, the next tap continues', async () => {
+    const onDone = jest.fn();
+    const { getByTestId } = await render(<RevealScreen analysis={snatchMock} onDone={onDone} reduceMotion={false} />);
+    await act(async () => {
+      jest.advanceTimersByTime(1900 + 30 * 5);
+    });
+    expect(getByTestId('reveal-cue')).toHaveTextContent('Stay |');
+    await act(async () => {
+      fireEvent.press(getByTestId('reveal-screen'));
+    });
+    expect(getByTestId('reveal-cue')).toHaveTextContent('Stay over the bar longer');
+    expect(onDone).not.toHaveBeenCalled();
+    await act(async () => {
+      fireEvent.press(getByTestId('reveal-screen'));
     });
     expect(onDone).toHaveBeenCalledTimes(1);
   });

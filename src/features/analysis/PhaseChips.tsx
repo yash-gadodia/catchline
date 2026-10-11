@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Pressable, ScrollView, Text } from 'react-native';
+import FadeRow from './FadeRow';
 import type { PhaseName, Rep } from '../../analysis/types';
 import { phaseLabel, seconds } from '../../analysis/format';
 import { phaseSeconds } from '../../analysis/timeline';
@@ -8,6 +9,13 @@ import { colors, control, radius, space } from '../../design/tokens';
 import { fontFamily } from '../../design/typography';
 
 const UNTIMED: PhaseName[] = ['setup', 'recovery'];
+
+// Short enough that the active chip and its neighbours fit on a phone.
+const CHIP: Partial<Record<PhaseName, string>> = { transition: 'Hip', turnover: 'Turn', recovery: 'Rec' };
+
+export function chipLabel(p: PhaseName): string {
+  return CHIP[p] ?? phaseLabel(p);
+}
 
 export default function PhaseChips({
   rep,
@@ -25,15 +33,10 @@ export default function PhaseChips({
   useEffect(() => {
     if (!active) return;
     const x = xs.current[active];
-    if (x != null) scroll.current?.scrollTo({ x: Math.max(0, x - space.gutter), animated: true });
+    if (x != null) scroll.current?.scrollTo({ x: Math.max(0, x - space.gutter * 2), animated: true });
   }, [active]);
   return (
-    <ScrollView
-      ref={scroll}
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ gap: 6, paddingHorizontal: space.gutter, paddingVertical: space.s2 }}
-    >
+    <FadeRow ref={scroll} testID="phase-chips" contentContainerStyle={{ gap: 6, paddingHorizontal: space.gutter, paddingVertical: space.s2 }}>
       {rep.phases.map((p) => {
         const on = p.name === active;
         const past = active ? rep.phases.findIndex((q) => q.name === active) > rep.phases.indexOf(p) : false;
@@ -47,21 +50,21 @@ export default function PhaseChips({
             onLayout={(e) => {
               const x = e.nativeEvent.layout.x;
               xs.current[p.name] = x;
-              if (on) scroll.current?.scrollTo({ x: Math.max(0, x - space.gutter), animated: false });
+              if (on) scroll.current?.scrollTo({ x: Math.max(0, x - space.gutter * 2), animated: false });
             }}
             style={{
               height: control.chipHeight,
-              paddingHorizontal: 10,
+              paddingHorizontal: 8,
               borderWidth: 1,
               borderColor: on ? colors.text : colors.hairline,
               borderRadius: radius.control,
               flexDirection: 'row',
               alignItems: 'center',
-              gap: 8,
+              gap: 6,
             }}
           >
             <SmallCaps size={12} tracking={0.06} color={past && !on ? colors.text3 : colors.text}>
-              {phaseLabel(p.name)}
+              {chipLabel(p.name)}
             </SmallCaps>
             {UNTIMED.includes(p.name) ? null : (
               <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 12, lineHeight: 16 }}>
@@ -71,6 +74,6 @@ export default function PhaseChips({
           </Pressable>
         );
       })}
-    </ScrollView>
+    </FadeRow>
   );
 }

@@ -14,6 +14,7 @@ export default function EvidenceStage({
   zoom = 1.25,
   showPath = false,
   heroSize = 48,
+  readoutTop = false,
 }: {
   analysis: Analysis;
   cue: Cue;
@@ -21,6 +22,7 @@ export default function EvidenceStage({
   zoom?: number;
   showPath?: boolean;
   heroSize?: number;
+  readoutTop?: boolean;
 }) {
   const rep = repByIndex(analysis, cue.evidence.rep);
   const key = keyFrameAt(rep, cue.evidence.frame);
@@ -53,7 +55,7 @@ export default function EvidenceStage({
           );
         }}
       </Stage>
-      <Readout style={{ position: 'absolute', left: 24, bottom: 16 }} testID="evidence-readout">
+      <Readout style={[{ position: 'absolute', left: 24 }, readoutTop ? { top: 16 } : { bottom: 16 }]} testID="evidence-readout">
         {evidenceReadout(cue)}
       </Readout>
     </View>

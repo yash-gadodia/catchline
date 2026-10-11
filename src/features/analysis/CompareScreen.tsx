@@ -55,7 +55,7 @@ export default function CompareScreen({
   const insets = useSafeAreaInsets();
   const other = target.analysis;
   const sync = syncByPhase(analysis, other);
-  const rows = compareRows(analysis.measurements, other.measurements, target.kind === 'best' ? 'best' : 'was');
+  const rows = compareRows(analysis.measurements, other.measurements, target.kind === 'best' ? 'best' : 'last');
   const height = Math.round(width * (440 / 390));
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }} testID={`compare-${mode}`}>
@@ -79,10 +79,9 @@ export default function CompareScreen({
           onPress={onTarget}
           testID="compare-target"
           style={{
-            height: 40,
+            height: 36,
             paddingHorizontal: space.s3,
-            borderWidth: 1,
-            borderColor: colors.hairline,
+            backgroundColor: colors.surface,
             borderRadius: radius.control,
             flexDirection: 'row',
             alignItems: 'center',
@@ -92,7 +91,7 @@ export default function CompareScreen({
           <Text style={{ color: colors.text, fontFamily: fontFamily.bodyMedium, fontSize: 15, lineHeight: 20 }}>
             {`vs ${target.label} · ${fmt(other.loadKg ?? 0)} kg · ${target.dateLabel}`}
           </Text>
-          <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 13, lineHeight: 18 }}>⌄</Text>
+          <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 13, lineHeight: 18 }}>▾</Text>
         </Pressable>
       </View>
       {mode === 'ghost' ? (
@@ -230,15 +229,16 @@ function SideBySide({
             <View
               key={p.name}
               style={{
-                flex: p.weight,
+                flex: 1,
+                alignItems: 'center',
                 paddingVertical: 6,
-                paddingHorizontal: 4,
                 borderRightWidth: i === all.length - 1 ? 0 : 1,
                 borderRightColor: colors.hairline,
-                backgroundColor: on ? colors.surface2 : 'transparent',
+                borderBottomWidth: 2,
+                borderBottomColor: on ? colors.text : 'transparent',
               }}
             >
-              <SmallCaps size={11} tracking={0.06} color={on ? colors.text : colors.text3}>
+              <SmallCaps size={11} tracking={0.02} color={on ? colors.text : colors.text2}>
                 {shortPhase(p.name)}
               </SmallCaps>
             </View>
@@ -275,9 +275,10 @@ function Rows({ rows, topRule }: { rows: CompareRow[]; topRule: boolean }) {
           }}
         >
           <Text style={{ color: colors.text, fontFamily: fontFamily.body, fontSize: 17, lineHeight: 24 }}>{r.label}</Text>
-          <Text style={{ color: colors.text, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>
-            {`${r.arrow} ${r.text}`}
-          </Text>
+          <View style={{ alignItems: 'flex-end' }}>
+            <Text style={{ color: colors.text, fontFamily: fontFamily.mono, fontSize: 15, lineHeight: 20 }}>{r.value}</Text>
+            <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>{r.delta}</Text>
+          </View>
         </View>
       ))}
     </View>

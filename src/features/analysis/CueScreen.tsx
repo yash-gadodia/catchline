@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Text, View, useWindowDimensions } from 'react-native';
+import { Pressable, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Analysis } from '../../analysis/types';
 import { liftTitle } from '../../analysis/format';
@@ -8,15 +8,16 @@ import { toScreen } from '../../analysis/geometry';
 import Btn from '../../components/Btn';
 import SmallCaps from '../../components/SmallCaps';
 import TopBar from '../../components/TopBar';
-import Readout from '../../components/Readout';
 import { colors, space } from '../../design/tokens';
 import { display, fontFamily } from '../../design/typography';
 import EvidenceStage from './EvidenceStage';
 import WhyDrawer from './WhyDrawer';
+import { baselineSentence } from './baseline';
+import { useLibrary } from '../library/repository';
 import Stage from './Stage';
 import { FlarePath, OverlaySvg } from './overlays';
 
-type Nav = { onTry: () => void; onNotForMe: () => void; onBack: () => void; onFilmAgain: () => void };
+type Nav = { onTry: () => void; onNotForMe: () => void; onBack: () => void; onFilmAgain: () => void; onKeep?: () => void };
 
 export default function CueScreen({ analysis, initialWhy = false, nav }: { analysis: Analysis; initialWhy?: boolean; nav: Nav }) {
   const [why, setWhy] = useState(initialWhy);
@@ -33,7 +34,9 @@ export default function CueScreen({ analysis, initialWhy = false, nav }: { analy
 
 function CueBody({ analysis, nav, onWhy }: { analysis: Analysis; nav: Nav; onWhy: () => void }) {
   const { width } = useWindowDimensions();
+  const { lifts, sessions } = useLibrary();
   const cue = analysis.cue!;
+  const baseline = baselineSentence(analysis, lifts, sessions);
   return (
     <>
       <EvidenceStage analysis={analysis} cue={cue} box={{ width, height: width }} />
@@ -43,24 +46,46 @@ function CueBody({ analysis, nav, onWhy }: { analysis: Analysis; nav: Nav; onWhy
           {cue.text}
         </Text>
         <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 17, lineHeight: 24 }}>{cue.why}</Text>
-        <Text style={{ color: colors.text, fontFamily: fontFamily.bodyMedium, fontSize: 15, lineHeight: 20 }}>
-          {cue.confidenceText}
-        </Text>
+        {baseline ? (
+          <Text testID="cue-baseline" style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 17, lineHeight: 24 }}>
+            {baseline}
+          </Text>
+        ) : null}
+        <StatusRow>{cue.confidenceText}</StatusRow>
       </View>
-      <View style={{ paddingTop: space.s4, paddingHorizontal: space.gutter, paddingBottom: space.s7, gap: space.s3 }}>
+      <View style={{ paddingTop: space.s4, paddingHorizontal: space.gutter, paddingBottom: space.s7, gap: space.s2 }}>
         <Btn onPress={nav.onTry} testID="cue-try">
           Try this next session
         </Btn>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-          <Btn kind="text" onPress={nav.onNotForMe} testID="cue-not-for-me">
+          <TextAction onPress={nav.onNotForMe} testID="cue-not-for-me">
             Not for me
-          </Btn>
-          <Btn kind="text" onPress={onWhy} testID="cue-why">
-            Why this and not something else?
-          </Btn>
+          </TextAction>
+          <TextAction onPress={onWhy} testID="cue-why">
+            Why this?
+          </TextAction>
         </View>
       </View>
     </>
+  );
+}
+
+// Bone dot + mono line, the same shape as the low-confidence banner.
+function StatusRow({ children }: { children: string }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s2 }} testID="confidence-row">
+      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.text }} />
+      <Text style={{ color: colors.text, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>{children}</Text>
+    </View>
+  );
+}
+
+// 44pt-high text button with no underline (underline is for inline links).
+function TextAction({ children, onPress, testID }: { children: string; onPress?: () => void; testID?: string }) {
+  return (
+    <Pressable onPress={onPress} testID={testID} accessibilityRole="button" style={{ height: 44, justifyContent: 'center' }}>
+      <Text style={{ color: colors.text, fontFamily: fontFamily.bodyMedium, fontSize: 15, lineHeight: 20 }}>{children}</Text>
+    </Pressable>
   );
 }
 
@@ -94,6 +119,7 @@ function LowConfidence({ analysis, nav }: { analysis: Analysis; nav: Nav }) {
         <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>
           {cue.confidenceText}
         </Text>
+        <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>dashed path = lower confidence</Text>
       </View>
       <View>
         <Stage src={src} box={box} focus={{ x: 0.5, y: 0.45 }} layers={[{ image: key.image }]}>
@@ -103,17 +129,21 @@ function LowConfidence({ analysis, nav }: { analysis: Analysis; nav: Nav }) {
             </OverlaySvg>
           )}
         </Stage>
-        <Readout style={{ position: 'absolute', left: 24, bottom: 16 }}>dashed path = lower confidence</Readout>
       </View>
       <View style={{ flex: 1, paddingTop: space.s4, paddingHorizontal: space.gutter, gap: space.s2 }}>
         <SmallCaps>Possible</SmallCaps>
         <Text style={[display(32), { color: colors.text }]}>{cue.text}</Text>
         <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>{cue.why}</Text>
       </View>
-      <View style={{ paddingTop: space.s4, paddingHorizontal: space.gutter, paddingBottom: space.s7 }}>
+      <View style={{ paddingTop: space.s4, paddingHorizontal: space.gutter, paddingBottom: space.s7, gap: space.s2 }}>
         <Btn kind="secondary" onPress={nav.onFilmAgain} testID="film-again">
           Film another set
         </Btn>
+        <View style={{ alignItems: 'center' }}>
+          <TextAction onPress={nav.onKeep ?? nav.onTry} testID="keep-anyway">
+            Keep it anyway
+          </TextAction>
+        </View>
       </View>
     </View>
   );

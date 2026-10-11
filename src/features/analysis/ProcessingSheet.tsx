@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Text, View, useWindowDimensions } from 'react-native';
+import { Pressable, Text, View, useWindowDimensions } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -16,6 +16,7 @@ import Btn from '../../components/Btn';
 import Sheet from '../../components/Sheet';
 import { colors } from '../../design/tokens';
 import { fontFamily } from '../../design/typography';
+import { impact, success } from '../../lib/haptics';
 import Stage from './Stage';
 import DrawnPath from './DrawnPath';
 import { OverlaySvg } from './overlays';
@@ -38,6 +39,9 @@ type Props = {
 export default function ProcessingSheet({ analysis, meta, state, step, elapsed, etaSeconds = 20, ...on }: Props) {
   const { width, height } = useWindowDimensions();
   const box = { width, height };
+  useEffect(() => {
+    if (state === 'done') success();
+  }, [state]);
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }} testID={`processing-${state}`}>
       {analysis ? (
@@ -48,16 +52,16 @@ export default function ProcessingSheet({ analysis, meta, state, step, elapsed, 
       {state === 'progress' ? <InProgress analysis={analysis} step={step} meta={meta ?? `about ${etaSeconds} s`} onHide={on.onHide} /> : null}
       {state === 'long' ? (
         <Sheet testID="sheet-long">
-          <Header title="Taking longer than usual" meta={`${Math.round(elapsed)} s`} strong />
+          <Header title="Taking longer than usual" meta={`${Math.round(elapsed)} s · usually about ${etaSeconds} s`} strong />
           <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 17, lineHeight: 24 }}>
             Busy right now. Your lift is in the queue and nothing is lost. We'll ping you when the cue is ready.
           </Text>
           <Btn onPress={on.onNotify} testID="notify-me">
             Notify me
           </Btn>
-          <Btn kind="secondary" onPress={on.onKeepWaiting} testID="keep-waiting">
+          <TextLink onPress={on.onKeepWaiting} testID="keep-waiting">
             Keep waiting
-          </Btn>
+          </TextLink>
         </Sheet>
       ) : null}
       {state === 'done' && analysis ? (
@@ -65,7 +69,13 @@ export default function ProcessingSheet({ analysis, meta, state, step, elapsed, 
           <Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 22, lineHeight: 28 }}>
             {doneTitle(analysis)}
           </Text>
-          <Btn onPress={on.onSee} testID="see-it">
+          <Btn
+            onPress={() => {
+              impact('heavy');
+              on.onSee();
+            }}
+            testID="see-it"
+          >
             See it
           </Btn>
         </Sheet>
@@ -135,10 +145,15 @@ function InProgress({ analysis, step, meta, onHide }: { analysis: Analysis | nul
         {processingSteps(analysis, step).map((s) => (
           <View key={s.label} style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }} testID={`step-${s.state}`}>
             <View style={{ width: 20 }}>
-              {s.state === 'active' ? <Pulse /> : (
-                <Text style={{ color: s.state === 'done' ? colors.text : colors.text3, fontFamily: fontFamily.body, fontSize: 17, lineHeight: 24 }}>
-                  {s.state === 'done' ? '✓' : '○'}
-                </Text>
+              {s.state === 'active' ? (
+                <Pulse />
+              ) : (
+                <View
+                  style={[
+                    { width: 9, height: 9, borderRadius: 4.5, marginLeft: 2 },
+                    s.state === 'done' ? { backgroundColor: colors.text } : { borderWidth: 1.5, borderColor: colors.text3 },
+                  ]}
+                />
               )}
             </View>
             <Text style={{ color: s.state === 'todo' ? colors.text3 : colors.text, fontFamily: fontFamily.body, fontSize: 17, lineHeight: 24 }}>
@@ -147,12 +162,14 @@ function InProgress({ analysis, step, meta, onHide }: { analysis: Analysis | nul
           </View>
         ))}
       </View>
-      <Btn kind="secondary" onPress={onHide} testID="hide">
-        Hide
-      </Btn>
-      <Text style={{ color: colors.text3, fontFamily: fontFamily.body, fontSize: 13, lineHeight: 18, textAlign: 'center' }}>
-        Keeps working in the background.
-      </Text>
+      <View style={{ alignItems: 'center', gap: 2 }}>
+        <TextLink onPress={onHide} testID="hide">
+          Hide
+        </TextLink>
+        <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 13, lineHeight: 18, textAlign: 'center' }}>
+          Keeps working in the background.
+        </Text>
+      </View>
     </Sheet>
   );
 }
@@ -164,4 +181,12 @@ function Pulse() {
   }, [o]);
   const style = useAnimatedStyle(() => ({ opacity: o.value }));
   return <Animated.View style={[{ width: 9, height: 9, borderRadius: 4.5, backgroundColor: colors.flare, marginLeft: 2 }, style]} />;
+}
+
+function TextLink({ children, onPress, testID }: { children: string; onPress: () => void; testID?: string }) {
+  return (
+    <Pressable onPress={onPress} testID={testID} accessibilityRole="button" style={{ height: 44, justifyContent: 'center', alignItems: 'center' }}>
+      <Text style={{ color: colors.text, fontFamily: fontFamily.bodyMedium, fontSize: 15, lineHeight: 20 }}>{children}</Text>
+    </Pressable>
+  );
 }
