@@ -3,7 +3,7 @@ import { parseAnalysis } from '../../analysis/parse';
 import type { Analysis, Movement } from '../../analysis/types';
 import type { Lift } from '../../types/db';
 import { ApiError, toApiError } from './errors';
-import { tusUpload } from './tus';
+import { tusUpload, type UploadSource } from './tus';
 
 export const RAW_BUCKET = 'raw-clips';
 export const KEYFRAME_BUCKET = 'keyframes';
@@ -19,7 +19,7 @@ export type UploadOptions = {
 export type CreateLiftInput = UploadOptions & {
   movement: Movement;
   loadKg?: number;
-  file: Blob;
+  file: UploadSource;
 };
 
 async function accessToken(): Promise<string> {
@@ -30,7 +30,7 @@ async function accessToken(): Promise<string> {
 }
 
 /** Resumable upload of a lift's raw clip to its reserved path. Pass the saved `uploadUrl` to resume. */
-export async function uploadLiftClip(lift: Pick<Lift, 'clip_path'>, file: Blob, opts: UploadOptions = {}): Promise<string> {
+export async function uploadLiftClip(lift: Pick<Lift, 'clip_path'>, file: UploadSource, opts: UploadOptions = {}): Promise<string> {
   const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
   try {

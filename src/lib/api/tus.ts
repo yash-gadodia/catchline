@@ -5,9 +5,13 @@
 
 export const TUS_CHUNK_BYTES = 6 * 1024 * 1024; // Supabase requires exactly 6 MB chunks
 
+// A Blob, or anything that can hand out byte ranges (React Native's Blob cannot be
+// built from bytes, so the app reads chunks from disk instead).
+export type UploadSource = { size: number; slice(start: number, end: number): Blob | Uint8Array<ArrayBuffer> };
+
 export type TusOptions = {
   endpoint: string;
-  file: Blob;
+  file: UploadSource;
   headers: Record<string, string>;
   metadata: Record<string, string>;
   uploadUrl?: string;

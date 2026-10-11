@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Movement } from '../analysis/types';
-import { ApiError, createLift, type ApiErrorCode } from '../lib/api';
+import { File } from 'expo-file-system';
+import { ApiError, createLift, type ApiErrorCode, type UploadSource } from '../lib/api';
 import type { ClipSubmission } from '../features/capture/submit';
 import { syncConsent } from './backend';
 
@@ -33,9 +34,23 @@ export const usePipeline = create<PipelineState>((set) => ({
   clear: () => set({ job: null }),
 }));
 
-export async function readClip(uri: string): Promise<Blob> {
-  const res = await fetch(uri);
-  return res.blob();
+// The clip is read from disk one chunk at a time as the upload asks for it, so a
+// 100 MB slo-mo never sits in memory whole.
+export async function readClip(uri: string): Promise<UploadSource> {
+  const file = new File(uri);
+  const size = file.size;
+  return {
+    size,
+    slice(start, end) {
+      const handle = file.open();
+      try {
+        handle.offset = start;
+        return handle.readBytes(end - start);
+      } finally {
+        handle.close();
+      }
+    },
+  };
 }
 
 export function contentTypeFor(uri: string): 'video/quicktime' | 'video/mp4' {
@@ -44,7 +59,7 @@ export function contentTypeFor(uri: string): 'video/quicktime' | 'video/mp4' {
 
 // Consent, then create_lift (cap checked server-side) + resumable upload +
 // enqueue. Never throws: the outcome lands on the job.
-export async function startLift(sub: ClipSubmission & { uri: string }, read: (uri: string) => Promise<Blob> = readClip): Promise<void> {
+export async function startLift(sub: ClipSubmission & { uri: string }, read: (uri: string) => Promise<UploadSource> = readClip): Promise<void> {
   const { start, patch } = usePipeline.getState();
   start({
     id: `job-${Date.now()}`,
