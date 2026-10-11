@@ -20,7 +20,8 @@ export function Chip({
 }) {
   return (
     <Pressable
-      onPress={disabled ? undefined : onPress}
+      onPress={onPress}
+      disabled={disabled}
       testID={testID}
       accessibilityRole="button"
       accessibilityState={{ selected: on, disabled: !!disabled }}
@@ -110,7 +111,8 @@ export function DangerBtn({
 }) {
   return (
     <Pressable
-      onPress={disabled ? undefined : onPress}
+      onPress={onPress}
+      disabled={disabled}
       testID={testID}
       accessibilityRole="button"
       accessibilityState={{ disabled: !!disabled }}
