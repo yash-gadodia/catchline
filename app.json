@@ -36,7 +36,17 @@
         {
           "photosPermission": "To read a chat screenshot you choose. It is never stored."
         }
-      ]
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Catchline uses the camera to film your lift. Nothing records until you press the button.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "barcodeScannerEnabled": false
+        }
+      ],
+      "expo-video"
     ],
     "experiments": {
       "typedRoutes": true,
