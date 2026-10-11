@@ -14,6 +14,8 @@ import { supabase } from '../src/lib/supabase';
 import { registerPushToken } from '../src/features/notifications';
 import { init as initAnalytics, identify, reset, track, EVENTS } from '../src/lib/analytics';
 
+export const unstable_settings = { initialRouteName: '(tabs)' };
+
 export default function RootLayout() {
   const fontsLoaded = useAppFonts();
 
