@@ -36,6 +36,7 @@ export type LiftsNav = {
   onUnlock: () => void;
   onRecord: () => void;
   onImport: () => void;
+  onSample: () => void;
   onCue: (id: string) => void;
 };
 
@@ -72,6 +73,9 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
             </Btn>
             <Btn kind="secondary" onPress={nav.onImport} testID="empty-import">
               Import
+            </Btn>
+            <Btn kind="text" onPress={nav.onSample} testID="empty-sample" style={{ alignSelf: 'center' }}>
+              See a sample analysis
             </Btn>
           </View>
         </View>

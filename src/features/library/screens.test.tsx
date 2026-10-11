@@ -23,6 +23,7 @@ const liftsNav = () => ({
   onUnlock: jest.fn(),
   onRecord: jest.fn(),
   onImport: jest.fn(),
+  onSample: jest.fn(),
   onCue: jest.fn(),
 });
 
@@ -81,8 +82,10 @@ describe('LiftsScreen', () => {
     expect(getByText('Film your first lift from the side.')).toBeOnTheScreen();
     await press(getByTestId('empty-record'));
     await press(getByTestId('empty-import'));
+    await press(getByText('See a sample analysis'));
     expect(nav.onRecord).toHaveBeenCalledTimes(1);
     expect(nav.onImport).toHaveBeenCalledTimes(1);
+    expect(nav.onSample).toHaveBeenCalledTimes(1);
   });
 });
 

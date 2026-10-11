@@ -1,6 +1,6 @@
 import { act, fireEvent, render, within } from '@testing-library/react-native';
 import * as Haptics from 'expo-haptics';
-import { COMPARE_TARGETS, snatchMock, snatchMockLow, snatchMockMiss } from '../../analysis/fixtures';
+import { COMPARE_TARGETS, snatchMock, snatchMockLow, snatchMockMiss, snatchSample } from '../../analysis/fixtures';
 import CueScreen from './CueScreen';
 import PlayerScreen from './PlayerScreen';
 import CompareScreen, { syncByPhase } from './CompareScreen';
@@ -67,6 +67,12 @@ describe('CueScreen', () => {
     expect(getByTestId('evidence-readout')).toHaveTextContent('frame 422 · hip · 6 cm fwd · best 2 cm');
     await press(getByText('Try this next session'));
     expect(nav.onTry).toHaveBeenCalledTimes(1);
+  });
+
+  it('labels the bundled sample and never quotes the lifter baseline on it', async () => {
+    const { getByText, queryByTestId } = await render(<CueScreen analysis={snatchSample} nav={nav} />);
+    expect(getByText('SAMPLE LIFT · AI ESTIMATE')).toBeOnTheScreen();
+    expect(queryByTestId('cue-baseline')).toBeNull();
   });
 
   it('opens the why drawer with every measurement and marks the cue', async () => {

@@ -12,6 +12,7 @@ import { colors, space } from '../../design/tokens';
 import { display, fontFamily } from '../../design/typography';
 import EvidenceStage from './EvidenceStage';
 import WhyDrawer from './WhyDrawer';
+import { isSample } from '../../analysis/fixtures';
 import { baselineSentence } from './baseline';
 import { useLibrary } from '../library/repository';
 import Stage from './Stage';
@@ -36,12 +37,13 @@ function CueBody({ analysis, nav, onWhy }: { analysis: Analysis; nav: Nav; onWhy
   const { width } = useWindowDimensions();
   const { lifts, sessions } = useLibrary();
   const cue = analysis.cue!;
-  const baseline = baselineSentence(analysis, lifts, sessions);
+  const sample = isSample(analysis);
+  const baseline = sample ? null : baselineSentence(analysis, lifts, sessions);
   return (
     <>
       <EvidenceStage analysis={analysis} cue={cue} box={{ width, height: width }} />
       <View style={{ flex: 1, paddingTop: space.s5, paddingHorizontal: space.gutter, gap: space.s3 }}>
-        <SmallCaps>One thing to fix · AI estimate</SmallCaps>
+        <SmallCaps>{sample ? 'Sample lift · AI estimate' : 'One thing to fix · AI estimate'}</SmallCaps>
         <Text style={[display(40), { color: colors.text }]} testID="cue-text">
           {cue.text}
         </Text>

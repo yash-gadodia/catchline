@@ -111,6 +111,17 @@ export const COMPARE_TARGETS: Record<CompareTarget['kind'], CompareTarget> = {
   },
 };
 
+// "Try a sample lift": first value without the lifter's own footage. Never
+// counted against the free videos and never compared with their history.
+export const SAMPLE_ID = 'snatch-sample';
+export const snatchSample: Analysis = { ...snatchMock, id: SAMPLE_ID };
+
+export function isSample(a: Analysis): boolean {
+  return a.id === SAMPLE_ID;
+}
+
+export const SAMPLE_ROUTE = { pathname: '/analysis/processing', params: { fixture: SAMPLE_ID } } as const;
+
 export const ANALYSES: Record<string, Analysis> = {
   'snatch-mock': snatchMock,
   'snatch-mock-low': snatchMockLow,
@@ -120,5 +131,6 @@ export const ANALYSES: Record<string, Analysis> = {
 
 export function getAnalysis(key?: string | string[]): Analysis {
   const k = Array.isArray(key) ? key[0] : key;
+  if (k === SAMPLE_ID) return snatchSample;
   return (k && (liveAnalysis(k) ?? ANALYSES[k])) || snatchMock;
 }

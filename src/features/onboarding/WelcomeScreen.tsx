@@ -35,11 +35,13 @@ export default function WelcomeScreen({
   sample,
   onStart,
   onImport,
+  onSample,
   reduceMotion,
 }: {
   sample: Analysis;
   onStart: () => void;
   onImport: () => void;
+  onSample?: () => void;
   reduceMotion?: boolean;
 }) {
   const systemReduce = useReducedMotion();
@@ -100,9 +102,16 @@ export default function WelcomeScreen({
         <Btn onPress={onStart} testID="welcome-start">
           Start
         </Btn>
-        <Btn kind="text" onPress={onImport} testID="welcome-import" style={{ alignSelf: 'center' }}>
-          Import a clip
-        </Btn>
+        <View style={{ flexDirection: 'row', justifyContent: 'center', gap: space.s6 }}>
+          <Btn kind="text" onPress={onImport} testID="welcome-import">
+            Import a clip
+          </Btn>
+          {onSample ? (
+            <Btn kind="text" onPress={onSample} testID="welcome-sample">
+              Try a sample lift
+            </Btn>
+          ) : null}
+        </View>
       </View>
     </View>
   );
