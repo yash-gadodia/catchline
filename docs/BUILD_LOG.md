@@ -124,3 +124,4 @@ _This log is meant to be appended to. When a session produces a reusable lesson,
 - **Latency:** prod read measured 12–14s before, 11–13s after running the safety screen concurrently with the read + prompt caching. The floor is Sonnet 5 generating the read; logged as `refocus_v2_timing`.
 - **Gotcha:** jest path args with parentheses (`app/(tabs)/...`) are regexes → "No tests found". Use a bare name pattern like `oneSideFlow`.
 - **Gotcha:** expo-image-picker is a native module → the existing dev/TestFlight binary crashes on the capture screen until rebuilt. Fast Refresh is not enough.
+- **Shipped:** 2.2.0 build 20, commit 989ae07, EAS build 7b838364 with auto-submit to TestFlight (20 Sep 15:44). Yash's decision after a long direction loop: no revamp code, use the app for real for 3 weeks first; the revamp canvas (12 screens) waits on that.
