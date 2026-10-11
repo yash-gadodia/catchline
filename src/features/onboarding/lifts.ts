@@ -2,15 +2,15 @@ import type { Movement } from '../../analysis/types';
 
 export type LiftGroup = 'barbell' | 'gymnastics';
 
-export type Lift = { id: Movement; name: string; sub: string; group: LiftGroup };
+export type Lift = { id: Movement; name: string; sub: string; group: LiftGroup; spoken: string };
 
 export const LIFTS: Lift[] = [
-  { id: 'snatch', name: 'Snatch', sub: 'bar path', group: 'barbell' },
-  { id: 'clean', name: 'Clean', sub: 'bar path', group: 'barbell' },
-  { id: 'jerk', name: 'Jerk', sub: 'bar path', group: 'barbell' },
-  { id: 'kipping_pull_up', name: 'Kipping pull-up', sub: 'hip path', group: 'gymnastics' },
-  { id: 'bar_muscle_up', name: 'Bar muscle-up', sub: 'hip path', group: 'gymnastics' },
-  { id: 'kipping_hspu', name: 'Kipping HSPU', sub: 'head + hip', group: 'gymnastics' },
+  { id: 'snatch', name: 'Snatch', sub: 'bar path', group: 'barbell', spoken: 'a snatch' },
+  { id: 'clean', name: 'Clean', sub: 'bar path', group: 'barbell', spoken: 'a clean' },
+  { id: 'jerk', name: 'Jerk', sub: 'bar path', group: 'barbell', spoken: 'a jerk' },
+  { id: 'kipping_pull_up', name: 'Kipping pull-up', sub: 'hip path', group: 'gymnastics', spoken: 'a kipping pull-up' },
+  { id: 'bar_muscle_up', name: 'Bar muscle-up', sub: 'hip path', group: 'gymnastics', spoken: 'a bar muscle-up' },
+  { id: 'kipping_hspu', name: 'Kipping HSPU', sub: 'head + hip', group: 'gymnastics', spoken: 'a handstand push-up' },
 ];
 
 export const SOON = ['Toes-to-bar', 'Chest-to-bar', 'Ring muscle-up'];
