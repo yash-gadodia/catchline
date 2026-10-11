@@ -27,7 +27,7 @@ describe('AppErrorBoundary', () => {
       </AppErrorBoundary>
     );
 
-    expect(getByText('Something went sideways')).toBeTruthy();
+    expect(getByText('Something broke on our side')).toBeTruthy();
     expect(getByText('Try again')).toBeTruthy();
 
     spy.mockRestore();

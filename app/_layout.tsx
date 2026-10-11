@@ -7,7 +7,9 @@ import { useAppFonts } from '../src/design/fonts';
 import { queryClient } from '../src/lib/queryClient';
 import { usePurchases } from '../src/features/purchases/usePurchases';
 import { AppErrorBoundary } from '../src/components/AppErrorBoundary';
-import { BrandedLoading } from '../src/components/BrandedLoading';
+import { View } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { colors } from '../src/design/tokens';
 import { supabase } from '../src/lib/supabase';
 import { registerPushToken } from '../src/features/notifications';
 import { init as initAnalytics, identify, reset, track, EVENTS } from '../src/lib/analytics';
@@ -43,9 +45,8 @@ export default function RootLayout() {
     };
   }, []);
 
-  // Branded frame (font-free) instead of a blank white flash while fonts load.
   if (!fontsLoaded) {
-    return <BrandedLoading />;
+    return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
   }
 
   return (
@@ -53,7 +54,8 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
           <AppErrorBoundary>
-            <Stack screenOptions={{ headerShown: false }} />
+            <StatusBar style="light" />
+            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }} />
           </AppErrorBoundary>
         </QueryClientProvider>
       </SafeAreaProvider>
