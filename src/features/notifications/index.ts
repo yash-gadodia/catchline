@@ -55,7 +55,6 @@ export async function registerPushToken(promptIfNeeded = false): Promise<void> {
     const uid = data.user?.id;
     if (!uid) return;
 
-    // @ts-expect-error supabase-js typed update arg resolves to never for this table
     await supabase.from('profiles').update({ push_token: token }).eq('id', uid);
   } catch {
     // GATE: getExpoPushTokenAsync throws in Expo Go without EAS project ID.
