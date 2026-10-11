@@ -1,80 +1,80 @@
-import { ViewStyle, ColorValue } from 'react-native';
-
-export const colors = {
-  bg0: '#FBF1F2',
-  bg1: '#F1ECFB',
-  // v7 "quiet editorial": a warm paper ground instead of the dawn gradient,
-  // with cards drawn by a hairline rather than a shadow.
-  paper: '#FBF7F3',
-  surface: '#FFFDFD',
-  surfaceSoft: 'rgba(255,255,255,0.62)',
-  sunken: '#F4ECF4',
-  line: 'rgba(58,51,64,0.09)',
-  ink: '#3A3340',
-  inkSoft: '#8B8398',
-  inkMute: '#B7B0C2',
-  p1: '#FF8E7A',
-  p1Deep: '#EF6A53',
-  p2: '#9D95F5',
-  p2Deep: '#7064E6',
-  match: '#54C2A0',
-  matchDeep: '#2E9C7C',
-  usSoft: 'rgba(218, 202, 245, 0.6)',
+export type Palette = {
+  bg: string;
+  surface: string;
+  surface2: string;
+  hairline: string;
+  text: string;
+  text2: string;
+  text3: string;
+  flare: string;
+  onFlare: string;
+  scrim: string;
 };
 
-export const gradients = {
-  us: {
-    colors: ['#FF8E7A', '#C387C9', '#9D95F5'] as const satisfies readonly [ColorValue, ColorValue, ...ColorValue[]],
-    locations: [0, 0.48, 1] as const satisfies readonly number[],
-  },
-  usSoft: {
-    colors: ['rgba(255,142,122,0.16)', 'rgba(157,149,245,0.16)'] as const satisfies readonly [ColorValue, ColorValue, ...ColorValue[]],
-    locations: [0, 1] as const satisfies readonly number[],
-  },
-  dawn: {
-    colors: ['#FCEFF0', '#F6EDF6', '#EEEDFB'] as const satisfies readonly [ColorValue, ColorValue, ...ColorValue[]],
-    locations: [0, 0.42, 1] as const satisfies readonly number[],
-  },
-} as const;
-
-export const shadows = {
-  shadow: {
-    shadowColor: 'rgba(112,100,230,0.13)',
-    shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 1,
-    shadowRadius: 22,
-    elevation: 16,
-  },
-  shadowSoft: {
-    shadowColor: 'rgba(112,100,230,0.10)',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 1,
-    shadowRadius: 15,
-    elevation: 10,
-  },
-  shadowPop: {
-    shadowColor: 'rgba(58,40,70,0.18)',
-    shadowOffset: { width: 0, height: -10 },
-    shadowOpacity: 1,
-    shadowRadius: 22,
-    elevation: 16,
-  },
-} as const satisfies Record<string, ViewStyle>;
-
-export const radius = {
-  pill: 999,
-  card: 26,
-  cardLg: 30,
-  tile: 14,
-  cardMd: 22,
-  cardSm: 20,
-  cardXs: 18,
-  input: 16,
-  sm: 12,
+export const dark: Palette = {
+  bg: '#000000',
+  surface: '#141414',
+  surface2: '#1F1F1F',
+  hairline: '#2E2E2E',
+  text: '#EDE9E1',
+  text2: '#A39F97',
+  text3: '#6E6B65',
+  flare: '#FF3B2F',
+  onFlare: '#000000',
+  scrim: 'rgba(0,0,0,0.7)',
 };
+
+export const light: Palette = {
+  bg: '#F7F5F0',
+  surface: '#FFFFFF',
+  surface2: '#ECE9E2',
+  hairline: '#D9D5CC',
+  text: '#101010',
+  text2: '#5A5750',
+  text3: '#8C8982',
+  flare: '#D92B1F',
+  onFlare: '#FFFFFF',
+  scrim: 'rgba(247,245,240,0.8)',
+};
+
+// The analysis surfaces are always dark: the lifter is a photograph on black.
+export const colors = dark;
 
 export const space = {
-  gutter: 20,
-  cardPad: 16,
-  gap: 12,
-};
+  s1: 4,
+  s2: 8,
+  s3: 12,
+  s4: 16,
+  s5: 24,
+  s6: 32,
+  s7: 40,
+  s8: 48,
+  gutter: 24,
+} as const;
+
+export const radius = {
+  image: 0,
+  control: 4,
+  sheet: 12,
+} as const;
+
+export const stroke = {
+  hairline: 1,
+  outline: 2,
+  path: 3,
+  halo: 8,
+  ghost: 2,
+} as const;
+
+export const opacity = {
+  strobeMin: 0.35,
+  strobeMax: 0.6,
+  ghost: 0.4,
+  lines: 0.6,
+} as const;
+
+export const control = {
+  height: 56,
+  chipHeight: 40,
+  compactHeight: 48,
+} as const;

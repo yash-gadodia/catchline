@@ -4,9 +4,9 @@
   "version": "1.0.0",
   "dependencies": {
     "@bacons/apple-targets": "^4.0.7",
-    "@expo-google-fonts/hanken-grotesk": "^0.4.3",
-    "@expo-google-fonts/instrument-serif": "^0.4.1",
-    "@expo-google-fonts/space-mono": "^0.4.2",
+    "@expo-google-fonts/big-shoulders-display": "^0.2.3",
+    "@expo-google-fonts/schibsted-grotesk": "^0.4.2",
+    "@expo-google-fonts/sometype-mono": "^0.4.2",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-masked-view/masked-view": "0.3.2",
     "@supabase/supabase-js": "^2.45.4",

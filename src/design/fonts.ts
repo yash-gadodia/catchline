@@ -1,24 +1,21 @@
 import { useFonts } from 'expo-font';
-import { InstrumentSerif_400Regular } from '@expo-google-fonts/instrument-serif';
-import {
-  HankenGrotesk_400Regular,
-  HankenGrotesk_500Medium,
-  HankenGrotesk_600SemiBold,
-  HankenGrotesk_700Bold,
-  HankenGrotesk_800ExtraBold,
-} from '@expo-google-fonts/hanken-grotesk';
-import { SpaceMono_400Regular, SpaceMono_700Bold } from '@expo-google-fonts/space-mono';
+import { SchibstedGrotesk_400Regular } from '@expo-google-fonts/schibsted-grotesk/400Regular';
+import { SchibstedGrotesk_500Medium } from '@expo-google-fonts/schibsted-grotesk/500Medium';
+import { SchibstedGrotesk_700Bold } from '@expo-google-fonts/schibsted-grotesk/700Bold';
+import { SometypeMono_400Regular } from '@expo-google-fonts/sometype-mono/400Regular';
+import { SometypeMono_500Medium } from '@expo-google-fonts/sometype-mono/500Medium';
+
+export const FONT_ASSETS = {
+  BigShouldersDisplay_700Bold: require('@expo-google-fonts/big-shoulders-display/BigShouldersDisplay_700Bold.ttf'),
+  BigShouldersDisplay_900Black: require('@expo-google-fonts/big-shoulders-display/BigShouldersDisplay_900Black.ttf'),
+  SchibstedGrotesk_400Regular,
+  SchibstedGrotesk_500Medium,
+  SchibstedGrotesk_700Bold,
+  SometypeMono_400Regular,
+  SometypeMono_500Medium,
+};
 
 export function useAppFonts(): boolean {
-  const [loaded] = useFonts({
-    InstrumentSerif_400Regular,
-    HankenGrotesk_400Regular,
-    HankenGrotesk_500Medium,
-    HankenGrotesk_600SemiBold,
-    HankenGrotesk_700Bold,
-    HankenGrotesk_800ExtraBold,
-    SpaceMono_400Regular,
-    SpaceMono_700Bold,
-  });
+  const [loaded] = useFonts(FONT_ASSETS);
   return loaded;
 }
