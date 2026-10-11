@@ -20,6 +20,9 @@ const ENTRIES: { label: string; href: string }[] = [
   { label: 'Compare · side by side', href: '/analysis/compare?mode=side' },
   { label: 'Low confidence', href: '/analysis/cue?fixture=snatch-mock-low' },
   { label: 'Why did I miss', href: '/analysis/miss?fixture=snatch-mock-miss' },
+  { label: 'Real CV · reveal', href: '/analysis/reveal?fixture=snatch-real' },
+  { label: 'Real CV · cue', href: '/analysis/cue?fixture=snatch-real' },
+  { label: 'Real CV · player', href: '/analysis/player?fixture=snatch-real' },
 ];
 
 export default function DevEntry() {

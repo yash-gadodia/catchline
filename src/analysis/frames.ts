@@ -31,6 +31,62 @@ const BUNDLED: Record<string, { color: ImageSourcePropType; gray: ImageSourcePro
     color: require('../../assets/frames/snatch/7-recovery.jpg'),
     gray: require('../../assets/frames/snatch/gray/7-recovery.jpg'),
   },
+  'snatch-real/r1-1-setup': {
+    color: require('../../assets/analysis/snatch-real/r1-1-setup.jpg'),
+    gray: require('../../assets/analysis/snatch-real/gray/r1-1-setup.jpg'),
+  },
+  'snatch-real/r1-2-first_pull': {
+    color: require('../../assets/analysis/snatch-real/r1-2-first_pull.jpg'),
+    gray: require('../../assets/analysis/snatch-real/gray/r1-2-first_pull.jpg'),
+  },
+  'snatch-real/r1-3-transition': {
+    color: require('../../assets/analysis/snatch-real/r1-3-transition.jpg'),
+    gray: require('../../assets/analysis/snatch-real/gray/r1-3-transition.jpg'),
+  },
+  'snatch-real/r1-4-second_pull': {
+    color: require('../../assets/analysis/snatch-real/r1-4-second_pull.jpg'),
+    gray: require('../../assets/analysis/snatch-real/gray/r1-4-second_pull.jpg'),
+  },
+  'snatch-real/r1-5-turnover': {
+    color: require('../../assets/analysis/snatch-real/r1-5-turnover.jpg'),
+    gray: require('../../assets/analysis/snatch-real/gray/r1-5-turnover.jpg'),
+  },
+  'snatch-real/r1-6-catch': {
+    color: require('../../assets/analysis/snatch-real/r1-6-catch.jpg'),
+    gray: require('../../assets/analysis/snatch-real/gray/r1-6-catch.jpg'),
+  },
+  'snatch-real/r1-7-recovery': {
+    color: require('../../assets/analysis/snatch-real/r1-7-recovery.jpg'),
+    gray: require('../../assets/analysis/snatch-real/gray/r1-7-recovery.jpg'),
+  },
+  'snatch-real/r2-1-setup': {
+    color: require('../../assets/analysis/snatch-real/r2-1-setup.jpg'),
+    gray: require('../../assets/analysis/snatch-real/gray/r2-1-setup.jpg'),
+  },
+  'snatch-real/r2-2-first_pull': {
+    color: require('../../assets/analysis/snatch-real/r2-2-first_pull.jpg'),
+    gray: require('../../assets/analysis/snatch-real/gray/r2-2-first_pull.jpg'),
+  },
+  'snatch-real/r2-3-transition': {
+    color: require('../../assets/analysis/snatch-real/r2-3-transition.jpg'),
+    gray: require('../../assets/analysis/snatch-real/gray/r2-3-transition.jpg'),
+  },
+  'snatch-real/r2-4-second_pull': {
+    color: require('../../assets/analysis/snatch-real/r2-4-second_pull.jpg'),
+    gray: require('../../assets/analysis/snatch-real/gray/r2-4-second_pull.jpg'),
+  },
+  'snatch-real/r2-5-turnover': {
+    color: require('../../assets/analysis/snatch-real/r2-5-turnover.jpg'),
+    gray: require('../../assets/analysis/snatch-real/gray/r2-5-turnover.jpg'),
+  },
+  'snatch-real/r2-6-catch': {
+    color: require('../../assets/analysis/snatch-real/r2-6-catch.jpg'),
+    gray: require('../../assets/analysis/snatch-real/gray/r2-6-catch.jpg'),
+  },
+  'snatch-real/r2-7-recovery': {
+    color: require('../../assets/analysis/snatch-real/r2-7-recovery.jpg'),
+    gray: require('../../assets/analysis/snatch-real/gray/r2-7-recovery.jpg'),
+  },
 };
 
 export function frameSource(image: string | undefined, gray = false): ImageSourcePropType | null {

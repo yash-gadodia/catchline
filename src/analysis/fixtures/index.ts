@@ -1,9 +1,16 @@
 import type { Analysis, Point, Rep } from '../types';
 import { keyFrameForPhase, pointAt, repByIndex } from '../timeline';
 import mock from './snatch-mock.json';
+import real from './snatch-real.json';
 import { parseAnalysis } from '../parse';
 
 export const snatchMock = parseAnalysis(mock);
+
+export const snatchReal = parseAnalysis(
+  JSON.parse(
+    JSON.stringify(real).replace(/assets\/analysis\/snatch-real\/([^"]+)\.jpg/g, 'asset:snatch-real/$1'),
+  ),
+);
 
 export function horizontalCm(a: Analysis, from: Point, to: Point): number {
   return (Math.abs(to.x - from.x) * a.video.width) / (a.pxPerCm ?? 1);
@@ -103,11 +110,11 @@ export const COMPARE_TARGETS: Record<CompareTarget['kind'], CompareTarget> = {
   },
 };
 
-// Add the CV spike's output here (snatch-real.json) once it lands.
 export const ANALYSES: Record<string, Analysis> = {
   'snatch-mock': snatchMock,
   'snatch-mock-low': snatchMockLow,
   'snatch-mock-miss': snatchMockMiss,
+  'snatch-real': snatchReal,
 };
 
 export function getAnalysis(key?: string | string[]): Analysis {
