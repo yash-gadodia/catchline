@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(git push origin main*)",
+      "Bash(git push origin catchline*)",
+      "Bash(git push origin HEAD:main*)",
+      "Bash(git push origin HEAD:catchline*)",
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(gh pr merge*)",
+      "Bash(gh repo*)",
+      "Bash(gh release*)",
+      "Bash(supabase db push*)",
+      "Bash(supabase db reset --linked*)",
+      "Bash(supabase functions deploy*)",
+      "Bash(supabase secrets*)",
+      "Bash(eas *)",
+      "Bash(npx eas*)",
+      "Bash(launchctl*)",
+      "Bash(docker volume*)",
+      "Bash(rm -rf ~*)",
+      "Bash(rm -rf /*)"
+    ]
+  }
+}
