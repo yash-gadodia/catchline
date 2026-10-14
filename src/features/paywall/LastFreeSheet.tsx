@@ -12,7 +12,7 @@ export default function LastFreeSheet({ onContinue, onPlans }: { onContinue: () 
   const total = FREE_VIDEOS.organic;
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }} testID="last-free">
-      <Backdrop image="asset:snatch/1-setup" opacity={0.4} />
+      <Backdrop image="asset:snatch/ghost/5-turnover" opacity={0.45} />
       <Sheet gap={space.s4}>
         <SheetTitle size={34}>This is your last free video</SheetTitle>
         <Body>After this one, analysis needs a plan. Filming stays free, and everything you have analysed stays yours.</Body>

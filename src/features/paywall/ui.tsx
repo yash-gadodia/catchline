@@ -11,10 +11,10 @@ import { OFFLINE_BODY, failedBody, failedTitle, purchasingLine, purchasingTitle,
 import type { CueStatus } from './proofCues';
 import type { Plan } from './products';
 
-export const DEFAULT_BACKDROP = 'asset:snatch/4-extension';
+export const DEFAULT_BACKDROP = 'asset:snatch/ghost/6-catch';
 
 // The saved clip, dimmed, behind every sheet: the lift is never lost behind the paywall.
-export function Backdrop({ image = DEFAULT_BACKDROP, opacity = 0.25 }: { image?: string; opacity?: number }) {
+export function Backdrop({ image = DEFAULT_BACKDROP, opacity = 0.55 }: { image?: string; opacity?: number }) {
   const { width, height } = useWindowDimensions();
   const source = frameSource(image);
   return (

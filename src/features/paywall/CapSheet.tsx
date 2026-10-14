@@ -25,7 +25,7 @@ export default function CapSheet({
   const cap = MONTHLY_CAP[tier];
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }} testID={`cap-${tier}`}>
-      <Backdrop image="asset:snatch/1-setup" opacity={0.6} />
+      <Backdrop image="asset:snatch/ghost/3-hip" opacity={0.55} />
       <Sheet gap={space.s4}>
         <SheetTitle size={34}>{`That's ${cap} this month.`}</SheetTitle>
         <Body>
