@@ -4,28 +4,26 @@ paths: ["supabase/**", "src/lib/supabase.ts", "src/types/db.ts", "src/features/*
 
 # Supabase / data layer
 
-Backend is Supabase (Postgres + Auth + Realtime). Migrations `supabase/migrations/0001..0006`; the typed client is `src/lib/supabase.ts`; hand-written types in `src/types/db.ts`.
+Backend is Supabase (Postgres + Auth + Storage + Realtime + pgmq/pg_cron). Migrations `supabase/migrations/0001..0004` (`0001_catchline_core`, `0002_lift_pipeline`, `0003_storage`, `0004_plan_sync`); the typed client is `src/lib/supabase.ts`; types in `src/types/db.ts`. Edge functions: `delete-account`, `revenuecat-webhook`.
 
-> Local dev runs on **colima**, not OrbStack. `supabase start` fails on the `vector` log container (colima can't mount its docker.sock) → start with `supabase start -x vector,analytics --ignore-health-check`, then `supabase db reset` + `supabase test db`.
+> Local dev runs only on the **Mac Mini** (`ssh mini`, colima, ports 554xx), never the laptop. See `docs/catchline/BACKEND_SETUP.md` "Local run" for the exact `supabase start -x ...` line, then `supabase db reset` + `supabase test db`.
 
 ## RLS is the security backbone (don't bypass)
-- Every intimate table carries `couple_id`; policy = "current user is a member of this couple."
-- **The reveal gate** (the core security property): a member can read the partner's `answers` ONLY when `couple_drops.state = 'revealed'` (both submitted). Enforced in RLS — never in the client. **Proven by `supabase/tests/rls_enforcement_test.sql`** — it switches into the `authenticated` role + sets `request.jwt.claims` and asserts real row counts (the `reveal_gate_*.sql` files only check that policies *exist*, running as the RLS-exempt owner). Keep the enforcement test green.
-- **Never rely on default privileges — state grants AND revokes explicitly.** Older local stacks granted `authenticated` no DML on new tables (the 0006 lesson); newer/stock Supabase stacks grant `anon`+`authenticated` ALL on every new table via default ACLs (discovered 2026-07-05: `refocus_sessions` silently held anon ALL; `0036` revoked it). Both directions bite. Every migration adding a table MUST explicitly `grant` what clients need and `revoke` what they must not have — the environment's defaults are not a contract. RLS still gates rows either way.
-- **All cross-partner writes go through SECURITY DEFINER functions** (`create_couple`, `join_couple`, `submit_answers`, `sim_partner_submit`, `complete_streak`, `log_activity`, `nudge_partner`, `add_learning`, `ensure_today_drop`) — clients call them via `supabase.rpc(...)`, never raw table writes for cross-partner data.
-- `service_role` / secrets never ship in the client — only `EXPO_PUBLIC_SUPABASE_URL` + anon key (`.env`, gitignored).
+- Tables: `profiles`, `consents`, `usage_counters`, `lifts`, `analyses`, `cues`, `coach_links`, `feature_flags`, `clip_deletions`, `revenuecat_events`. RLS is **owner-only** everywhere (`user_id = auth.uid()`); `feature_flags` is the shared read-only exception.
+- Clients never write status, counters, plan or analyses. **Caps, consent and job state are enforced server-side** in SECURITY DEFINER functions: `create_lift` (checks `consent_granted` + `lift_allowance`/`plan_cap`), `refund_lift`, `enqueue_lift`, `claim_lift_job` / `complete_lift_job` / `fail_lift_job` (worker), `create_coach_link` / `get_coach_link` / `save_coach_feedback` (the one cross-user path, token-gated), `delete_my_account`, `apply_plan` (service role, RevenueCat webhook), `founding_seats`, `mark_clip_deleted`, `purge_storage`. Clients call them via `supabase.rpc(...)`.
+- **Raw clips**: `raw-clips` bucket is write-only for the client (insert the one object its pending lift names); nobody but the service role reads it. Deleted after analysis, with `purge_storage` on pg_cron (`catchline-purge-storage`, every 10 min) as the 24 h backstop and `clip_deletions` as the audit log.
+- Proven by `supabase/tests/{rls,caps,purge,pipeline,plan_sync,coach_link}_test.sql`, which switch into `authenticated` / `anon` with `request.jwt.claims` and assert real row counts. Keep them green.
+- **Never rely on default privileges — state grants AND revokes explicitly.** Stock Supabase grants `anon`+`authenticated` ALL on every new table via default ACLs (the Parallax 0036 lesson). Every table starts from `revoke all` and grants back only what the client needs; RLS still gates rows.
+- Realtime needs the table in `supabase_realtime` (`lifts`, `analyses` today).
+- `service_role` / secrets never ship in the client — only `EXPO_PUBLIC_SUPABASE_URL` + anon key (`.env.local`, gitignored).
 
 ## Migrations & local dev
-- New schema → a new `00NN_*.sql` migration, **idempotent** (`if not exists`, `on conflict do nothing`); apply non-destructively with `supabase migration up` to preserve local dev data. Use `supabase db reset` only for a clean verify (it wipes data + re-seeds — the user must re-sign-up).
-- After agent psql verification, the local DB is dirty → `supabase db reset` before trusting `supabase test db`.
-- **Every `supabase db reset` MUST be followed by `./scripts/seed-test-user.sh`** — reset wipes the `test@parallax.app` login (it lives outside seed.sql) and the user hits a dead login screen. Treat reset+reseed as one step (Yash, 2026-07-08).
+- New schema → a new `00NN_*.sql` migration, **idempotent** (`if not exists`, `on conflict do nothing`, `drop policy if exists` before `create policy`).
+- After agent psql verification the local DB is dirty → `supabase db reset` before trusting `supabase test db`.
 
 ## supabase-js typing
 - Typed `.rpc()` / `.update()` sometimes infers args as `never` (a known supabase-js limitation with the generated `Database` generic). Use a single documented `// @ts-expect-error supabase-js typed ... resolves to never` — this is the established codebase pattern. **Never `as any`.**
-- Add new RPCs to `Database['public']['Functions']` and new tables to `Tables` in `src/types/db.ts`.
+- New RPCs go in `Database['public']['Functions']` and new tables in `Tables` in `src/types/db.ts`.
 
-## Demo / solo mode
-The daily loop is solo-testable: `sim_partner_submit` stands in for a real partner (auto-creates a demo "Dani" member_b) so a reveal completes alone. Feature hooks fall back to local Zustand/sample data when there's no session, so the un-authenticated demo never crashes. Mark any such stand-in with a `// SIM:` / `// GATE:` comment.
-
-## Gated (UI built, not live — need creds)
-Refocus AI (Anthropic edge fn), payments (RevenueCat), push (EAS + APNs/FCM), home widget (native). Build to the gate behind a labeled stub; don't fake a live transaction.
+## Dev mode
+Without `EXPO_PUBLIC_SUPABASE_URL` + `ANON_KEY` the repositories fall back to local fixture stores (`src/data/backend.ts` owns the switch), so the app runs without a backend.

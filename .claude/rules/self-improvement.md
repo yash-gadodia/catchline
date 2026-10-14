@@ -18,7 +18,7 @@ For any visible change, close the loop yourself — don't claim it looks right:
 
 1. Apply the change → reload (Metro Fast Refresh) or `npx expo export -p ios` to confirm it bundles.
 2. Screenshot the running sim: `xcrun simctl io booted screenshot /tmp/check.png` and **look at it**.
-3. Compare against the design source (`design_handoff_parallax/design_files/couples-*.jsx`) — spacing, type, color, animation.
+3. Compare against the design source (`~/dev/liftcheck-research/design/` (`Catchline Design System.dc.html`, `Catchline 02`..`09`)) — spacing, type, color, animation.
 4. Mismatch → fix → re-screenshot. Match → done.
 
 A build succeeding ≠ the screen looking right. Always view the pixels.

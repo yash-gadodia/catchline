@@ -9,10 +9,10 @@ Run the self-fixing UI loop from `.claude/rules/self-improvement.md` on whatever
 1. **Apply the change** (smallest edit that could fix it).
 2. **Reload**: Metro Fast Refresh picks up JS changes; run `npx expo export -p ios` to confirm it still bundles if routes/imports changed.
 3. **Screenshot the running simulator**: `xcrun simctl io booted screenshot /tmp/polish-check.png` — then **actually LOOK at the image** (Read it). A build succeeding is not evidence the screen looks right.
-4. **Compare against the design source**: `design_handoff_parallax/design_files/couples-*.jsx` — spacing, typography, color, alignment, animation.
+4. **Compare against the design source**: `~/dev/liftcheck-research/design/` (`Catchline Design System.dc.html`, `Catchline 02`..`09`) — spacing, typography, color, alignment, animation.
 5. Mismatch → adjust → back to step 2. Match → done. Show the user the final screenshot.
 
-If no simulator is running, get one up first (see `.claude/skills/preview/SKILL.md`: boot sim, Metro running, launch `com.anonymous.parallax`).
+If no simulator is running, get one up first (see `.claude/skills/preview/SKILL.md`: boot sim, Metro running, launch `com.yashgadodia.parallax`).
 
 ## React Native fidelity traps (see `.claude/rules/frontend.md` for the full list)
 

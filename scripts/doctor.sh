@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Health-check (and optionally auto-fix) the local dev environment.
-# Catches the things that have actually broken local dev: Docker/OrbStack down,
+# Catches the things that have actually broken local dev: Docker on the Mini down,
 # Supabase not running, and a stale .env (wrong Supabase URL or anon key).
 #
 # Usage:
@@ -13,13 +13,13 @@ FIX=0; [ "${1:-}" = "--fix" ] && FIX=1
 ok(){ echo "✅ $1"; }; warn(){ echo "⚠️  $1"; }; bad(){ echo "❌ $1"; }
 fixes=0
 
-# 1. Docker / OrbStack
-if docker ps >/dev/null 2>&1; then ok "Docker engine (OrbStack) running"; else
-  bad "Docker engine not running"
-  if [ $FIX -eq 1 ]; then echo "   → launching OrbStack…"; open -a OrbStack
-    for i in $(seq 1 30); do docker ps >/dev/null 2>&1 && break; sleep 2; done
-    docker ps >/dev/null 2>&1 && { ok "OrbStack up"; fixes=$((fixes+1)); } || { bad "OrbStack didn't start — open it manually"; exit 1; }
-  else echo "   → fix: open -a OrbStack (or run with --fix)"; fi
+# 1. Docker on the Mac Mini (never on the laptop)
+MINI='export PATH=/opt/homebrew/bin:$PATH;'
+if ssh -o ConnectTimeout=5 mini "$MINI docker ps" >/dev/null 2>&1; then ok "Docker (colima) running on the Mini"; else
+  bad "Docker not reachable on the Mini (ssh mini docker ps)"
+  if [ $FIX -eq 1 ]; then echo "   → colima start on the Mini…"
+    ssh mini "$MINI colima start" >/dev/null 2>&1 && { ok "colima up on the Mini"; fixes=$((fixes+1)); } || { bad "colima didn't start — ssh mini and check"; exit 1; }
+  else echo "   → fix: ssh mini 'colima start' (or run with --fix)"; fi
 fi
 
 # 2. Supabase reachable on loopback

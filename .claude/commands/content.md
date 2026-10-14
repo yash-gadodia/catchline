@@ -1,6 +1,8 @@
 ---
-description: Add or edit daily-drop content (the user speaks plain English; Claude writes the SQL)
+description: Parallax only (archived) — add or edit daily-drop content. Does not apply to Catchline.
 ---
+
+> **Parallax only.** Catchline has no drops catalog; these tables and migrations exist only on `archive/parallax`. Do not use this command on `catchline`.
 
 Help the user add or change daily-drop content. They will describe prompts/themes in plain English — you handle all SQL, migrations, and verification. Never ask them to write SQL or run psql.
 
