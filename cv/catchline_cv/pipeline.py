@@ -7,6 +7,7 @@ import time
 import cv2
 import numpy as np
 
+from . import detect
 from . import movement as mv
 from . import outcome
 from . import rules
@@ -30,19 +31,38 @@ def mid(k, a, b):
     return (k[:, a] + k[:, b]) / 2
 
 
-def run(clip, out_json, assets_dir, asset_prefix, debug_dir, cache_dir, analysis_id, movement="snatch"):
-    t0 = time.time()
-    meta = probe(clip)
-    fps = meta["fps"]
+def load_pose(clip, cache_dir, two_pass=False):
     os.makedirs(cache_dir, exist_ok=True)
-    two_pass = movement == "kipping_hspu"
     cache = os.path.join(cache_dir, os.path.basename(clip) + (".2pass" if two_pass else "") + ".pose.pkl")
     if os.path.exists(cache):
         people, shape = pickle.load(open(cache, "rb")).values()
     else:
         people, shape = run_pose(clip, INFER_H, two_pass=two_pass)
         pickle.dump({"people": people, "shape": shape}, open(cache, "wb"))
-    people = strip_head(people)  # caches written before head points were dropped at the pose step
+    return strip_head(people), shape  # caches written before head points were dropped at the pose step
+
+
+def detect_movement(clip, cache_dir):
+    """Which barbell lift the clip shows (snatch, clean, jerk or unknown) and how sure, from the pose alone. It shares
+    the pose cache with run(), so a run that follows costs no second inference."""
+    people, _ = load_pose(clip, cache_dir)
+    k, _, _ = select_lifter(people)
+    world = to_world(k, camera_path(clip, people, INFER_H))
+    return detect.detect(world, probe(clip)["fps"], lifts=True)
+
+
+def stamp(res, out_json, det):
+    analysis = res if isinstance(res, dict) else res[0]
+    analysis["detectedMovement"] = {"movement": det["movement"], "confidence": det["confidence"]}
+    write(out_json, analysis)
+    return res
+
+
+def run(clip, out_json, assets_dir, asset_prefix, debug_dir, cache_dir, analysis_id, movement="snatch", detected=None):
+    t0 = time.time()
+    meta = probe(clip)
+    fps = meta["fps"]
+    people, shape = load_pose(clip, cache_dir, two_pass=movement == "kipping_hspu")
     t_pose = time.time() - t0
     H, W = shape[:2]
     n = len(people)
@@ -54,16 +74,17 @@ def run(clip, out_json, assets_dir, asset_prefix, debug_dir, cache_dir, analysis
             "failure": {"reason": reason, "message": message} | ({"frame": int(frame)} if frame is not None else {})})
 
     world = to_world(k, camera_path(clip, people, INFER_H))
+    det = detected or detect.detect(world, fps)
     ok, msg = mv.check(movement, mv.signals(world, fps))
     if not ok:
-        return fail("unsupported_movement", msg)
+        return stamp(fail("unsupported_movement", msg), out_json, det)
     ctx = {"clip": clip, "meta": meta, "people": people, "k": k, "ks": ks, "boxes": boxes, "fps": fps, "H": H, "W": W,
            "n": n, "out_json": out_json, "assets_dir": assets_dir, "asset_prefix": asset_prefix, "debug_dir": debug_dir,
            "analysis_id": analysis_id, "movement": movement, "fail": fail, "t0": t0, "t_pose": t_pose, "world": world}
     if movement == "snatch":
-        return run_snatch(ctx)
+        return stamp(run_snatch(ctx), out_json, det)
     from . import lifts
-    return lifts.run(ctx)
+    return stamp(lifts.run(ctx), out_json, det)
 
 
 def run_snatch(ctx):
