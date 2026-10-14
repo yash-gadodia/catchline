@@ -10,7 +10,7 @@ TODAY=$(date +%F)
 
 echo "catchline bot  $(date '+%a %d %b %H:%M')"
 [ -e "$HOME_DIR/STOP" ] && echo "STOPPED (rm $HOME_DIR/STOP to resume)" || echo "running"
-if launchctl list 2>/dev/null | grep -q com.catchline.bot.loop; then
+if launchctl list 2>/dev/null | grep com.catchline.bot.loop >/dev/null; then
   PID=$(launchctl list | awk '/com.catchline.bot.loop/ {print $1}')
   echo "loop agent: loaded (pid ${PID:--})"
 else
