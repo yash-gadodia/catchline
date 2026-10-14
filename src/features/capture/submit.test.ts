@@ -45,7 +45,7 @@ test('no saved clip: nothing is submitted', () => {
 });
 
 test('release build: a clip with no file goes back to capture, never to the fixture', async () => {
-  (global as { __DEV__: boolean }).__DEV__ = false;
+  (global as unknown as { __DEV__: boolean }).__DEV__ = false;
   try {
     useCapture.setState({ draft: newClip({ uri: null, durationS: 8, fps: 30, source: 'camera', movement: 'snatch' }) });
     usePurchases.setState({ tier: 'pull', period: 'annual' });
@@ -57,6 +57,6 @@ test('release build: a clip with no file goes back to capture, never to the fixt
     expect(mockNav.replace).toHaveBeenCalledWith('/capture');
     expect(mockNav.replace).not.toHaveBeenCalledWith(expect.objectContaining({ pathname: '/analysis/processing' }));
   } finally {
-    (global as { __DEV__: boolean }).__DEV__ = true;
+    (global as unknown as { __DEV__: boolean }).__DEV__ = true;
   }
 });

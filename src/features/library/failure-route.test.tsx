@@ -36,10 +36,10 @@ beforeEach(() => {
 // not have showed the design's "Snatch · 62.5 kg" header.
 describe('release build: a failed lift never falls back to the demo', () => {
   beforeEach(() => {
-    (global as { __DEV__: boolean }).__DEV__ = false;
+    (global as unknown as { __DEV__: boolean }).__DEV__ = false;
   });
   afterEach(() => {
-    (global as { __DEV__: boolean }).__DEV__ = true;
+    (global as unknown as { __DEV__: boolean }).__DEV__ = true;
   });
 
   it('Try again re-sends the saved clip', async () => {

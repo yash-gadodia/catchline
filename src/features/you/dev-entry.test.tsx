@@ -18,10 +18,10 @@ jest.mock('expo-router', () => {
 // link (catchline://dev, catchline://paywall/dev) and open every fixture state.
 describe('release build: the dev entries redirect home', () => {
   beforeEach(() => {
-    (global as { __DEV__: boolean }).__DEV__ = false;
+    (global as unknown as { __DEV__: boolean }).__DEV__ = false;
   });
   afterEach(() => {
-    (global as { __DEV__: boolean }).__DEV__ = true;
+    (global as unknown as { __DEV__: boolean }).__DEV__ = true;
   });
 
   it('/dev', async () => {

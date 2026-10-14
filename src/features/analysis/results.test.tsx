@@ -151,10 +151,10 @@ describe('bundled fixtures still open directly', () => {
 // the bundled demo snatch. In a release build that must never happen.
 describe('release build: a result route with no id never plays the demo', () => {
   beforeEach(() => {
-    (global as { __DEV__: boolean }).__DEV__ = false;
+    (global as unknown as { __DEV__: boolean }).__DEV__ = false;
   });
   afterEach(() => {
-    (global as { __DEV__: boolean }).__DEV__ = true;
+    (global as unknown as { __DEV__: boolean }).__DEV__ = true;
   });
 
   it.each([

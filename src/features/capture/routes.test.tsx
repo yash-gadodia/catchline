@@ -40,10 +40,10 @@ beforeEach(() => {
 // if it were the lifter's clip. In a release build they send the lifter back to capture.
 describe('release build: no draft means back to capture, never the sample', () => {
   beforeEach(() => {
-    (global as { __DEV__: boolean }).__DEV__ = false;
+    (global as unknown as { __DEV__: boolean }).__DEV__ = false;
   });
   afterEach(() => {
-    (global as { __DEV__: boolean }).__DEV__ = true;
+    (global as unknown as { __DEV__: boolean }).__DEV__ = true;
   });
 
   it('review: goes back to capture', async () => {
