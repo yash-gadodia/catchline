@@ -14,7 +14,8 @@ export default function MissRoute() {
     <MissScreen
       analysis={analysis}
       onBack={back}
-      onCompare={() => router.push({ pathname: '/analysis/compare', params: { fixture: analysis.id, mode: 'side' } })}
+      // Compare targets are fixture variants, not the lifter's history: dev preview only.
+      onCompare={__DEV__ ? () => router.push({ pathname: '/analysis/compare', params: { fixture: analysis.id, mode: 'side' } }) : undefined}
     />
   );
 }

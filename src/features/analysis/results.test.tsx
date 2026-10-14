@@ -9,16 +9,21 @@ import RevealRoute from '../../../app/analysis/reveal';
 import PlayerRoute from '../../../app/analysis/player';
 import MissRoute from '../../../app/analysis/miss';
 import ProcessingRoute from '../../../app/analysis/processing';
+import CompareRoute from '../../../app/analysis/compare';
+import { snatchMockMiss } from '../../analysis/fixtures';
 
 const params: { current: Record<string, string> } = { current: {} };
 
 jest.mock('expo-router', () => {
+  const React = require('react');
+  const { Text } = require('react-native');
   const r = { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true) };
   return {
     __esModule: true,
     router: r,
     useRouter: () => r,
     useLocalSearchParams: () => params.current,
+    Redirect: ({ href }: { href: string }) => React.createElement(Text, { testID: 'redirect' }, href),
   };
 });
 
@@ -129,6 +134,17 @@ describe('bundled fixtures still open directly', () => {
     expect(view.getByText(mock.cue.text)).toBeOnTheScreen();
     expect(db.from).not.toHaveBeenCalled();
   });
+
+  it('compare and its buttons stay available in a dev build', async () => {
+    params.current = { fixture: 'snatch-mock', mode: 'ghost' };
+    const compare = await render(<CompareRoute />);
+    expect(compare.queryByTestId('redirect')).toBeNull();
+    expect(compare.getByText('vs Your best · 65 kg · 18 Sep')).toBeOnTheScreen();
+
+    params.current = { fixture: 'snatch-mock' };
+    const player = await render(<PlayerRoute />);
+    expect(player.getByTestId('player-compare')).toBeOnTheScreen();
+  });
 });
 
 // Prod bug (14-10-2026, TestFlight): any result route reached without an id resolved to
@@ -162,6 +178,31 @@ describe('release build: a result route with no id never plays the demo', () => 
 
     expect(nav.replace).toHaveBeenCalledWith('/');
     expect(view.queryByText(mock.cue.text)).toBeNull();
+  });
+
+  // Compare's "Your best" / "Last session" are fixture variants of the demo snatch, not the
+  // lifter's history. Until it has real targets it is a dev preview only.
+  it('compare: redirects home even for a real lift', async () => {
+    putLiveAnalysis(parseAnalysis(serverAnalysis(liftId(5))));
+    params.current = { fixture: liftId(5), mode: 'ghost' };
+    const view = await render(<CompareRoute />);
+
+    expect(view.getByTestId('redirect')).toHaveTextContent('/');
+    expect(view.queryByText('vs Your best · 65 kg · 18 Sep')).toBeNull();
+  });
+
+  it('player and miss hide their Compare buttons', async () => {
+    putLiveAnalysis(parseAnalysis(serverAnalysis(liftId(6))));
+    params.current = { fixture: liftId(6) };
+    const player = await render(<PlayerRoute />);
+    expect(player.getByTestId('player-share')).toBeOnTheScreen();
+    expect(player.queryByTestId('player-compare')).toBeNull();
+
+    putLiveAnalysis({ ...snatchMockMiss, id: liftId(7) });
+    params.current = { fixture: liftId(7) };
+    const miss = await render(<MissRoute />);
+    expect(miss.getByTestId('miss-screen')).toBeOnTheScreen();
+    expect(miss.queryByTestId('miss-compare')).toBeNull();
   });
 
   it('the sample lift still opens, labelled as the sample', async () => {

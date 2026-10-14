@@ -17,7 +17,8 @@ export default function PlayerRoute() {
       analysis={analysis}
       initialFrame={frame ? Number(frame) : undefined}
       onBack={back}
-      onCompare={() => router.push({ pathname: '/analysis/compare', params: { fixture: analysis.id, mode: 'ghost' } })}
+      // Compare targets are fixture variants, not the lifter's history: dev preview only.
+      onCompare={__DEV__ ? () => router.push({ pathname: '/analysis/compare', params: { fixture: analysis.id, mode: 'ghost' } }) : undefined}
       onShare={() => {
         if (analysis.cue) Share.share({ message: analysis.cue.text });
       }}
