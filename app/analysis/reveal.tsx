@@ -1,11 +1,14 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { getAnalysis } from '../../src/analysis/fixtures';
+import { useAnalysis } from '../../src/analysis/useAnalysis';
+import AnalysisPlaceholder from '../../src/features/analysis/AnalysisPlaceholder';
 import RevealScreen from '../../src/features/analysis/RevealScreen';
 
 export default function Reveal() {
   const { fixture } = useLocalSearchParams<{ fixture?: string }>();
   const router = useRouter();
-  const analysis = getAnalysis(fixture);
+  const load = useAnalysis(fixture);
+  if (load.status !== 'ready') return <AnalysisPlaceholder status={load.status} onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))} />;
+  const analysis = load.analysis;
   return (
     <RevealScreen
       analysis={analysis}

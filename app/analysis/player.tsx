@@ -1,18 +1,22 @@
 import { Share } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { getAnalysis } from '../../src/analysis/fixtures';
+import { useAnalysis } from '../../src/analysis/useAnalysis';
+import AnalysisPlaceholder from '../../src/features/analysis/AnalysisPlaceholder';
 import PlayerScreen from '../../src/features/analysis/PlayerScreen';
 
 export default function PlayerRoute() {
   const { fixture, frame } = useLocalSearchParams<{ fixture?: string; frame?: string }>();
   const router = useRouter();
-  const analysis = getAnalysis(fixture);
+  const load = useAnalysis(fixture);
+  const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
+  if (load.status !== 'ready') return <AnalysisPlaceholder status={load.status} onBack={back} />;
+  const analysis = load.analysis;
   return (
     <PlayerScreen
       key={`${analysis.id}-${frame ?? ''}`}
       analysis={analysis}
       initialFrame={frame ? Number(frame) : undefined}
-      onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+      onBack={back}
       onCompare={() => router.push({ pathname: '/analysis/compare', params: { fixture: analysis.id, mode: 'ghost' } })}
       onShare={() => {
         if (analysis.cue) Share.share({ message: analysis.cue.text });

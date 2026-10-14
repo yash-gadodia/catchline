@@ -1,4 +1,5 @@
 import type { Analysis, Movement } from '../analysis/types';
+import { putLiveAnalysis } from '../analysis/live';
 import { keyFrameForPhase, repByIndex } from '../analysis/timeline';
 import { ensureSession, listAnalyses, listCues, listLifts } from '../lib/api';
 import type { CueRow, Lift as LiftRow } from '../types/db';
@@ -76,6 +77,7 @@ export async function syncLibrary(now: Date = new Date()): Promise<void> {
   await ensureSession();
   const [lifts, cues, analyses] = await Promise.all([listLifts(), listCues(), listAnalyses()]);
   const byLift = new Map(analyses.map((r) => [r.liftId, r.analysis]));
+  for (const r of analyses) putLiveAnalysis(r.analysis);
   const sessions = lifts
     .filter((l) => l.status === 'done' && byLift.get(l.id) && !byLift.get(l.id)?.failure)
     .map((l) => toSession(l, byLift.get(l.id) as Analysis))

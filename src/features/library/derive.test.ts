@@ -1,3 +1,5 @@
+import { snatchMockMiss } from '../../analysis/fixtures';
+import { putLiveAnalysis } from '../../analysis/live';
 import {
   activeCue,
   cueWindow,
@@ -78,6 +80,13 @@ describe('lift list', () => {
     expect(liftLink(lift('l-jerk'))).toEqual({ pathname: '/failure/[id]', params: { id: 'l-jerk' } });
     expect(liftLink(lift('l-mu'))).toEqual({ pathname: '/trends', params: { movement: 'bar_muscle_up' } });
     expect(liftLink(lift('l-snatch-queued'))).toBeNull();
+  });
+
+  it('opens a real lift by its lift id even before its analysis is in memory', () => {
+    const id = '0f4b6c2e-6f47-4c0a-9d3e-2a5b8c1d7e90';
+    expect(liftLink({ ...lift('l-snatch-today'), id, analysisId: id })).toEqual({ pathname: '/analysis/cue', params: { fixture: id } });
+    putLiveAnalysis({ ...snatchMockMiss, id });
+    expect(liftLink({ ...lift('l-snatch-today'), id, analysisId: id })).toEqual({ pathname: '/analysis/miss', params: { fixture: id } });
   });
 });
 

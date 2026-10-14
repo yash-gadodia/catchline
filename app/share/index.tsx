@@ -1,5 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { getAnalysis } from '../../src/analysis/fixtures';
+import { useAnalysis } from '../../src/analysis/useAnalysis';
+import AnalysisPlaceholder from '../../src/features/analysis/AnalysisPlaceholder';
 import { usePurchases } from '../../src/features/purchases/usePurchases';
 import { hasFeature } from '../../src/features/paywall/entitlements';
 import ShareScreen from '../../src/features/share/ShareScreen';
@@ -16,8 +17,10 @@ export default function ShareRoute() {
   const p = useLocalSearchParams<{ fixture?: string; type?: string; aspect?: string; state?: string; tier?: string }>();
   const router = useRouter();
   const isPro = usePurchases((s) => hasFeature(s.tier, 'watermarkFreeExport'));
-  const analysis = getAnalysis(p.fixture);
+  const load = useAnalysis(p.fixture);
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
+  if (load.status !== 'ready') return <AnalysisPlaceholder status={load.status} onBack={back} />;
+  const analysis = load.analysis;
   return (
     <ShareScreen
       key={`${analysis.id}-${p.type ?? ''}-${p.aspect ?? ''}-${p.state ?? ''}-${p.tier ?? ''}`}

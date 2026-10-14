@@ -110,10 +110,11 @@ export function liftLink(l: Lift): LiftLink | null {
   if (l.status === 'processing') return { pathname: '/analysis/processing', params: {} };
   if (l.status === 'failed') return { pathname: '/failure/[id]', params: { id: l.id } };
   if (l.status === 'queued') return null;
-  const analysis = l.analysisId ? ANALYSES[l.analysisId] : undefined;
-  if (!analysis) return { pathname: '/trends', params: { movement: l.movement } };
-  if (analysis.cue && analysis.reps.every((r) => !r.made)) return { pathname: '/analysis/miss', params: { fixture: analysis.id } };
-  return { pathname: '/analysis/cue', params: { fixture: analysis.id } };
+  if (!l.analysisId) return { pathname: '/trends', params: { movement: l.movement } };
+  // The cue route fetches by lift id when the analysis is not in memory yet.
+  const analysis = liveAnalysis(l.analysisId) ?? ANALYSES[l.analysisId];
+  if (analysis?.cue && analysis.reps.every((r) => !r.made)) return { pathname: '/analysis/miss', params: { fixture: l.analysisId } };
+  return { pathname: '/analysis/cue', params: { fixture: l.analysisId } };
 }
 
 // The newest analysed lift of each movement carries that movement's cue status.

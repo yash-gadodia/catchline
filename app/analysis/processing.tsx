@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { getAnalysis } from '../../src/analysis/fixtures';
 import { putLiveAnalysis } from '../../src/analysis/live';
+import { useAnalysis } from '../../src/analysis/useAnalysis';
 import type { Analysis, Failure } from '../../src/analysis/types';
 import ProcessingSheet, { EXPECTED_ANALYSIS_S, type ProcessingState } from '../../src/features/analysis/ProcessingSheet';
 import { registerPushToken } from '../../src/features/notifications';
@@ -31,7 +31,8 @@ function recordUsage() {
 
 function Processing({ params }: { params: Params }) {
   const router = useRouter();
-  const analysis = getAnalysis(params.fixture);
+  const load = useAnalysis(params.fixture);
+  const analysis = load.status === 'ready' ? load.analysis : null;
   const fixed = params.state;
   const [step, setStep] = useState(Number(params.step ?? 0));
   const [elapsed, setElapsed] = useState(Number(params.elapsed ?? 0));
@@ -67,7 +68,7 @@ function Processing({ params }: { params: Params }) {
         router.back();
       }}
       onKeepWaiting={() => setWaiting(true)}
-      onSee={() => router.replace({ pathname: '/analysis/reveal', params: { fixture: analysis.id } })}
+      onSee={() => analysis && router.replace({ pathname: '/analysis/reveal', params: { fixture: analysis.id } })}
     />
   );
 }
@@ -115,9 +116,17 @@ function LiveProcessing() {
 
   useEffect(() => {
     if (!liftId) return;
-    return subscribeToLift(liftId, {
-      onLift: (lift) => setStatus(lift.status as JobStatus),
+    // A new lift replaces the old subscription, but the old lift's analysis fetch
+    // may still be in flight: once cancelled, nothing from it may reach the sheet.
+    let cancelled = false;
+    setStatus(null);
+    setAnalysis(null);
+    const unsubscribe = subscribeToLift(liftId, {
+      onLift: (lift) => {
+        if (!cancelled) setStatus(lift.status as JobStatus);
+      },
       onAnalysis: (a, lift) => {
+        if (cancelled) return;
         if (!a || a.failure || lift.status === 'failed') {
           fail(lift.id, a?.failure?.reason ?? 'unknown');
           return;
@@ -127,8 +136,14 @@ function LiveProcessing() {
         syncLibrary().catch(() => undefined);
         setAnalysis(a);
       },
-      onError: () => fail(liftId, 'unknown'),
+      onError: () => {
+        if (!cancelled) fail(liftId, 'unknown');
+      },
     });
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
   }, [liftId]);
 
   useEffect(() => {

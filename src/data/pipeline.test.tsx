@@ -61,6 +61,7 @@ jest.mock('../lib/supabase', () => {
 const db = supabase as unknown as {
   rpc: jest.Mock;
   from: jest.Mock;
+  removeChannel: jest.Mock;
   storage: { from: jest.Mock };
   auth: { getSession: jest.Mock; signInAnonymously: jest.Mock };
 };
@@ -168,6 +169,36 @@ describe('capture → upload → processing → cue (backend mode)', () => {
     const cue = await render(<CueRoute />);
     expect(cue.getByTestId('cue-screen')).toBeOnTheScreen();
     expect(cue.getByText(mock.cue.text)).toBeOnTheScreen();
+  });
+
+  // Prod bug (14-10-2026): a second lift started while the first was still processing; the
+  // first lift's analysis arrived after the switch and the sheet showed it for the second lift.
+  it('ignores a late analysis from the previous lift after the job moves to a new one', async () => {
+    await submitClip(CLIP);
+    await settle();
+    params.current = { live: '1' };
+    const view = await render(<ProcessingRoute />);
+    await act(async () => {
+      channel.status?.('SUBSCRIBED');
+    });
+    const firstLiftChange = channel.change;
+
+    await act(async () => {
+      usePipeline.getState().patch({ liftId: 'lift-2', status: 'processing' });
+    });
+    expect(db.removeChannel).toHaveBeenCalledTimes(1);
+
+    analysisRow = { analysis: { ...mock, id: 'lift-1' } };
+    await act(async () => {
+      firstLiftChange?.({ new: { ...LIFT, status: 'done' } });
+    });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+
+    expect(view.queryByTestId('processing-done')).toBeNull();
+    expect(view.getByTestId('processing-progress')).toBeOnTheScreen();
+    expect(useUsage.getState().usage.lifetime).toBe(0);
   });
 
   it('shows the low-confidence cue when the worker is not sure', async () => {

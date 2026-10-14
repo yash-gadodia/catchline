@@ -42,8 +42,13 @@ describe('snatch mock fixture', () => {
     expect(last?.value).toBe(8);
   });
 
-  it('falls back to the mock for an unknown key', () => {
-    expect(getAnalysis('nope').id).toBe('snatch-mock');
-    expect(getAnalysis(['snatch-mock-low']).id).toBe('snatch-mock-low');
+  // Prod bug (14-10-2026): an unknown key used to fall back to the demo, so a real
+  // lift id the app had not loaded yet showed someone else's snatch.
+  it('never answers an unknown key with the demo; only no key at all is the demo', () => {
+    expect(getAnalysis('nope')).toBeUndefined();
+    expect(getAnalysis('0f4b6c2e-6f47-4c0a-9d3e-2a5b8c1d7e90')).toBeUndefined();
+    expect(getAnalysis(undefined)?.id).toBe('snatch-mock');
+    expect(getAnalysis(['snatch-mock-low'])?.id).toBe('snatch-mock-low');
+    expect(getAnalysis('snatch-sample')?.id).toBe('snatch-sample');
   });
 });
