@@ -76,6 +76,7 @@ function sdk() {
     purchasePackage: jest.fn(),
     restorePurchases: jest.fn(),
     logIn: jest.fn(),
+    logOut: jest.fn(async () => info({})),
     STORE_REPLACEMENT_MODE: { CHARGE_PRORATED_PRICE: 'CHARGE_PRORATED_PRICE', DEFERRED: 'DEFERRED' },
   };
 }
@@ -533,5 +534,27 @@ describe('adoptServerPlan', () => {
     mockGetAllowance.mockResolvedValue({ plan: 'pull' });
     expect(await usePurchases.getState().adoptServerPlan()).toBe(false);
     expect(usePurchases.getState().tier).toBe('free');
+  });
+});
+
+// Signing out of Apple: RevenueCat must forget the user too, or its next
+// customer-info refresh hands the paid plan back to the anonymous account.
+describe('signOut', () => {
+  it('resets the plan and logs RevenueCat out when a user was identified', async () => {
+    const Purchases = sdk();
+    mockLoadPurchases.mockReturnValue({ Purchases, RevenueCatUI: null });
+    usePurchases.setState({ appUserId: 'apple-1', tier: 'pull', period: 'annual', expiresAt: '2027-10-11T00:00:00Z', customerInfo: PULL_ANNUAL });
+    usePurchases.getState().signOut();
+    expect(usePurchases.getState()).toMatchObject({ appUserId: null, tier: 'free', period: null, expiresAt: null, customerInfo: null });
+    expect(Purchases.logOut).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not ask RevenueCat to log out an anonymous user', () => {
+    const Purchases = sdk();
+    mockLoadPurchases.mockReturnValue({ Purchases, RevenueCatUI: null });
+    usePurchases.setState({ appUserId: null, tier: 'pull' });
+    usePurchases.getState().signOut();
+    expect(usePurchases.getState().tier).toBe('free');
+    expect(Purchases.logOut).not.toHaveBeenCalled();
   });
 });

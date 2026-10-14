@@ -116,6 +116,8 @@ interface PurchasesState extends ActivePlan {
   restore: () => Promise<Tier>;
   /** The server's plan when it ranks above RevenueCat's; true when the server holds a paid plan. */
   adoptServerPlan: () => Promise<boolean>;
+  /** Back to a free, unidentified plan; RevenueCat forgets the user too. */
+  signOut: () => void;
   setDemoPlan: (tier: Tier, period?: Period | null) => void;
   setDemoOutcome: (outcome: PurchaseStatus) => void;
 }
@@ -229,6 +231,15 @@ export const usePurchases = create<PurchasesState>((set, get) => ({
     } catch {
       return false;
     }
+  },
+
+  // Left logged in, RevenueCat's next customer-info refresh would hand the
+  // signed-out user's plan back to the anonymous one this phone starts next.
+  signOut: () => {
+    const Purchases = liveSdk();
+    const identified = get().appUserId !== null;
+    set({ appUserId: null, customerInfo: null, tier: 'free', period: null, expiresAt: null });
+    if (Purchases && identified) Purchases.logOut().catch(() => undefined);
   },
 
   setDemoPlan: (tier, period = null) => set({ tier, period, expiresAt: null }),

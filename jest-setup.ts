@@ -320,6 +320,6 @@ jest.mock('./modules/clip-transcoder', () => ({
 // remove on cleanup); give it the real shape so screens that watch the
 // foreground unmount cleanly.
 beforeEach(() => {
-  const { AppState } = require('react-native');
-  (AppState.addEventListener as jest.Mock).mockImplementation(() => ({ remove: jest.fn() }));
+  const listen = require('react-native').AppState?.addEventListener as jest.Mock | undefined;
+  listen?.mockImplementation?.(() => ({ remove: jest.fn() }));
 });
