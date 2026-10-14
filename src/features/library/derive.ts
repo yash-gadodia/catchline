@@ -130,6 +130,22 @@ export function newestDone(lifts: Lift[]): Set<string> {
   return ids;
 }
 
+// Trends opens on the movement with the most analysed lifts; a tie goes to the
+// one lifted most recently.
+export function defaultMovement(sessions: Session[], fallback: Movement = 'snatch'): Movement {
+  const tally = new Map<Movement, { count: number; latest: Day }>();
+  for (const s of sessions) {
+    const t = tally.get(s.movement);
+    if (!t) tally.set(s.movement, { count: 1, latest: s.date });
+    else tally.set(s.movement, { count: t.count + 1, latest: s.date > t.latest ? s.date : t.latest });
+  }
+  let best: { movement: Movement; count: number; latest: Day } | undefined;
+  for (const [movement, t] of tally) {
+    if (!best || t.count > best.count || (t.count === best.count && t.latest > best.latest)) best = { movement, ...t };
+  }
+  return best?.movement ?? fallback;
+}
+
 export function latestCue(cues: CueRecord[], movement: Movement): CueRecord | undefined {
   return cues
     .filter((c) => c.movement === movement)
