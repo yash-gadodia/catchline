@@ -1,6 +1,7 @@
 import { Pressable, Text, View } from 'react-native';
 import type { Analysis } from '../../analysis/types';
 import { measurementReadout } from '../../analysis/format';
+import Btn from '../../components/Btn';
 import Sheet from '../../components/Sheet';
 import { colors } from '../../design/tokens';
 import { fontFamily } from '../../design/typography';
@@ -67,6 +68,9 @@ export default function WhyDrawer({ analysis, onClose }: { analysis: Analysis; o
             );
           })}
         </View>
+        <Btn kind="secondary" onPress={onClose} testID="why-close">
+          Close
+        </Btn>
       </Sheet>
     </View>
   );
