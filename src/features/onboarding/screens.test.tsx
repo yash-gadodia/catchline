@@ -1,4 +1,5 @@
 import { act, fireEvent, render } from '@testing-library/react-native';
+import { Linking } from 'react-native';
 import { snatchMock } from '../../analysis/fixtures';
 import AccountScreen, { ACCOUNT_COPY } from './AccountScreen';
 import CameraScreen from './CameraScreen';
@@ -166,5 +167,15 @@ describe('Privacy and consent', () => {
     expect(screen.getByTestId('consent-improve')).toBeChecked();
     await press(screen.getByTestId('privacy-continue'));
     expect(onContinue).toHaveBeenCalledWith(true);
+  });
+
+  it('opens the published privacy policy and terms', async () => {
+    const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+    const screen = await render(<PrivacyScreen initialImprove={false} onContinue={jest.fn()} />);
+    await press(screen.getByTestId('link-privacy'));
+    expect(open).toHaveBeenLastCalledWith('https://yash-gadodia.github.io/catchline/legal/privacy.html');
+    await press(screen.getByTestId('link-terms'));
+    expect(open).toHaveBeenLastCalledWith('https://yash-gadodia.github.io/catchline/legal/terms.html');
+    open.mockRestore();
   });
 });

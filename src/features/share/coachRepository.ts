@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { backendEnabled } from '../../data/backend';
 import { createCoachLink } from '../../lib/api';
+import { COACH_LINK_BASE } from '../../lib/links';
 
 export type CoachLink = {
   id: string;
@@ -32,7 +33,7 @@ export interface CoachRepository {
 }
 
 export const LINK_DAYS = 30;
-export const LINK_BASE = 'https://catchline.app/l/';
+export const LINK_BASE = COACH_LINK_BASE;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 

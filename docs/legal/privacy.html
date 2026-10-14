@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacy policy · Catchline</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: #000; color: #ECE7DF; }
+    body { font: 17px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+    main { max-width: 640px; margin: 0 auto; padding: 56px 24px 80px; }
+    header { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding-bottom: 20px; border-bottom: 1px solid #2E2E2E; margin-bottom: 36px; }
+    header a.brand { color: #ECE7DF; text-decoration: none; font-weight: 700; }
+    header nav a { color: #A39F97; text-decoration: none; margin-left: 16px; font-size: 15px; }
+    header nav a:hover { color: #ECE7DF; }
+    h1 { font-size: 34px; line-height: 1.15; letter-spacing: -0.02em; margin: 0 0 8px; font-weight: 700; }
+    h2 { font-size: 20px; line-height: 1.3; margin: 40px 0 10px; font-weight: 700; }
+    p { margin: 0 0 14px; }
+    ul { margin: 0 0 14px; padding-left: 20px; }
+    li { margin-bottom: 6px; }
+    a { color: #ECE7DF; text-decoration: underline; text-decoration-color: #FF1F3D; text-underline-offset: 3px; }
+    a:hover { color: #FF1F3D; }
+    .meta { color: #A39F97; font-size: 15px; margin-bottom: 28px; }
+    footer { margin-top: 64px; padding-top: 20px; border-top: 1px solid #2E2E2E; color: #6E6B65; font-size: 14px; }
+    footer a { color: #A39F97; text-decoration: none; margin-right: 16px; }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <a class="brand" href="../index.html">Catchline</a>
+      <nav><a href="terms.html">Terms</a><a href="../support.html">Support</a></nav>
+    </header>
+
+    <h1>Privacy policy</h1>
+    <p class="meta">Last updated 14 October 2026. Operator: Yash Gadodia, Singapore.</p>
+
+    <p>Catchline measures a short side-on video of one lift and returns one cue. This page says exactly what the app collects, what happens to your video, who touches it and how to delete everything. It describes what the app does today, not what it might do later.</p>
+
+    <h2>Your account</h2>
+    <p>You can use Catchline without creating an account, or sign in with Apple. Without sign-in, the app creates an anonymous account with a random ID the first time it talks to our server. With Sign in with Apple, we receive whatever Apple shares with us (an Apple user ID, and your name or a relay email address if you choose to share them). We never see your Apple password.</p>
+    <p>Your profile holds an optional display name, your plan, and a push notification token if you turn notifications on.</p>
+
+    <h2>What we collect</h2>
+    <ul>
+      <li><strong>The clip you send.</strong> The video you film or import, the movement you picked and the load you entered. The clip is uploaded once over an encrypted connection to a storage bucket the app can only write to, never read back.</li>
+      <li><strong>What we keep from the clip.</strong> Body positions as numbers (head keypoints are dropped before anything is stored), the bar or hip path, the measurements behind the cue, and five still frames per lift for the strobe and the evidence crop. People in the background of those stills are blurred.</li>
+      <li><strong>Cues and whether they stuck.</strong> Text and dates.</li>
+      <li><strong>Your consent choices.</strong> A log of what you agreed to in the app, with the version and the date.</li>
+      <li><strong>A usage count.</strong> How many videos you have analysed, so the free allowance and plan caps work.</li>
+      <li><strong>Purchases.</strong> Apple handles payment. RevenueCat tells our server which plan you are on, using your Catchline user ID as the customer ID. We never see your card or your Apple ID balance.</li>
+      <li><strong>Coach links.</strong> If you send a lift to a coach, we create a link token tied to that lift. Anyone holding the link can view that lift's result until it expires 30 days later. Coaches do not need an account.</li>
+      <li><strong>Basic usage events.</strong> When analytics is switched on for a build, the app reports app opens, sign-ups, paywall views, purchases, account deletions and crash messages to PostHog, keyed by a random ID stored on your phone. No advertising identifier, no tracking across other apps or sites, no ad network.</li>
+    </ul>
+
+    <h2>What we do with your video</h2>
+    <ul>
+      <li>A pose-estimation model on our analysis worker measures your joint positions and the bar position frame by frame. Head keypoints are discarded before storage. No face detection or face recognition model is used anywhere.</li>
+      <li>Rule tables written for weightlifting and gymnastics decide which fault matters most and which cue to show. The cue text comes from those rules. Your video, stills and measurements are not sent to any AI language model or to any AI vendor.</li>
+      <li>Five still frames are kept. Anyone in them who is not the lifter is blurred using their body outline, with a blur strong enough that the original cannot be recovered.</li>
+      <li>As soon as the analysis finishes (or finally fails), the worker deletes the original clip and records the deletion. A scheduled sweep runs every ten minutes and removes any clip older than 24 hours, so no original video outlives a day on our servers.</li>
+      <li>We never log, copy or store your clip anywhere else.</li>
+    </ul>
+    <p>The app offers an optional switch, "Let Catchline use my clips to improve accuracy". Today it only records your choice. It does not change what we keep: clips are still deleted on the same schedule. If we ever start keeping opted-in clips, we will update this policy first and ask you again in the app.</p>
+
+    <h2>Who processes your data</h2>
+    <ul>
+      <li><strong>Supabase</strong> hosts our database, authentication and file storage. The project is in Singapore.</li>
+      <li><strong>Our analysis worker</strong> runs on a machine we operate in Singapore. It is the only thing that reads your clip.</li>
+      <li><strong>Apple</strong> handles the App Store, in-app purchases and Sign in with Apple under Apple's own privacy policy.</li>
+      <li><strong>RevenueCat</strong> manages subscriptions and tells us which plan is active.</li>
+      <li><strong>Expo</strong> delivers push notifications. A notification carries only a title, a short line and the lift ID, never video or stills.</li>
+      <li><strong>PostHog</strong> (United States) receives the usage events described above, when analytics is switched on.</li>
+    </ul>
+    <p>No AI model vendor receives your data. We do not sell data and we do not share it with advertisers.</p>
+
+    <h2>How long we keep things</h2>
+    <ul>
+      <li>Original clip: until the analysis finishes, and at most 24 hours.</li>
+      <li>Positions, bar path, stills, cues and measurements: until you delete your account.</li>
+      <li>Consent log and usage count: while your account exists.</li>
+      <li>Purchase events: as long as needed to honour your plan and Apple's refund rules.</li>
+      <li>Coach links: 30 days, or until you delete your account.</li>
+    </ul>
+
+    <h2>Your choices</h2>
+    <ul>
+      <li><strong>Delete everything.</strong> In the app, go to You, then Delete account, and type DELETE. This erases your lifts, analyses, cues, stills, coach links, consent log and the account itself. Stills are swept from storage within 24 hours. An active subscription is cancelled separately in your App Store settings.</li>
+      <li><strong>Export your data.</strong> You, then What is stored, then Export all my data.</li>
+      <li><strong>Notifications.</strong> Turn them off in iOS Settings at any time.</li>
+      <li><strong>Improve accuracy switch.</strong> Change it any time in You, then What is stored.</li>
+      <li><strong>Questions or requests</strong> about your data: email us at the address below.</li>
+    </ul>
+
+    <h2>Children</h2>
+    <p>Catchline is not for anyone under 13, and the consent screen asks you to confirm you are over 16. The App Store rating is 4+ because the app shows nothing unsuitable, but we do not knowingly create accounts for children. If you believe a child has used Catchline, email us and we will delete the account.</p>
+
+    <h2>Changes</h2>
+    <p>When this policy changes we update the date at the top. If a change affects what happens to your clip, the app asks for your consent again before the next upload.</p>
+
+    <h2>Contact</h2>
+    <p>Yash Gadodia, Singapore<br><a href="mailto:pirsquare.yash+catchline@gmail.com">pirsquare.yash+catchline@gmail.com</a></p>
+
+    <footer>
+      <a href="../index.html">Catchline</a>
+      <a href="terms.html">Terms</a>
+      <a href="../support.html">Support</a>
+    </footer>
+  </main>
+</body>
+</html>

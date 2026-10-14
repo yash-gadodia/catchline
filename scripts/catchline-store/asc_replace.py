@@ -10,10 +10,10 @@ Stdlib only. The ES256 JWT is signed with the system `openssl` binary, using the
 Usage:
   scripts/catchline-store/asc_replace.py                        # dry run, all steps
   scripts/catchline-store/asc_replace.py --apply \\
-      --privacy-url https://catchline.io/privacy --support-url https://catchline.io/support \\
-      --marketing-url https://catchline.io --terms-url https://catchline.io/terms \\
-      --support-email hello@catchline.io --contact-first Yash --contact-last Gadodia --contact-phone +65... \\
-      --demo-email review@catchline.io            # password from env CATCHLINE_DEMO_PASSWORD
+      --privacy-url https://yash-gadodia.github.io/catchline/legal/privacy.html --support-url https://yash-gadodia.github.io/catchline/support.html \\
+      --marketing-url https://yash-gadodia.github.io/catchline/ --terms-url https://yash-gadodia.github.io/catchline/legal/terms.html \\
+      --support-email pirsquare.yash+catchline@gmail.com --contact-first Yash --contact-last Gadodia --contact-phone +65... \\
+      --demo-email <demo account>            # password from env CATCHLINE_DEMO_PASSWORD
   scripts/catchline-store/asc_replace.py --only preflight,iaps  # run a subset of steps
 """
 import argparse, base64, hashlib, json, os, pathlib, re, subprocess, sys, time, urllib.error, urllib.request
@@ -204,9 +204,9 @@ def listing_copy(args):
 
     description = us(block("Description"))
     if args.terms_url:
-        description = description.replace("https://catchline.io/terms", args.terms_url)
+        description = description.replace("https://yash-gadodia.github.io/catchline/legal/terms.html", args.terms_url)
     if args.privacy_url:
-        description = description.replace("https://catchline.io/privacy", args.privacy_url)
+        description = description.replace("https://yash-gadodia.github.io/catchline/legal/privacy.html", args.privacy_url)
     notes = block("App Review notes")
     notes = re.sub(r"^Email: \[DEMO_EMAIL\]\nPassword: \[DEMO_PASSWORD\]\n",
                    "Credentials are in the Sign-in information fields.\n", notes, flags=re.M)
