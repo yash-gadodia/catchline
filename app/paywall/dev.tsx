@@ -1,5 +1,5 @@
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import { useRouter, type Href } from 'expo-router';
+import { Redirect, useRouter, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, space } from '../../src/design/tokens';
 import { display, fontFamily } from '../../src/design/typography';
@@ -40,6 +40,7 @@ const NOW = new Date();
 export default function PaywallDev() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  if (!__DEV__) return <Redirect href="/" />;
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: colors.bg }}
