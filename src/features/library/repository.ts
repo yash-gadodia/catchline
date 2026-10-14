@@ -16,12 +16,13 @@ function persistCue(id: string, status: CueRecord['status']): void {
 
 export function useLibrary(): LibraryState {
   const today = useLibraryStore((s) => s.today);
+  const synced = useLibraryStore((s) => s.synced);
   const plan = useLibraryStore((s) => s.plan);
   const freeVideosUsed = useLibraryStore((s) => s.freeVideosUsed);
   const lifts = useLibraryStore((s) => s.lifts);
   const sessions = useLibraryStore((s) => s.sessions);
   const cues = useLibraryStore((s) => s.cues);
-  return { today, plan, freeVideosUsed, lifts, sessions, cues };
+  return { today, synced, plan, freeVideosUsed, lifts, sessions, cues };
 }
 
 export function useLift(id: string | undefined): Lift | undefined {

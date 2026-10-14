@@ -1,6 +1,6 @@
 import type { Lift as LiftRow } from '../types/db';
 import { FAILURE_COPY } from '../features/library/failures';
-import { toLift } from './library';
+import { dayOf, toCue, toLift } from './library';
 
 const row = (over: Partial<LiftRow>): LiftRow =>
   ({
@@ -37,5 +37,48 @@ describe('toLift for a lift the worker failed (no analysis row)', () => {
     const lift = toLift(row({ status: 'queued', error: 'unknown' }), undefined);
     expect(lift.status).toBe('queued');
     expect(lift.failure).toBeUndefined();
+  });
+});
+
+describe('toCue for a real cues row', () => {
+  const cueRow = {
+    id: '6c1d2e3f-0000-4000-8000-000000000001',
+    user_id: 'u1',
+    movement: 'snatch',
+    fault_id: 'jump_forward',
+    text: 'Land on the line you started on.',
+    why: 'Your feet landed 9 cm in front of where they started.',
+    status: 'trying',
+    sessions: 3,
+    first_lift_id: 'lift-1',
+    last_lift_id: 'lift-3',
+    created_at: '2026-10-10T02:00:00Z',
+    updated_at: '2026-10-13T02:00:00Z',
+  };
+
+  it('keeps the fault id as the metric, the why, the server session count and the lift span', () => {
+    const cue = toCue(cueRow, new Map());
+    expect(cue).toMatchObject({
+      id: cueRow.id,
+      movement: 'snatch',
+      metricId: 'jump_forward',
+      text: 'Land on the line you started on.',
+      why: 'Your feet landed 9 cm in front of where they started.',
+      status: 'trying',
+      sessionsDone: 3,
+      sessionsTarget: 6,
+      firstLiftId: 'lift-1',
+      lastLiftId: 'lift-3',
+      endedAt: undefined,
+    });
+    expect(cue.givenAt).toBe(dayOf('2026-10-10T02:00:00Z'));
+  });
+
+  it('dates the end of a cue that is no longer being tried and survives deleted lifts', () => {
+    const cue = toCue({ ...cueRow, status: 'stuck', first_lift_id: null, last_lift_id: null }, new Map());
+    expect(cue.status).toBe('stuck');
+    expect(cue.endedAt).toBe(dayOf('2026-10-13T02:00:00Z'));
+    expect(cue.before.image).toBe('');
+    expect(cue.after.image).toBe('');
   });
 });
