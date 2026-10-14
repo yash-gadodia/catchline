@@ -95,6 +95,17 @@ export function measuredMovements(sessions: Measured[]): Movement[] {
   return [...BARBELL, ...GYMNASTICS].filter((m) => seen.has(m));
 }
 
+// The movement with the most analysed lifts; ties go to the most recent session.
+export function defaultMovement(sessions: (Measured & { date: string })[], fallback: Movement = 'snatch'): Movement {
+  let best: { movement: Movement; count: number; latest: string } | null = null;
+  for (const m of measuredMovements(sessions)) {
+    const mine = sessions.filter((s) => s.movement === m);
+    const latest = mine.reduce((d, s) => (s.date > d ? s.date : d), '');
+    if (!best || mine.length > best.count || (mine.length === best.count && latest > best.latest)) best = { movement: m, count: mine.length, latest };
+  }
+  return best?.movement ?? fallback;
+}
+
 export const PRIMARY_METRIC: Record<Movement, string> = {
   snatch: 'bar_drift_hip',
   clean: 'bar_drift_hip',

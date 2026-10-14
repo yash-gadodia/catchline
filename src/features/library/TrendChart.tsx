@@ -63,7 +63,7 @@ export default function TrendChart({
           </G>
         ) : null}
         {all.map(({ point, label }) => (
-          <G testID="cue-marker" key={`m-${point.date}`}>
+          <G testID="cue-marker" key={`m-${point.x}`}>
             <Line x1={point.x} y1={8} x2={point.x} y2={height - 14} stroke={colors.flare} />
             {label ? (
               <SvgText x={point.x + 4} y={height - 4} fill={colors.text2} {...text}>
@@ -80,8 +80,8 @@ export default function TrendChart({
           strokeLinejoin="round"
           fill="none"
         />
-        {points.slice(0, -1).map((p) => (
-          <G key={p.date}>
+        {points.slice(0, -1).map((p, i) => (
+          <G key={i}>
             <Circle cx={p.x} cy={p.y} r={3} fill={colors.text} />
             <SvgText x={p.x} y={p.y - 8} textAnchor="middle" fill={colors.text2} {...text}>
               {fmt(p.value)}

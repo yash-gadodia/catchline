@@ -1,67 +1,72 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Line } from 'react-native-svg';
 import type { Movement } from '../../analysis/types';
 import { fmt, movementLabel, plural } from '../../analysis/format';
 import Segmented from '../../components/Segmented';
 import SmallCaps from '../../components/SmallCaps';
+import { backendEnabled } from '../../data/backend';
 import { colors, radius, space } from '../../design/tokens';
 import { display, fontFamily } from '../../design/typography';
-import { BARBELL, GYMNASTICS, METRICS, MOVEMENT_METRICS, PLURAL_MOVEMENT, PRIMARY_METRIC, SINGULAR_MOVEMENT } from './metrics';
-import { activeCue, bestOf, inRange, latestCue, metricText, seriesFor, shortDate, trendRecap, type Range } from './derive';
+import { defaultMovement, measuredMetrics, measuredMovements, metricFor, PLURAL_MOVEMENT, PRIMARY_METRIC, SINGULAR_MOVEMENT } from './metrics';
+import { bestOf, inRange, latestCue, metricText, seriesFor, shortDate, trendRecap, type Range } from './derive';
 import { useLibrary } from './repository';
+import { useRefresh } from './CuesScreen';
 import TrendChart from './TrendChart';
 import FadeRow from '../analysis/FadeRow';
 import { Chip, Frame, Title } from './ui';
 
-const MOVEMENTS: Movement[] = [...BARBELL, ...GYMNASTICS];
-
 export default function TrendsScreen({ initialMovement }: { initialMovement?: Movement }) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  const { sessions, cues, today } = useLibrary();
-  const [movement, setMovement] = useState<Movement>(initialMovement ?? activeCue(cues)?.movement ?? 'snatch');
+  const { sessions, cues, today, synced } = useLibrary();
+  const { refreshing, onRefresh } = useRefresh();
+  // Only movements the account has analysed lifts for; the one with the most lifts opens first.
+  const movements = measuredMovements(sessions);
+  const [movement, setMovement] = useState<Movement>(initialMovement ?? defaultMovement(sessions));
   const [menu, setMenu] = useState(false);
   const cueFor = latestCue(cues, movement);
-  const [metricId, setMetricId] = useState(cueFor?.metricId ?? MOVEMENT_METRICS[movement][0]);
+  const [metricId, setMetricId] = useState(cueFor?.metricId ?? '');
   const [range, setRange] = useState<Range>(30);
-  const chips = MOVEMENT_METRICS[movement];
-  const metric = METRICS[chips.includes(metricId) ? metricId : chips[0]];
+  const chips = measuredMetrics(sessions, movement);
+  const metric = metricFor(chips.includes(metricId) ? metricId : (chips[0] ?? PRIMARY_METRIC[movement]));
   const count = sessions.filter((s) => s.movement === movement).length;
+  const loading = backendEnabled() && !synced && sessions.length === 0;
 
   const pick = (m: Movement) => {
     setMovement(m);
     setMenu(false);
-    const cue = latestCue(cues, m);
-    setMetricId(cue && MOVEMENT_METRICS[m].includes(cue.metricId) ? cue.metricId : MOVEMENT_METRICS[m][0]);
+    setMetricId(latestCue(cues, m)?.metricId ?? '');
   };
 
-  const switcher = (
-    <Pressable
-      onPress={() => setMenu(!menu)}
-      testID="movement-switcher"
-      accessibilityRole="button"
-      style={{
-        height: 36,
-        paddingHorizontal: 12,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: space.s2,
-        borderWidth: 1,
-        borderColor: colors.text,
-        borderRadius: radius.control,
-      }}
-    >
-      <Text style={{ color: colors.text, fontFamily: fontFamily.bodyMedium, fontSize: 15, lineHeight: 20 }}>{movementLabel(movement)}</Text>
-      <Text style={{ color: colors.text2, fontFamily: fontFamily.bodyMedium, fontSize: 15, lineHeight: 20 }}>⌄</Text>
-    </Pressable>
-  );
+  const switcher =
+    movements.length > 0 ? (
+      <Pressable
+        onPress={() => setMenu(!menu)}
+        testID="movement-switcher"
+        accessibilityRole="button"
+        style={{
+          height: 36,
+          paddingHorizontal: 12,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: space.s2,
+          borderWidth: 1,
+          borderColor: colors.text,
+          borderRadius: radius.control,
+        }}
+      >
+        <Text style={{ color: colors.text, fontFamily: fontFamily.bodyMedium, fontSize: 15, lineHeight: 20 }}>{movementLabel(movement)}</Text>
+        <Text style={{ color: colors.text2, fontFamily: fontFamily.bodyMedium, fontSize: 15, lineHeight: 20 }}>⌄</Text>
+      </Pressable>
+    ) : null;
 
   const all = seriesFor(sessions, movement, metric.id);
   const visible = inRange(all, today, range);
   const best = bestOf(all, metric.id);
-  const pinned = bestOf(seriesFor(sessions, movement, PRIMARY_METRIC[movement]), PRIMARY_METRIC[movement]);
+  const pinnedId = chips.includes(PRIMARY_METRIC[movement]) ? PRIMARY_METRIC[movement] : metric.id;
+  const pinned = bestOf(seriesFor(sessions, movement, pinnedId), pinnedId);
   // One marker per cue started on this measurement, at the session it was given.
   const markers = cues
     .filter((c) => c.movement === movement && c.metricId === metric.id)
@@ -69,6 +74,22 @@ export default function TrendsScreen({ initialMovement }: { initialMovement?: Mo
     .filter((m) => m.index >= 0);
   const recap = trendRecap(metric.id, all, today, cueFor, sessions);
   const latest = visible[visible.length - 1];
+  const refresh = <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.text2} />;
+
+  const sparse = (headline: string, body: string, testID: string) => (
+    <ScrollView contentContainerStyle={{ flexGrow: 1 }} refreshControl={refresh} testID={testID}>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.s4, paddingHorizontal: space.gutter }}>
+        <Svg width={200} height={60}>
+          <Line x1={0} y1={50} x2={200} y2={50} stroke={colors.text} strokeDasharray="4 6" opacity={0.35} />
+          {count === 1 ? <Circle cx={40} cy={22} r={5} fill={colors.flare} /> : null}
+          <Circle cx={100} cy={30} r={3} stroke={colors.text3} strokeDasharray="2 2" fill="none" />
+          <Circle cx={160} cy={30} r={3} stroke={colors.text3} strokeDasharray="2 2" fill="none" />
+        </Svg>
+        <Text style={[display(32), { color: colors.text, textAlign: 'center' }]}>{headline}</Text>
+        <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21, textAlign: 'center' }}>{body}</Text>
+      </View>
+    </ScrollView>
+  );
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top + space.s3 }} testID="trends">
@@ -92,7 +113,7 @@ export default function TrendsScreen({ initialMovement }: { initialMovement?: Mo
             minWidth: 200,
           }}
         >
-          {MOVEMENTS.map((m) => (
+          {movements.map((m) => (
             <Pressable key={m} onPress={() => pick(m)} testID={`pick-${m}`} style={{ paddingVertical: 10, paddingHorizontal: space.s4 }}>
               <Text style={{ color: m === movement ? colors.text : colors.text2, fontFamily: fontFamily.bodyMedium, fontSize: 15, lineHeight: 20 }}>
                 {movementLabel(m)}
@@ -101,23 +122,20 @@ export default function TrendsScreen({ initialMovement }: { initialMovement?: Mo
           ))}
         </View>
       ) : null}
-      {count < 2 ? (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.s4, paddingHorizontal: space.gutter }} testID="trends-sparse">
-          <Svg width={200} height={60}>
-            <Line x1={0} y1={50} x2={200} y2={50} stroke={colors.text} strokeDasharray="4 6" opacity={0.35} />
-            {count === 1 ? <Circle cx={40} cy={22} r={5} fill={colors.flare} /> : null}
-            <Circle cx={100} cy={30} r={3} stroke={colors.text3} strokeDasharray="2 2" fill="none" />
-            <Circle cx={160} cy={30} r={3} stroke={colors.text3} strokeDasharray="2 2" fill="none" />
-          </Svg>
-          <Text style={[display(32), { color: colors.text, textAlign: 'center' }]}>
-            {count === 1 ? `One ${SINGULAR_MOVEMENT[movement]} so far.` : `No ${PLURAL_MOVEMENT[movement]} yet.`}
-          </Text>
-          <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21, textAlign: 'center' }}>
-            {count === 1 ? 'A trend needs two sessions. Film the next one and this fills in.' : 'Film one and it starts here. A trend needs two sessions.'}
-          </Text>
+      {loading ? (
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }} testID="trends-loading">
+          <ActivityIndicator color={colors.text2} />
         </View>
+      ) : movements.length === 0 && !initialMovement ? (
+        sparse('Film a lift and the trend starts here.', 'Trends need two lifts of the same movement.', 'trends-empty')
+      ) : count < 2 ? (
+        sparse(
+          count === 1 ? `One ${SINGULAR_MOVEMENT[movement]} so far.` : `No ${PLURAL_MOVEMENT[movement]} yet.`,
+          count === 1 ? 'Trends need two lifts of the same movement. Film the next one and this fills in.' : 'Film one and it starts here. Trends need two lifts of the same movement.',
+          'trends-sparse'
+        )
       ) : (
-        <ScrollView contentContainerStyle={{ paddingHorizontal: space.gutter, paddingBottom: space.s6 }}>
+        <ScrollView contentContainerStyle={{ paddingHorizontal: space.gutter, paddingBottom: space.s6 }} refreshControl={refresh}>
           <View style={{ gap: space.s4, paddingTop: space.s4 }}>
             {pinned ? (
               <View
@@ -131,7 +149,7 @@ export default function TrendsScreen({ initialMovement }: { initialMovement?: Mo
                     {[
                       pinned.session.loadKg != null ? `${fmt(pinned.session.loadKg)} kg` : null,
                       shortDate(pinned.date),
-                      `${METRICS[PRIMARY_METRIC[movement]].short} ${metricText(PRIMARY_METRIC[movement], pinned.value)}`,
+                      `${metricFor(pinnedId).short} ${metricText(pinnedId, pinned.value)}`,
                     ]
                       .filter(Boolean)
                       .join(' · ')}
@@ -142,7 +160,7 @@ export default function TrendsScreen({ initialMovement }: { initialMovement?: Mo
             <View style={{ marginHorizontal: -space.gutter }}>
             <FadeRow testID="metric-chips" contentContainerStyle={{ gap: 6, paddingHorizontal: space.gutter }}>
               {chips.map((id) => (
-                <Chip key={id} label={METRICS[id].label} height={36} selected={id === metric.id} onPress={() => setMetricId(id)} testID={`metric-${id}`} />
+                <Chip key={id} label={metricFor(id).label} height={36} selected={id === metric.id} onPress={() => setMetricId(id)} testID={`metric-${id}`} />
               ))}
             </FadeRow>
             </View>

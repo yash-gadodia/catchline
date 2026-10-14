@@ -200,13 +200,17 @@ describe('TrendsScreen', () => {
     expect(getByTestId('trend-hero')).toHaveTextContent('36°');
   });
 
-  it('switches movement and explains a trend needs two sessions', async () => {
-    const { getByTestId, getByText } = await render(<TrendsScreen />);
+  it('switches movement, lists only movements with lifts and explains a trend needs two', async () => {
+    const { getByTestId, getByText, queryByTestId } = await render(<TrendsScreen />);
     await press(getByTestId('movement-switcher'));
+    expect(queryByTestId('pick-jerk')).toBeNull();
     await press(getByTestId('pick-clean'));
     expect(getByText('One clean so far.')).toBeOnTheScreen();
-    await press(getByTestId('movement-switcher'));
-    await press(getByTestId('pick-jerk'));
+    expect(getByText('Trends need two lifts of the same movement. Film the next one and this fills in.')).toBeOnTheScreen();
+  });
+
+  it('a lift with no analysis still lands on its movement', async () => {
+    const { getByText } = await render(<TrendsScreen initialMovement="jerk" />);
     expect(getByText('No jerks yet.')).toBeOnTheScreen();
   });
 });
