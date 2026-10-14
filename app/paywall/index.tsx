@@ -7,7 +7,6 @@ import { getProofCues } from '../../src/features/paywall/proofCues';
 import { makePriceFor } from '../../src/features/paywall/storePrices';
 import { purchasePlan, storePlatform, useFoundingSeats } from '../../src/features/paywall/hooks';
 import { FOUNDING_SEATS_TOTAL } from '../../src/features/paywall/entitlements';
-import { useUsage } from '../../src/features/paywall/usageStore';
 import { submitDraft } from '../../src/features/capture/submit';
 import type { Phase } from '../../src/features/paywall/ui';
 
@@ -48,10 +47,7 @@ export default function PaywallRoute() {
       initialPhase={p.phase}
       priceFor={priceFor}
       purchase={purchasePlan}
-      onNotNow={() => {
-        if (p.clip) useUsage.getState().queueClip({ id: p.clip, movement });
-        back();
-      }}
+      onNotNow={back}
       onRestore={async () => {
         const tier = await usePurchases.getState().restore();
         if (tier !== 'free') back();

@@ -45,7 +45,7 @@ export default function PlayerScreen({
   analysis: Analysis;
   initialFrame?: number;
   onBack: () => void;
-  onCompare: () => void;
+  onCompare?: () => void;
   onShare: () => void;
 }) {
   const { width } = useWindowDimensions();
@@ -224,9 +224,11 @@ export default function PlayerScreen({
         ) : null}
       </View>
       <View style={{ flexDirection: 'row', gap: space.s2, paddingTop: space.s2, paddingHorizontal: space.gutter, paddingBottom: Math.max(insets.bottom, space.s4) }}>
-        <Btn kind="secondary" compact onPress={onCompare} style={{ flex: 1 }} testID="player-compare">
-          Compare
-        </Btn>
+        {onCompare ? (
+          <Btn kind="secondary" compact onPress={onCompare} style={{ flex: 1 }} testID="player-compare">
+            Compare
+          </Btn>
+        ) : null}
         <Btn kind="secondary" compact onPress={onShare} style={{ flex: 1 }} testID="player-share">
           Share
         </Btn>

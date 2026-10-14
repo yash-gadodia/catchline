@@ -15,7 +15,8 @@ type Params = { uri?: string; from?: string; movement?: string; fps?: string; du
 // Share-sheet entry (stub). A share extension hands the shared video over as
 // catchline://capture/share?uri=…&from=WhatsApp and lands straight on Review.
 // Native setup it still needs: src/features/capture/share-sheet.md.
-// With no uri it shows the design's sample (a WhatsApp HSPU clip).
+// With no uri a dev build shows the design's sample (a WhatsApp HSPU clip); a
+// release build has nothing to review and goes to capture.
 export default function ShareRoute() {
   const params = useLocalSearchParams<Params>();
   const router = useRouter();
@@ -29,7 +30,8 @@ export default function ShareRoute() {
 
   useEffect(() => {
     if (!params.uri) {
-      setDraft(demoClip('share'));
+      if (__DEV__) setDraft(demoClip('share'));
+      else router.replace('/capture');
       return;
     }
     if (!captureReady) return;

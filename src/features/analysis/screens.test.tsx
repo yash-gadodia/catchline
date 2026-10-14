@@ -102,6 +102,20 @@ describe('CueScreen', () => {
     expect(within(drawer).getByText('0.21 s · best 0.19')).toBeOnTheScreen();
   });
 
+  // Bot tester (14-10-2026): the "Why this?" sheet could not be dismissed. The scrim is the
+  // only way out and a tall sheet can cover it, so the sheet carries its own Close button.
+  it('the why drawer closes from its Close button and from the scrim', async () => {
+    const screen = await render(<CueScreen analysis={snatchMock} nav={nav} />);
+    await press(screen.getByText('Why this?'));
+    expect(screen.getByTestId('why-drawer')).toBeOnTheScreen();
+    await press(within(screen.getByTestId('why-drawer')).getByTestId('why-close'));
+    expect(screen.queryByTestId('why-drawer')).toBeNull();
+
+    await press(screen.getByText('Why this?'));
+    await press(screen.getByLabelText('Close'));
+    expect(screen.queryByTestId('why-drawer')).toBeNull();
+  });
+
   it('switches to the low-confidence layout with a dashed path', async () => {
     const { getByText, getByTestId } = await render(<CueScreen analysis={snatchMockLow} nav={nav} />);
     expect(getByText('Worth checking, not certain')).toBeOnTheScreen();

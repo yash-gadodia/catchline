@@ -41,7 +41,9 @@ export function toSubmission(clip: Clip, weight: string, units: Units): ClipSubm
 }
 
 // Analyse: the paywall gate first (the clip stays on the phone either way),
-// then the backend pipeline, or the bundled sample in dev mode.
+// then the backend pipeline, or the bundled sample in dev mode. A clip with no
+// file (the sample) only exists in dev builds; a release build goes back to
+// capture rather than play the fixture as the lifter's own lift.
 export async function submitClip(clip: ClipSubmission, opts: { replace?: boolean } = {}): Promise<void> {
   const go = opts.replace ? router.replace : router.push;
   const gate = nextClipGate();
@@ -49,6 +51,7 @@ export async function submitClip(clip: ClipSubmission, opts: { replace?: boolean
   if (gate === 'paywall') return go({ pathname: '/paywall', params });
   if (gate === 'cap') return go({ pathname: '/paywall/cap', params });
   if (gate === 'trial') return go('/paywall/funnel/trial');
+  if (!clip.uri && !__DEV__) return go('/capture');
   if (!backendEnabled() || !clip.uri) {
     go({ pathname: '/analysis/processing', params: { fixture: 'snatch-mock', count: '1' } });
     return;

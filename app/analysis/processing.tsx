@@ -17,11 +17,11 @@ const LONG_WAIT_MARGIN_S = 30;
 const LONG_WAIT_S = EXPECTED_ANALYSIS_S + LONG_WAIT_MARGIN_S;
 const QUEUE_POLL_MS = 10_000;
 
-type Params = { fixture?: string; state?: ProcessingState; step?: string; elapsed?: string; count?: string; live?: string };
+type Params = { fixture?: string; state?: ProcessingState; step?: string; elapsed?: string; count?: string; live?: string; lift?: string };
 
 export default function ProcessingRoute() {
   const params = useLocalSearchParams<Params>();
-  if (params.live === '1') return <LiveProcessing />;
+  if (params.live === '1') return <LiveProcessing lift={params.lift} />;
   return <Processing key={JSON.stringify(params)} params={params} />;
 }
 
@@ -37,6 +37,11 @@ function Processing({ params }: { params: Params }) {
   const [step, setStep] = useState(Number(params.step ?? 0));
   const [elapsed, setElapsed] = useState(Number(params.elapsed ?? 0));
   const [waiting, setWaiting] = useState(false);
+
+  // Nothing to play: no fixture in a release build. Home, never the demo.
+  useEffect(() => {
+    if (load.status === 'missing') router.replace('/');
+  }, [load.status]);
 
   useEffect(() => {
     if (fixed) return;
@@ -76,11 +81,12 @@ function Processing({ params }: { params: Params }) {
 const STEP_FOR: Record<JobStatus, number> = { preparing: 0, uploading: 0, queued: 1, processing: 2, done: 4, failed: 4 };
 
 // A real lift: upload progress from the pipeline job, then the lift row over
-// Realtime until the worker writes the Analysis.
-function LiveProcessing() {
+// Realtime until the worker writes the Analysis. `lift` names a lift opened
+// from the library (no job in memory after a relaunch).
+function LiveProcessing({ lift }: { lift?: string }) {
   const router = useRouter();
   const job = usePipeline((s) => s.job);
-  const liftId = job?.liftId ?? null;
+  const liftId = lift ?? job?.liftId ?? null;
   const [status, setStatus] = useState<JobStatus | null>(null);
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [elapsed, setElapsed] = useState(0);

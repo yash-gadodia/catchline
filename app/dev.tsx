@@ -1,5 +1,5 @@
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import { useRouter, type Href } from 'expo-router';
+import { Redirect, useRouter, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, space } from '../src/design/tokens';
 import { display, fontFamily } from '../src/design/typography';
@@ -9,6 +9,7 @@ import { FAILURE_REASONS } from '../src/features/library/failures';
 import { loadLibrary } from '../src/features/library/repository';
 
 // Dev entry (long-press the version on the You tab): opens every state with a fixture.
+// Dev builds only; a release build reaching it by deep link goes home.
 const ENTRIES: { label: string; href: string; library?: 'seeded' | 'empty' }[] = [
   { label: 'Lifts · populated', href: '/', library: 'seeded' },
   { label: 'Lifts · day one', href: '/', library: 'empty' },
@@ -42,6 +43,7 @@ const ENTRIES: { label: string; href: string; library?: 'seeded' | 'empty' }[] =
 export default function DevEntry() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  if (!__DEV__) return <Redirect href="/" />;
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: colors.bg }}

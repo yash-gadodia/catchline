@@ -16,7 +16,7 @@ export default function MissScreen({
 }: {
   analysis: Analysis;
   onBack: () => void;
-  onCompare: () => void;
+  onCompare?: () => void;
 }) {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -42,11 +42,13 @@ export default function MissScreen({
               {cue.why}
             </Text>
           </View>
-          <View style={{ paddingTop: space.s4, paddingHorizontal: space.gutter, paddingBottom: space.s7 }}>
-            <Btn onPress={onCompare} testID="miss-compare">
-              Compare with your make
-            </Btn>
-          </View>
+          {onCompare ? (
+            <View style={{ paddingTop: space.s4, paddingHorizontal: space.gutter, paddingBottom: space.s7 }}>
+              <Btn onPress={onCompare} testID="miss-compare">
+                Compare with your make
+              </Btn>
+            </View>
+          ) : null}
         </>
       ) : null}
     </View>

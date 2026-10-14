@@ -8,7 +8,8 @@ import { submitClip, toSubmission } from '../../src/features/capture/submit';
 import { useOnboarding } from '../../src/features/onboarding/store';
 import { colors } from '../../src/design/tokens';
 
-// Dev links: ?demo=ok|override|cutoff|share loads a sample clip.
+// Dev links: ?demo=ok|override|cutoff|share loads a sample clip (dev builds only).
+// In a release build no draft means nothing to review: back to capture.
 export default function ReviewRoute() {
   const { demo } = useLocalSearchParams<{ demo?: string }>();
   const router = useRouter();
@@ -16,6 +17,10 @@ export default function ReviewRoute() {
   const units = useOnboarding((s) => s.units);
 
   useEffect(() => {
+    if (!__DEV__) {
+      if (!draft) router.replace('/capture');
+      return;
+    }
     if (isDemoKind(demo)) setDraft(demoClip(demo));
     else if (!draft) setDraft(demoClip('ok'));
   }, [demo]);

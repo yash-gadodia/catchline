@@ -43,3 +43,20 @@ test('no saved clip: nothing is submitted', () => {
   expect(startLift).not.toHaveBeenCalled();
   expect(mockNav.replace).not.toHaveBeenCalled();
 });
+
+test('release build: a clip with no file goes back to capture, never to the fixture', async () => {
+  (global as unknown as { __DEV__: boolean }).__DEV__ = false;
+  try {
+    useCapture.setState({ draft: newClip({ uri: null, durationS: 8, fps: 30, source: 'camera', movement: 'snatch' }) });
+    usePurchases.setState({ tier: 'pull', period: 'annual' });
+
+    expect(submitDraft({ replace: true })).toBe(true);
+    await Promise.resolve();
+
+    expect(startLift).not.toHaveBeenCalled();
+    expect(mockNav.replace).toHaveBeenCalledWith('/capture');
+    expect(mockNav.replace).not.toHaveBeenCalledWith(expect.objectContaining({ pathname: '/analysis/processing' }));
+  } finally {
+    (global as unknown as { __DEV__: boolean }).__DEV__ = true;
+  }
+});

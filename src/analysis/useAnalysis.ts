@@ -37,6 +37,7 @@ export function useAnalysis(key?: string | string[]): AnalysisLoad {
   }, [id, known]);
 
   if (known) return { status: 'ready', analysis: known };
+  if (!id) return { status: 'missing' };
   if (!fetched || fetched.id !== id) return { status: 'loading' };
   if (fetched.analysis) return { status: 'ready', analysis: fetched.analysis };
   return { status: fetched.failed ? 'error' : 'missing' };

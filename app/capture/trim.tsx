@@ -10,7 +10,9 @@ export default function TrimRoute() {
   const router = useRouter();
   const { draft, setDraft } = useCapture();
   useEffect(() => {
-    if (!draft) setDraft(demoClip('ok'));
+    if (draft) return;
+    if (__DEV__) setDraft(demoClip('ok'));
+    else router.replace('/capture');
   }, []);
   if (!draft) return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
   const close = () => (router.canGoBack() ? router.back() : router.replace('/capture/review'));
