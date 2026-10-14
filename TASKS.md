@@ -59,8 +59,8 @@ Design source: `~/dev/liftcheck-research/design/` (Claude Design export; `Catchl
 - [x] Push when a lift finishes: worker POSTs to the Expo push API on done / failed (`worker/catchline_worker/push.py`, payload is title + body + `{ liftId }`, never media); "Notify me" awaits the token write; a tapped push opens the reveal or the failure screen (`routeForLift`). pgTAP proves `push_token` is owner-scoped. APNs key already on EAS (key `5KKY3JZJ3T`, team `P6QG53Y747`). Not yet proven on a real phone.
 - Note: `eas credentials` has no read-only or `--non-interactive` mode. Inspect iOS push keys without touching them via the Expo GraphQL API (`api.expo.dev/graphql`, header `expo-session` from `~/.expo/state.json`, query `app.byId(appId).iosAppCredentials { pushKey { keyIdentifier } }`).
 - [x] Purchases reach the server: RevenueCat app user id = Supabase user id; `revenuecat-webhook` (live) sets `profiles.plan` via `apply_plan`; app waits for the server plan after purchase/restore (ad93d8a, 9e36aa4, 9a023b6). Proven on hosted with a synthetic INITIAL_PURCHASE/EXPIRATION
-- [ ] (Yash) RevenueCat dashboard: Integrations → Webhooks, URL `https://slowxjhvrdswdabjfydk.supabase.co/functions/v1/revenuecat-webhook`, Authorization = `.secrets/catchline/revenuecat_webhook_auth.txt`, then send a test event
-- [ ] (Yash) RevenueCat secret API key (v1) into `.secrets/catchline/`, then (Claude) `sync-plan` edge function so the app need not wait on webhook latency
+- [x] (Yash) RevenueCat webhook created 14-10, test event answered 200 (TEST events are ignored by design, so revenuecat_events stays empty until a real purchase)
+- [ ] (Claude) v1 key saved 12-10 (rotate before launch: it was pasted in chat on 14-10); `sync-plan` edge function so the app need not wait on webhook latency
 - [ ] Founding refunds do not revoke the seat or plan (founding is permanent in `apply_plan`); consumable 10-packs not wired
 
 ## Polish pass (catchline-polish, 11 Oct)
