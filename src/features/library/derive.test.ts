@@ -8,6 +8,7 @@ import {
   bestOf,
   cueSeries,
   dayLabel,
+  defaultMovement,
   filterLifts,
   freeVideosLabel,
   groupByDay,
@@ -69,6 +70,12 @@ describe('lift list', () => {
     expect(liftDetail(lift('l-snatch-low'), lib.sessions)).toBe('possible · bar drifting at the knee');
     expect(liftDetail(lift('l-snatch-miss'), lib.sessions)).toBe('miss · the bar was out front at the turnover');
     expect(liftDetail({ ...lift('l-snatch-real'), analysisId: 'gone', headline: 'hip · 5 cm fwd' }, [])).toBe('hip · 5 cm fwd');
+  });
+
+  it('drops the "possible" qualifier when the row already carries the cue status line', () => {
+    expect(liftDetail(lift('l-snatch-low'), lib.sessions)).toBe('possible · bar drifting at the knee');
+    expect(liftDetail(lift('l-snatch-low'), lib.sessions, { cueShown: true })).toBe('drift 7 cm · best 2 cm');
+    expect(liftDetail(lift('l-snatch-miss'), lib.sessions, { cueShown: true })).toBe('miss · the bar was out front at the turnover');
   });
 
   it('opens each row in the right screen with the right fixture', () => {
@@ -157,5 +164,35 @@ describe('trendRecap', () => {
     expect(trendRecap('bar_drift_hip', series.slice(0, 3), '2026-10-11', { ...cue!, metricId: 'pull_time' }, lib.sessions)).toBe(
       'Bar drift at hip: 2 cm on 18 Sep. Your best yet.'
     );
+  });
+});
+
+describe('defaultMovement (what Trends opens on)', () => {
+  const session = (id: string, movement: 'snatch' | 'clean' | 'jerk', date: string) => ({ id, movement, date, values: {} });
+
+  it('is the movement with the most analysed lifts, not the newest one', () => {
+    const sessions = [
+      session('c1', 'clean', '2026-10-01'),
+      session('c2', 'clean', '2026-10-03'),
+      session('c3', 'clean', '2026-10-05'),
+      session('s1', 'snatch', '2026-10-12'),
+    ];
+    expect(defaultMovement(sessions)).toBe('clean');
+  });
+
+  it('breaks a tie by the most recent session', () => {
+    const sessions = [
+      session('c1', 'clean', '2026-10-01'),
+      session('s1', 'snatch', '2026-10-02'),
+      session('c2', 'clean', '2026-10-03'),
+      session('s2', 'snatch', '2026-10-04'),
+    ];
+    expect(defaultMovement(sessions)).toBe('snatch');
+    expect(defaultMovement([...sessions, session('c3', 'clean', '2026-09-20')])).toBe('clean');
+  });
+
+  it('falls back to snatch, or the given fallback, with nothing analysed', () => {
+    expect(defaultMovement([])).toBe('snatch');
+    expect(defaultMovement([], 'jerk')).toBe('jerk');
   });
 });

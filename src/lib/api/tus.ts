@@ -20,8 +20,14 @@ export type TusOptions = {
   onUploadUrl?: (url: string) => void;
   onProgress?: (sent: number, total: number) => void;
   fetchImpl?: typeof fetch;
+  // Chunks go over XMLHttpRequest when one exists (React Native), because fetch
+  // only reports a chunk once it is fully sent: a 12 MB clip would sit at 0% for
+  // the whole first 6 MB. Node (the e2e script) has no XHR and uses fetch.
+  xhrImpl?: new () => XMLHttpRequest;
   sleep?: (ms: number) => Promise<void>;
 };
+
+type Reply = { status: number; header: (k: string) => string | null; text: () => Promise<string> };
 
 export class TusError extends Error {
   status: number;
@@ -39,6 +45,24 @@ function encodeMetadata(metadata: Record<string, string>): string {
 }
 
 const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+function patchXhr(
+  Xhr: new () => XMLHttpRequest,
+  url: string,
+  headers: Record<string, string>,
+  body: Blob | Uint8Array<ArrayBuffer>,
+  onSent: (bytes: number) => void
+): Promise<Reply> {
+  return new Promise((resolve, reject) => {
+    const xhr = new Xhr();
+    xhr.open('PATCH', url);
+    for (const [k, v] of Object.entries(headers)) xhr.setRequestHeader(k, v);
+    xhr.upload.onprogress = (e) => onSent(e.loaded);
+    xhr.onload = () => resolve({ status: xhr.status, header: (k) => xhr.getResponseHeader(k), text: async () => xhr.responseText });
+    xhr.onerror = () => reject(new Error('network'));
+    xhr.send(body);
+  });
+}
 
 export async function tusUpload(o: TusOptions): Promise<string> {
   const doFetch = o.fetchImpl ?? fetch;
@@ -79,27 +103,35 @@ export async function tusUpload(o: TusOptions): Promise<string> {
     o.onUploadUrl?.(url);
   }
 
+  const Xhr = o.xhrImpl ?? (o.fetchImpl || typeof XMLHttpRequest === 'undefined' ? undefined : XMLHttpRequest);
+  let reported = -1;
+  const report = (sent: number) => {
+    if (sent <= reported) return;
+    reported = sent;
+    o.onProgress?.(sent, total);
+  };
+
   let failures = 0;
   while (offset < total) {
-    const body = o.file.slice(offset, Math.min(offset + chunk, total));
-    let res: Response | null = null;
+    const end = Math.min(offset + chunk, total);
+    const body = o.file.slice(offset, end);
+    const headers = { ...base, 'Upload-Offset': String(offset), 'Content-Type': 'application/offset+octet-stream' };
+    const from = offset;
+    let res: Reply | null = null;
     try {
-      res = await doFetch(url, {
-        method: 'PATCH',
-        headers: {
-          ...base,
-          'Upload-Offset': String(offset),
-          'Content-Type': 'application/offset+octet-stream',
-        },
-        body,
-      });
+      if (Xhr) {
+        res = await patchXhr(Xhr, url, headers, body, (sent) => report(Math.min(from + sent, end)));
+      } else {
+        const r = await doFetch(url, { method: 'PATCH', headers, body });
+        res = { status: r.status, header: (k) => r.headers.get(k), text: () => r.text() };
+      }
     } catch {
       res = null;
     }
     if (res && res.status === 204) {
-      offset = Number(res.headers.get('Upload-Offset'));
+      offset = Number(res.header('Upload-Offset'));
       failures = 0;
-      o.onProgress?.(offset, total);
+      report(offset);
       continue;
     }
     const status = res?.status ?? 0;

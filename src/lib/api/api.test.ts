@@ -1,4 +1,4 @@
-import { createLift, getAnalysis, liftsAhead, listLifts, subscribeToLift } from './lifts';
+import { createLift, getAnalysis, liftsAhead, listAnalyses, listLifts, subscribeToLift } from './lifts';
 import { listCues, updateCue } from './cues';
 import { createCoachLink } from './coach';
 import { deleteAccount, ensureSession, syncPlan } from './account';
@@ -156,6 +156,35 @@ describe('reads', () => {
     expect(mocked.storage.from).toHaveBeenCalledWith('keyframes');
     expect(createSignedUrls).toHaveBeenCalledWith(['u1/l1/r1-1-setup.jpg', 'u1/l1/r1-6-catch.jpg'], 3600);
     expect(a?.reps[0].keyFrames.map((k) => k.image)).toEqual(['http://signed/setup', 'http://signed/catch']);
+  });
+
+  it('listAnalyses drops a keyframe the signer refused instead of handing the app a bare storage path', async () => {
+    // Two cleans moved over by an account transfer: their stills sit under the old
+    // user folder. Storage signs what the caller may read and errors per path otherwise.
+    const old = {
+      ...ANALYSIS,
+      id: 'l0',
+      reps: [{ ...ANALYSIS.reps[0], keyFrames: [{ phase: 'catch', frame: 60, image: 'anon-1/l0/r1-6-catch.jpg' }] }],
+    };
+    mocked.from.mockReturnValue(
+      query({ data: [{ lift_id: 'l0', analysis: old }, { lift_id: 'l1', analysis: ANALYSIS }], error: null }).q
+    );
+    const createSignedUrls = jest.fn(async () => ({
+      data: [
+        { path: null, signedUrl: null, error: 'Object not found' },
+        { path: 'u1/l1/r1-1-setup.jpg', signedUrl: 'http://signed/setup' },
+        { path: 'u1/l1/r1-6-catch.jpg', signedUrl: 'http://signed/catch' },
+      ],
+      error: null,
+    }));
+    mocked.storage.from.mockReturnValue({ createSignedUrls });
+
+    const rows = await listAnalyses();
+
+    expect(createSignedUrls).toHaveBeenCalledWith(['anon-1/l0/r1-6-catch.jpg', 'u1/l1/r1-1-setup.jpg', 'u1/l1/r1-6-catch.jpg'], 3600);
+    expect(rows.map((r) => r.liftId)).toEqual(['l0', 'l1']);
+    expect(rows[0].analysis.reps[0].keyFrames[0].image).toBeUndefined();
+    expect(rows[1].analysis.reps[0].keyFrames.map((k) => k.image)).toEqual(['http://signed/setup', 'http://signed/catch']);
   });
 
   it('getAnalysis is null before the worker has written one', async () => {

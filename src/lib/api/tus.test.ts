@@ -63,6 +63,62 @@ describe('tusUpload', () => {
     expect(calls[2].headers['Upload-Offset']).toBe('10');
   });
 
+  it('reports bytes sent inside a chunk over XHR upload progress, capped at the chunk end, never repeating', async () => {
+    // Fetch only reports at chunk boundaries (0% -> 50% -> 100% on a 12 MB clip);
+    // React Native's XMLHttpRequest streams upload progress, so the app uses it.
+    let serverOffset = 0;
+    const sent: { method: string; size: number; headers: Record<string, string> }[] = [];
+    class FakeXhr {
+      status = 0;
+      responseText = '';
+      upload: { onprogress: ((e: { loaded: number; total: number }) => void) | null } = { onprogress: null };
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      private method = '';
+      private headers: Record<string, string> = {};
+      private offset = 0;
+      open(method: string) {
+        this.method = method;
+      }
+      setRequestHeader(k: string, v: string) {
+        this.headers[k] = v;
+      }
+      getResponseHeader(k: string) {
+        return k === 'Upload-Offset' ? String(this.offset) : null;
+      }
+      send(body: Blob) {
+        sent.push({ method: this.method, size: body.size, headers: this.headers });
+        this.upload.onprogress?.({ loaded: Math.min(4, body.size), total: body.size });
+        this.upload.onprogress?.({ loaded: Math.min(8, body.size), total: body.size });
+        this.upload.onprogress?.({ loaded: body.size + 3, total: body.size }); // base64 overshoot: must be capped
+        serverOffset += body.size;
+        this.offset = serverOffset;
+        this.status = 204;
+        this.onload?.();
+      }
+    }
+    const { calls, fetchImpl } = fakeServer((): Reply => ({ status: 201, headers: { Location: '/storage/v1/upload/resumable/abc' } }));
+    const progress: number[] = [];
+    const url = await tusUpload({
+      ...base,
+      fetchImpl,
+      xhrImpl: FakeXhr as unknown as new () => XMLHttpRequest,
+      onProgress: (s, total) => {
+        expect(total).toBe(25);
+        progress.push(s);
+      },
+    });
+
+    expect(url).toBe('http://localhost:55421/storage/v1/upload/resumable/abc');
+    expect(calls.map((c) => c.method)).toEqual(['POST']);
+    expect(sent.map((c) => `${c.method}:${c.size}`)).toEqual(['PATCH:10', 'PATCH:10', 'PATCH:5']);
+    expect(sent[1].headers['Upload-Offset']).toBe('10');
+    expect(sent[1].headers['Content-Type']).toBe('application/offset+octet-stream');
+    expect(sent[1].headers['Tus-Resumable']).toBe('1.0.0');
+    expect(sent[1].headers.authorization).toBe('Bearer user-jwt');
+    expect(progress).toEqual([4, 8, 10, 14, 18, 20, 24, 25]);
+  });
+
   it('resumes from the server offset when given a saved upload URL', async () => {
     const { calls, fetchImpl } = fakeServer((c): Reply => {
       if (c.method === 'HEAD') return { status: 200, headers: { 'Upload-Offset': '20' } };

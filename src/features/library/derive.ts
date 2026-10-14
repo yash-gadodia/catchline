@@ -84,13 +84,15 @@ export function bestOf<T extends { value: number }>(series: T[], metricId: strin
   return series.reduce((best, p) => ((lower ? p.value < best.value : p.value > best.value) ? p : best));
 }
 
-export function liftDetail(l: Lift, sessions: Session[]): string {
+// cueShown: the row already carries the cue status line ("Trying · …"), so the
+// low-confidence "possible · …" qualifier would repeat the cue on the same row.
+export function liftDetail(l: Lift, sessions: Session[], opts: { cueShown?: boolean } = {}): string {
   if (l.status === 'processing') return 'analysing · about 20 s';
   if (l.status === 'queued') return 'Queued · free videos used';
   if (l.status === 'failed') return l.failure?.message ?? "Couldn't analyse";
   const analysis = l.analysisId ? (liveAnalysis(l.analysisId) ?? ANALYSES[l.analysisId]) : undefined;
   if (analysis?.cue && analysis.reps.every((r) => !r.made)) return `miss · ${analysis.cue.text.toLowerCase()}`;
-  if (analysis?.cue && analysis.cue.confidence !== 'clear') return `possible · ${analysis.cue.text.toLowerCase()}`;
+  if (analysis?.cue && analysis.cue.confidence !== 'clear' && !opts.cueShown) return `possible · ${analysis.cue.text.toLowerCase()}`;
   const session = sessions.find((s) => s.liftId === l.id);
   const metricId = PRIMARY_METRIC[l.movement];
   const value = session?.values[metricId];
@@ -128,6 +130,22 @@ export function newestDone(lifts: Lift[]): Set<string> {
     ids.add(l.id);
   }
   return ids;
+}
+
+// Trends opens on the movement with the most analysed lifts; a tie goes to the
+// one lifted most recently.
+export function defaultMovement(sessions: Session[], fallback: Movement = 'snatch'): Movement {
+  const tally = new Map<Movement, { count: number; latest: Day }>();
+  for (const s of sessions) {
+    const t = tally.get(s.movement);
+    if (!t) tally.set(s.movement, { count: 1, latest: s.date });
+    else tally.set(s.movement, { count: t.count + 1, latest: s.date > t.latest ? s.date : t.latest });
+  }
+  let best: { movement: Movement; count: number; latest: Day } | undefined;
+  for (const [movement, t] of tally) {
+    if (!best || t.count > best.count || (t.count === best.count && t.latest > best.latest)) best = { movement, ...t };
+  }
+  return best?.movement ?? fallback;
 }
 
 export function latestCue(cues: CueRecord[], movement: Movement): CueRecord | undefined {

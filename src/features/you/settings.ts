@@ -51,8 +51,8 @@ export const REMINDER_TIMES = ['06:30', '07:30', '12:00', '17:30', '19:00'];
 
 export function reminderLabel(r: CueReminder): string {
   if (r.days.length === 0) return 'Off';
-  const days = [...r.days].sort((a, b) => a - b).map((d) => DAY_NAMES[d]);
-  return `${days.join(', ')} ${r.time}`;
+  const days = [...new Set(r.days)].sort((a, b) => a - b).map((d) => DAY_NAMES[d]);
+  return `${days.length === DAY_NAMES.length ? 'Every day' : days.join(', ')} · ${r.time}`;
 }
 
 export function settingLabels(s: Settings) {

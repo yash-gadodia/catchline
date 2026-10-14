@@ -100,12 +100,14 @@ export function CheckList({ results }: { results: CheckResult[] }) {
       {results.map((r) => (
         <View
           key={r.id}
-          testID={`check-${r.id}-${r.pass ? 'pass' : 'fail'}`}
+          testID={`check-${r.id}-${r.pass === null ? 'guide' : r.pass ? 'pass' : 'fail'}`}
           style={{ backgroundColor: colors.scrim, paddingVertical: 6, paddingHorizontal: 10, flexDirection: 'row', gap: 10 }}
         >
-          <Text style={{ color: r.pass ? colors.text : colors.flare, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>
-            {r.pass ? '✓' : '✕'}
-          </Text>
+          {r.pass === null ? null : (
+            <Text style={{ color: r.pass ? colors.text : colors.flare, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>
+              {r.pass ? '✓' : '✕'}
+            </Text>
+          )}
           <Text style={{ color: colors.text, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>{CHECK_LABEL[r.id]}</Text>
         </View>
       ))}
