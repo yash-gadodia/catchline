@@ -143,7 +143,7 @@ function LowConfidence({ analysis, nav }: { analysis: Analysis; nav: Nav }) {
         </Btn>
         <View style={{ alignItems: 'center' }}>
           <TextAction onPress={nav.onKeep ?? nav.onTry} testID="keep-anyway">
-            Keep it anyway
+            Analyse
           </TextAction>
         </View>
       </View>

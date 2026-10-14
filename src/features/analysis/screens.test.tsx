@@ -125,7 +125,7 @@ describe('CueScreen', () => {
     expect(getByText('dashed path = lower confidence')).toBeOnTheScreen();
     await press(getByText('Film another set'));
     expect(nav.onFilmAgain).toHaveBeenCalledTimes(1);
-    await press(getByText('Keep it anyway'));
+    await press(getByText('Analyse'));
     expect(nav.onTry).toHaveBeenCalledTimes(1);
   });
 });
