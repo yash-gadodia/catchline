@@ -9,7 +9,7 @@ import { submitClip, toSubmission } from '../../src/features/capture/submit';
 import { hasConsent, useHydrated, useOnboarding } from '../../src/features/onboarding/store';
 import { colors } from '../../src/design/tokens';
 
-// Dev link: ?demo=1 loads the design's long muscle-up clip without a picker.
+// Dev link: ?demo=1 loads the design's long muscle-up clip without a picker (dev builds only).
 export default function ImportRoute() {
   const { demo } = useLocalSearchParams<{ demo?: string }>();
   const router = useRouter();
@@ -24,7 +24,7 @@ export default function ImportRoute() {
 
   useEffect(() => {
     if (!hydrated) return;
-    if (demo === '1') {
+    if (__DEV__ && demo === '1') {
       setDraft(demoClip('import'));
       setReady(true);
       return;
