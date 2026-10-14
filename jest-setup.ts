@@ -179,8 +179,26 @@ jest.mock('expo-apple-authentication', () => ({
     Promise.resolve({ identityToken: 'apple-id-token', fullName: null, email: null })
   ),
   AppleAuthenticationScope: { FULL_NAME: 0, EMAIL: 1 },
-  AppleAuthenticationButton: () => null,
+  AppleAuthenticationButtonType: { SIGN_IN: 0, CONTINUE: 1, SIGN_UP: 2 },
+  AppleAuthenticationButtonStyle: { WHITE: 0, WHITE_OUTLINE: 1, BLACK: 2 },
+  AppleAuthenticationButton: ({ onPress, testID }: { onPress: () => void; testID?: string }) => {
+    const React = require('react');
+    const { Pressable, Text } = require('react-native');
+    return React.createElement(Pressable, { onPress, testID, accessibilityRole: 'button' },
+      React.createElement(Text, null, 'Continue with Apple'));
+  },
 }));
+// expo-crypto is native — back it with node's crypto so nonce tests assert real digests.
+jest.mock('expo-crypto', () => {
+  const nodeCrypto = require('crypto');
+  return {
+    __esModule: true,
+    CryptoDigestAlgorithm: { SHA256: 'SHA-256' },
+    getRandomBytes: (n: number) => new Uint8Array(nodeCrypto.randomBytes(n)),
+    digestStringAsync: (_alg: string, s: string) =>
+      Promise.resolve(nodeCrypto.createHash('sha256').update(s).digest('hex')),
+  };
+});
 jest.mock('expo-web-browser', () => ({
   __esModule: true,
   openAuthSessionAsync: jest.fn(() =>

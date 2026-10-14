@@ -1,6 +1,6 @@
 import { href, nextAfter, type FlowContext } from './flow';
 
-const fresh: FlowContext = { intent: 'film', guideHidden: false, camera: 'undetermined', consented: false, completed: false };
+const fresh: FlowContext = { intent: 'film', guideHidden: false, camera: 'undetermined', accountDecided: true, consented: false, completed: false };
 
 describe('first-run flow', () => {
   it('walks a new lifter through every step in design order', () => {
@@ -29,6 +29,18 @@ describe('first-run flow', () => {
     expect(nextAfter('camera', imp)).toEqual({ kind: 'step', step: 'privacy' });
     expect(nextAfter('privacy', { ...imp, consented: true })).toEqual({ kind: 'import' });
     expect(nextAfter('welcome', { ...imp, consented: true })).toEqual({ kind: 'import' });
+  });
+
+  it('offers an account after the camera and before consent, once, on both paths', () => {
+    const undecided = { ...fresh, accountDecided: false };
+    expect(nextAfter('camera', { ...undecided, camera: 'granted' })).toEqual({ kind: 'step', step: 'account' });
+    expect(nextAfter('guide', { ...undecided, camera: 'granted' })).toEqual({ kind: 'step', step: 'account' });
+    expect(nextAfter('account', undecided)).toEqual({ kind: 'step', step: 'privacy' });
+    expect(nextAfter('account', { ...undecided, consented: true, camera: 'granted' })).toEqual({ kind: 'capture' });
+    expect(nextAfter('welcome', { ...undecided, intent: 'import' })).toEqual({ kind: 'step', step: 'account' });
+    expect(nextAfter('account', { ...undecided, intent: 'import', consented: true })).toEqual({ kind: 'import' });
+    expect(nextAfter('launch', { ...undecided, completed: true, consented: true, camera: 'granted' })).toEqual({ kind: 'step', step: 'account' });
+    expect(href({ kind: 'step', step: 'account' }, 'import')).toBe('/onboarding/account?intent=import');
   });
 
   it('opens straight on the viewfinder after first run', () => {

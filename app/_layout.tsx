@@ -18,6 +18,7 @@ import { backendEnabled } from '../src/data/backend';
 import { syncLibrary } from '../src/data/library';
 import { liftIdFromResponse, registerPushToken, routeForLift } from '../src/features/notifications';
 import { init as initAnalytics, identify, reset, track, EVENTS } from '../src/lib/analytics';
+import { startAuthUserSync } from '../src/features/auth/authUser';
 
 export const unstable_settings = { initialRouteName: '(tabs)' };
 
@@ -52,6 +53,7 @@ export default function RootLayout() {
     usePurchases.getState().configure();
 
     if (!backendEnabled()) return;
+    const stopAuthUserSync = startAuthUserSync();
     syncLibrary().catch(() => undefined);
 
     supabase.auth.getSession().then(({ data }) => {
@@ -72,6 +74,7 @@ export default function RootLayout() {
 
     return () => {
       subscription.unsubscribe();
+      stopAuthUserSync();
     };
   }, []);
 

@@ -5,7 +5,6 @@ import {
   signInWithEmail,
   signUpWithEmail,
   signOut,
-  signInWithApple,
   signInWithGoogle,
   verifyEmailOtp,
   resendConfirmationEmail,
@@ -252,17 +251,6 @@ describe('Auth Actions', () => {
       } as any);
 
       await expect(signOut()).rejects.toThrow('Sign out failed');
-    });
-  });
-
-  describe('signInWithApple', () => {
-    it('exchanges the Apple identity token with Supabase', async () => {
-      mockSupabase.auth.signInWithIdToken.mockResolvedValue({ error: null } as any);
-      await signInWithApple();
-      expect(mockSupabase.auth.signInWithIdToken).toHaveBeenCalledWith({
-        provider: 'apple',
-        token: 'apple-id-token',
-      });
     });
   });
 

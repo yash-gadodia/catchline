@@ -15,18 +15,22 @@ export type Consent = {
   improveAccuracy: boolean;
 };
 
+export type AccountChoice = 'apple' | 'none';
+
 export type OnboardingState = {
   lifts: Movement[];
   focus: string[];
   units: Units;
   consent: Consent | null;
   guideHidden: boolean;
+  accountChoice: AccountChoice | null;
   completed: boolean;
   setLifts: (lifts: Movement[], focus: string[], units: Units) => void;
   setUnits: (units: Units) => void;
   acceptConsent: (improveAccuracy: boolean, now?: Date) => void;
   setImproveAccuracy: (on: boolean) => void;
   hideGuide: () => void;
+  setAccountChoice: (choice: AccountChoice | null) => void;
   complete: () => void;
   reset: () => void;
 };
@@ -37,6 +41,7 @@ const initial = {
   units: 'kg' as Units,
   consent: null as Consent | null,
   guideHidden: false,
+  accountChoice: null as AccountChoice | null,
   completed: false,
 };
 
@@ -53,6 +58,7 @@ export const useOnboarding = create<OnboardingState>()(
       setImproveAccuracy: (on) =>
         set((s) => (s.consent ? { consent: { ...s.consent, improveAccuracy: on } } : {})),
       hideGuide: () => set({ guideHidden: true }),
+      setAccountChoice: (accountChoice) => set({ accountChoice }),
       complete: () => set({ completed: true }),
       reset: () => set(initial),
     }),

@@ -1,4 +1,5 @@
 import { useRouter, type Href } from 'expo-router';
+import { backendEnabled } from '../../data/backend';
 import { useCameraPermission } from '../capture/camera';
 import { href, nextAfter, type FlowContext, type Intent, type Step } from './flow';
 import { hasConsent, useOnboarding } from './store';
@@ -16,6 +17,7 @@ export function useFlow(intent: Intent) {
       intent,
       guideHidden: s.guideHidden,
       camera: camera.status,
+      accountDecided: !backendEnabled() || s.accountChoice !== null,
       consented: hasConsent(s.consent),
       completed: s.completed,
       ...override,

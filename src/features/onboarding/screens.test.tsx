@@ -1,5 +1,6 @@
 import { act, fireEvent, render } from '@testing-library/react-native';
 import { snatchMock } from '../../analysis/fixtures';
+import AccountScreen, { ACCOUNT_COPY } from './AccountScreen';
 import CameraScreen from './CameraScreen';
 import GuideScreen, { GUIDE } from './GuideScreen';
 import LaunchScreen from './LaunchScreen';
@@ -122,6 +123,32 @@ describe('Camera permission', () => {
     await press(screen.getByText('Open Settings'));
     expect(onSettings).toHaveBeenCalledTimes(1);
     expect(screen.getByText('Import a clip')).toBeOnTheScreen();
+  });
+});
+
+describe('Account', () => {
+  it('offers Apple as the primary action and a quiet way to continue without one', async () => {
+    const onApple = jest.fn(() => Promise.resolve(true));
+    const onSkip = jest.fn();
+    const screen = await render(<AccountScreen onApple={onApple} onSkip={onSkip} />);
+    expect(screen.getByText('Keep your lifts')).toBeOnTheScreen();
+    expect(screen.getByText('Keeps your lifts and your plan if you change phones.')).toBeOnTheScreen();
+    expect(screen.queryByTestId('account-failed')).toBeNull();
+    await press(screen.getByTestId('account-apple'));
+    expect(onApple).toHaveBeenCalledTimes(1);
+    await press(screen.getByTestId('account-skip'));
+    expect(onSkip).toHaveBeenCalledTimes(1);
+  });
+
+  it('says so when Apple sign-in fails, and stays quiet on a cancel', async () => {
+    const onApple = jest.fn((): Promise<boolean> => Promise.reject(new Error('bad nonce')));
+    const screen = await render(<AccountScreen onApple={onApple} onSkip={jest.fn()} />);
+    await press(screen.getByTestId('account-apple'));
+    expect(screen.getByTestId('account-failed')).toHaveTextContent(ACCOUNT_COPY.failed);
+    onApple.mockImplementation(() => Promise.resolve(false));
+    await press(screen.getByTestId('account-apple'));
+    expect(screen.queryByTestId('account-failed')).toBeNull();
+    expect(onApple).toHaveBeenCalledTimes(2);
   });
 });
 

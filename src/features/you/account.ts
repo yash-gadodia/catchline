@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { clearLiveAnalyses } from '../../analysis/live';
 import { backendEnabled, resetConsentSync } from '../../data/backend';
 import { deleteAccount as deleteRemoteAccount } from '../../lib/api';
+import { signOut as endSession } from '../auth/appleSignIn';
+import { NO_USER, useAuthUser, type AuthUser } from '../auth/authUser';
 import { useCapture } from '../capture/store';
 import { emptyLibrary } from '../library/seed';
 import { useLibraryStore } from '../library/store';
@@ -67,6 +69,7 @@ export function accountLine(a: Account): string {
 }
 
 export const ANONYMOUS_LINE = 'Anonymous on this phone';
+export const APPLE_LINE = 'Signed in with Apple';
 
 // With a backend the plan is the RevenueCat tier and the allowance is the usage
 // store's count against the tier's cap (the server enforces the real cap).
@@ -76,30 +79,38 @@ export function livePlanLabel(tier: LiveTier, usage: Usage, variant: Variant, no
   return `${TIER_NAME[tier]} · ${left} of ${MONTHLY_CAP[tier]} videos left this month`;
 }
 
-// What the You tab shows. name is null while the account is anonymous (no sign-in yet).
-export type AccountView = { name: string | null; line: string; plan: string; founding: boolean };
+// What the You tab shows. name is null while the account is anonymous, or when
+// Apple gave no name; anonymous is true until the lifter signs in with Apple.
+export type AccountView = { name: string | null; line: string; plan: string; founding: boolean; anonymous: boolean };
 
 function fixtureView(a: Account | null): AccountView | null {
-  return a ? { name: a.name, line: accountLine(a), plan: planLabel(a.plan), founding: isFounding(a.plan) } : null;
+  return a ? { name: a.name, line: accountLine(a), plan: planLabel(a.plan), founding: isFounding(a.plan), anonymous: false } : null;
 }
 
-function liveView(tier: LiveTier, usage: Usage, variant: Variant, now: Date): AccountView {
-  return { name: null, line: ANONYMOUS_LINE, plan: livePlanLabel(tier, usage, variant, now), founding: tier === 'founding' };
+function liveView(auth: AuthUser, tier: LiveTier, usage: Usage, variant: Variant, now: Date): AccountView {
+  return {
+    name: auth.anonymous ? null : auth.displayName,
+    line: auth.anonymous ? ANONYMOUS_LINE : APPLE_LINE,
+    plan: livePlanLabel(tier, usage, variant, now),
+    founding: tier === 'founding',
+    anonymous: auth.anonymous,
+  };
 }
 
 export function accountView(now: Date = new Date()): AccountView | null {
   if (!backendEnabled()) return fixtureView(useAccountStore.getState().account);
   const { usage, variant } = useUsage.getState();
-  return liveView(usePurchases.getState().tier, usage, variant, now);
+  return liveView(useAuthUser.getState(), usePurchases.getState().tier, usage, variant, now);
 }
 
 export function useAccountView(now: Date = new Date()): AccountView | null {
   const account = useAccountStore((s) => s.account);
+  const auth = useAuthUser();
   const tier = usePurchases((s) => s.tier);
   const usage = useUsage((s) => s.usage);
   const variant = useUsage((s) => s.variant);
   if (!backendEnabled()) return fixtureView(account);
-  return liveView(tier, usage, variant, now);
+  return liveView(auth, tier, usage, variant, now);
 }
 
 export type DataExport = {
@@ -142,17 +153,31 @@ export function createLocalAccountRepository(now: () => Date = () => new Date())
   };
 }
 
-// Everything this device remembers about the lifter, so the next launch starts
-// a fresh anonymous account from the first onboarding screen.
-export function forgetLocalData(): void {
-  useAccountStore.setState({ account: null });
-  useOnboarding.getState().reset();
+// Everything this device holds for the current account, so the next backend
+// call starts a fresh anonymous one (ensureSession). Onboarding answers stay;
+// the account step is offered again.
+export function leaveAccount(): void {
+  useAuthUser.setState(NO_USER);
+  useOnboarding.getState().setAccountChoice(null);
   resetConsentSync();
   useUsage.getState().reset();
   useCapture.setState({ draft: null, movement: 'snatch', lastWeight: '', originals: [] });
   usePurchases.setState({ appUserId: null, customerInfo: null, tier: 'free', period: null, expiresAt: null });
   clearLiveAnalyses();
   useLibraryStore.getState().load(emptyLibrary());
+}
+
+// Everything this device remembers about the lifter, so the next launch starts
+// a fresh anonymous account from the first onboarding screen.
+export function forgetLocalData(): void {
+  leaveAccount();
+  useAccountStore.setState({ account: null });
+  useOnboarding.getState().reset();
+}
+
+export async function signOutOfAccount(): Promise<void> {
+  await endSession();
+  leaveAccount();
 }
 
 export function createAccountRepository(now?: () => Date): AccountRepository {

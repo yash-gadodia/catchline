@@ -98,3 +98,11 @@ Design source: `~/dev/liftcheck-research/design/` (Claude Design export; `Catchl
 - Rejected because they change numbers: CoreML EP (MLProgram, 2x faster, keypoints move up to 8.7 px; the default CoreML format fails on YOLOX's NMS node), other ORT thread counts / EXTENDED optimisation (kernel choice changes keypoints by 0.4-8.7 px), batched RTMPose (slower and 5e-6 drift), videotoolbox decode (identical on sequential decode, but a `-ss` seek on the 1080p H.264 app clip returned a different frame), rawvideo keyframes instead of PNG (max diff 4).
 - The Mini itself: Spotlight (`mds_stores`, `mds`, `corespotlightd`, 8+ `mdworker_shared`) has averaged ~35% CPU for 3 days, plus `mediaanalysisd`, the OpenClaw gateway and the colima VM (7.9 GB); load average 50-60 on 10 cores while the 128-142 s jobs ran. (Yash) exclude `~/catchline-worker/tmp`, `~/.openclaw`, colima and the runner dirs from Spotlight, or `mdutil -i off` the data volume, before buying any more CPU.
 - `ssh mini '<cmd>'` is a zsh function that always exits 0 (SetProfile echo); use `command ssh mini` in until-loops.
+
+## Sign in with Apple (14 Oct, worktree branch off catchline)
+
+- [x] Native Sign in with Apple (nonce, id-token) + anonymous -> Apple transfer (0006) + onboarding account step + You tab sign in/out (Claude)
+- [ ] (Yash) `supabase db push` 0006 to the hosted project; new dev build (expo-crypto is a new native module)
+- [ ] (Claude) Apple token revocation on account deletion: Apple requires apps using Sign in with Apple to call the revoke endpoint when the user deletes their account; `supabase/functions/delete-account` does not do it yet (needs the Apple services key / client secret)
+- [ ] (Claude) Orphaned anonymous auth users after a transfer are never deleted (harmless, but they accumulate; Supabase's anonymous-user cleanup query or a cron)
+- [ ] (Claude) After a transfer the local usage store keeps the phone's count; the server's merged counter is what enforces the cap, so only the "N of 3 videos left" label can drift until the next launch
