@@ -3,12 +3,13 @@ import type { Movement } from '../../analysis/types';
 
 export type CheckId = 'whole_body' | 'side_on' | 'light';
 
-export type CheckResult = { id: CheckId; pass: boolean };
+// pass: null = no real check behind this item yet; it reads as guidance, no tick.
+export type CheckResult = { id: CheckId; pass: boolean | null };
 
 export const CHECK_LABEL: Record<CheckId, string> = {
   whole_body: 'Whole body in frame',
-  side_on: 'Side-on',
-  light: 'Light OK',
+  side_on: 'Film from the side',
+  light: 'Good light',
 };
 
 export const CHECK_HINT: Record<CheckId, string> = {
@@ -42,11 +43,11 @@ export interface FramingChecker {
   start(movement: Movement, onResults: (results: CheckResult[]) => void): () => void;
 }
 
-// TODO(on-device pose): replace with a frame-processor checker. Until then every
-// check reports passing so Record is never nagged by a guess.
+// TODO(on-device pose): replace with a frame-processor checker. Until then no
+// item claims a result: three ticks on a laptop pointed at a desk is a lie.
 export const stubChecker: FramingChecker = {
   start(_movement, onResults) {
-    onResults(CHECK_ORDER.map((id) => ({ id, pass: true })));
+    onResults(CHECK_ORDER.map((id) => ({ id, pass: null })));
     return () => {};
   },
 };
@@ -71,11 +72,11 @@ export function useFramingChecks(checker: FramingChecker, movement: Movement, ac
 }
 
 export function failing(results: CheckResult[]): CheckId[] {
-  return results.filter((r) => !r.pass).map((r) => r.id);
+  return results.filter((r) => r.pass === false).map((r) => r.id);
 }
 
 export function firstHint(results: CheckResult[]): string | null {
-  const id = CHECK_ORDER.find((c) => results.some((r) => r.id === c && !r.pass));
+  const id = CHECK_ORDER.find((c) => results.some((r) => r.id === c && r.pass === false));
   return id ? CHECK_HINT[id] : null;
 }
 

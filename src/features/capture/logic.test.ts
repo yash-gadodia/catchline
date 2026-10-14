@@ -57,6 +57,18 @@ describe('framing checks', () => {
     expect(hint).toBe(CHECK_HINT.whole_body);
   });
 
+  it('treats an unknown result (no real check yet) as neither failing nor a hint', () => {
+    const results = [
+      { id: 'whole_body' as const, pass: null },
+      { id: 'side_on' as const, pass: null },
+      { id: 'light' as const, pass: false },
+    ];
+    expect(failing(results)).toEqual(['light']);
+    expect(firstHint(results)).toBe(CHECK_HINT.light);
+    expect(failing(results.map((r) => ({ ...r, pass: null })))).toEqual([]);
+    expect(firstHint(results.map((r) => ({ ...r, pass: null })))).toBeNull();
+  });
+
   it('parses dev check params and drops unknown ids', () => {
     expect(parseChecks('side_on,nope,light')).toEqual(['side_on', 'light']);
     expect(parseChecks(undefined)).toEqual([]);

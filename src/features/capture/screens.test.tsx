@@ -64,17 +64,23 @@ describe('Viewfinder', () => {
     const { ui } = viewfinder({ checker: fixedChecker(['whole_body']) });
     const screen = await render(ui);
     expect(screen.getByTestId('check-whole_body-fail')).toHaveTextContent('✕Whole body in frame');
-    expect(screen.getByTestId('check-side_on-pass')).toHaveTextContent('✓Side-on');
-    expect(screen.getByTestId('check-light-pass')).toHaveTextContent('✓Light OK');
+    expect(screen.getByTestId('check-side_on-pass')).toHaveTextContent('✓Film from the side');
+    expect(screen.getByTestId('check-light-pass')).toHaveTextContent('✓Good light');
     expect(screen.getByTestId('check-hint')).toHaveTextContent(CHECK_HINT.whole_body);
     expect(screen.getByTestId('record-button')).toBeEnabled();
     expect(screen.getByTestId('fps-badge')).toHaveTextContent('30 fps');
     expect(screen.getByTestId('free-count')).toHaveTextContent('0 / 3');
   });
 
-  it('has no hint when every check passes', async () => {
+  it('shows the three items as plain guidance, no tick and no hint, while there is no real detection', async () => {
     const screen = await render(viewfinder().ui);
+    expect(screen.getByTestId('check-whole_body-guide')).toHaveTextContent(/^Whole body in frame$/);
+    expect(screen.getByTestId('check-side_on-guide')).toHaveTextContent(/^Film from the side$/);
+    expect(screen.getByTestId('check-light-guide')).toHaveTextContent(/^Good light$/);
+    expect(screen.queryByText('✓')).toBeNull();
+    expect(screen.queryByTestId('check-whole_body-pass')).toBeNull();
     expect(screen.queryByTestId('check-hint')).toBeNull();
+    expect(screen.getByTestId('record-button')).toBeEnabled();
   });
 
   it.each([
