@@ -94,8 +94,9 @@ export async function listLifts(opts: { limit?: number; before?: string } = {}):
 }
 
 /**
- * The lift's Analysis, with each keyframe's storage path swapped for a signed URL
- * the app can load. Null until the worker has written one.
+ * Each keyframe's storage path swapped for a signed URL the app can load. A path
+ * Storage refuses to sign (a per-path error, not a failed call) is dropped: a
+ * bare path handed to <Image> renders a black square.
  */
 async function withSignedKeyframes(analyses: Analysis[]): Promise<Analysis[]> {
   const paths = analyses.flatMap((a) => a.reps.flatMap((r) => r.keyFrames.map((k) => k.image))).filter((p): p is string => !!p);
@@ -108,7 +109,7 @@ async function withSignedKeyframes(analyses: Analysis[]): Promise<Analysis[]> {
     ...analysis,
     reps: analysis.reps.map((r) => ({
       ...r,
-      keyFrames: r.keyFrames.map((k) => ({ ...k, image: (k.image && byPath.get(k.image)) || k.image })),
+      keyFrames: r.keyFrames.map((k) => ({ ...k, image: k.image ? byPath.get(k.image) : undefined })),
     })),
   }));
 }
