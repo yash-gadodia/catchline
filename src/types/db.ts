@@ -38,6 +38,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_transfers: {
+        Row: {
+          created_at: string
+          from_user: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          from_user: string
+          token?: string
+        }
+        Update: {
+          created_at?: string
+          from_user?: string
+          token?: string
+        }
+        Relationships: []
+      }
       analyses: {
         Row: {
           analysis: Json
@@ -389,6 +407,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      begin_account_transfer: { Args: never; Returns: string }
+      complete_account_transfer: { Args: { p_token: string }; Returns: Json }
       apply_plan: {
         Args: {
           p_event_at: string
