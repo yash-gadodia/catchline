@@ -8,6 +8,7 @@ import { makePriceFor } from '../../src/features/paywall/storePrices';
 import { purchasePlan, storePlatform, useFoundingSeats } from '../../src/features/paywall/hooks';
 import { FOUNDING_SEATS_TOTAL } from '../../src/features/paywall/entitlements';
 import { useUsage } from '../../src/features/paywall/usageStore';
+import { submitDraft } from '../../src/features/capture/submit';
 import type { Phase } from '../../src/features/paywall/ui';
 
 // Paywall at video 4. The capture flow saves the clip first, then opens
@@ -55,7 +56,9 @@ export default function PaywallRoute() {
         const tier = await usePurchases.getState().restore();
         if (tier !== 'free') back();
       }}
-      onWatch={() => router.replace('/analysis/processing')}
+      onWatch={() => {
+        if (!submitDraft({ replace: true })) router.replace('/analysis/processing');
+      }}
     />
   );
 }

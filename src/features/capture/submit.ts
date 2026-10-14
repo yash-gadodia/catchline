@@ -1,8 +1,8 @@
 import { router } from 'expo-router';
 import type { Movement } from '../../analysis/types';
-import type { Units } from '../onboarding/store';
+import { useOnboarding, type Units } from '../onboarding/store';
 import type { CheckId } from './checks';
-import { activeTrim, type Clip, type ClipSource } from './store';
+import { activeTrim, useCapture, type Clip, type ClipSource } from './store';
 import type { Trim } from './trim';
 import { nextClipGate } from '../paywall/hooks';
 import { backendEnabled } from '../../data/backend';
@@ -42,16 +42,26 @@ export function toSubmission(clip: Clip, weight: string, units: Units): ClipSubm
 
 // Analyse: the paywall gate first (the clip stays on the phone either way),
 // then the backend pipeline, or the bundled sample in dev mode.
-export async function submitClip(clip: ClipSubmission): Promise<void> {
+export async function submitClip(clip: ClipSubmission, opts: { replace?: boolean } = {}): Promise<void> {
+  const go = opts.replace ? router.replace : router.push;
   const gate = nextClipGate();
   const params = { clip: `clip-${Date.now()}`, movement: clip.movement };
-  if (gate === 'paywall') return router.push({ pathname: '/paywall', params });
-  if (gate === 'cap') return router.push({ pathname: '/paywall/cap', params });
-  if (gate === 'trial') return router.push('/paywall/funnel/trial');
+  if (gate === 'paywall') return go({ pathname: '/paywall', params });
+  if (gate === 'cap') return go({ pathname: '/paywall/cap', params });
+  if (gate === 'trial') return go('/paywall/funnel/trial');
   if (!backendEnabled() || !clip.uri) {
-    router.push({ pathname: '/analysis/processing', params: { fixture: 'snatch-mock', count: '1' } });
+    go({ pathname: '/analysis/processing', params: { fixture: 'snatch-mock', count: '1' } });
     return;
   }
   startLift({ ...clip, uri: clip.uri });
-  router.push({ pathname: '/analysis/processing', params: { live: '1' } });
+  go({ pathname: '/analysis/processing', params: { live: '1' } });
+}
+
+// After a paywall or trial purchase: send the clip the lifter already picked.
+// Returns false when there is no saved clip (the paywall was opened elsewhere).
+export function submitDraft(opts: { replace?: boolean } = {}): boolean {
+  const { draft, lastWeight } = useCapture.getState();
+  if (!draft) return false;
+  void submitClip(toSubmission(draft, lastWeight, useOnboarding.getState().units), opts);
+  return true;
 }
