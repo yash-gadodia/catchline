@@ -23,3 +23,4 @@ Follow this for every coding task — scale the rigor to the task size. The user
 - Stay on the task in the current message; don't silently expand scope.
 - Pre-existing failures are not yours to fix mid-task — surface them, then proceed.
 - Delegate verbose operations (test runs, log analysis) to subagents to preserve context.
+- Subagents run only the tests they touched (`npx jest <path>`, `npx tsx scripts/check-all.ts <files>`); the main session runs the full gate (`npm run qa`) once, before landing. Several whole-repo gates at once swap the machine to a standstill.
