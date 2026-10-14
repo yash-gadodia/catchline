@@ -386,8 +386,8 @@ class Run:
                      ("demoAccountName", args.demo_email), ("demoAccountPassword", os.environ.get("CATCHLINE_DEMO_PASSWORD"))):
             if v:
                 want[k] = v
-        if args.demo_email:
-            want["demoAccountRequired"] = True
+        want["demoAccountRequired"] = bool(args.demo_email)
+
         if "demoAccountName" not in want:
             self.manual.append("Demo account: pass --demo-email and set CATCHLINE_DEMO_PASSWORD, or fill Sign-in information in ASC.")
         shown = ", ".join(k if k != "demoAccountPassword" else "demoAccountPassword (from env)" for k in want)
