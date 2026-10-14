@@ -1,4 +1,4 @@
-import { startLift, usePipeline } from './pipeline';
+import { startLift, uploadStep, usePipeline, type Job } from './pipeline';
 import type { ClipSubmission } from '../features/capture/submit';
 
 jest.mock('expo-file-system', () => ({ File: jest.fn() }));
@@ -79,5 +79,36 @@ describe('startLift when create_lift says cap_reached', () => {
     await startLift(SUB, read);
     expect(mockSyncPlan).not.toHaveBeenCalled();
     expect(usePipeline.getState().job).toMatchObject({ status: 'failed', error: 'consent_required' });
+  });
+});
+
+describe('uploadStep (the first processing line)', () => {
+  const job = (over: Partial<Job>): Job => ({
+    id: 'job-1',
+    movement: 'snatch',
+    status: 'uploading',
+    liftId: null,
+    prepared: 1,
+    sent: 0,
+    total: 0,
+    uploadUrl: null,
+    error: null,
+    maxS: null,
+    ...over,
+  });
+
+  it('maps the prepare fraction and the bytes sent to whole percentages', () => {
+    expect(uploadStep(job({ status: 'preparing', prepared: 0.42 }))).toEqual({ label: 'Preparing your clip', meta: 'preparing 42%' });
+    expect(uploadStep(job({ status: 'preparing', prepared: 0.995 }))).toEqual({ label: 'Preparing your clip', meta: 'preparing 100%' });
+    expect(uploadStep(job({ sent: 0, total: 12_582_912 }))).toEqual({ label: 'Uploading your clip', meta: 'uploading 0%' });
+    expect(uploadStep(job({ sent: 3_145_728, total: 12_582_912 }))).toEqual({ label: 'Uploading your clip', meta: 'uploading 25%' });
+    expect(uploadStep(job({ sent: 6_291_456 + 1_048_576, total: 12_582_912 }))).toEqual({ label: 'Uploading your clip', meta: 'uploading 58%' });
+    expect(uploadStep(job({ sent: 12_582_912, total: 12_582_912 }))).toEqual({ label: 'Uploading your clip', meta: 'uploading 100%' });
+  });
+
+  it('has no percentage before the file size is known, or once the lift is queued', () => {
+    expect(uploadStep(job({ total: 0 }))).toEqual({ label: 'Uploading your clip', meta: null });
+    expect(uploadStep(job({ status: 'queued', sent: 12_582_912, total: 12_582_912 }))).toEqual({ label: 'Uploading your clip', meta: null });
+    expect(uploadStep(null)).toEqual({ label: 'Uploading your clip', meta: null });
   });
 });
