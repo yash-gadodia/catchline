@@ -4,6 +4,7 @@ export {
   uploadLiftClip,
   enqueueLift,
   getLift,
+  liftsAhead,
   listLifts,
   getAnalysis,
   listAnalyses,

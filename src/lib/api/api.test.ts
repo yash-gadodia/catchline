@@ -1,4 +1,4 @@
-import { createLift, getAnalysis, listLifts, subscribeToLift } from './lifts';
+import { createLift, getAnalysis, liftsAhead, listLifts, subscribeToLift } from './lifts';
 import { listCues, updateCue } from './cues';
 import { createCoachLink } from './coach';
 import { ApiError } from './errors';
@@ -185,6 +185,19 @@ describe('writes', () => {
   it('createCoachLink surfaces lift_not_ready', async () => {
     mocked.rpc.mockResolvedValueOnce({ data: null, error: { message: 'lift_not_ready' } });
     await expect(createCoachLink('l1')).rejects.toEqual(new ApiError('lift_not_ready'));
+  });
+});
+
+describe('liftsAhead', () => {
+  it('asks the server how many lifts are queued before this one', async () => {
+    mocked.rpc.mockResolvedValueOnce({ data: 2, error: null });
+    expect(await liftsAhead('l1')).toBe(2);
+    expect(mocked.rpc).toHaveBeenCalledWith('lifts_ahead', { p_lift_id: 'l1' });
+  });
+
+  it('surfaces lift_not_found', async () => {
+    mocked.rpc.mockResolvedValueOnce({ data: null, error: { message: 'lift_not_found' } });
+    await expect(liftsAhead('l1')).rejects.toEqual(new ApiError('lift_not_found'));
   });
 });
 

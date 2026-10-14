@@ -4,15 +4,15 @@ paths: ["supabase/**", "src/lib/supabase.ts", "src/types/db.ts", "src/features/*
 
 # Supabase / data layer
 
-Backend is Supabase (Postgres + Auth + Storage + Realtime + pgmq/pg_cron). Migrations `supabase/migrations/0001..0004` (`0001_catchline_core`, `0002_lift_pipeline`, `0003_storage`, `0004_plan_sync`); the typed client is `src/lib/supabase.ts`; types in `src/types/db.ts`. Edge functions: `delete-account`, `revenuecat-webhook`.
+Backend is Supabase (Postgres + Auth + Storage + Realtime + pgmq/pg_cron). Migrations `supabase/migrations/0001..0005` (`0001_catchline_core`, `0002_lift_pipeline`, `0003_storage`, `0004_plan_sync`, `0005_lifts_ahead`); the typed client is `src/lib/supabase.ts`; types in `src/types/db.ts`. Edge functions: `delete-account`, `revenuecat-webhook`.
 
 > Local dev runs only on the **Mac Mini** (`ssh mini`, colima, ports 554xx), never the laptop. See `docs/catchline/BACKEND_SETUP.md` "Local run" for the exact `supabase start -x ...` line, then `supabase db reset` + `supabase test db`.
 
 ## RLS is the security backbone (don't bypass)
 - Tables: `profiles`, `consents`, `usage_counters`, `lifts`, `analyses`, `cues`, `coach_links`, `feature_flags`, `clip_deletions`, `revenuecat_events`. RLS is **owner-only** everywhere (`user_id = auth.uid()`); `feature_flags` is the shared read-only exception.
-- Clients never write status, counters, plan or analyses. **Caps, consent and job state are enforced server-side** in SECURITY DEFINER functions: `create_lift` (checks `consent_granted` + `lift_allowance`/`plan_cap`), `refund_lift`, `enqueue_lift`, `claim_lift_job` / `complete_lift_job` / `fail_lift_job` (worker), `create_coach_link` / `get_coach_link` / `save_coach_feedback` (the one cross-user path, token-gated), `delete_my_account`, `apply_plan` (service role, RevenueCat webhook), `founding_seats`, `mark_clip_deleted`, `purge_storage`. Clients call them via `supabase.rpc(...)`.
+- Clients never write status, counters, plan or analyses. **Caps, consent and job state are enforced server-side** in SECURITY DEFINER functions: `create_lift` (checks `consent_granted` + `lift_allowance`/`plan_cap`), `refund_lift`, `enqueue_lift`, `claim_lift_job` / `complete_lift_job` / `fail_lift_job` (worker), `create_coach_link` / `get_coach_link` / `save_coach_feedback` (the one cross-user path, token-gated), `delete_my_account`, `apply_plan` (service role, RevenueCat webhook), `founding_seats`, `lifts_ahead` (queue position), `mark_clip_deleted`, `purge_storage`. Clients call them via `supabase.rpc(...)`.
 - **Raw clips**: `raw-clips` bucket is write-only for the client (insert the one object its pending lift names); nobody but the service role reads it. Deleted after analysis, with `purge_storage` on pg_cron (`catchline-purge-storage`, every 10 min) as the 24 h backstop and `clip_deletions` as the audit log.
-- Proven by `supabase/tests/{rls,caps,purge,pipeline,plan_sync,coach_link}_test.sql`, which switch into `authenticated` / `anon` with `request.jwt.claims` and assert real row counts. Keep them green.
+- Proven by `supabase/tests/{rls,caps,purge,pipeline,plan_sync,coach_link,lifts_ahead}_test.sql`, which switch into `authenticated` / `anon` with `request.jwt.claims` and assert real row counts. Keep them green.
 - **Never rely on default privileges — state grants AND revokes explicitly.** Stock Supabase grants `anon`+`authenticated` ALL on every new table via default ACLs (the Parallax 0036 lesson). Every table starts from `revoke all` and grants back only what the client needs; RLS still gates rows.
 - Realtime needs the table in `supabase_realtime` (`lifts`, `analyses` today).
 - `service_role` / secrets never ship in the client — only `EXPO_PUBLIC_SUPABASE_URL` + anon key (`.env.local`, gitignored).

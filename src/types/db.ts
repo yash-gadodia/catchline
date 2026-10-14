@@ -504,6 +504,7 @@ export type Database = {
       founding_seats: { Args: never; Returns: Json }
       get_coach_link: { Args: { p_token: string }; Returns: Json }
       lift_allowance: { Args: never; Returns: Json }
+      lifts_ahead: { Args: { p_lift_id: string }; Returns: number }
       mark_clip_deleted: { Args: { p_lift_id: string }; Returns: undefined }
       plan_cap: {
         Args: { p_plan: string }

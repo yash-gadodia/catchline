@@ -72,6 +72,13 @@ export async function createLift(input: CreateLiftInput): Promise<Lift> {
   return enqueueLift(lift.id);
 }
 
+/** How many lifts, across all lifters, the single worker will take before this one. */
+export async function liftsAhead(liftId: string): Promise<number> {
+  const { data, error } = await supabase.rpc('lifts_ahead', { p_lift_id: liftId });
+  if (error) throw toApiError(error);
+  return data ?? 0;
+}
+
 export async function getLift(liftId: string): Promise<Lift | null> {
   const { data, error } = await supabase.from('lifts').select('*').eq('id', liftId).maybeSingle();
   if (error) throw toApiError(error);
