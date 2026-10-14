@@ -60,7 +60,7 @@ Design source: `~/dev/liftcheck-research/design/` (Claude Design export; `Catchl
 - Note: `eas credentials` has no read-only or `--non-interactive` mode. Inspect iOS push keys without touching them via the Expo GraphQL API (`api.expo.dev/graphql`, header `expo-session` from `~/.expo/state.json`, query `app.byId(appId).iosAppCredentials { pushKey { keyIdentifier } }`).
 - [x] Purchases reach the server: RevenueCat app user id = Supabase user id; `revenuecat-webhook` (live) sets `profiles.plan` via `apply_plan`; app waits for the server plan after purchase/restore (ad93d8a, 9e36aa4, 9a023b6). Proven on hosted with a synthetic INITIAL_PURCHASE/EXPIRATION
 - [x] (Yash) RevenueCat webhook created 14-10, test event answered 200 (TEST events are ignored by design, so revenuecat_events stays empty until a real purchase)
-- [ ] (Claude) v1 key saved 12-10 ; `sync-plan` edge function so the app need not wait on webhook latency
+- [x] `sync-plan` edge function (live 14-10, secret `REVENUECAT_SECRET_KEY`): the app syncs the plan from RevenueCat when the webhook is missed or slow (after purchase/restore, on launch when RevenueCat ranks above the server, and on `cap_reached` for a paid lifter with one retry); a purchase the Apple ID already holds (RevenueCat code 6) becomes a restore. The owner's 04:42 sandbox purchase (before the webhook existed) lands on his next app open. Supabase Management API logs endpoint answered "Backend error" for every query on 14-10, so webhook deliveries could not be read from logs; `revenuecat_events` was still empty at 11:15 UTC.
 - [ ] Founding refunds do not revoke the seat or plan (founding is permanent in `apply_plan`); consumable 10-packs not wired
 
 ## Polish pass (catchline-polish, 11 Oct)

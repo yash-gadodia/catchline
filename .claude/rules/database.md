@@ -4,7 +4,7 @@ paths: ["supabase/**", "src/lib/supabase.ts", "src/types/db.ts", "src/features/*
 
 # Supabase / data layer
 
-Backend is Supabase (Postgres + Auth + Storage + Realtime + pgmq/pg_cron). Migrations `supabase/migrations/0001..0005` (`0001_catchline_core`, `0002_lift_pipeline`, `0003_storage`, `0004_plan_sync`, `0005_lifts_ahead`); the typed client is `src/lib/supabase.ts`; types in `src/types/db.ts`. Edge functions: `delete-account`, `revenuecat-webhook`.
+Backend is Supabase (Postgres + Auth + Storage + Realtime + pgmq/pg_cron). Migrations `supabase/migrations/0001..0005` (`0001_catchline_core`, `0002_lift_pipeline`, `0003_storage`, `0004_plan_sync`, `0005_lifts_ahead`); the typed client is `src/lib/supabase.ts`; types in `src/types/db.ts`. Edge functions: `delete-account`, `revenuecat-webhook`, `sync-plan` (caller's JWT -> RevenueCat subscriber -> `apply_plan`, upgrades only).
 
 > Local dev runs only on the **Mac Mini** (`ssh mini`, colima, ports 554xx), never the laptop. See `docs/catchline/BACKEND_SETUP.md` "Local run" for the exact `supabase start -x ...` line, then `supabase db reset` + `supabase test db`.
 
