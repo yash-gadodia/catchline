@@ -285,10 +285,10 @@ describe('preparing the clip before upload', () => {
   });
 });
 
-describe('long wait while the clip is still on the phone', () => {
+describe('long wait', () => {
   afterEach(() => jest.useRealTimers());
 
-  it('keeps showing progress past 45 s while preparing, not the queue message', async () => {
+  it('counts the wait from when the clip reaches the server, and says "taking longer" only past about 2 min plus a margin', async () => {
     jest.useFakeTimers();
     usePipeline.getState().start({ id: 'job-2', movement: 'snatch', status: 'preparing', liftId: null, prepared: 0.9, sent: 0, total: 0, uploadUrl: null, error: null, maxS: null });
     params.current = { live: '1' };
@@ -298,11 +298,40 @@ describe('long wait while the clip is still on the phone', () => {
     });
     expect(view.getByTestId('processing-progress')).toBeOnTheScreen();
     expect(view.getByText('preparing 90%')).toBeOnTheScreen();
+    expect(view.queryByText('usually about 2 min')).toBeNull();
 
     await act(async () => {
       usePipeline.getState().patch({ status: 'queued', prepared: 1 });
     });
+    expect(view.getByText('usually about 2 min')).toBeOnTheScreen();
+    await act(async () => {
+      jest.advanceTimersByTime(170_000);
+    });
+    expect(view.getByTestId('processing-progress')).toBeOnTheScreen();
+    await act(async () => {
+      jest.advanceTimersByTime(11_000);
+    });
     expect(view.getByTestId('processing-long')).toBeOnTheScreen();
+    expect(view.getByText('usually about 2 min')).toBeOnTheScreen();
+  });
+
+  it('polls the queue position every 10 s while queued or processing and shows who is ahead', async () => {
+    jest.useFakeTimers();
+    db.rpc.mockImplementation(async (fn: string) => (fn === 'lifts_ahead' ? { data: 2, error: null } : { data: null, error: null }));
+    usePipeline.getState().start({ id: 'job-3', movement: 'snatch', status: 'queued', liftId: 'lift-1', prepared: 1, sent: 1, total: 1, uploadUrl: null, error: null, maxS: null });
+    params.current = { live: '1' };
+    const view = await render(<ProcessingRoute />);
+    await waitFor(() => expect(view.getByText('2 ahead of you')).toBeOnTheScreen());
+    expect(db.rpc).toHaveBeenCalledWith('lifts_ahead', { p_lift_id: 'lift-1' });
+    expect(db.rpc.mock.calls.filter((c) => c[0] === 'lifts_ahead')).toHaveLength(1);
+
+    db.rpc.mockImplementation(async (fn: string) => (fn === 'lifts_ahead' ? { data: 0, error: null } : { data: null, error: null }));
+    await act(async () => {
+      jest.advanceTimersByTime(10_000);
+    });
+    await waitFor(() => expect(view.queryByText(/ahead of you/)).toBeNull());
+    expect(db.rpc.mock.calls.filter((c) => c[0] === 'lifts_ahead')).toHaveLength(2);
+    expect(view.getByText('usually about 2 min')).toBeOnTheScreen();
   });
 });
 

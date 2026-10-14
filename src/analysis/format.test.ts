@@ -4,6 +4,7 @@ import {
   doneTitle,
   evidenceReadout,
   fmt,
+  formatWait,
   heroValue,
   liftTitle,
   measurementReadout,
@@ -103,6 +104,12 @@ describe('processing', () => {
       { label: 'Comparing to your best', state: 'todo' },
       { label: 'Choosing one cue', state: 'todo' },
     ]);
+  });
+
+  it('says the expected wait in minutes once it is one', () => {
+    expect(formatWait(150)).toBe('about 2 min');
+    expect(formatWait(90)).toBe('about 1 min');
+    expect(formatWait(20)).toBe('about 20 s');
   });
 
   it('looks for hips on gymnastics', () => {

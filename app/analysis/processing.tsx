@@ -3,17 +3,19 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { getAnalysis } from '../../src/analysis/fixtures';
 import { putLiveAnalysis } from '../../src/analysis/live';
 import type { Analysis, Failure } from '../../src/analysis/types';
-import ProcessingSheet, { type ProcessingState } from '../../src/features/analysis/ProcessingSheet';
+import ProcessingSheet, { EXPECTED_ANALYSIS_S, type ProcessingState } from '../../src/features/analysis/ProcessingSheet';
 import { registerPushToken } from '../../src/features/notifications';
 import { useUsage } from '../../src/features/paywall/usageStore';
 import { usePurchases } from '../../src/features/purchases/usePurchases';
-import { subscribeToLift } from '../../src/lib/api';
+import { liftsAhead, subscribeToLift } from '../../src/lib/api';
 import { syncLibrary } from '../../src/data/library';
 import { uploadStep, usePipeline, type JobStatus } from '../../src/data/pipeline';
 
 const STEP_MS = 1100;
 const CRAWL_MS = 4000;
-const LONG_WAIT_S = 45;
+const LONG_WAIT_MARGIN_S = 30;
+const LONG_WAIT_S = EXPECTED_ANALYSIS_S + LONG_WAIT_MARGIN_S;
+const QUEUE_POLL_MS = 10_000;
 
 type Params = { fixture?: string; state?: ProcessingState; step?: string; elapsed?: string; count?: string; live?: string };
 
@@ -83,7 +85,14 @@ function LiveProcessing() {
   const [elapsed, setElapsed] = useState(0);
   const [crawl, setCrawl] = useState(0);
   const [waiting, setWaiting] = useState(false);
+  const [ahead, setAhead] = useState(0);
   const current = status ?? job?.status ?? 'preparing';
+  // "Taking longer" talks about the queue, so the wait counts from when the clip is on the server.
+  const onPhone = current === 'preparing' || current === 'uploading';
+  const inQueue = current === 'queued' || current === 'processing';
+  const serverAt = useRef<number | null>(null);
+  if (!onPhone && serverAt.current === null) serverAt.current = elapsed;
+  const serverElapsed = serverAt.current === null ? 0 : elapsed - serverAt.current;
 
   const fail = (id: string, reason: Failure['reason']) =>
     router.replace({ pathname: '/failure/[id]', params: { id, reason } });
@@ -122,11 +131,21 @@ function LiveProcessing() {
     });
   }, [liftId]);
 
+  useEffect(() => {
+    if (!liftId || !inQueue) return;
+    let live = true;
+    const poll = () => liftsAhead(liftId).then((n) => live && setAhead(n)).catch(() => undefined);
+    poll();
+    const timer = setInterval(poll, QUEUE_POLL_MS);
+    return () => {
+      live = false;
+      clearInterval(timer);
+    };
+  }, [liftId, inQueue]);
+
   const step = analysis ? 5 : STEP_FOR[current] + (current === 'processing' ? crawl : 0);
   const tooLong = job?.error === 'clip_too_long';
-  // "Taking longer" talks about the queue, so it waits until the clip is on the server.
-  const onPhone = current === 'preparing' || current === 'uploading';
-  const state: ProcessingState = tooLong ? 'too_long' : analysis ? 'done' : elapsed > LONG_WAIT_S && !waiting && !onPhone ? 'long' : 'progress';
+  const state: ProcessingState = tooLong ? 'too_long' : analysis ? 'done' : serverElapsed > LONG_WAIT_S && !waiting ? 'long' : 'progress';
   const first = uploadStep(job);
 
   return (
@@ -138,6 +157,8 @@ function LiveProcessing() {
       state={state}
       step={step}
       elapsed={elapsed}
+      onServer={inQueue}
+      ahead={ahead}
       onHide={() => router.back()}
       onNotify={() => {
         registerPushToken(true);

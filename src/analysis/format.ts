@@ -137,6 +137,10 @@ export function processingSteps(a: Analysis | null, step: number, firstLabel = '
   }));
 }
 
+export function formatWait(seconds: number): string {
+  return seconds >= 60 ? `about ${Math.floor(seconds / 60)} min` : `about ${seconds} s`;
+}
+
 export function doneTitle(a: Analysis): string {
   const reps = plural(a.reps.length, 'rep');
   return a.cue ? `Done. ${reps}, one cue.` : `Done. ${reps}.`;

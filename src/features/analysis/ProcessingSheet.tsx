@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { Pressable, Text, View, useWindowDimensions } from 'react-native';
 import Animated, {
   Easing,
@@ -9,7 +9,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import type { Analysis } from '../../analysis/types';
-import { doneTitle, processingSteps } from '../../analysis/format';
+import { doneTitle, formatWait, processingSteps } from '../../analysis/format';
 import { polylineLength, svgPath, toScreen } from '../../analysis/geometry';
 import { keyFrameForPhase, liftPath, repByIndex } from '../../analysis/timeline';
 import Btn from '../../components/Btn';
@@ -23,6 +23,9 @@ import { OverlaySvg } from './overlays';
 
 export type ProcessingState = 'progress' | 'long' | 'done' | 'too_long';
 
+// One analysis on the single production worker takes about this long; jobs are serial.
+export const EXPECTED_ANALYSIS_S = 150;
+
 type Props = {
   analysis: Analysis | null;
   meta?: string;
@@ -32,6 +35,8 @@ type Props = {
   step: number;
   elapsed: number;
   etaSeconds?: number;
+  onServer?: boolean;
+  ahead?: number;
   onHide: () => void;
   onNotify: () => void;
   onKeepWaiting: () => void;
@@ -39,7 +44,7 @@ type Props = {
   onTrim?: () => void;
 };
 
-export default function ProcessingSheet({ analysis, meta, firstStep, maxS, state, step, elapsed, etaSeconds = 20, ...on }: Props) {
+export default function ProcessingSheet({ analysis, meta, firstStep, maxS, state, step, elapsed, etaSeconds = EXPECTED_ANALYSIS_S, onServer, ahead, ...on }: Props) {
   const { width, height } = useWindowDimensions();
   const box = { width, height };
   useEffect(() => {
@@ -52,7 +57,16 @@ export default function ProcessingSheet({ analysis, meta, firstStep, maxS, state
       ) : (
         <View style={{ width, height, backgroundColor: colors.surface }} />
       )}
-      {state === 'progress' ? <InProgress analysis={analysis} step={step} firstStep={firstStep} meta={meta ?? `about ${etaSeconds} s`} onHide={on.onHide} /> : null}
+      {state === 'progress' ? (
+        <InProgress
+          analysis={analysis}
+          step={step}
+          firstStep={firstStep}
+          meta={meta ?? formatWait(etaSeconds)}
+          note={onServer ? <Queue etaSeconds={etaSeconds} ahead={ahead} /> : null}
+          onHide={on.onHide}
+        />
+      ) : null}
       {state === 'too_long' ? (
         <Sheet testID="sheet-too-long">
           <Header title="Too long to send" meta={maxS ? `max ${maxS} s` : ''} strong />
@@ -70,9 +84,9 @@ export default function ProcessingSheet({ analysis, meta, firstStep, maxS, state
       {state === 'long' ? (
         <Sheet testID="sheet-long">
           <Header title="Taking longer than usual" meta={`${Math.round(elapsed)} s`} strong />
-          <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18, marginTop: -8 }}>
-            {`usually about ${etaSeconds} s`}
-          </Text>
+          <View style={{ marginTop: -8 }}>
+            <Queue etaSeconds={etaSeconds} ahead={ahead} />
+          </View>
           <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 17, lineHeight: 24 }}>
             Busy right now. Your lift is in the queue and nothing is lost. We'll ping you when the cue is ready.
           </Text>
@@ -157,10 +171,35 @@ function Header({ title, meta, strong }: { title: string; meta: string; strong?:
   );
 }
 
-function InProgress({ analysis, step, firstStep, meta, onHide }: { analysis: Analysis | null; step: number; firstStep?: string; meta: string; onHide: () => void }) {
+function Queue({ etaSeconds, ahead }: { etaSeconds: number; ahead?: number }) {
+  const mono = { color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 } as const;
+  return (
+    <View style={{ gap: 2 }}>
+      <Text style={mono}>{`usually ${formatWait(etaSeconds)}`}</Text>
+      {ahead ? <Text style={mono}>{`${ahead} ahead of you`}</Text> : null}
+    </View>
+  );
+}
+
+function InProgress({
+  analysis,
+  step,
+  firstStep,
+  meta,
+  note,
+  onHide,
+}: {
+  analysis: Analysis | null;
+  step: number;
+  firstStep?: string;
+  meta: string;
+  note: ReactNode;
+  onHide: () => void;
+}) {
   return (
     <Sheet testID="sheet-progress">
       <Header title="Watching your reps" meta={meta} />
+      {note ? <View style={{ marginTop: -8 }}>{note}</View> : null}
       <View style={{ gap: 12 }}>
         {processingSteps(analysis, step, firstStep).map((s) => (
           <View key={s.label} style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }} testID={`step-${s.state}`}>
