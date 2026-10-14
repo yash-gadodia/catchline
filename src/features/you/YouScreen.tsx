@@ -3,14 +3,17 @@ import { Pressable, ScrollView, Share, Text, TextInput, View } from 'react-nativ
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 import { ANALYSES } from '../../analysis/fixtures';
+import { backendEnabled } from '../../data/backend';
 import { movementLabel } from '../../analysis/format';
 import Btn from '../../components/Btn';
 import Sheet from '../../components/Sheet';
 import SmallCaps from '../../components/SmallCaps';
 import { colors, radius, space } from '../../design/tokens';
 import { display, fontFamily } from '../../design/typography';
+import { useLibraryStore } from '../library/store';
+import { useOnboarding } from '../onboarding/store';
 import { Chip, SheetTitle, Toggle } from '../share/ui';
-import { accountLine, accountRepository, isFounding, planLabel, useAccount, type DataExport } from './account';
+import { accountRepository, useAccountView, type DataExport } from './account';
 import {
   AUTO_DELETE_LABELS,
   DAY_NAMES,
@@ -42,9 +45,9 @@ export async function shareExport(bundle: DataExport): Promise<void> {
   await Share.share({ title: 'catchline-export.json', message: JSON.stringify(bundle, null, 2) });
 }
 
-// SIM: the lift ids come from the bundled fixtures until Memory has real lifts.
 export async function exportMyData(send: (bundle: DataExport) => Promise<void> = shareExport): Promise<void> {
-  await send(await accountRepository.exportAllData(settingsOf(useSettings.getState()), Object.keys(ANALYSES)));
+  const lifts = backendEnabled() ? useLibraryStore.getState().lifts.map((l) => l.id) : Object.keys(ANALYSES);
+  await send(await accountRepository.exportAllData(settingsOf(useSettings.getState()), lifts));
 }
 
 export default function YouScreen({
@@ -57,8 +60,9 @@ export default function YouScreen({
   exportData?: (bundle: DataExport) => Promise<void>;
 }) {
   const insets = useSafeAreaInsets();
-  const account = useAccount();
+  const account = useAccountView();
   const settings = useSettings();
+  const units = useOnboarding((s) => s.units);
   const labels = settingLabels(settings);
   const [picker, setPicker] = useState<Picker>(null);
 
@@ -69,27 +73,29 @@ export default function YouScreen({
     <View style={{ flex: 1, backgroundColor: colors.bg }} testID="you-screen">
       <ScrollView contentContainerStyle={{ paddingTop: insets.top + space.s7, paddingHorizontal: space.gutter, paddingBottom: 120 }}>
         <Text style={[display(36), { color: colors.text, marginBottom: space.s2 }]}>You</Text>
-        {account ? (
+        {account?.name ? (
           <Row
             title={account.name}
             bold
-            sub={accountLine(account)}
+            sub={account.line}
             right={<Value>Edit</Value>}
             onPress={() => setPicker('name')}
             testID="row-profile"
           />
+        ) : account ? (
+          <Row title={account.line} bold right={null} testID="row-profile" />
         ) : null}
         {account ? (
           <Row
             title="Plan"
-            sub={planLabel(account.plan)}
-            right={isFounding(account.plan) ? <FoundingBadge /> : <Value>›</Value>}
+            sub={account.plan}
+            right={account.founding ? <FoundingBadge /> : <Value>›</Value>}
             onPress={nav.onPlan}
             testID="row-plan"
           />
         ) : null}
         <Section>Lifting</Section>
-        <Row title="Units" right={<Value>{labels.units}</Value>} onPress={() => setPicker('units')} testID="row-units" />
+        <Row title="Units" right={<Value>{UNIT_LABELS[units]}</Value>} onPress={() => setPicker('units')} testID="row-units" />
         <Row title="Default lift" right={<Value>{labels.defaultMovement}</Value>} onPress={() => setPicker('defaultMovement')} testID="row-movement" />
         <Row title="Frame rate" right={<Value>{labels.frameRate}</Value>} onPress={() => setPicker('frameRate')} testID="row-frame-rate" />
         <Row
@@ -112,7 +118,7 @@ export default function YouScreen({
         <Row title="Help" muted right={<Value>{`About · ${version}`}</Value>} onPress={nav.onHelp} last testID="row-help" />
       </ScrollView>
 
-      {picker === 'name' && account ? (
+      {picker === 'name' && account?.name ? (
         <NameSheet
           initial={account.name}
           onSave={async (name) => {
@@ -126,7 +132,8 @@ export default function YouScreen({
         <ReminderSheet value={settings.cueReminder} onChange={(r) => settings.set('cueReminder', r)} onClose={close} />
       ) : null}
       {picker === 'units' ? (
-        <OptionSheet title="Units" options={PICKERS.units} value={settings.units} onPick={(v) => {
+        <OptionSheet title="Units" options={PICKERS.units} value={units} onPick={(v) => {
+            useOnboarding.getState().setUnits(v);
             settings.set('units', v);
             close();
           }} onClose={close} />

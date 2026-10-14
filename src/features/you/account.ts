@@ -1,4 +1,16 @@
 import { create } from 'zustand';
+import { backendEnabled } from '../../data/backend';
+import {
+  FREE_VIDEOS as FREE_BY_VARIANT,
+  MONTHLY_CAP,
+  TIER_NAME,
+  videosRemaining,
+  type Tier as LiveTier,
+  type Usage,
+  type Variant,
+} from '../paywall/entitlements';
+import { useUsage } from '../paywall/usageStore';
+import { usePurchases } from '../purchases/usePurchases';
 import type { Settings } from './settings';
 
 export type Tier = 'free' | 'hook' | 'pull' | 'platform';
@@ -48,6 +60,42 @@ export function accountLine(a: Account): string {
   return `Signed in with ${SIGN_IN[a.signIn]}${a.synced ? ' · synced' : ''}`;
 }
 
+export const ANONYMOUS_LINE = 'Anonymous on this phone';
+
+// With a backend the plan is the RevenueCat tier and the allowance is the usage
+// store's count against the tier's cap (the server enforces the real cap).
+export function livePlanLabel(tier: LiveTier, usage: Usage, variant: Variant, now: Date): string {
+  const left = videosRemaining(tier, usage, now, variant);
+  if (tier === 'free') return `Free · ${left} of ${FREE_BY_VARIANT[variant]} videos left`;
+  return `${TIER_NAME[tier]} · ${left} of ${MONTHLY_CAP[tier]} videos left this month`;
+}
+
+// What the You tab shows. name is null while the account is anonymous (no sign-in yet).
+export type AccountView = { name: string | null; line: string; plan: string; founding: boolean };
+
+function fixtureView(a: Account | null): AccountView | null {
+  return a ? { name: a.name, line: accountLine(a), plan: planLabel(a.plan), founding: isFounding(a.plan) } : null;
+}
+
+function liveView(tier: LiveTier, usage: Usage, variant: Variant, now: Date): AccountView {
+  return { name: null, line: ANONYMOUS_LINE, plan: livePlanLabel(tier, usage, variant, now), founding: tier === 'founding' };
+}
+
+export function accountView(now: Date = new Date()): AccountView | null {
+  if (!backendEnabled()) return fixtureView(useAccountStore.getState().account);
+  const { usage, variant } = useUsage.getState();
+  return liveView(usePurchases.getState().tier, usage, variant, now);
+}
+
+export function useAccountView(now: Date = new Date()): AccountView | null {
+  const account = useAccountStore((s) => s.account);
+  const tier = usePurchases((s) => s.tier);
+  const usage = useUsage((s) => s.usage);
+  const variant = useUsage((s) => s.variant);
+  if (!backendEnabled()) return fixtureView(account);
+  return liveView(tier, usage, variant, now);
+}
+
 export type DataExport = {
   exportedAt: string;
   account: { name: string; plan: string };
@@ -76,10 +124,10 @@ export function createLocalAccountRepository(now: () => Date = () => new Date())
       if (a) useAccountStore.setState({ account: { ...a, name } });
     },
     async exportAllData(settings, liftIds) {
-      const a = useAccountStore.getState().account;
+      const a = accountView(now());
       return {
         exportedAt: now().toISOString(),
-        account: { name: a?.name ?? '', plan: a ? planLabel(a.plan) : '' },
+        account: { name: a?.name ?? '', plan: a?.plan ?? '' },
         settings,
         lifts: liftIds,
       };

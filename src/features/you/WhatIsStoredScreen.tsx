@@ -5,6 +5,9 @@ import Btn from '../../components/Btn';
 import TopBar from '../../components/TopBar';
 import { colors, space } from '../../design/tokens';
 import { fontFamily } from '../../design/typography';
+import { backendEnabled } from '../../data/backend';
+import { recordConsent } from '../../lib/api';
+import { CONSENT_VERSION, useOnboarding } from '../onboarding/store';
 import { Toggle } from '../share/ui';
 import { useSettings } from './settings';
 
@@ -32,8 +35,15 @@ export const STORED: { id: string; title: string; body: string; keep: string }[]
 
 export default function WhatIsStoredScreen({ onBack, onExport }: { onBack: () => void; onExport: () => void }) {
   const insets = useSafeAreaInsets();
-  const improve = useSettings((s) => s.improveAccuracy);
+  const consent = useOnboarding((s) => s.consent);
+  const settingsImprove = useSettings((s) => s.improveAccuracy);
   const set = useSettings((s) => s.set);
+  const improve = consent ? consent.improveAccuracy : settingsImprove;
+  const setImprove = (on: boolean) => {
+    set('improveAccuracy', on);
+    useOnboarding.getState().setImproveAccuracy(on);
+    if (backendEnabled() && consent) recordConsent('model_training', String(CONSENT_VERSION), on).catch(() => undefined);
+  };
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }} testID="what-is-stored">
       <TopBar
@@ -49,7 +59,7 @@ export default function WhatIsStoredScreen({ onBack, onExport }: { onBack: () =>
         <Item
           title="Clips used to improve accuracy"
           body={improve ? 'Only if you turned it on. On right now.' : 'Only if you turned it on. Off right now.'}
-          right={<Toggle value={improve} onChange={(v) => set('improveAccuracy', v)} testID="toggle-improve" />}
+          right={<Toggle value={improve} onChange={setImprove} testID="toggle-improve" />}
         />
       </ScrollView>
       <View style={{ paddingTop: space.s4, paddingHorizontal: space.gutter, paddingBottom: space.s7 }}>

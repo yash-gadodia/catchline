@@ -7,7 +7,23 @@ import DeleteAccountSheet, { confirmed } from './DeleteAccountSheet';
 import { LowStorageSheet, OfflineBanner, PermissionDenied, UpdateRequired, formatBytes } from './GlobalStates';
 import { NOTIFICATION_COPY, NOTIFICATION_TITLE } from './notificationCopy';
 import { DEFAULT_SETTINGS, reminderLabel, settingLabels, useSettings } from './settings';
-import { accountLine, createLocalAccountRepository, planLabel, useAccountStore } from './account';
+import { accountLine, createLocalAccountRepository, livePlanLabel, planLabel, useAccountStore } from './account';
+import { backendEnabled } from '../../data/backend';
+import { recordConsent } from '../../lib/api';
+import { useOnboarding } from '../onboarding/store';
+import { useUsage } from '../paywall/usageStore';
+import { usePurchases } from '../purchases/usePurchases';
+
+jest.mock('../../data/backend', () => ({ backendEnabled: jest.fn(() => false) }));
+jest.mock('../../lib/api', () => ({
+  recordConsent: jest.fn(() => Promise.resolve()),
+  ensureSession: jest.fn(),
+  getAllowance: jest.fn(),
+  updateCue: jest.fn(),
+}));
+
+const mockBackendEnabled = backendEnabled as jest.Mock;
+const mockRecordConsent = recordConsent as jest.Mock;
 
 const press = async (el: Parameters<typeof fireEvent.press>[0]) => {
   await act(async () => {
@@ -20,8 +36,12 @@ const nav = { onWhatIsStored: jest.fn(), onDeleteAccount: jest.fn(), onPlan: jes
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockBackendEnabled.mockReturnValue(false);
   useAccountStore.setState(initialAccount, true);
   useSettings.getState().reset();
+  useOnboarding.getState().reset();
+  useUsage.getState().reset();
+  usePurchases.getState().setDemoPlan('free');
 });
 
 describe('plan and settings labels', () => {
@@ -142,6 +162,79 @@ describe('YouScreen', () => {
       settings: DEFAULT_SETTINGS,
       lifts: ['snatch-mock', 'snatch-mock-low', 'snatch-mock-miss', 'snatch-real'],
     });
+  });
+});
+
+describe('YouScreen with the backend on', () => {
+  const now = new Date('2026-10-14T09:00:00.000Z');
+
+  beforeEach(() => mockBackendEnabled.mockReturnValue(true));
+
+  it('labels the live plan from the tier and the usage store', () => {
+    const used = { lifetime: 1, month: '', thisMonth: 0 };
+    expect(livePlanLabel('free', used, 'organic', now)).toBe('Free · 2 of 3 videos left');
+    expect(livePlanLabel('free', used, 'ad', now)).toBe('Free · 0 of 1 videos left');
+    expect(livePlanLabel('pull', { lifetime: 5, month: '2026-10', thisMonth: 2 }, 'organic', now)).toBe('Pull · 38 of 40 videos left this month');
+    expect(livePlanLabel('founding', { lifetime: 5, month: '2026-09', thisMonth: 2 }, 'organic', now)).toBe(
+      'Founding member · 40 of 40 videos left this month'
+    );
+  });
+
+  it('shows the anonymous account and the real free allowance, never the fixture', async () => {
+    useUsage.getState().record('free', now);
+    const screen = await render(<YouScreen nav={nav} version="1.0.3" />);
+    expect(within(screen.getByTestId('row-profile')).getByText('Anonymous on this phone')).toBeOnTheScreen();
+    expect(within(screen.getByTestId('row-profile')).queryByText('Edit')).toBeNull();
+    expect(screen.queryByText('Alex')).toBeNull();
+    expect(screen.queryByText(/Signed in with/)).toBeNull();
+    expect(within(screen.getByTestId('row-plan')).getByText('Free · 2 of 3 videos left')).toBeOnTheScreen();
+    expect(screen.queryByTestId('founding-badge')).toBeNull();
+    await press(screen.getByTestId('row-plan'));
+    expect(nav.onPlan).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the live paid tier with its monthly cap and the founding badge', async () => {
+    usePurchases.getState().setDemoPlan('founding');
+    useUsage.getState().record('founding', new Date());
+    useUsage.getState().record('founding', new Date());
+    const screen = await render(<YouScreen nav={nav} version="1.0.3" />);
+    expect(within(screen.getByTestId('row-plan')).getByText('Founding member · 38 of 40 videos left this month')).toBeOnTheScreen();
+    expect(screen.getByTestId('founding-badge')).toBeOnTheScreen();
+  });
+
+  it('reads and writes units through the onboarding store', async () => {
+    useOnboarding.getState().setUnits('lb');
+    const screen = await render(<YouScreen nav={nav} version="1.0.3" />);
+    expect(within(screen.getByTestId('row-units')).getByText('lb')).toBeOnTheScreen();
+    await press(screen.getByTestId('row-units'));
+    await press(screen.getByTestId('pick-kg'));
+    expect(useOnboarding.getState().units).toBe('kg');
+    expect(useSettings.getState().units).toBe('kg');
+    expect(within(screen.getByTestId('row-units')).getByText('kg')).toBeOnTheScreen();
+  });
+
+  it('exports the anonymous account and the lifts in the library, not the fixture ids', async () => {
+    const send = jest.fn(() => Promise.resolve());
+    const screen = await render(<YouScreen nav={nav} version="1.0.3" exportData={send} />);
+    await press(screen.getByTestId('row-export'));
+    expect(send).toHaveBeenCalledWith({
+      exportedAt: expect.any(String),
+      account: { name: '', plan: 'Free · 3 of 3 videos left' },
+      settings: DEFAULT_SETTINGS,
+      lifts: ['l-snatch-today', 'l-clean', 'l-mu', 'l-jerk', 'l-snatch-queued', 'l-snatch-miss', 'l-snatch-real', 'l-snatch-low'],
+    });
+  });
+
+  it('what is stored reads the real consent and records a change', async () => {
+    useOnboarding.getState().acceptConsent(false, now);
+    const screen = await render(<WhatIsStoredScreen onBack={jest.fn()} onExport={jest.fn()} />);
+    expect(screen.getByText('Only if you turned it on. Off right now.')).toBeOnTheScreen();
+    await act(async () => {
+      fireEvent(screen.getByTestId('toggle-improve'), 'valueChange', true);
+    });
+    expect(screen.getByText('Only if you turned it on. On right now.')).toBeOnTheScreen();
+    expect(useOnboarding.getState().consent?.improveAccuracy).toBe(true);
+    expect(mockRecordConsent).toHaveBeenCalledWith('model_training', '1', true);
   });
 });
 
