@@ -1,6 +1,7 @@
 # Claude Code — local, machine-specific config
 .claude/settings.local.json
 .claude/agent-memory-local/
+.claude/.cache/
 
 # Secrets / env (never commit)
 .env

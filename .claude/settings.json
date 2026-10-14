@@ -9,6 +9,15 @@
             "command": "f=$(jq -r '.tool_input.file_path // empty' 2>/dev/null); case \"$f\" in *.env.example|*.env.sample|*.env.template|*.env.dist) exit 0;; *.env|*.env.*|*.pem|*.key|*.p8|*.cert|*.crt|*.p12|*.pfx|*/credentials|*/credentials.json|*/.netrc) echo \"🚫 Blocked write to secret/credential file: $f\" >&2; exit 2;; esac; exit 0"
           }
         ]
+      },
+      {
+        "matcher": "Write|Edit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR/.claude/scripts/pre-edit-hook.sh\""
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -17,18 +26,17 @@
         "hooks": [
           {
             "type": "command",
-            "command": "f=$(jq -r '.tool_input.file_path // empty' 2>/dev/null); [ -z \"$f\" ] && exit 0; case \"$f\" in *.ts|*.tsx) ;; *) exit 0;; esac; if grep -q '@ts-ignore' \"$f\" 2>/dev/null; then echo \"🚫 $f uses @ts-ignore — the repo bans it. Use one documented // @ts-expect-error only for the known supabase-js quirk.\" >&2; exit 2; fi; case \"$f\" in *.test.ts|*.test.tsx) if grep -q 'expect(<' \"$f\" 2>/dev/null; then echo \"🚫 $f looks like a hollow test (expect(<JSX/>) is always truthy). render() and assert real content — see .claude/rules/testing.md.\" >&2; exit 2; fi;; esac; exit 0"
+            "command": "\"$CLAUDE_PROJECT_DIR/.claude/scripts/post-edit-hook.sh\""
           }
         ]
       }
     ],
     "Stop": [
       {
-        "matcher": "",
         "hooks": [
           {
             "type": "command",
-            "command": "root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0; cd \"$root\" || exit 0; git status --porcelain -- '*.ts' '*.tsx' 2>/dev/null | grep -q . || exit 0; out=$(npx tsc --noEmit --incremental --tsBuildInfoFile .tsbuildinfo 2>&1); if [ $? -ne 0 ]; then echo \"🚫 Typecheck failed — fix before finishing:\" >&2; echo \"$out\" | tail -15 >&2; exit 2; fi; exit 0"
+            "command": "\"$CLAUDE_PROJECT_DIR/.claude/scripts/stop-hook.sh\""
           }
         ]
       }
