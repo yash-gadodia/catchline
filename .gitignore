@@ -46,3 +46,4 @@ supabase/.temp/
 # Local secret store (never commit — real key files + values)
 .secrets/
 .gstack/
+deno.lock
