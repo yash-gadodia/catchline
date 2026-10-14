@@ -140,6 +140,19 @@ export function activeCue(cues: CueRecord[]): CueRecord | undefined {
   return cues.filter((c) => c.status === 'trying').sort((a, b) => (a.givenAt < b.givenAt ? 1 : -1))[0];
 }
 
+// The lifts that fed a cue: its first and last lift by id, plus every lift of the movement
+// filmed while it was being tried. Newest first. Deleted lifts simply drop out.
+export function cueLifts(cue: CueRecord, lifts: Lift[]): Lift[] {
+  return lifts
+    .filter(
+      (l) =>
+        l.id === cue.firstLiftId ||
+        l.id === cue.lastLiftId ||
+        (l.movement === cue.movement && l.date >= cue.givenAt && (cue.endedAt == null || l.date <= cue.endedAt))
+    )
+    .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+}
+
 export function cueSessions(cue: CueRecord, sessions: Session[]): Session[] {
   return sessions.filter(
     (s) => s.movement === cue.movement && s.date > cue.givenAt && (cue.endedAt == null || s.date <= cue.endedAt)

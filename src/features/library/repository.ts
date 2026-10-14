@@ -11,7 +11,9 @@ import { updateCue } from '../../lib/api';
 // Supabase and cue changes are written through (a failed write re-syncs).
 function persistCue(id: string, status: CueRecord['status']): void {
   if (!backendEnabled()) return;
-  updateCue(id, status).catch(() => syncLibrary().catch(() => undefined));
+  updateCue(id, status)
+    .then((row) => useLibraryStore.getState().setCue(id, { status: row.status as CueRecord['status'] }))
+    .catch(() => syncLibrary().catch(() => undefined));
 }
 
 export function useLibrary(): LibraryState {
@@ -42,6 +44,12 @@ export function markStuck(id: string): void {
   const { today, setCue } = useLibraryStore.getState();
   setCue(id, { status: 'stuck', endedAt: today });
   persistCue(id, 'stuck');
+}
+
+export function markDidntStick(id: string): void {
+  const { today, setCue } = useLibraryStore.getState();
+  setCue(id, { status: 'didnt_stick', endedAt: today });
+  persistCue(id, 'didnt_stick');
 }
 
 export function dropCue(id: string): void {

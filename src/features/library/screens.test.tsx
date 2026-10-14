@@ -130,16 +130,19 @@ describe('CuesScreen', () => {
 
 describe('Cue detail and outcomes', () => {
   it('shows before and after evidence and the chart with the cue marker', async () => {
-    const nav = { onBack: jest.fn(), onStuck: jest.fn(), onDrop: jest.fn() };
+    const nav = { onBack: jest.fn(), onStuck: jest.fn(), onDidntStick: jest.fn(), onDrop: jest.fn() };
     const { getByText, getByTestId } = await render(<CueDetailScreen cue={cue('c-stay-over')} nav={nav} />);
     expect(getByText('TRYING · 4 OF 6')).toBeOnTheScreen();
     expect(getByTestId('before-readout')).toHaveTextContent('30 sep · 8 cm');
     expect(getByTestId('after-readout')).toHaveTextContent('today · 6 cm');
     expect(getByText('cm · 7 sessions measured')).toBeOnTheScreen();
     expect(getByTestId('cue-marker')).toBeOnTheScreen();
+    expect(getByTestId('cue-lift-l-snatch-today')).toHaveTextContent('Snatch · 3 reps · 62.5 kgdrift 6 cm11 oct');
     await press(getByTestId('mark-stuck'));
+    await press(getByTestId('didnt-stick'));
     await press(getByTestId('drop-cue'));
     expect(nav.onStuck).toHaveBeenCalledTimes(1);
+    expect(nav.onDidntStick).toHaveBeenCalledTimes(1);
     expect(nav.onDrop).toHaveBeenCalledTimes(1);
   });
 
