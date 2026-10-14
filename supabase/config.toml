@@ -60,3 +60,6 @@ verify_jwt = true
 
 [functions.revenuecat-webhook]
 verify_jwt = false
+
+[functions.sync-plan]
+verify_jwt = true
