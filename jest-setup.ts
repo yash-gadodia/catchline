@@ -315,3 +315,11 @@ jest.mock('./modules/clip-transcoder', () => ({
     addListener: jest.fn(() => ({ remove: jest.fn() })),
   },
 }));
+
+// The RN preset stubs AppState.addEventListener with a bare jest.fn (nothing to
+// remove on cleanup); give it the real shape so screens that watch the
+// foreground unmount cleanly.
+beforeEach(() => {
+  const listen = require('react-native').AppState?.addEventListener as jest.Mock | undefined;
+  listen?.mockImplementation?.(() => ({ remove: jest.fn() }));
+});

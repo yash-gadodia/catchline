@@ -105,6 +105,52 @@ describe('signInWithApple', () => {
     expect(restore).toHaveBeenCalledTimes(1);
   });
 
+  // Pay once: on a fresh install the receipt sits with the previous app user id and
+  // RevenueCat's logIn never moves it, so the Apple user would see the paywall again.
+  it('on a fresh install: logs RevenueCat in, restores once while free, then adopts the server plan', async () => {
+    const order: string[] = [];
+    const identify = jest.fn(async () => {
+      order.push('identify');
+    });
+    const restore = jest.fn(async () => {
+      order.push('restore');
+      usePurchases.setState({ tier: 'pull' });
+      return 'pull' as const;
+    });
+    const adoptServerPlan = jest.fn(async () => {
+      order.push('adopt');
+      return true;
+    });
+    usePurchases.setState({ identify, restore, adoptServerPlan });
+    await signInWithApple();
+    expect(identify).toHaveBeenCalledWith('apple-1');
+    expect(order).toEqual(['identify', 'restore', 'adopt']);
+    expect((syncLibrary as jest.Mock).mock.invocationCallOrder[0]).toBeGreaterThan(adoptServerPlan.mock.invocationCallOrder[0]);
+    expect(usePurchases.getState().tier).toBe('pull');
+  });
+
+  it('skips the restore when RevenueCat already holds the plan for the Apple user', async () => {
+    const identify = jest.fn(async () => {
+      usePurchases.setState({ tier: 'pull' });
+    });
+    const restore = jest.fn(async () => 'pull' as const);
+    const adoptServerPlan = jest.fn(async () => true);
+    usePurchases.setState({ identify, restore, adoptServerPlan });
+    await signInWithApple();
+    expect(restore).not.toHaveBeenCalled();
+    expect(adoptServerPlan).toHaveBeenCalledTimes(1);
+  });
+
+  it('still signs in when RevenueCat cannot log the user in', async () => {
+    const identify = jest.fn(async () => {
+      throw new Error('RevenueCat down');
+    });
+    const restore = jest.fn(async () => 'free' as const);
+    usePurchases.setState({ identify, restore, adoptServerPlan: jest.fn(async () => false) });
+    expect(await signInWithApple()).toEqual({ cancelled: false, userId: 'apple-1', transferred: false });
+    expect(restore).toHaveBeenCalledTimes(1);
+  });
+
   it('reports a cancel instead of throwing', async () => {
     mockSignInAsync.mockRejectedValue(Object.assign(new Error('cancelled'), { code: 'ERR_REQUEST_CANCELED' }));
     expect(await signInWithApple()).toEqual({ cancelled: true });

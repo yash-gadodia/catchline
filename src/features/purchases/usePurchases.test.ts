@@ -76,6 +76,7 @@ function sdk() {
     purchasePackage: jest.fn(),
     restorePurchases: jest.fn(),
     logIn: jest.fn(),
+    logOut: jest.fn(async () => info({})),
     STORE_REPLACEMENT_MODE: { CHARGE_PRORATED_PRICE: 'CHARGE_PRORATED_PRICE', DEFERRED: 'DEFERRED' },
   };
 }
@@ -502,4 +503,58 @@ describe('settleServerPlan', () => {
     expect(mockGetAllowance).toHaveBeenCalledTimes(8);
     expect(mockSyncPlan).toHaveBeenCalledTimes(1);
   }, 20000);
+});
+
+// A fresh install signed in with Apple: RevenueCat may say free while the server
+// (profiles.plan) already holds the plan. The server decides the cap, so the app
+// shows that plan rather than a paywall the lifter has already paid past.
+describe('adoptServerPlan', () => {
+  beforeEach(() => mockBackendEnabled.mockReturnValue(true));
+
+  it('takes the server plan when it ranks above RevenueCat', async () => {
+    mockGetAllowance.mockResolvedValue({ plan: 'pull' });
+    expect(await usePurchases.getState().adoptServerPlan()).toBe(true);
+    expect(usePurchases.getState().tier).toBe('pull');
+    expect(usePurchases.getState().period).toBeNull();
+  });
+
+  it('keeps a RevenueCat plan that ranks at or above the server', async () => {
+    usePurchases.setState({ tier: 'platform', period: 'annual' });
+    mockGetAllowance.mockResolvedValue({ plan: 'pull' });
+    expect(await usePurchases.getState().adoptServerPlan()).toBe(true);
+    expect(usePurchases.getState()).toMatchObject({ tier: 'platform', period: 'annual' });
+  });
+
+  it('is false for a free server plan, offline, or without a backend', async () => {
+    mockGetAllowance.mockResolvedValue({ plan: 'free' });
+    expect(await usePurchases.getState().adoptServerPlan()).toBe(false);
+    mockGetAllowance.mockRejectedValue(new Error('offline'));
+    expect(await usePurchases.getState().adoptServerPlan()).toBe(false);
+    mockBackendEnabled.mockReturnValue(false);
+    mockGetAllowance.mockResolvedValue({ plan: 'pull' });
+    expect(await usePurchases.getState().adoptServerPlan()).toBe(false);
+    expect(usePurchases.getState().tier).toBe('free');
+  });
+});
+
+// Signing out of Apple: RevenueCat must forget the user too, or its next
+// customer-info refresh hands the paid plan back to the anonymous account.
+describe('signOut', () => {
+  it('resets the plan and logs RevenueCat out when a user was identified', async () => {
+    const Purchases = sdk();
+    mockLoadPurchases.mockReturnValue({ Purchases, RevenueCatUI: null });
+    usePurchases.setState({ appUserId: 'apple-1', tier: 'pull', period: 'annual', expiresAt: '2027-10-11T00:00:00Z', customerInfo: PULL_ANNUAL });
+    usePurchases.getState().signOut();
+    expect(usePurchases.getState()).toMatchObject({ appUserId: null, tier: 'free', period: null, expiresAt: null, customerInfo: null });
+    expect(Purchases.logOut).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not ask RevenueCat to log out an anonymous user', () => {
+    const Purchases = sdk();
+    mockLoadPurchases.mockReturnValue({ Purchases, RevenueCatUI: null });
+    usePurchases.setState({ appUserId: null, tier: 'pull' });
+    usePurchases.getState().signOut();
+    expect(usePurchases.getState().tier).toBe('free');
+    expect(Purchases.logOut).not.toHaveBeenCalled();
+  });
 });

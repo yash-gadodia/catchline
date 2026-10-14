@@ -162,7 +162,7 @@ export function leaveAccount(): void {
   resetConsentSync();
   useUsage.getState().reset();
   useCapture.setState({ draft: null, movement: 'snatch', lastWeight: '', originals: [] });
-  usePurchases.setState({ appUserId: null, customerInfo: null, tier: 'free', period: null, expiresAt: null });
+  usePurchases.getState().signOut();
   clearLiveAnalyses();
   useLibraryStore.getState().load(emptyLibrary());
 }

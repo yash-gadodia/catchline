@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { putLiveAnalysis } from '../../src/analysis/live';
 import { useAnalysis } from '../../src/analysis/useAnalysis';
@@ -93,7 +94,11 @@ function LiveProcessing({ lift }: { lift?: string }) {
   const [crawl, setCrawl] = useState(0);
   const [waiting, setWaiting] = useState(false);
   const [ahead, setAhead] = useState(0);
+  const [wake, setWake] = useState(0);
   const current = status ?? job?.status ?? 'preparing';
+  // The lift keeps going on the server: leaving lands on the Lifts tab, where
+  // it is listed, never back on the review of the clip already sent.
+  const home = () => router.dismissTo('/');
   // "Taking longer" talks about the queue, so the wait counts from when the clip is on the server.
   const onPhone = current === 'preparing' || current === 'uploading';
   const inQueue = current === 'queued' || current === 'processing';
@@ -116,9 +121,24 @@ function LiveProcessing({ lift }: { lift?: string }) {
   useEffect(() => {
     if (!job || job.status !== 'failed') return;
     if (job.error === 'clip_too_long') return;
-    if (job.error === 'cap_reached') router.replace({ pathname: '/paywall', params: { clip: job.id, movement: job.movement } });
-    else fail(job.id, 'unknown');
+    if (job.error === 'cap_reached') {
+      // A paid lifter the server caps has used the month's videos: the cap sheet, not the paywall.
+      const pathname = usePurchases.getState().tier === 'free' ? '/paywall' : '/paywall/cap';
+      router.replace({ pathname, params: { clip: job.id, movement: job.movement } });
+    } else fail(job.id, 'unknown');
   }, [job?.status]);
+
+  // Realtime can drop while the app is in the background; coming back
+  // resubscribes, which refetches the lift so a result that landed meanwhile
+  // is not missed.
+  const shown = useRef(false);
+  shown.current = analysis !== null;
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (s) => {
+      if (s === 'active' && !shown.current) setWake((w) => w + 1);
+    });
+    return () => sub.remove();
+  }, []);
 
   useEffect(() => {
     if (!liftId) return;
@@ -150,7 +170,7 @@ function LiveProcessing({ lift }: { lift?: string }) {
       cancelled = true;
       unsubscribe();
     };
-  }, [liftId]);
+  }, [liftId, wake]);
 
   useEffect(() => {
     if (!liftId || !inQueue) return;
@@ -180,10 +200,10 @@ function LiveProcessing({ lift }: { lift?: string }) {
       elapsed={elapsed}
       onServer={inQueue}
       ahead={ahead}
-      onHide={() => router.back()}
+      onHide={home}
       onNotify={async () => {
         await registerPushToken(true);
-        router.back();
+        home();
       }}
       onKeepWaiting={() => setWaiting(true)}
       onSee={() => analysis && router.replace({ pathname: '/analysis/reveal', params: { fixture: analysis.id } })}

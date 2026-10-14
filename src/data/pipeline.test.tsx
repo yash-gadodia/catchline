@@ -1,5 +1,7 @@
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
+import { AppState } from 'react-native';
 import mock from '../analysis/fixtures/snatch-mock.json';
+import { usePurchases } from '../features/purchases/usePurchases';
 import { router } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { tusUpload } from '../lib/api/tus';
@@ -16,7 +18,7 @@ import CueRoute from '../../app/analysis/cue';
 const params: { current: Record<string, string> } = { current: {} };
 
 jest.mock('expo-router', () => {
-  const r = { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true) };
+  const r = { push: jest.fn(), replace: jest.fn(), back: jest.fn(), dismissTo: jest.fn(), canGoBack: jest.fn(() => true) };
   return {
     __esModule: true,
     router: r,
@@ -61,11 +63,12 @@ jest.mock('../lib/supabase', () => {
 const db = supabase as unknown as {
   rpc: jest.Mock;
   from: jest.Mock;
+  channel: jest.Mock;
   removeChannel: jest.Mock;
   storage: { from: jest.Mock };
   auth: { getSession: jest.Mock; signInAnonymously: jest.Mock };
 };
-const nav = router as unknown as { push: jest.Mock; replace: jest.Mock; back: jest.Mock };
+const nav = router as unknown as { push: jest.Mock; replace: jest.Mock; back: jest.Mock; dismissTo: jest.Mock };
 
 const LIFT = { id: 'lift-1', user_id: 'u1', clip_path: 'u1/lift-1', movement: 'snatch', load_kg: 62.5, created_at: '2026-10-11T08:00:00Z' };
 const CLIP: ClipSubmission = {
@@ -114,6 +117,7 @@ beforeEach(() => {
   analysisRow = null;
   resetConsentSync();
   usePipeline.getState().clear();
+  usePurchases.setState({ tier: 'free', period: null });
   useUsage.setState({ usage: EMPTY_USAGE, variant: 'organic', queue: [] });
   useOnboarding.setState({ consent: { version: 1, acceptedAt: '2026-10-11T07:00:00Z', improveAccuracy: false } });
   wireBackend();
@@ -244,6 +248,118 @@ describe('capture → upload → processing → cue (backend mode)', () => {
     await render(<ProcessingRoute />);
     const jobId = usePipeline.getState().job?.id;
     expect(nav.replace).toHaveBeenCalledWith({ pathname: '/paywall', params: { clip: jobId, movement: 'snatch' } });
+  });
+
+  // A lifter who has paid is never sent to the paywall: a cap from the server means the
+  // month's videos are used (after one plan sync and retry), so the cap sheet.
+  it('retries once after a plan sync for a paid lifter, then opens the cap sheet, not the paywall', async () => {
+    usePurchases.setState({ tier: 'pull', period: 'monthly' });
+    db.rpc.mockImplementation(async () => ({ data: null, error: { message: 'cap_reached' } }));
+    await submitClip(CLIP);
+    await waitFor(() => expect(usePipeline.getState().job?.status).toBe('failed'));
+    expect(db.rpc.mock.calls.map((c) => c[0])).toEqual(['create_lift', 'create_lift']);
+
+    params.current = { live: '1' };
+    await render(<ProcessingRoute />);
+    const jobId = usePipeline.getState().job?.id;
+    expect(nav.replace).toHaveBeenCalledWith({ pathname: '/paywall/cap', params: { clip: jobId, movement: 'snatch' } });
+  });
+
+  it('Hide leaves the lift running and lands on the Lifts tab, not the review of the clip already sent', async () => {
+    await submitClip(CLIP);
+    await settle();
+    params.current = { live: '1' };
+    const view = await render(<ProcessingRoute />);
+    await act(async () => {
+      fireEvent.press(view.getByTestId('hide'));
+    });
+    expect(nav.dismissTo).toHaveBeenCalledWith('/');
+    expect(nav.back).not.toHaveBeenCalled();
+    expect(db.removeChannel).not.toHaveBeenCalled();
+  });
+
+  it('resubscribes when the app returns to the foreground, so a result that landed meanwhile shows', async () => {
+    const listen = jest.spyOn(AppState, 'addEventListener');
+    await submitClip(CLIP);
+    await settle();
+    params.current = { live: '1' };
+    const view = await render(<ProcessingRoute />);
+    await act(async () => {
+      channel.status?.('SUBSCRIBED');
+    });
+    expect(db.channel).toHaveBeenCalledTimes(1);
+    const onChange = listen.mock.calls.find((c) => c[0] === 'change')?.[1] as (s: string) => void;
+
+    // The worker finished while the app was in the background and Realtime had dropped.
+    analysisRow = { analysis: { ...mock, id: 'lift-1' } };
+    db.from.mockImplementation((table: string) => {
+      if (table === 'lifts') return result({ ...LIFT, status: 'done' });
+      if (table === 'analyses') return result(analysisRow);
+      return result([]);
+    });
+    await act(async () => {
+      onChange('active');
+    });
+    expect(db.removeChannel).toHaveBeenCalledTimes(1);
+    expect(db.channel).toHaveBeenCalledTimes(2);
+    expect(db.channel).toHaveBeenLastCalledWith('lift:lift-1');
+    await act(async () => {
+      channel.status?.('SUBSCRIBED');
+    });
+    await waitFor(() => expect(view.getByTestId('processing-done')).toBeOnTheScreen());
+
+    // Done: a later foreground leaves the result alone.
+    await act(async () => {
+      onChange('active');
+    });
+    expect(db.channel).toHaveBeenCalledTimes(2);
+    listen.mockRestore();
+  });
+
+  // The capture screens beneath the result still hold the clip just sent; going back
+  // there invites sending it twice, so leaving the cue lands on the Lifts tab.
+  it('leaving the cue lands on the Lifts tab, not the review of the clip already sent', async () => {
+    await submitClip(CLIP);
+    await settle();
+    params.current = { live: '1' };
+    const processing = await render(<ProcessingRoute />);
+    analysisRow = { analysis: { ...mock, id: 'lift-1' } };
+    await act(async () => {
+      channel.change?.({ new: { ...LIFT, status: 'done' } });
+    });
+    await waitFor(() => expect(useUsage.getState().usage.lifetime).toBe(1));
+    await processing.unmount();
+
+    params.current = { fixture: 'lift-1' };
+    const cue = await render(<CueRoute />);
+    await act(async () => {
+      fireEvent.press(cue.getByTestId('cue-not-for-me'));
+    });
+    expect(nav.dismissTo).toHaveBeenCalledWith('/');
+    expect(nav.back).not.toHaveBeenCalled();
+    expect(nav.push.mock.calls).toEqual([[{ pathname: '/analysis/processing', params: { live: '1' } }]]);
+  });
+
+  it('"Film another set" on a low-confidence cue goes to the Lifts tab, then the viewfinder', async () => {
+    await submitClip(CLIP);
+    await settle();
+    params.current = { live: '1' };
+    const processing = await render(<ProcessingRoute />);
+    analysisRow = { analysis: { ...mock, id: 'lift-1', cue: { ...mock.cue, confidence: 'low', confidenceText: 'Hip hidden.' } } };
+    await act(async () => {
+      channel.change?.({ new: { ...LIFT, status: 'done' } });
+    });
+    await waitFor(() => expect(useUsage.getState().usage.lifetime).toBe(1));
+    await processing.unmount();
+
+    params.current = { fixture: 'lift-1' };
+    const cue = await render(<CueRoute />);
+    await act(async () => {
+      fireEvent.press(cue.getByTestId('film-again'));
+    });
+    expect(nav.dismissTo).toHaveBeenCalledWith('/');
+    expect(nav.push).toHaveBeenLastCalledWith('/capture');
+    expect(nav.dismissTo.mock.invocationCallOrder[0]).toBeLessThan(nav.push.mock.invocationCallOrder[1]);
   });
 });
 

@@ -114,6 +114,10 @@ interface PurchasesState extends ActivePlan {
   identify: (userId: string) => Promise<void>;
   purchase: (plan: Plan) => Promise<PurchaseStatus>;
   restore: () => Promise<Tier>;
+  /** The server's plan when it ranks above RevenueCat's; true when the server holds a paid plan. */
+  adoptServerPlan: () => Promise<boolean>;
+  /** Back to a free, unidentified plan; RevenueCat forgets the user too. */
+  signOut: () => void;
   setDemoPlan: (tier: Tier, period?: Period | null) => void;
   setDemoOutcome: (outcome: PurchaseStatus) => void;
 }
@@ -212,6 +216,30 @@ export const usePurchases = create<PurchasesState>((set, get) => ({
     } catch {
       return get().tier;
     }
+  },
+
+  // The server enforces the cap, so a plan it holds that RevenueCat has not
+  // caught up with (a fresh install before the receipt is restored) is shown as
+  // that plan, never as free with a paywall the lifter has already paid past.
+  adoptServerPlan: async () => {
+    if (!backendEnabled()) return false;
+    try {
+      const { plan } = await getAllowance();
+      if (plan === 'free') return false;
+      if (TIER_RANK[plan] > TIER_RANK[get().tier]) set({ tier: plan, period: null, expiresAt: null });
+      return true;
+    } catch {
+      return false;
+    }
+  },
+
+  // Left logged in, RevenueCat's next customer-info refresh would hand the
+  // signed-out user's plan back to the anonymous one this phone starts next.
+  signOut: () => {
+    const Purchases = liveSdk();
+    const identified = get().appUserId !== null;
+    set({ appUserId: null, customerInfo: null, tier: 'free', period: null, expiresAt: null });
+    if (Purchases && identified) Purchases.logOut().catch(() => undefined);
   },
 
   setDemoPlan: (tier, period = null) => set({ tier, period, expiresAt: null }),
