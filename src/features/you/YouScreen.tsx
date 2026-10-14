@@ -142,8 +142,9 @@ export default function YouScreen({
         <Row title="Haptics" right={<Toggle value={settings.haptics} onChange={(v) => settings.set('haptics', v)} testID="toggle-haptics" />} />
         <Row
           title="Cue reminder"
+          value={labels.cueReminder}
           sub="One nudge before your usual session"
-          right={<Value>{labels.cueReminder}</Value>}
+          right={<Value>›</Value>}
           onPress={() => setPicker('cueReminder')}
           testID="row-reminder"
         />
@@ -228,8 +229,11 @@ function FoundingBadge() {
   );
 }
 
+// value: a setting too long for the right column (the reminder's days and
+// time) sits under the title instead, so the title never wraps.
 function Row({
   title,
+  value,
   sub,
   right,
   bold,
@@ -239,6 +243,7 @@ function Row({
   testID,
 }: {
   title: string;
+  value?: string;
   sub?: string;
   right: ReactNode;
   bold?: boolean;
@@ -266,9 +271,10 @@ function Row({
       })}
     >
       <View style={{ flex: 1, gap: 2 }}>
-        <Text style={{ color: muted ? colors.text2 : colors.text, fontFamily: bold ? fontFamily.bodyBold : fontFamily.body, fontSize: 17, lineHeight: 24 }}>
+        <Text numberOfLines={1} style={{ color: muted ? colors.text2 : colors.text, fontFamily: bold ? fontFamily.bodyBold : fontFamily.body, fontSize: 17, lineHeight: 24 }}>
           {title}
         </Text>
+        {value ? <Value>{value}</Value> : null}
         {sub ? <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 13, lineHeight: 18 }}>{sub}</Text> : null}
       </View>
       {right}

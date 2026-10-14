@@ -64,11 +64,12 @@ describe('plan and settings labels', () => {
       units: 'kg',
       defaultMovement: 'Snatch',
       frameRate: '60 fps, 240 for snatch',
-      cueReminder: 'Tue, Thu 17:30',
+      cueReminder: 'Tue, Thu · 17:30',
       autoDelete: '24 h',
     });
     expect(reminderLabel({ days: [], time: '17:30' })).toBe('Off');
-    expect(reminderLabel({ days: [5, 1], time: '06:30' })).toBe('Mon, Fri 06:30');
+    expect(reminderLabel({ days: [5, 1], time: '06:30' })).toBe('Mon, Fri · 06:30');
+    expect(reminderLabel({ days: [0, 1, 2, 3, 4, 5, 6], time: '07:30' })).toBe('Every day · 07:30');
     expect(accountLine(initialAccount.account!)).toBe('Signed in with Apple · synced');
   });
 
@@ -96,7 +97,7 @@ describe('YouScreen', () => {
     expect(screen.getByTestId('founding-badge')).toBeOnTheScreen();
     expect(screen.queryByText(/renews/)).toBeNull();
     expect(within(screen.getByTestId('row-frame-rate')).getByText('60 fps, 240 for snatch')).toBeOnTheScreen();
-    expect(within(screen.getByTestId('row-reminder')).getByText('Tue, Thu 17:30')).toBeOnTheScreen();
+    expect(within(screen.getByTestId('row-reminder')).getByText('Tue, Thu · 17:30')).toBeOnTheScreen();
     expect(within(screen.getByTestId('row-auto-delete')).getByText('24 h')).toBeOnTheScreen();
     expect(screen.getByText('About · 1.0.3')).toBeOnTheScreen();
     await press(screen.getByTestId('row-stored'));
@@ -141,7 +142,16 @@ describe('YouScreen', () => {
     await press(screen.getByTestId('day-Sat'));
     await press(screen.getByTestId('time-07:30'));
     await press(screen.getByText('Done'));
-    expect(within(screen.getByTestId('row-reminder')).getByText('Tue, Sat 07:30')).toBeOnTheScreen();
+    expect(within(screen.getByTestId('row-reminder')).getByText('Tue, Sat · 07:30')).toBeOnTheScreen();
+  });
+
+  it('keeps the cue reminder label on one line with the days and time under it, every day collapsed', async () => {
+    useSettings.getState().set('cueReminder', { days: [0, 1, 2, 3, 4, 5, 6], time: '07:30' });
+    const screen = await render(<YouScreen nav={nav} version="1.0.3" />);
+    const row = screen.getByTestId('row-reminder');
+    expect(row).toHaveTextContent('Cue reminderEvery day · 07:30One nudge before your usual session›');
+    expect(within(row).getByText('Cue reminder')).toHaveProp('numberOfLines', 1);
+    expect(within(row).getByText('Every day · 07:30')).toBeOnTheScreen();
   });
 
   it('renames the profile', async () => {
