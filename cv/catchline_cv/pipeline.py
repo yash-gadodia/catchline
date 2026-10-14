@@ -19,7 +19,7 @@ from .pose import (L_ANK, L_BIGTOE, L_ELB, L_HEEL, R_ELB, L_HIP, L_KNEE, L_SHO, 
 from .privacy import blur_bystanders, bystanders
 from .track import (camera_path, find_plates, foreground_mask, from_ref, refine_plate, stabilise, to_ref, to_world,
                     track_plate)
-from .video import frames, probe
+from .video import ClipUnreadable, frames, probe
 
 INFER_H = 1280
 PLATE_CM = 45.0
@@ -64,6 +64,8 @@ def run(clip, out_json, assets_dir, asset_prefix, debug_dir, cache_dir, analysis
     fps = meta["fps"]
     people, shape = load_pose(clip, cache_dir, two_pass=movement == "kipping_hspu")
     t_pose = time.time() - t0
+    if shape is None:
+        raise ClipUnreadable("no frames decoded")
     H, W = shape[:2]
     n = len(people)
     k, ks, boxes = select_lifter(people)

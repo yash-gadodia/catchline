@@ -127,6 +127,18 @@ export const FAILURE_COPY: Record<FailureReason, FailureCopy> = {
     readout: 'frame 61 → 62 · the whole second pull happened in between',
     image: 'asset:snatch/3-hip',
   },
+  clip_unreadable: {
+    kicker: "Couldn't analyse",
+    title: "Couldn't read that video",
+    body: "The file isn't a video I can decode. It was probably cut off while saving or exporting. Import it again from your camera roll, or film it in Catchline. This didn't use one of your videos.",
+    primary: { label: 'Import it again', action: 'import' },
+    links: [
+      { label: 'Retake', action: 'retake' },
+      { label: 'Not now', action: 'later' },
+    ],
+    readout: 'no frames in this file',
+    image: 'asset:snatch/1-setup',
+  },
   unknown: {
     kicker: "That one's on us",
     title: 'Something broke on our side',

@@ -5,6 +5,8 @@ import traceback
 from collections.abc import Callable
 from dataclasses import dataclass
 
+from catchline_cv.video import ClipUnreadable
+
 from .push import failed_message, ready_message
 
 log = logging.getLogger("catchline_worker")
@@ -13,6 +15,13 @@ RAW_BUCKET = "raw-clips"
 KEYFRAME_BUCKET = "keyframes"
 MAX_ATTEMPTS = 3
 VISIBILITY_S = 600
+
+# The only strings ever written to lifts.error (client-readable). Everything else stays in the worker log.
+ERROR_CODES = {"clip_unreadable", "unknown"}
+
+
+def error_code(e: BaseException) -> str:
+    return "clip_unreadable" if isinstance(e, ClipUnreadable) else "unknown"
 
 
 @dataclass(frozen=True)
@@ -95,15 +104,11 @@ def process_one(
             )
         except Exception as e:
             retry = job.attempt < max_attempts
-            log.error("lift %s attempt %s failed: %s", job.lift_id, job.attempt, traceback.format_exc())
+            code = error_code(e)
+            log.error("lift %s attempt %s failed (%s): %s", job.lift_id, job.attempt, code, traceback.format_exc())
             status = db.rpc(
                 "fail_lift_job",
-                {
-                    "p_msg_id": job.msg_id,
-                    "p_lift_id": job.lift_id,
-                    "p_error": f"{type(e).__name__}: {e}",
-                    "p_retry": retry,
-                },
+                {"p_msg_id": job.msg_id, "p_lift_id": job.lift_id, "p_error": code, "p_retry": retry},
             )
             deleted = False if retry else delete_clip(db, job)
             if not retry:
@@ -111,7 +116,7 @@ def process_one(
             return {
                 "lift_id": job.lift_id,
                 "status": status,
-                "error": f"{type(e).__name__}: {e}",
+                "error": code,
                 "attempt": job.attempt,
                 "clip_deleted": deleted,
             }

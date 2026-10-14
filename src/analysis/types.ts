@@ -91,6 +91,7 @@ export type Failure = {
     | 'clip_cut_off'
     | 'unsupported_movement'
     | 'low_frame_rate'
+    | 'clip_unreadable'
     | 'unknown';
   frame?: number;
   message: string;

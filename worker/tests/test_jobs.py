@@ -1,8 +1,11 @@
+import logging
 import os
+import subprocess
 
 import pytest
+from catchline_cv.video import ClipUnreadable
 
-from catchline_worker.jobs import MAX_ATTEMPTS, Job, Result, drain, process_one
+from catchline_worker.jobs import ERROR_CODES, MAX_ATTEMPTS, Job, Result, drain, error_code, process_one
 
 ROW = {
     "msg_id": 7,
@@ -146,14 +149,14 @@ def test_error_with_attempts_left_requeues_and_keeps_the_clip():
     assert out == {
         "lift_id": "lift-1",
         "status": "queued",
-        "error": "RuntimeError: pose model exploded",
+        "error": "unknown",
         "attempt": 1,
         "clip_deleted": False,
     }
     assert db.calls[-1] == (
         "rpc",
         "fail_lift_job",
-        {"p_msg_id": 7, "p_lift_id": "lift-1", "p_error": "RuntimeError: pose model exploded", "p_retry": True},
+        {"p_msg_id": 7, "p_lift_id": "lift-1", "p_error": "unknown", "p_retry": True},
     )
     assert "remove" not in db.names()
 
@@ -171,7 +174,7 @@ def test_download_error_is_retried_like_any_other():
     db = FakeDb([ROW], fail_on="download")
     out = process_one(db, fake_analyse)
     assert out["status"] == "queued"
-    assert out["error"] == "ConnectionError: download down"
+    assert out["error"] == "unknown"
 
 
 def test_storage_delete_failure_is_logged_not_raised_and_reported():
@@ -269,3 +272,66 @@ def test_drain_passes_the_push_client_through():
     push = FakePush()
     drain(db, fake_analyse, push=push)
     assert len(push.sent) == 1
+
+
+def unreadable_analyse(clip, job, workdir):
+    raise ClipUnreadable("no video stream in /Users/yash/catchline-worker/tmp/tmpabc/clip")
+
+
+def zero_division_analyse(clip, job, workdir):
+    return 1 / 0
+
+
+def fail_error(db):
+    return next(c for c in db.calls if c[0] == "rpc" and c[1] == "fail_lift_job")[2]["p_error"]
+
+
+def test_unreadable_clip_stores_the_clip_unreadable_code_only():
+    db = FakeDb([ROW | {"attempt": MAX_ATTEMPTS}])
+    out = process_one(db, unreadable_analyse)
+    assert fail_error(db) == "clip_unreadable"
+    assert out["error"] == "clip_unreadable"
+
+
+def test_unhandled_exception_stores_unknown_not_the_python_error():
+    db = FakeDb([ROW])
+    out = process_one(db, zero_division_analyse)
+    assert fail_error(db) == "unknown"
+    assert out["error"] == "unknown"
+
+
+def test_full_traceback_goes_to_the_worker_log_not_the_db(caplog):
+    db = FakeDb([ROW])
+    with caplog.at_level(logging.ERROR, logger="catchline_worker"):
+        process_one(db, zero_division_analyse)
+    assert "ZeroDivisionError: division by zero" in caplog.text
+    assert "Traceback (most recent call last)" in caplog.text
+    assert "ZeroDivisionError" not in fail_error(db)
+
+
+@pytest.mark.parametrize(
+    "exc,code",
+    [
+        (ClipUnreadable("x"), "clip_unreadable"),
+        (ZeroDivisionError("division by zero"), "unknown"),
+        (subprocess.CalledProcessError(1, ["ffprobe", "/Users/yash/catchline-worker/tmp/x/clip"]), "unknown"),
+        (ConnectionError("download down"), "unknown"),
+    ],
+)
+def test_error_code_is_a_closed_set(exc, code):
+    assert error_code(exc) == code
+    assert code in ERROR_CODES
+
+
+def test_error_codes_are_the_client_safe_set():
+    assert {"clip_unreadable", "unknown"} == ERROR_CODES
+
+
+def test_final_unreadable_clip_sends_the_failed_push_and_stores_only_the_code():
+    push = FakePush()
+    db = FakeDb([ROW | {"attempt": MAX_ATTEMPTS}])
+    out = process_one(db, unreadable_analyse, push=push)
+    assert out["status"] == "failed"
+    assert fail_error(db) == "clip_unreadable"
+    assert push.sent == [FAILED_PUSH]
+    assert db.names()[-4:] == ["fail_lift_job", "remove", "mark_clip_deleted", "push_token"]

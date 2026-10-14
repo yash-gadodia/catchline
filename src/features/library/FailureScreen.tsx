@@ -12,8 +12,11 @@ import { display, fontFamily } from '../../design/typography';
 import { FAILURE_COPY, type FailureAction, type FailureReason } from './failures';
 import { Frame, Underlined } from './ui';
 
+// Anything outside the closed set (a raw worker string, an older build's code) shows the generic copy.
+const known = (reason: string): FailureReason => (reason in FAILURE_COPY ? (reason as FailureReason) : 'unknown');
+
 export default function FailureScreen({
-  reason,
+  reason: rawReason,
   header,
   refCode,
   onAction,
@@ -25,6 +28,7 @@ export default function FailureScreen({
 }) {
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
+  const reason = known(rawReason);
   const copy = FAILURE_COPY[reason];
   const stageH = Math.round(Math.min((width * 420) / 390, height * 0.46));
   return (

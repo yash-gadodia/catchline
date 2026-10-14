@@ -1,8 +1,9 @@
-import type { Analysis, Movement } from '../analysis/types';
+import type { Analysis, Failure, Movement } from '../analysis/types';
 import { putLiveAnalysis } from '../analysis/live';
 import { keyFrameForPhase, repByIndex } from '../analysis/timeline';
 import { ensureSession, listAnalyses, listCues, listLifts } from '../lib/api';
 import type { CueRow, Lift as LiftRow } from '../types/db';
+import { FAILURE_COPY } from '../features/library/failures';
 import { useLibraryStore } from '../features/library/store';
 import type { CueRecord, CueStatus, Day, Lift, LiftStatus, Session } from '../features/library/types';
 import { useUsage } from '../features/paywall/usageStore';
@@ -27,17 +28,24 @@ function liftStatus(s: string): LiftStatus {
   return 'queued';
 }
 
+// lifts.error holds a worker code from a closed set; anything else (or nothing) is our fault.
+function workerFailure(row: LiftRow): Failure {
+  const reason: Failure['reason'] = row.error && row.error in FAILURE_COPY ? (row.error as Failure['reason']) : 'unknown';
+  return { reason, message: FAILURE_COPY[reason].title };
+}
+
 export function toLift(row: LiftRow, a: Analysis | undefined): Lift {
+  const status: LiftStatus = a?.failure ? 'failed' : liftStatus(row.status);
   return {
     id: row.id,
     movement: row.movement as Movement,
     date: dayOf(row.created_at),
     loadKg: row.load_kg ?? undefined,
     reps: a && !a.failure ? a.reps.length : undefined,
-    status: a?.failure ? 'failed' : liftStatus(row.status),
+    status,
     analysisId: a && !a.failure ? a.id : undefined,
     thumb: catchImage(a),
-    failure: a?.failure ?? undefined,
+    failure: a?.failure ?? (status === 'failed' ? workerFailure(row) : undefined),
     headline: a?.cue?.evidence.caption,
   };
 }

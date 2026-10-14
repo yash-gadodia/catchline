@@ -7,7 +7,7 @@ import TrendsScreen from './TrendsScreen';
 import FailureScreen from './FailureScreen';
 import TabBar from './TabBar';
 import YouTab from './YouTab';
-import { FAILURE_COPY, FAILURE_REASONS } from './failures';
+import { FAILURE_COPY, FAILURE_REASONS, type FailureReason } from './failures';
 import { keepTrying, loadLibrary, markStuck, tryNewCue } from './repository';
 import { useLibraryStore } from './store';
 
@@ -227,6 +227,16 @@ describe('FailureScreen', () => {
     const { getByTestId } = await render(<FailureScreen reason="multiple_lifters" header="Snatch" refCode="x" onAction={onAction} />);
     await press(getByTestId('failure-alt'));
     expect(onAction).toHaveBeenCalledWith('pickB');
+  });
+
+  it('shows the generic copy for a reason it does not know and never prints the raw string', async () => {
+    const raw = 'ZeroDivisionError: division by zero' as FailureReason;
+    const { getByText, queryByText, getByTestId } = await render(<FailureScreen reason={raw} header="Snatch" refCode="7f3a21" onAction={jest.fn()} />);
+    expect(getByText(FAILURE_COPY.unknown.title)).toBeOnTheScreen();
+    expect(getByText(FAILURE_COPY.unknown.body)).toBeOnTheScreen();
+    expect(getByTestId('failure-unknown')).toBeOnTheScreen();
+    expect(queryByText(/ZeroDivisionError/)).toBeNull();
+    expect(queryByText(/division by zero/)).toBeNull();
   });
 
   it('owns our own errors with a reference and no charge', async () => {
