@@ -36,6 +36,19 @@ export async function getAllowance(): Promise<Allowance> {
   return data as Allowance;
 }
 
+export type PlanSync = { plan: Allowance['plan']; founding: boolean; result: string };
+
+/**
+ * The sync-plan edge function reads the caller's RevenueCat subscriber and
+ * applies it to profiles.plan (upgrades only), for a webhook that was missed
+ * or is slow.
+ */
+export async function syncPlan(): Promise<PlanSync> {
+  const { data, error } = await supabase.functions.invoke('sync-plan');
+  if (error) throw toApiError(error);
+  return data as PlanSync;
+}
+
 /**
  * The delete-account edge function erases the caller's rows (delete_my_account)
  * and the auth user itself, so the token in hand is dead afterwards: drop it

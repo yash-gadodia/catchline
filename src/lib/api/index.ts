@@ -19,9 +19,11 @@ export {
   ensureSession,
   recordConsent,
   getAllowance,
+  syncPlan,
   deleteAccount,
   foundingSeats,
   type Allowance,
+  type PlanSync,
   type ConsentKind,
 } from './account';
 export { tusUpload, TusError, TUS_CHUNK_BYTES, type UploadSource } from './tus';

@@ -1,7 +1,7 @@
 import { createLift, getAnalysis, liftsAhead, listLifts, subscribeToLift } from './lifts';
 import { listCues, updateCue } from './cues';
 import { createCoachLink } from './coach';
-import { deleteAccount, ensureSession } from './account';
+import { deleteAccount, ensureSession, syncPlan } from './account';
 import { ApiError } from './errors';
 import { tusUpload } from './tus';
 import { supabase } from '../supabase';
@@ -233,6 +233,20 @@ describe('subscribeToLift', () => {
     expect(analyses).toEqual(['too_dark']);
     off();
     expect(mocked.removeChannel).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('syncPlan', () => {
+  it('calls the sync-plan edge function and returns the server plan', async () => {
+    mocked.functions.invoke.mockResolvedValueOnce({ data: { plan: 'pull', founding: false, result: 'applied' }, error: null });
+    await expect(syncPlan()).resolves.toEqual({ plan: 'pull', founding: false, result: 'applied' });
+    expect(mocked.functions.invoke).toHaveBeenCalledTimes(1);
+    expect(mocked.functions.invoke).toHaveBeenCalledWith('sync-plan');
+  });
+
+  it('throws an ApiError when the function fails', async () => {
+    mocked.functions.invoke.mockResolvedValueOnce({ data: null, error: new Error('internal') });
+    await expect(syncPlan()).rejects.toMatchObject({ name: 'ApiError', code: 'unknown', message: 'internal' });
   });
 });
 

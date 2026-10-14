@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 import type { CustomerInfo, PurchasesOfferings, StoreProductChangeInfo } from 'react-native-purchases';
 import { loadPurchases, RC_IOS_KEY, RC_ANDROID_KEY } from './client';
 import { supabase } from '../../lib/supabase';
-import { ensureSession, getAllowance } from '../../lib/api';
+import { ensureSession, getAllowance, syncPlan } from '../../lib/api';
 import { backendEnabled } from '../../data/backend';
 import {
   ENTITLEMENT,
@@ -44,6 +44,13 @@ export function classifyPurchaseError(e: unknown): PurchaseStatus {
   return 'failed';
 }
 
+// RevenueCat code 6 (PRODUCT_ALREADY_PURCHASED): the Apple ID already holds the
+// subscription, so a restore is what the lifter needs, not another purchase.
+export function isAlreadyPurchased(e: unknown): boolean {
+  const err = (e ?? {}) as { code?: string; message?: string };
+  return err.code === '6' || /already (purchased|subscribed|active)/i.test(err.message ?? '');
+}
+
 function apiKey(): string {
   return Platform.OS === 'ios' ? RC_IOS_KEY : RC_ANDROID_KEY || RC_IOS_KEY;
 }
@@ -63,6 +70,29 @@ export async function waitForServerPlan(tier: Tier, tries = 8, intervalMs = 1500
   }
   console.log(`[RevenueCat] server plan has not reached ${tier} yet`);
   return false;
+}
+
+// After a purchase or restore: wait for the webhook, then pull the plan straight
+// from RevenueCat (sync-plan) if it never arrived.
+export async function settleServerPlan(tier: Tier, tries?: number, intervalMs?: number): Promise<boolean> {
+  if (await waitForServerPlan(tier, tries, intervalMs)) return true;
+  try {
+    const { plan } = await syncPlan();
+    return TIER_RANK[plan] >= TIER_RANK[tier];
+  } catch {
+    return false;
+  }
+}
+
+// On launch: RevenueCat ranking above the server means a webhook was missed.
+export async function reconcileServerPlan(tier: Tier): Promise<void> {
+  if (tier === 'free') return;
+  try {
+    const { plan } = await getAllowance();
+    if (TIER_RANK[tier] > TIER_RANK[plan]) await syncPlan();
+  } catch {
+    // offline: the next purchase, restore or capped lift syncs
+  }
 }
 
 // The real SDK only when it loaded AND a key is set; otherwise demo mode.
@@ -126,6 +156,7 @@ export const usePurchases = create<PurchasesState>((set, get) => ({
       }
       const [info, offerings] = await Promise.all([Purchases.getCustomerInfo(), Purchases.getOfferings()]);
       set({ ready: true, demo: false, customerInfo: info, offerings, ...planFromInfo(info) });
+      if (backendEnabled() && userId) void reconcileServerPlan(planFromInfo(info).tier);
     } catch {
       set({ ready: true, demo: false });
     }
@@ -161,9 +192,10 @@ export const usePurchases = create<PurchasesState>((set, get) => ({
       const next = planFromInfo(customerInfo);
       set({ customerInfo, ...next });
       if (next.tier === 'free') return 'failed';
-      if (backendEnabled()) await waitForServerPlan(next.tier);
+      if (backendEnabled()) await settleServerPlan(next.tier);
       return 'success';
     } catch (e) {
+      if (isAlreadyPurchased(e)) return (await get().restore()) === 'free' ? 'failed' : 'success';
       return classifyPurchaseError(e);
     }
   },
@@ -175,7 +207,7 @@ export const usePurchases = create<PurchasesState>((set, get) => ({
       if (backendEnabled()) await get().identify(await ensureSession());
       const info = await Purchases.restorePurchases();
       set({ customerInfo: info, ...planFromInfo(info) });
-      if (backendEnabled() && get().tier !== 'free') await waitForServerPlan(get().tier);
+      if (backendEnabled() && get().tier !== 'free') await settleServerPlan(get().tier);
       return get().tier;
     } catch {
       return get().tier;

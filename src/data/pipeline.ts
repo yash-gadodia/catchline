@@ -1,8 +1,10 @@
 import { create } from 'zustand';
 import type { Movement } from '../analysis/types';
 import { File } from 'expo-file-system';
-import { ApiError, createLift, type ApiErrorCode, type UploadSource } from '../lib/api';
+import { ApiError, createLift, syncPlan, type ApiErrorCode, type CreateLiftInput, type UploadSource } from '../lib/api';
+import type { Lift } from '../types/db';
 import type { ClipSubmission } from '../features/capture/submit';
+import { usePurchases } from '../features/purchases/usePurchases';
 import { syncConsent } from './backend';
 import { ClipTooLongError, discardPrepared, prepareClip } from './prepare';
 
@@ -65,6 +67,19 @@ export function uploadStep(job: Job | null): { label: string; meta: string | nul
   return { label: 'Uploading your clip', meta };
 }
 
+// A paid lifter the server still thinks is free (a missed webhook) is capped
+// by create_lift: pull the plan from RevenueCat and try once more before the
+// cap paywall. The cap check runs before the upload, so the retry is cheap.
+async function createLiftSynced(input: CreateLiftInput): Promise<Lift> {
+  try {
+    return await createLift(input);
+  } catch (e) {
+    if (!(e instanceof ApiError) || e.code !== 'cap_reached' || usePurchases.getState().tier === 'free') throw e;
+    await syncPlan().catch(() => undefined);
+    return createLift(input);
+  }
+}
+
 // Consent, then the trimmed H.264 copy (1080 px long edge) (Supabase Free caps uploads at
 // 50 MB), then create_lift (cap checked server-side) + resumable upload +
 // enqueue. Never throws: the outcome lands on the job. The trim is baked into the
@@ -90,7 +105,7 @@ export async function startLift(sub: ClipSubmission & { uri: string }, read: (ur
     prepared = clip.uri;
     const file = await read(clip.uri);
     patch({ status: 'uploading', prepared: 1, total: file.size });
-    const lift = await createLift({
+    const lift = await createLiftSynced({
       movement: sub.movement,
       loadKg: sub.loadKg ?? undefined,
       file,

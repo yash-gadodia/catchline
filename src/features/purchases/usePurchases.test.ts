@@ -1,5 +1,14 @@
 import type { CustomerInfo, PurchasesPackage } from 'react-native-purchases';
-import { classifyPurchaseError, planFromInfo, presentCustomerCenter, usePurchases, waitForServerPlan } from './usePurchases';
+import {
+  classifyPurchaseError,
+  isAlreadyPurchased,
+  planFromInfo,
+  presentCustomerCenter,
+  reconcileServerPlan,
+  settleServerPlan,
+  usePurchases,
+  waitForServerPlan,
+} from './usePurchases';
 
 jest.mock('./client', () => ({
   loadPurchases: jest.fn(),
@@ -15,20 +24,22 @@ jest.mock('react-native', () => ({
 }));
 
 jest.mock('../../data/backend', () => ({ backendEnabled: jest.fn(() => false) }));
-jest.mock('../../lib/api', () => ({ ensureSession: jest.fn(), getAllowance: jest.fn() }));
+jest.mock('../../lib/api', () => ({ ensureSession: jest.fn(), getAllowance: jest.fn(), syncPlan: jest.fn() }));
 jest.mock('../../lib/supabase', () => ({
   supabase: { auth: { getSession: jest.fn(), onAuthStateChange: jest.fn() } },
 }));
 
 import { loadPurchases } from './client';
 import { backendEnabled } from '../../data/backend';
-import { ensureSession, getAllowance } from '../../lib/api';
+import { ensureSession, getAllowance, syncPlan } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
 
 const mockLoadPurchases = loadPurchases as jest.Mock;
 const mockBackendEnabled = backendEnabled as jest.Mock;
 const mockEnsureSession = ensureSession as jest.Mock;
 const mockGetAllowance = getAllowance as jest.Mock;
+const mockSyncPlan = syncPlan as jest.Mock;
+const flush = () => new Promise((r) => setImmediate(r));
 const mockGetSession = supabase.auth.getSession as jest.Mock;
 const mockOnAuthStateChange = supabase.auth.onAuthStateChange as jest.Mock;
 
@@ -114,6 +125,13 @@ describe('classifyPurchaseError', () => {
     expect(classifyPurchaseError({ code: '2' })).toBe('failed');
     expect(classifyPurchaseError(new Error('boom'))).toBe('failed');
     expect(classifyPurchaseError(undefined)).toBe('failed');
+  });
+
+  it('spots a product the Apple ID already holds', () => {
+    expect(isAlreadyPurchased({ code: '6', message: 'This product is already active for the user.' })).toBe(true);
+    expect(isAlreadyPurchased(new Error('You are already subscribed to this product'))).toBe(true);
+    expect(isAlreadyPurchased({ code: '1' })).toBe(false);
+    expect(isAlreadyPurchased(undefined)).toBe(false);
   });
 });
 
@@ -342,6 +360,67 @@ describe('with the SDK and the backend on', () => {
     expect(Purchases.purchasePackage).not.toHaveBeenCalled();
   });
 
+  it('on launch, RevenueCat above the server plan triggers a sync', async () => {
+    const Purchases = sdk();
+    Purchases.getCustomerInfo.mockResolvedValue(PULL_ANNUAL);
+    mockGetSession.mockResolvedValue(session(UID));
+    mockGetAllowance.mockResolvedValue({ plan: 'free' });
+    mockSyncPlan.mockResolvedValue({ plan: 'pull', founding: false, result: 'applied' });
+    mockLoadPurchases.mockReturnValue({ Purchases, RevenueCatUI: null });
+    await usePurchases.getState().configure();
+    await flush();
+    expect(mockGetAllowance).toHaveBeenCalledTimes(1);
+    expect(mockSyncPlan).toHaveBeenCalledTimes(1);
+  });
+
+  it('on launch, a server plan already at the tier is left alone', async () => {
+    const Purchases = sdk();
+    Purchases.getCustomerInfo.mockResolvedValue(PULL_ANNUAL);
+    mockGetSession.mockResolvedValue(session(UID));
+    mockGetAllowance.mockResolvedValue({ plan: 'founding' });
+    mockLoadPurchases.mockReturnValue({ Purchases, RevenueCatUI: null });
+    await usePurchases.getState().configure();
+    await flush();
+    expect(mockSyncPlan).not.toHaveBeenCalled();
+  });
+
+  it('on launch, a free RevenueCat tier or no session never asks the server', async () => {
+    const Purchases = sdk();
+    Purchases.getCustomerInfo.mockResolvedValue(PULL_ANNUAL);
+    mockGetSession.mockResolvedValue({ data: { session: null } });
+    mockLoadPurchases.mockReturnValue({ Purchases, RevenueCatUI: null });
+    await usePurchases.getState().configure();
+    await flush();
+    expect(mockGetAllowance).not.toHaveBeenCalled();
+    await reconcileServerPlan('free');
+    expect(mockGetAllowance).not.toHaveBeenCalled();
+  });
+
+  it('a purchase the Apple ID already holds becomes a restore', async () => {
+    const Purchases = sdk();
+    Purchases.purchasePackage.mockRejectedValueOnce({ code: '6', message: 'This product is already active for the user.' });
+    Purchases.restorePurchases.mockResolvedValue(PULL_ANNUAL);
+    mockEnsureSession.mockResolvedValue(UID);
+    mockGetAllowance.mockResolvedValue({ plan: 'pull' });
+    mockLoadPurchases.mockReturnValue({ Purchases, RevenueCatUI: null });
+    usePurchases.setState({ appUserId: UID });
+    const status = await usePurchases.getState().purchase({ kind: 'sub', tier: 'pull', period: 'annual' });
+    expect(status).toBe('success');
+    expect(Purchases.restorePurchases).toHaveBeenCalledTimes(1);
+    expect(usePurchases.getState().tier).toBe('pull');
+  });
+
+  it('an already-held product that restores nothing fails', async () => {
+    const Purchases = sdk();
+    Purchases.purchasePackage.mockRejectedValueOnce({ code: '6' });
+    Purchases.restorePurchases.mockResolvedValue(info({}));
+    mockEnsureSession.mockResolvedValue(UID);
+    mockLoadPurchases.mockReturnValue({ Purchases, RevenueCatUI: null });
+    usePurchases.setState({ appUserId: UID });
+    expect(await usePurchases.getState().purchase({ kind: 'sub', tier: 'pull', period: 'annual' })).toBe('failed');
+    expect(mockGetAllowance).not.toHaveBeenCalled();
+  });
+
   it('skips logIn when already identified as that user', async () => {
     const Purchases = sdk();
     Purchases.restorePurchases.mockResolvedValue(PULL_ANNUAL);
@@ -379,4 +458,48 @@ describe('waitForServerPlan', () => {
     expect(log).toHaveBeenCalledWith('[RevenueCat] server plan has not reached platform yet');
     log.mockRestore();
   });
+});
+
+describe('settleServerPlan', () => {
+  let log: jest.SpyInstance;
+  beforeEach(() => {
+    log = jest.spyOn(console, 'log').mockImplementation(() => undefined);
+  });
+  afterEach(() => log.mockRestore());
+
+  it('is done once the webhook has landed, without a sync', async () => {
+    mockGetAllowance.mockResolvedValue({ plan: 'pull' });
+    expect(await settleServerPlan('pull', 3, 0)).toBe(true);
+    expect(mockSyncPlan).not.toHaveBeenCalled();
+  });
+
+  it('syncs from RevenueCat when the webhook never arrives', async () => {
+    mockGetAllowance.mockResolvedValue({ plan: 'free' });
+    mockSyncPlan.mockResolvedValue({ plan: 'pull', founding: false, result: 'applied' });
+    expect(await settleServerPlan('pull', 2, 0)).toBe(true);
+    expect(mockGetAllowance).toHaveBeenCalledTimes(2);
+    expect(mockSyncPlan).toHaveBeenCalledTimes(1);
+  });
+
+  it('is false when the sync fails or still ranks below the tier', async () => {
+    mockGetAllowance.mockResolvedValue({ plan: 'free' });
+    mockSyncPlan.mockRejectedValueOnce(new Error('offline'));
+    expect(await settleServerPlan('pull', 1, 0)).toBe(false);
+    mockSyncPlan.mockResolvedValueOnce({ plan: 'hook', founding: false, result: 'applied' });
+    expect(await settleServerPlan('pull', 1, 0)).toBe(false);
+  });
+
+  it('restore syncs when the TRANSFER webhook is slow', async () => {
+    const Purchases = sdk();
+    Purchases.restorePurchases.mockResolvedValue(PULL_ANNUAL);
+    mockBackendEnabled.mockReturnValue(true);
+    mockEnsureSession.mockResolvedValue('4541fa15-7a51-4cf5-9402-ea669eb6b51f');
+    mockGetAllowance.mockResolvedValue({ plan: 'free' });
+    mockSyncPlan.mockResolvedValue({ plan: 'pull', founding: false, result: 'applied' });
+    mockLoadPurchases.mockReturnValue({ Purchases, RevenueCatUI: null });
+    usePurchases.setState({ appUserId: '4541fa15-7a51-4cf5-9402-ea669eb6b51f' });
+    expect(await usePurchases.getState().restore()).toBe('pull');
+    expect(mockGetAllowance).toHaveBeenCalledTimes(8);
+    expect(mockSyncPlan).toHaveBeenCalledTimes(1);
+  }, 20000);
 });
