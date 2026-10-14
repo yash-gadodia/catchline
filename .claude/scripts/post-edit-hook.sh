@@ -18,20 +18,11 @@ mkdir -p "$CLAUDE_PROJECT_DIR/.claude/.cache"
 
 [ -f "$f" ] || exit 0
 
-out=""
-if grep -n '@ts-ignore' "$f" >/dev/null 2>&1; then
-  out="$f uses @ts-ignore — the repo bans it. Use one documented // @ts-expect-error only for the known supabase-js quirk."
-fi
-case "$f" in
-  *.test.ts|*.test.tsx)
-    if grep -q 'expect(<' "$f" 2>/dev/null; then
-      out="$out
-$f looks like a hollow test (expect(<JSX/>) is always truthy). render() and assert real content — see .claude/rules/testing.md."
-    fi ;;
-esac
-
-if [ -n "$out" ]; then
-  printf '%s\n' "$out" | sed '/^$/d' | head -25 >&2
+out=$(cd "$CLAUDE_PROJECT_DIR" && npx tsx scripts/check-all.ts "$f" 2>&1)
+if [ $? -ne 0 ]; then
+  total=$(printf '%s\n' "$out" | wc -l | tr -d ' ')
+  printf '%s\n' "$out" | head -25 >&2
+  [ "$total" -gt 25 ] && echo "[post-edit-hook] …$((total - 25)) more line(s) truncated (of $total); run npm run check." >&2
   exit 2
 fi
 exit 0

@@ -20,5 +20,7 @@ jobs:
         run: npm install --legacy-peer-deps
       - name: Typecheck
         run: npm run typecheck
+      - name: Checks
+        run: npm run check
       - name: Tests
         run: npm test -- --ci
