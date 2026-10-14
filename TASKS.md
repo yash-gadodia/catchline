@@ -118,3 +118,14 @@ Rule now enforced by tests: a release build never shows fixture or sample conten
 - [ ] (Claude) Apple token revocation on account deletion: Apple requires apps using Sign in with Apple to call the revoke endpoint when the user deletes their account; `supabase/functions/delete-account` does not do it yet (needs the Apple services key / client secret)
 - [ ] (Claude) Orphaned anonymous auth users after a transfer are never deleted (harmless, but they accumulate; Supabase's anonymous-user cleanup query or a cron)
 - [ ] (Claude) After a transfer the local usage store keeps the phone's count; the server's merged counter is what enforces the cap, so only the "N of 3 videos left" label can drift until the next launch
+
+### TestFlight journey audit (14 Oct evening, build 25 code)
+
+- [x] Pay once on a fresh install: RevenueCat `logIn` never moves a receipt, so a lifter who paid as anonymous and reinstalled saw the paywall again. After the Apple session the app logs RevenueCat in, restores once while the tier is still free, then adopts the server plan when it ranks above RevenueCat (`adoptServerPlan`), 3c92799
+- [x] Leaving a live result (Hide, Notify me, Not for me, Film another set) went `router.back()` to the Review of the clip already sent, inviting a second upload; now `dismissTo('/')` (Lifts tab), c48dcca. Same commit: a paid lifter the server still caps after the sync retry gets `/paywall/cap`, not `/paywall`; coming back to the foreground resubscribes to the lift (Realtime can drop in the background)
+- [x] A server-queued lift (uploaded, worker not yet on it) showed the library's "Unlock" row and opened the paywall, 5425479
+- [x] Sign out left RevenueCat logged in as the Apple user, so its next customer-info refresh handed the paid plan back to the anonymous account, d8f1074
+- [ ] (Dani) An anonymous lifter upgrading from build 24 never sees the account step: `completed` is already true so the tabs never redirect to onboarding; Sign in with Apple is only on the You tab. Decide whether to surface it once (e.g. a one-time prompt from the Lifts tab)
+- [ ] (Yash, device) `restorePurchases` runs silently after every Apple sign-in whose RevenueCat tier is free. If an App Store / sandbox login prompt appears right after the Apple sheet, switch `settlePlanAfterSignIn` to `Purchases.syncPurchases()` (never prompts)
+- [ ] (Claude) You tab sign-out has no catch: an offline `auth.signOut()` rejects unhandled (busy flag still resets). Show the app's own error copy
+- Gotchas: RNTL v14 `unmount()` is async; an un-awaited one leaks an act() into the next test ("overlapping act() calls") and every later render in the file fails. The RN jest preset stubs `AppState.addEventListener` with a bare `jest.fn()` (returns undefined, so `.remove()` throws on cleanup); `jest-setup.ts` now gives it a subscription
