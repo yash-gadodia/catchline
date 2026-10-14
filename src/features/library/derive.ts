@@ -107,7 +107,8 @@ export type LiftLink =
   | { pathname: '/trends'; params: { movement: Movement } };
 
 export function liftLink(l: Lift): LiftLink | null {
-  if (l.status === 'processing') return { pathname: '/analysis/processing', params: {} };
+  // Live processing follows this lift by id, so it works after a relaunch with no job in memory.
+  if (l.status === 'processing') return { pathname: '/analysis/processing', params: { live: '1', lift: l.id } };
   if (l.status === 'failed') return { pathname: '/failure/[id]', params: { id: l.id } };
   if (l.status === 'queued') return null;
   if (!l.analysisId) return { pathname: '/trends', params: { movement: l.movement } };

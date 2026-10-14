@@ -316,6 +316,37 @@ describe('preparing the clip before upload', () => {
   });
 });
 
+// A processing lift opened from the Lifts list after a relaunch: no job in memory, so the
+// sheet follows the lift named in the link. Before, the link was bare and played the demo.
+describe('a processing lift opened from the library', () => {
+  it('subscribes to that lift and opens its own analysis', async () => {
+    analysisRow = { analysis: { ...mock, id: 'lift-9' } };
+    db.from.mockImplementation((table: string) => {
+      if (table === 'lifts') return result({ ...LIFT, id: 'lift-9', status: 'processing' });
+      if (table === 'analyses') return result(analysisRow);
+      return result([]);
+    });
+    params.current = { live: '1', lift: 'lift-9' };
+    const view = await render(<ProcessingRoute />);
+
+    expect((supabase as unknown as { channel: jest.Mock }).channel).toHaveBeenCalledWith('lift:lift-9');
+    await act(async () => {
+      channel.status?.('SUBSCRIBED');
+    });
+    await waitFor(() => expect(view.getByText('Watching your reps')).toBeOnTheScreen());
+    expect(view.queryByText(mock.cue.text)).toBeNull();
+
+    await act(async () => {
+      channel.change?.({ new: { ...LIFT, id: 'lift-9', status: 'done' } });
+    });
+    await waitFor(() => expect(view.getByTestId('processing-done')).toBeOnTheScreen());
+    await act(async () => {
+      fireEvent.press(view.getByTestId('see-it'));
+    });
+    expect(nav.replace).toHaveBeenCalledWith({ pathname: '/analysis/reveal', params: { fixture: 'lift-9' } });
+  });
+});
+
 describe('long wait', () => {
   afterEach(() => jest.useRealTimers());
 
