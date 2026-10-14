@@ -75,3 +75,10 @@ Design source: `~/dev/liftcheck-research/design/` (Claude Design export; `Catchl
 - [ ] (Claude) Not fixed: on the app's real format (608x1080, HLG tone-mapped to Rec.709) the eval set still drifts (same cue 18/27, pxPerCm within 5% 15/30). Causes: `plate_mask` uses a fixed `V < 75` and tone mapping darkens frames ~20%, so plates sit either side of the cut (21B27BAF plate 241 vs 402 px); and the scale method flips between parallax and near-plate-only when the track survives or not (20-40% jumps). An exposure-relative cut (0.5 x median V) helped some clips and broke others (tried, reverted). Needs a colour-invariant plate detector, and the eval should run on app-format clips. FF600EFA on app format: scale stable (+0.5%) but bar_forward_off_hips 8.9 -> 12.3 cm, so its cue changes.
 - Note: Theil-Sen on the depth ratio reads ~16% lower than least squares (0.72 vs 0.86 on FF600EFA), the same size as the known "scale ~15% high on floor cameras". Worth checking against a measured clip.
 - Note: the app uploads 1080 px on the LONG edge (608x1080 portrait), below the CV's 1280 px inference height, and tone-mapped to Rec.709. Test re-encodes must match that (avconvert Preset1920x1080 then ffmpeg scale; ffmpeg on the Mini has no zscale/tonemap).
+
+## From Huilong's feedback (12-10-2026, ~/dev/liftcheck-research/29-huilong-feedback.md)
+- [ ] (Claude) Root cause as the headline of the result; the cue comes second
+- [ ] (Claude) Cue side effects: after a cue, flag a NEW fault on the next lifts; after N misses rotate the cue wording, then switch to a drill
+- [ ] (Claude) Trends finds cross-session patterns (fault vs load %, drift vs load, recurring faults), not only recaps
+- [ ] (Claude) Soft mobility hint once a fault survives the cue over several sessions ("may be mobility, not technique", prep drills, ask a coach; never diagnose)
+- [ ] (Dani) Onboarding asks experience + "do you have a coach"; output adapts by level (copy + design)
