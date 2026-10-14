@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { Linking, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, space } from '../../design/tokens';
 import { fontFamily } from '../../design/typography';
+import { PRIVACY_URL, TERMS_URL } from '../../lib/links';
 import { Checkbox, GateBtn, Title } from './ui';
 
 export const PRIVACY_POINTS = [
@@ -51,9 +52,14 @@ export default function PrivacyScreen({
         <GateBtn disabled={!agreed} onPress={() => onContinue(improve)} testID="privacy-continue">
           Continue
         </GateBtn>
-        {/* TODO(legal): link the published privacy policy and terms once they exist. */}
         <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18, textAlign: 'center' }}>
-          privacy policy · terms
+          <Text style={{ color: colors.text2 }} onPress={() => Linking.openURL(PRIVACY_URL)} accessibilityRole="link" testID="link-privacy">
+            privacy policy
+          </Text>
+          {' · '}
+          <Text style={{ color: colors.text2 }} onPress={() => Linking.openURL(TERMS_URL)} accessibilityRole="link" testID="link-terms">
+            terms
+          </Text>
         </Text>
       </View>
     </View>

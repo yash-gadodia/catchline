@@ -232,7 +232,7 @@ describe('coach repository', () => {
     expect(link).toEqual({
       id: '7f3a',
       analysisId: 'snatch-mock',
-      url: 'https://catchline.app/l/7f3a',
+      url: 'https://yash-gadodia.github.io/catchline/l/7f3a',
       includeCue: true,
       includeRecent: false,
       createdAt: '2026-10-11T10:00:00.000Z',
@@ -262,15 +262,15 @@ describe('SendToCoachSheet', () => {
     );
     expect(screen.getByText('A link to this lift with the overlay, the cue and the numbers. No login for them. Expires in 30 days.')).toBeOnTheScreen();
     await press(screen.getByText('Copy link'));
-    expect(Clipboard.setStringAsync).toHaveBeenCalledWith('https://catchline.app/l/7f3a');
+    expect(Clipboard.setStringAsync).toHaveBeenCalledWith('https://yash-gadodia.github.io/catchline/l/7f3a');
     expect(screen.getByText('Link copied')).toBeOnTheScreen();
-    expect(screen.getByTestId('coach-link-url')).toHaveTextContent('https://catchline.app/l/7f3a');
+    expect(screen.getByTestId('coach-link-url')).toHaveTextContent('https://yash-gadodia.github.io/catchline/l/7f3a');
     await press(screen.getByText('WhatsApp'));
-    expect(open).toHaveBeenCalledWith(`whatsapp://send?text=${encodeURIComponent(coachMessage('https://catchline.app/l/7f3a'))}`);
+    expect(open).toHaveBeenCalledWith(`whatsapp://send?text=${encodeURIComponent(coachMessage('https://yash-gadodia.github.io/catchline/l/7f3a'))}`);
     await press(screen.getByText('Messages'));
-    expect(open).toHaveBeenLastCalledWith(`sms:&body=${encodeURIComponent('Can you check this lift? https://catchline.app/l/7f3a')}`);
+    expect(open).toHaveBeenLastCalledWith(`sms:&body=${encodeURIComponent('Can you check this lift? https://yash-gadodia.github.io/catchline/l/7f3a')}`);
     await press(screen.getByText('More'));
-    expect(share).toHaveBeenCalledWith('Can you check this lift? https://catchline.app/l/7f3a');
+    expect(share).toHaveBeenCalledWith('Can you check this lift? https://yash-gadodia.github.io/catchline/l/7f3a');
     expect(useCoachStore.getState().links).toHaveLength(1);
   });
 

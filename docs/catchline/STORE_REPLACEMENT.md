@@ -55,8 +55,8 @@ The dry run prints the current record: versions, app infos, every IAP and subscr
 ```
 CATCHLINE_DEMO_PASSWORD="$(cat .secrets/catchline-demo-password.txt)" \
 scripts/catchline-store/asc_replace.py --apply --version 3.0 \
-  --privacy-url https://catchline.io/privacy --terms-url https://catchline.io/terms \
-  --support-url https://catchline.io/support --marketing-url https://catchline.io \
+  --privacy-url https://yash-gadodia.github.io/catchline/legal/privacy.html --terms-url https://yash-gadodia.github.io/catchline/legal/terms.html \
+  --support-url https://yash-gadodia.github.io/catchline/support.html --marketing-url https://yash-gadodia.github.io/catchline/ \
   --support-email <support email> --contact-first Yash --contact-last Gadodia --contact-phone <phone> \
   --demo-email <demo account> --iap-review-screenshot <paywall.png>
 ```
