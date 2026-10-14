@@ -66,9 +66,22 @@ export async function signInWithApple(): Promise<AppleSignIn> {
   if (name) await supabase.from('profiles').update({ display_name: name }).eq('id', userId);
 
   await syncAuthUser(data.session);
-  if (wasPaid) await usePurchases.getState().restore();
+  await settlePlanAfterSignIn(userId, wasPaid);
   await syncLibrary().catch(() => undefined);
   return { cancelled: false, userId, transferred };
+}
+
+// The plan follows the person. RevenueCat logs the Apple user in; a paid
+// anonymous account restores so the entitlement moves over (the TRANSFER
+// webhook then updates profiles.plan); a fresh install whose RevenueCat user
+// is still free restores to find the receipt on this Apple ID (logIn alone
+// never moves a receipt). Either way a plan the server already holds wins over
+// a RevenueCat that has not caught up, so the paywall never shows twice.
+async function settlePlanAfterSignIn(userId: string, wasPaid: boolean): Promise<void> {
+  const purchases = usePurchases.getState();
+  await purchases.identify(userId).catch(() => undefined);
+  if (wasPaid || usePurchases.getState().tier === 'free') await purchases.restore();
+  await purchases.adoptServerPlan();
 }
 
 // Ends the Apple session on this phone; the next backend call (ensureSession)
