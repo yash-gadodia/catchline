@@ -3,7 +3,7 @@
 -- auth.uid() is a real user, and asserts the rows each one can actually touch.
 begin;
 create extension if not exists pgtap;
-select plan(28);
+select plan(31);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at)
 values
@@ -81,11 +81,20 @@ update public.cues set status = 'stuck' where id = 'b3000000-0000-0000-0000-0000
 select is((select status from public.cues where id = 'b3000000-0000-0000-0000-000000000001'), 'stuck', 'Alice updates her cue status');
 select throws_ok($$update public.cues set text = 'edited'$$, '42501', null, 'Cue text is not client-writable');
 select throws_ok($$update public.profiles set plan = 'platform'$$, '42501', null, 'Plan is not client-writable');
+update public.profiles set push_token = 'ExponentPushToken[alice]';
+select is((select push_token from public.profiles where id = 'b1000000-0000-0000-0000-000000000001'),
+  'ExponentPushToken[alice]', 'Alice registers her own push token');
 select lives_ok($$insert into storage.objects (bucket_id, name) values ('raw-clips', 'b1000000-0000-0000-0000-000000000001/b2000000-0000-0000-0000-000000000002')$$,
   'Alice uploads into her own pending lift path');
 select throws_ok($$insert into storage.objects (bucket_id, name) values ('raw-clips', 'b1000000-0000-0000-0000-000000000001/somewhere-else')$$,
   '42501', null, 'Alice cannot upload a raw clip outside a pending lift');
 reset role;
+
+-- ---- the push token is owner-scoped ------------------------------------------
+select is((select count(*)::int from public.profiles where push_token is not null), 1,
+  'An unscoped token update under RLS reaches only the caller''s own profile');
+select is((select push_token from public.profiles where id = 'b1000000-0000-0000-0000-000000000002'), null::text,
+  'Bob''s profile has no token after Alice''s update');
 
 -- ---- anon reads nothing -----------------------------------------------------
 set local role anon;

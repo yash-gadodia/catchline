@@ -1,6 +1,10 @@
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
+import type { Href } from 'expo-router';
 import { Platform } from 'react-native';
+import { putLiveAnalysis } from '../../analysis/live';
+import { syncLibrary } from '../../data/library';
+import { getAnalysis, getLift } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
 
 // GATE: fully fires only once EAS/APNs creds are added by Yash.
@@ -60,4 +64,25 @@ export async function registerPushToken(promptIfNeeded = false): Promise<void> {
     // GATE: getExpoPushTokenAsync throws in Expo Go without EAS project ID.
     // No-op so the demo never crashes.
   }
+}
+
+// The worker's push carries `{ liftId }` and nothing else.
+export function liftIdFromResponse(response: Notifications.NotificationResponse): string | null {
+  const id = response.notification.request.content.data?.liftId;
+  return typeof id === 'string' && id ? id : null;
+}
+
+// Where a tapped "your lift is ready" notification should land: the reveal for
+// a finished lift, the failure screen for a failed one, nowhere if it is still
+// processing (the lift is in the library once it finishes).
+export async function routeForLift(liftId: string): Promise<Href | null> {
+  const lift = await getLift(liftId);
+  if (!lift) return null;
+  if (lift.status === 'failed') return { pathname: '/failure/[id]', params: { id: liftId } };
+  const analysis = await getAnalysis(liftId);
+  if (!analysis) return null;
+  if (analysis.failure) return { pathname: '/failure/[id]', params: { id: liftId } };
+  putLiveAnalysis(analysis);
+  syncLibrary().catch(() => undefined);
+  return { pathname: '/analysis/reveal', params: { fixture: analysis.id } };
 }

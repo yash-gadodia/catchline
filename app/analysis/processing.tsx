@@ -63,8 +63,8 @@ function Processing({ params }: { params: Params }) {
       step={step}
       elapsed={elapsed}
       onHide={() => router.back()}
-      onNotify={() => {
-        registerPushToken(true);
+      onNotify={async () => {
+        await registerPushToken(true);
         router.back();
       }}
       onKeepWaiting={() => setWaiting(true)}
@@ -175,8 +175,8 @@ function LiveProcessing() {
       onServer={inQueue}
       ahead={ahead}
       onHide={() => router.back()}
-      onNotify={() => {
-        registerPushToken(true);
+      onNotify={async () => {
+        await registerPushToken(true);
         router.back();
       }}
       onKeepWaiting={() => setWaiting(true)}
