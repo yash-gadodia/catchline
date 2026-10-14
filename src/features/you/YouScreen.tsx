@@ -13,7 +13,9 @@ import { display, fontFamily } from '../../design/typography';
 import { useLibraryStore } from '../library/store';
 import { useOnboarding } from '../onboarding/store';
 import { Chip, SheetTitle, Toggle } from '../share/ui';
-import { accountRepository, useAccountView, type DataExport } from './account';
+import { signInWithApple, type AppleSignIn } from '../auth/appleSignIn';
+import { Note } from '../onboarding/ui';
+import { accountRepository, signOutOfAccount, useAccountView, type DataExport } from './account';
 import {
   AUTO_DELETE_LABELS,
   DAY_NAMES,
@@ -50,14 +52,20 @@ export async function exportMyData(send: (bundle: DataExport) => Promise<void> =
   await send(await accountRepository.exportAllData(settingsOf(useSettings.getState()), lifts));
 }
 
+export const SIGN_IN_FAILED = "Apple sign-in didn't go through. Try again.";
+
 export default function YouScreen({
   nav,
   version = Constants.expoConfig?.version ?? '1.0.0',
   exportData = shareExport,
+  signIn = signInWithApple,
+  signOut = signOutOfAccount,
 }: {
   nav: Nav;
   version?: string;
   exportData?: (bundle: DataExport) => Promise<void>;
+  signIn?: () => Promise<AppleSignIn>;
+  signOut?: () => Promise<void>;
 }) {
   const insets = useSafeAreaInsets();
   const account = useAccountView();
@@ -65,15 +73,43 @@ export default function YouScreen({
   const units = useOnboarding((s) => s.units);
   const labels = settingLabels(settings);
   const [picker, setPicker] = useState<Picker>(null);
+  const [authBusy, setAuthBusy] = useState(false);
+  const [signInFailed, setSignInFailed] = useState(false);
 
   const close = () => setPicker(null);
   const doExport = () => exportMyData(exportData);
+  const doSignIn = async () => {
+    if (authBusy) return;
+    setAuthBusy(true);
+    setSignInFailed(false);
+    try {
+      await signIn();
+    } catch {
+      setSignInFailed(true);
+    } finally {
+      setAuthBusy(false);
+    }
+  };
+  const doSignOut = async () => {
+    if (authBusy) return;
+    setAuthBusy(true);
+    try {
+      await signOut();
+    } finally {
+      setAuthBusy(false);
+    }
+  };
+  const live = backendEnabled();
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }} testID="you-screen">
       <ScrollView contentContainerStyle={{ paddingTop: insets.top + space.s7, paddingHorizontal: space.gutter, paddingBottom: 120 }}>
         <Text style={[display(36), { color: colors.text, marginBottom: space.s2 }]}>You</Text>
-        {account?.name ? (
+        {account && live && account.anonymous ? (
+          <Row title={account.line} bold right={<Value>Sign in with Apple</Value>} onPress={doSignIn} testID="row-profile" />
+        ) : account && live ? (
+          <Row title={account.name ?? account.line} bold sub={account.name ? account.line : undefined} right={null} testID="row-profile" />
+        ) : account?.name ? (
           <Row
             title={account.name}
             bold
@@ -85,6 +121,7 @@ export default function YouScreen({
         ) : account ? (
           <Row title={account.line} bold right={null} testID="row-profile" />
         ) : null}
+        {signInFailed ? <Note blocked testID="sign-in-failed" style={{ marginVertical: space.s2 }}>{SIGN_IN_FAILED}</Note> : null}
         {account ? (
           <Row
             title="Plan"
@@ -114,11 +151,14 @@ export default function YouScreen({
         <Row title="What is stored" right={<Value>›</Value>} onPress={nav.onWhatIsStored} testID="row-stored" />
         <Row title="Auto-delete originals" right={<Value>{labels.autoDelete}</Value>} onPress={() => setPicker('autoDelete')} testID="row-auto-delete" />
         <Row title="Export all my data" right={<Value>›</Value>} onPress={doExport} testID="row-export" />
+        {account && live && !account.anonymous ? (
+          <Row title="Sign out" sub="This phone goes back to an anonymous account" right={<Value>›</Value>} onPress={doSignOut} testID="row-sign-out" />
+        ) : null}
         <Row title="Delete account" right={<Value>›</Value>} onPress={nav.onDeleteAccount} testID="row-delete" />
         <Row title="Help" muted right={<Value>{`About · ${version}`}</Value>} onPress={nav.onHelp} last testID="row-help" />
       </ScrollView>
 
-      {picker === 'name' && account?.name ? (
+      {picker === 'name' && account?.name && !live ? (
         <NameSheet
           initial={account.name}
           onSave={async (name) => {

@@ -13,6 +13,7 @@ import { recordConsent } from '../../lib/api';
 import { useOnboarding } from '../onboarding/store';
 import { useUsage } from '../paywall/usageStore';
 import { usePurchases } from '../purchases/usePurchases';
+import { NO_USER, useAuthUser } from '../auth/authUser';
 
 jest.mock('../../data/backend', () => ({ backendEnabled: jest.fn(() => false) }));
 jest.mock('../../lib/api', () => ({
@@ -42,6 +43,7 @@ beforeEach(() => {
   useOnboarding.getState().reset();
   useUsage.getState().reset();
   usePurchases.getState().setDemoPlan('free');
+  useAuthUser.setState(NO_USER, true);
 });
 
 describe('plan and settings labels', () => {
@@ -191,6 +193,54 @@ describe('YouScreen with the backend on', () => {
     expect(screen.queryByTestId('founding-badge')).toBeNull();
     await press(screen.getByTestId('row-plan'));
     expect(nav.onPlan).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers Sign in with Apple while anonymous and shows the account once signed in', async () => {
+    const signIn = jest.fn(async () => {
+      useAuthUser.setState({ userId: 'apple-1', anonymous: false, displayName: 'Alex Tan' });
+      return { cancelled: false as const, userId: 'apple-1', transferred: true };
+    });
+    const screen = await render(<YouScreen nav={nav} version="1.0.3" signIn={signIn} />);
+    expect(within(screen.getByTestId('row-profile')).getByText('Sign in with Apple')).toBeOnTheScreen();
+    expect(screen.queryByTestId('row-sign-out')).toBeNull();
+    await press(screen.getByTestId('row-profile'));
+    expect(signIn).toHaveBeenCalledTimes(1);
+    expect(within(screen.getByTestId('row-profile')).getByText('Alex Tan')).toBeOnTheScreen();
+    expect(within(screen.getByTestId('row-profile')).getByText('Signed in with Apple')).toBeOnTheScreen();
+    expect(screen.queryByText('Sign in with Apple')).toBeNull();
+    expect(screen.queryByText('Anonymous on this phone')).toBeNull();
+    expect(screen.getByTestId('row-sign-out')).toBeOnTheScreen();
+    await press(screen.getByTestId('row-profile'));
+    expect(screen.queryByTestId('name-sheet')).toBeNull();
+  });
+
+  it('says so when Apple sign-in fails and stays anonymous', async () => {
+    const signIn = jest.fn(() => Promise.reject(new Error('bad nonce')));
+    const screen = await render(<YouScreen nav={nav} version="1.0.3" signIn={signIn} />);
+    await press(screen.getByTestId('row-profile'));
+    expect(screen.getByTestId('sign-in-failed')).toHaveTextContent("Apple sign-in didn't go through. Try again.");
+    expect(within(screen.getByTestId('row-profile')).getByText('Anonymous on this phone')).toBeOnTheScreen();
+  });
+
+  it('shows "Signed in with Apple" as the title when Apple gave no name, and signs out', async () => {
+    useAuthUser.setState({ userId: 'apple-1', anonymous: false, displayName: null });
+    const signOut = jest.fn(async () => {
+      useAuthUser.setState(NO_USER);
+    });
+    const screen = await render(<YouScreen nav={nav} version="1.0.3" signOut={signOut} />);
+    expect(within(screen.getByTestId('row-profile')).getByText('Signed in with Apple')).toBeOnTheScreen();
+    await press(screen.getByTestId('row-sign-out'));
+    expect(signOut).toHaveBeenCalledTimes(1);
+    expect(within(screen.getByTestId('row-profile')).getByText('Anonymous on this phone')).toBeOnTheScreen();
+    expect(screen.queryByTestId('row-sign-out')).toBeNull();
+  });
+
+  it('exports the Apple name once signed in', async () => {
+    useAuthUser.setState({ userId: 'apple-1', anonymous: false, displayName: 'Alex Tan' });
+    const send = jest.fn(() => Promise.resolve());
+    const screen = await render(<YouScreen nav={nav} version="1.0.3" exportData={send} />);
+    await press(screen.getByTestId('row-export'));
+    expect(send).toHaveBeenCalledWith(expect.objectContaining({ account: { name: 'Alex Tan', plan: 'Free · 3 of 3 videos left' } }));
   });
 
   it('shows the live paid tier with its monthly cap and the founding badge', async () => {
