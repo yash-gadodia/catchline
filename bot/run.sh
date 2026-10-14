@@ -18,7 +18,15 @@ say() { echo "$(date '+%F %T') [$ROLE] $*" | tee -a "$LOGS/loop.log"; }
 
 [ -e "$HOME_DIR/STOP" ] && { say "STOP file present, skipping"; exit 0; }
 
+# Reclaim what is safe to rebuild before deciding there is no room (14-10: the Mini hit 6 GB twice in a day).
 FREE_GB=$(df -g / | awk 'NR==2 {print $4}')
+if [ "$FREE_GB" -lt 15 ]; then
+  rm -rf "$HOME_DIR/DerivedData/Build/Intermediates.noindex" "$HOME/Library/Caches/CocoaPods" "$HOME/Library/Caches/Homebrew/downloads"
+  xcrun simctl delete unavailable >/dev/null 2>&1
+  colima ssh -- sudo fstrim -a >/dev/null 2>&1
+  FREE_GB=$(df -g / | awk 'NR==2 {print $4}')
+  say "reclaimed space, ${FREE_GB}GB free"
+fi
 if [ "$FREE_GB" -lt 8 ]; then say "only ${FREE_GB}GB free, skipping (a full disk crashes the Mini silently)"; exit 0; fi
 
 # One bot run at a time on the Mini (16 GB RAM, simulator + builds).
