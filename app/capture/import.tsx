@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { Alert, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { demoClip } from '../../src/features/capture/demo';
 import ImportScreen from '../../src/features/capture/ImportScreen';
@@ -35,6 +35,9 @@ export default function ImportRoute() {
       if (!clip) return leave();
       setDraft(clip);
       setReady(true);
+    }, () => {
+      Alert.alert("Couldn't open that video", 'Try again, or pick a clip saved on this phone.');
+      leave();
     });
   }, [hydrated]);
 
