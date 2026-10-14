@@ -2,8 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [catchline]
   pull_request:
+    branches: [catchline]
 
 jobs:
   check:

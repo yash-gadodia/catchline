@@ -1,11 +1,10 @@
 name: OTA Update (EAS)
 
-# Pushes JS/asset changes over-the-air to the "preview" channel on every merge to
-# main — testers with a preview build get them instantly, no store review.
+# Pushes Catchline JS/asset changes over-the-air to the "preview" channel. Manual
+# only: run it from the Actions tab (or `gh workflow run ota-update.yml --ref catchline`).
 # Silently no-ops until EXPO_TOKEN is set (so it never fails before you're ready).
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 jobs:
   update:
@@ -24,6 +23,8 @@ jobs:
           fi
       - uses: actions/checkout@v4
         if: steps.gate.outputs.enabled == 'true'
+        with:
+          ref: catchline
       - uses: actions/setup-node@v4
         if: steps.gate.outputs.enabled == 'true'
         with:
@@ -39,4 +40,4 @@ jobs:
         run: npm install --legacy-peer-deps
       - name: Publish OTA update
         if: steps.gate.outputs.enabled == 'true'
-        run: eas update --branch preview --message "${{ github.event.head_commit.message }}" --non-interactive
+        run: eas update --branch preview --message "catchline $(git rev-parse --short HEAD)" --non-interactive
