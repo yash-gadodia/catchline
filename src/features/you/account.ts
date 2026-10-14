@@ -1,5 +1,11 @@
 import { create } from 'zustand';
-import { backendEnabled } from '../../data/backend';
+import { clearLiveAnalyses } from '../../analysis/live';
+import { backendEnabled, resetConsentSync } from '../../data/backend';
+import { deleteAccount as deleteRemoteAccount } from '../../lib/api';
+import { useCapture } from '../capture/store';
+import { emptyLibrary } from '../library/seed';
+import { useLibraryStore } from '../library/store';
+import { useOnboarding } from '../onboarding/store';
 import {
   FREE_VIDEOS as FREE_BY_VARIANT,
   MONTHLY_CAP,
@@ -110,8 +116,6 @@ export interface AccountRepository {
   deleteAccount(): Promise<void>;
 }
 
-// SIM: local store until Phase 3 wires Supabase auth + an edge function that
-// deletes server rows within 24 h.
 export const useAccountStore = create<{ account: Account | null }>(() => ({
   account: { name: 'Alex', signIn: 'apple', synced: true, plan: { tier: 'pull', founding: true } },
 }));
@@ -138,7 +142,30 @@ export function createLocalAccountRepository(now: () => Date = () => new Date())
   };
 }
 
-export const accountRepository = createLocalAccountRepository();
+// Everything this device remembers about the lifter, so the next launch starts
+// a fresh anonymous account from the first onboarding screen.
+export function forgetLocalData(): void {
+  useAccountStore.setState({ account: null });
+  useOnboarding.getState().reset();
+  resetConsentSync();
+  useUsage.getState().reset();
+  useCapture.setState({ draft: null, movement: 'snatch', lastWeight: '', originals: [] });
+  usePurchases.setState({ appUserId: null, customerInfo: null, tier: 'free', period: null, expiresAt: null });
+  clearLiveAnalyses();
+  useLibraryStore.getState().load(emptyLibrary());
+}
+
+export function createAccountRepository(now?: () => Date): AccountRepository {
+  return {
+    ...createLocalAccountRepository(now),
+    async deleteAccount() {
+      await deleteRemoteAccount();
+      forgetLocalData();
+    },
+  };
+}
+
+export const accountRepository = backendEnabled() ? createAccountRepository() : createLocalAccountRepository();
 
 export function useAccount(): Account | null {
   return useAccountStore((s) => s.account);

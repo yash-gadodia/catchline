@@ -6,7 +6,7 @@ export default function DeleteAccountRoute() {
   return (
     <DeleteAccountSheet
       onKeep={() => (router.canGoBack() ? router.back() : router.replace('/you'))}
-      onDeleted={() => router.replace('/')}
+      onDeleted={() => router.replace('/onboarding')}
     />
   );
 }

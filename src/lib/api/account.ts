@@ -36,6 +36,17 @@ export async function getAllowance(): Promise<Allowance> {
   return data as Allowance;
 }
 
+/**
+ * The delete-account edge function erases the caller's rows (delete_my_account)
+ * and the auth user itself, so the token in hand is dead afterwards: drop it
+ * locally only (a server sign-out would 403 against a user that no longer exists).
+ */
+export async function deleteAccount(): Promise<void> {
+  const { error } = await supabase.functions.invoke('delete-account');
+  if (error) throw toApiError(error);
+  await supabase.auth.signOut({ scope: 'local' });
+}
+
 /** Founding seats sold so far (public RPC, no PII). */
 export async function foundingSeats(): Promise<{ taken: number; cap: number }> {
   const { data, error } = await supabase.rpc('founding_seats');

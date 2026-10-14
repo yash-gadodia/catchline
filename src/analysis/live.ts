@@ -12,3 +12,7 @@ export function putLiveAnalysis(a: Analysis): void {
 export function liveAnalysis(id: string): Analysis | undefined {
   return live.get(id);
 }
+
+export function clearLiveAnalyses(): void {
+  live.clear();
+}

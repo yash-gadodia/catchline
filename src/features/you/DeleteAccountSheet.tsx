@@ -24,11 +24,19 @@ export default function DeleteAccountSheet({
 }) {
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
   const ok = confirmed(text) && !busy;
 
   const del = async () => {
     setBusy(true);
-    await repo.deleteAccount();
+    setFailed(false);
+    try {
+      await repo.deleteAccount();
+    } catch {
+      setBusy(false);
+      setFailed(true);
+      return;
+    }
     onDeleted();
   };
 
@@ -63,6 +71,11 @@ export default function DeleteAccountSheet({
             }}
           />
         </View>
+        {failed ? (
+          <Body color={colors.flare} testID="delete-error">
+            Couldn't delete your account. Check your connection and try again.
+          </Body>
+        ) : null}
         <DangerBtn disabled={!ok} onPress={del} testID="delete-everything">
           {busy ? 'Deleting…' : 'Delete everything'}
         </DangerBtn>

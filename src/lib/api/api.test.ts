@@ -1,6 +1,7 @@
 import { createLift, getAnalysis, liftsAhead, listLifts, subscribeToLift } from './lifts';
 import { listCues, updateCue } from './cues';
 import { createCoachLink } from './coach';
+import { deleteAccount, ensureSession } from './account';
 import { ApiError } from './errors';
 import { tusUpload } from './tus';
 import { supabase } from '../supabase';
@@ -44,7 +45,12 @@ jest.mock('../supabase', () => {
       channel: jest.fn(() => channel),
       removeChannel: jest.fn(),
       storage: { from: jest.fn() },
-      auth: { getSession: jest.fn(async () => ({ data: { session: { access_token: 'jwt-1' } } })) },
+      functions: { invoke: jest.fn(async () => ({ data: { success: true }, error: null })) },
+      auth: {
+        getSession: jest.fn(async () => ({ data: { session: { access_token: 'jwt-1' } } })),
+        signInAnonymously: jest.fn(async () => ({ data: { user: { id: 'anon-2' } }, error: null })),
+        signOut: jest.fn(async () => ({ error: null })),
+      },
     },
   };
 });
@@ -55,6 +61,8 @@ const mocked = supabase as unknown as {
   channel: jest.Mock;
   removeChannel: jest.Mock;
   storage: { from: jest.Mock };
+  functions: { invoke: jest.Mock };
+  auth: { getSession: jest.Mock; signInAnonymously: jest.Mock; signOut: jest.Mock };
 };
 
 const LIFT = { id: 'l1', user_id: 'u1', clip_path: 'u1/l1', status: 'uploading', movement: 'snatch' };
@@ -225,5 +233,36 @@ describe('subscribeToLift', () => {
     expect(analyses).toEqual(['too_dark']);
     off();
     expect(mocked.removeChannel).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('deleteAccount', () => {
+  it('calls the delete-account edge function, then drops the local session', async () => {
+    await deleteAccount();
+    expect(mocked.functions.invoke).toHaveBeenCalledTimes(1);
+    expect(mocked.functions.invoke).toHaveBeenCalledWith('delete-account');
+    expect(mocked.auth.signOut).toHaveBeenCalledTimes(1);
+    expect(mocked.auth.signOut).toHaveBeenCalledWith({ scope: 'local' });
+    expect(mocked.functions.invoke.mock.invocationCallOrder[0]).toBeLessThan(mocked.auth.signOut.mock.invocationCallOrder[0]);
+  });
+
+  it('throws when the function fails and keeps the session', async () => {
+    mocked.functions.invoke.mockResolvedValueOnce({ data: null, error: new Error('data_delete_failed') });
+    await expect(deleteAccount()).rejects.toMatchObject({ name: 'ApiError', code: 'unknown', message: 'data_delete_failed' });
+    expect(mocked.auth.signOut).not.toHaveBeenCalled();
+  });
+});
+
+describe('ensureSession', () => {
+  it('starts a fresh anonymous account once the old session is gone', async () => {
+    mocked.auth.getSession.mockResolvedValueOnce({ data: { session: null } });
+    await expect(ensureSession()).resolves.toBe('anon-2');
+    expect(mocked.auth.signInAnonymously).toHaveBeenCalledTimes(1);
+  });
+
+  it('reuses the live session', async () => {
+    mocked.auth.getSession.mockResolvedValueOnce({ data: { session: { access_token: 'jwt-1', user: { id: 'u1' } } } });
+    await expect(ensureSession()).resolves.toBe('u1');
+    expect(mocked.auth.signInAnonymously).not.toHaveBeenCalled();
   });
 });
