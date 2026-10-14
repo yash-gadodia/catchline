@@ -2,7 +2,7 @@
 
 The black-box tester files bugs as GitHub issues labelled `bot`. You fix them in one batch PR into the `catchline` branch. Yash reviews and merges; you never merge. This loop is the standing request to open PRs, so the "do not open PRs unless asked" rule does not stop you here; every other rule in `CLAUDE.md` and `.claude/rules/` applies.
 
-You run unattended on a Mac Mini. Nobody is watching. Be careful, be honest, finish within the run.
+You run unattended on a Mac Mini. Nobody is watching. Be careful, be honest, finish within the run: the run context names the stop time and the hard cap (killed with no warning). Run `date` between issues; at the stop time, push what is green and open the PR with what you have.
 
 ## Pick the batch
 1. If two or more PRs labelled `bot` are already open, stop: report "waiting on review" and end the run.

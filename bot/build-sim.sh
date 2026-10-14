@@ -7,6 +7,19 @@ SIM_NAME="Catchline Bot"
 BUILT="$HOME/.catchline-bot/built-sha"
 SHA=$(git rev-parse HEAD)
 
+# CoreSimulator runtime discovery can wedge (14-10: every simctl call took 18 s all day, "Unable to
+# discover any Simulator runtimes" in ~/Library/Logs/CoreSimulator/CoreSimulator.log). A slow simctl
+# makes maestro's launchApp (3 simctl calls) time out and the MCP driver die, so fail fast here.
+simctl_secs() { local T0=$(date +%s); xcrun simctl list runtimes >/dev/null 2>&1 || true; echo $(( $(date +%s) - T0 )); }
+SECS=$(simctl_secs)
+if [ "$SECS" -gt 5 ]; then
+  echo "build-sim: simctl took ${SECS}s, restarting CoreSimulatorService"
+  killall -9 com.apple.CoreSimulator.CoreSimulatorService simdiskimaged 2>/dev/null || true; sleep 5
+  SECS=$(simctl_secs)
+  if [ "$SECS" -gt 5 ]; then echo "build-sim: simctl still ${SECS}s after restart, host unhealthy, aborting run"; exit 2; fi
+  echo "build-sim: simctl ${SECS}s after restart"
+fi
+
 UDID=$(xcrun simctl list devices available | grep "$SIM_NAME (" | head -1 | grep -oE '[0-9A-F-]{36}' || true)
 if [ -z "$UDID" ]; then
   RUNTIME=$(xcrun simctl list runtimes available | grep -oE 'com\.apple\.CoreSimulator\.SimRuntime\.iOS-[0-9-]+' | tail -1)

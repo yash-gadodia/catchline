@@ -14,8 +14,8 @@ Two headless Claude runs on the Mac Mini keep testing the app and fixing what th
 **Security findings never go public** (the repo is public). The issue says only `Security: finding <slug>`; the details live in `~/.catchline-bot/security/` on the Mini (mode 700).
 
 ## Files
-- `bot/run.sh <role>`: guards (STOP file, under 8 GB free, one run at a time via `~/.catchline-bot/lock`), fresh detached checkout of `origin/catchline` in `~/dev/catchline-bot/<role>`, then `claude -p` with the role prompt, capped at 3 h.
-- `bot/build-sim.sh`: Release simulator build of the checkout (no Metro), skipped when that commit is installed.
+- `bot/run.sh <role>`: guards (STOP file, under 8 GB free, one run at a time via `~/.catchline-bot/lock`, kills leftover `simctl diagnose` / XCTRunner / `maestro mcp` processes), fresh detached checkout of `origin/catchline` in `~/dev/catchline-bot/<role>`, then `claude -p` with the role prompt. The alarm kills the run at 180 min; the prompt carries a soft deadline (stop exploring at 150, report by 165) so a report lands first. After the run, whatever the exit code: on non-zero it logs the last tool call to `loop.log`, then it deletes every test account the tester recorded in `~/.catchline-bot/evidence/<stamp>/accounts.txt` via the `delete-account` edge function.
+- `bot/build-sim.sh`: Release simulator build of the checkout (no Metro), skipped when that commit is installed. Times `simctl` first: over 5 s it restarts CoreSimulatorService, and if still slow exits 2 (`run.sh` logs "host unhealthy" and skips; 14 Oct a wedged runtime discovery made every simctl call 18 s and killed the maestro driver).
 - `bot/prompts/{tester,fixer}.md`: the roles. `bot/settings.json`: deny rules (push to main/catchline, merge, deploys). `bot/mcp.json`: maestro.
 - `bot/install.sh`: labels + launchd agents `com.catchline.bot.{tester,fixer}`. The agents run `~/dev/catchline-bot/runner/bot/run.sh`, a checkout that holds the loop itself.
 
