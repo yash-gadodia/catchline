@@ -254,11 +254,26 @@ describe('RevealScreen', () => {
 
   it('with Reduce Motion shows the whole cue at once without pops', async () => {
     const onDone = jest.fn();
-    const { getByTestId } = await render(<RevealScreen analysis={snatchMock} onDone={onDone} reduceMotion />);
+    const { getByTestId, queryByTestId } = await render(<RevealScreen analysis={snatchMock} onDone={onDone} reduceMotion />);
     await act(async () => {
       jest.advanceTimersByTime(1300);
     });
     expect(getByTestId('reveal-cue')).toHaveTextContent('Stay over the bar longer');
     expect((Haptics.impactAsync as jest.Mock).mock.calls.map((c) => c[0])).toEqual(['rigid']);
+    expect(queryByTestId('movement-note')).toBeNull();
+  });
+
+  // prod 14-10-2026: a clean uploaded with the selector left on snatch came back as a snatch analysis
+  it('says so when the clip looked like a different lift than the one chosen', async () => {
+    const switched = { ...snatchMock, detectedMovement: { movement: 'clean' as const, confidence: 0.9 }, movementUsed: 'clean' as const };
+    const { getByTestId } = await render(<RevealScreen analysis={switched} onDone={jest.fn()} reduceMotion />);
+    expect(getByTestId('movement-note')).toHaveTextContent('Looks like a clean, not a snatch. Analysed as a clean.');
+    expect(getByTestId('movement-note').props.style.color).toBe('#A39F97');
+  });
+
+  it('asks instead when the detection was too weak to switch', async () => {
+    const doubt = { ...snatchMock, detectedMovement: { movement: 'clean' as const, confidence: 0.7 }, movementUsed: 'snatch' as const };
+    const { getByTestId } = await render(<RevealScreen analysis={doubt} onDone={jest.fn()} reduceMotion />);
+    expect(getByTestId('movement-note')).toHaveTextContent('Looks like a clean, not a snatch. Keep as snatch?');
   });
 });

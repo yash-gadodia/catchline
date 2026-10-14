@@ -28,8 +28,26 @@ const PHASE: Record<PhaseName, string> = {
   press: 'Press',
 };
 
+const SPOKEN: Record<Movement, string> = {
+  snatch: 'a snatch',
+  clean: 'a clean',
+  jerk: 'a jerk',
+  kipping_pull_up: 'a kipping pull-up',
+  bar_muscle_up: 'a bar muscle-up',
+  kipping_hspu: 'a kipping HSPU',
+};
+
 export function movementLabel(m: Movement): string {
   return MOVEMENT[m];
+}
+
+// One line for when the clip did not look like the lift the lifter chose.
+export function movementNote(a: Analysis): string | null {
+  const d = a.detectedMovement;
+  if (!d || d.movement === 'unknown' || d.movement === a.movement) return null;
+  const looks = `Looks like ${SPOKEN[d.movement]}, not ${SPOKEN[a.movement]}.`;
+  if ((a.movementUsed ?? a.movement) === d.movement) return `${looks} Analysed as ${SPOKEN[d.movement]}.`;
+  return `${looks} Keep as ${SPOKEN[a.movement].replace(/^an? /, '')}?`;
 }
 
 export function phaseLabel(p: PhaseName): string {

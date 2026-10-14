@@ -16,6 +16,10 @@ export function parseAnalysis(json: unknown): Analysis {
   if (!a || typeof a !== 'object') fail('not an object');
   if (a.version !== 1) fail(`version ${String(a.version)}`);
   if (!MOVEMENTS.includes(a.movement)) fail(`movement ${a.movement}`);
+  if (a.movementUsed != null && !MOVEMENTS.includes(a.movementUsed)) fail(`movementUsed ${a.movementUsed}`);
+  if (a.detectedMovement && a.detectedMovement.movement !== 'unknown' && !MOVEMENTS.includes(a.detectedMovement.movement)) {
+    fail(`detectedMovement ${a.detectedMovement.movement}`);
+  }
   if (!a.video || !(a.video.fps > 0)) fail('video.fps');
   if (!Array.isArray(a.reps) || a.reps.length === 0) {
     if (!a.failure) fail('no reps and no failure');

@@ -13,12 +13,12 @@ import Animated, {
 import type { Analysis, KeyFrame } from '../../analysis/types';
 import { coverFit, polylineLength, svgPath, toScreen, type Fit, type Size } from '../../analysis/geometry';
 import { frameSource } from '../../analysis/frames';
-import { heroValue } from '../../analysis/format';
+import { heroValue, movementNote } from '../../analysis/format';
 import { keyFrameAt, keyFrameForPhase, liftPath, repByIndex } from '../../analysis/timeline';
 import SmallCaps from '../../components/SmallCaps';
 import { impact } from '../../lib/haptics';
 import { colors, space } from '../../design/tokens';
-import { display } from '../../design/typography';
+import { display, fontFamily } from '../../design/typography';
 import DrawnPath from './DrawnPath';
 import { DimensionLine, HeroNumber, OverlaySvg, RefLine } from './overlays';
 
@@ -162,6 +162,7 @@ export default function RevealScreen({
   const faultStyle = useAnimatedStyle(() => ({ opacity: faultOpacity.value * (typed > 0 ? 0.35 : 1) }));
   const lineStyle = useAnimatedStyle(() => ({ opacity: line.value }));
   const path = liftPath(rep).map(s);
+  const note = movementNote(analysis);
 
   return (
     <Pressable style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top + 56 }} onPress={onTap} testID="reveal-screen">
@@ -190,6 +191,11 @@ export default function RevealScreen({
         </Animated.View>
       </View>
       <View style={{ paddingHorizontal: space.gutter, paddingTop: space.s5, gap: space.s2 }}>
+        {note ? (
+          <Text testID="movement-note" style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>
+            {note}
+          </Text>
+        ) : null}
         {typed > 0 ? (
           <>
             <SmallCaps size={13}>One thing to fix</SmallCaps>

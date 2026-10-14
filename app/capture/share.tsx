@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { demoClip } from '../../src/features/capture/demo';
 import ReviewScreen from '../../src/features/capture/ReviewScreen';
-import { newClip, useCapture } from '../../src/features/capture/store';
+import { newClip, useCapture, useCaptureHydrated } from '../../src/features/capture/store';
 import { submitClip, toSubmission } from '../../src/features/capture/submit';
 import { isMovement } from '../../src/features/onboarding/lifts';
 import PrivacyScreen from '../../src/features/onboarding/PrivacyScreen';
@@ -23,13 +23,16 @@ export default function ShareRoute() {
   const units = useOnboarding((s) => s.units);
   const consent = useOnboarding((s) => s.consent);
   const acceptConsent = useOnboarding((s) => s.acceptConsent);
-  const hydrated = useHydrated();
+  const onboarded = useHydrated();
+  const captureReady = useCaptureHydrated();
+  const hydrated = onboarded && captureReady;
 
   useEffect(() => {
     if (!params.uri) {
       setDraft(demoClip('share'));
       return;
     }
+    if (!captureReady) return;
     const durationS = Number(params.duration ?? 0);
     setDraft(
       newClip({
@@ -43,7 +46,7 @@ export default function ShareRoute() {
         movementGuessed: isMovement(params.movement),
       })
     );
-  }, [params.uri]);
+  }, [params.uri, captureReady]);
 
   if (!hydrated || !draft || draft.source !== 'share') return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
   if (!hasConsent(consent)) return <PrivacyScreen initialImprove={false} onContinue={acceptConsent} />;

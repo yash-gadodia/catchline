@@ -96,10 +96,16 @@ export type Failure = {
   message: string;
 };
 
+// What the pose alone says the clip shows; 'unknown' when the signal is weak.
+export type DetectedMovement = { movement: Movement | 'unknown'; confidence: number };
+
 export type Analysis = {
   version: 1;
   id: string;
+  // The movement the lifter chose. The rule set actually run is movementUsed (same when absent).
   movement: Movement;
+  movementUsed?: Movement;
+  detectedMovement?: DetectedMovement;
   loadKg?: number;
   video: {
     uri: string;

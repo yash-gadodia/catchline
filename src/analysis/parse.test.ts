@@ -15,4 +15,14 @@ describe('parseAnalysis', () => {
   it('rejects an unknown version', () => {
     expect(() => parseAnalysis({ ...mock, version: 2 })).toThrow('Invalid Analysis: version 2');
   });
+
+  it('accepts the optional detection fields and rejects a detection it cannot name', () => {
+    const a = parseAnalysis({ ...mock, detectedMovement: { movement: 'clean', confidence: 0.9 }, movementUsed: 'clean' });
+    expect([a.detectedMovement, a.movementUsed]).toEqual([{ movement: 'clean', confidence: 0.9 }, 'clean']);
+    expect(parseAnalysis({ ...mock, detectedMovement: { movement: 'unknown', confidence: 0 } }).detectedMovement?.movement).toBe('unknown');
+    expect(() => parseAnalysis({ ...mock, detectedMovement: { movement: 'deadlift', confidence: 0.9 } })).toThrow(
+      'Invalid Analysis: detectedMovement deadlift'
+    );
+    expect(() => parseAnalysis({ ...mock, movementUsed: 'deadlift' })).toThrow('Invalid Analysis: movementUsed deadlift');
+  });
 });

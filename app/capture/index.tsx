@@ -5,7 +5,7 @@ import { RECORD_FPS, useCameraPermission } from '../../src/features/capture/came
 import { fixedChecker, parseChecks, stubChecker } from '../../src/features/capture/checks';
 import type { Session } from '../../src/features/capture/session';
 import { deleteOriginals, secondsLeft } from '../../src/features/capture/storage';
-import { newClip, useCapture } from '../../src/features/capture/store';
+import { newClip, useCapture, useCaptureHydrated } from '../../src/features/capture/store';
 import ViewfinderScreen from '../../src/features/capture/ViewfinderScreen';
 import { groupOf } from '../../src/features/onboarding/lifts';
 import { hasConsent, useHydrated, useOnboarding } from '../../src/features/onboarding/store';
@@ -29,7 +29,9 @@ export default function CaptureRoute() {
   const params = useLocalSearchParams<Params>();
   const router = useRouter();
   const still = params.still === '1';
-  const hydrated = useHydrated();
+  const onboarded = useHydrated();
+  const captureReady = useCaptureHydrated();
+  const hydrated = onboarded && captureReady;
   const consent = useOnboarding((s) => s.consent);
   const camera = useCameraPermission();
   const { movement, setMovement, originals, setOriginals, setDraft, addOriginal } = useCapture();

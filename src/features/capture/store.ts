@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -85,3 +86,14 @@ export const useCapture = create<CaptureState>()(
     }
   )
 );
+
+// True once the last movement and weight are back from disk. Reading `movement` before this gives the default
+// (snatch), which is how a clean got uploaded as a snatch.
+export function useCaptureHydrated(): boolean {
+  const [hydrated, setHydrated] = useState(useCapture.persist.hasHydrated());
+  useEffect(() => {
+    if (hydrated) return;
+    return useCapture.persist.onFinishHydration(() => setHydrated(true));
+  }, [hydrated]);
+  return hydrated;
+}
