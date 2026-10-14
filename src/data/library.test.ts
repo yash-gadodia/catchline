@@ -33,9 +33,12 @@ describe('toLift for a lift the worker failed (no analysis row)', () => {
     expect(toLift(row({ error: null }), undefined).failure).toEqual({ reason: 'unknown', message: FAILURE_COPY.unknown.title });
   });
 
-  it('leaves failure unset for a queued row that happens to carry a retry error', () => {
+  // A lift the server has accepted is processing from the lifter's side; the library's
+  // 'queued' (the row offers Unlock and opens the paywall) is only for a clip never sent.
+  it('shows a server-queued row as processing, never as waiting for an unlock', () => {
     const lift = toLift(row({ status: 'queued', error: 'unknown' }), undefined);
-    expect(lift.status).toBe('queued');
+    expect(lift.status).toBe('processing');
     expect(lift.failure).toBeUndefined();
+    expect(toLift(row({ status: 'uploading', error: null }), undefined).status).toBe('queued');
   });
 });

@@ -23,8 +23,12 @@ function catchImage(a: Analysis | undefined): string | undefined {
   return (keyFrameForPhase(rep, 'catch') ?? rep.keyFrames[rep.keyFrames.length - 1])?.image;
 }
 
+// The library's 'queued' means "saved, waiting for an unlock" (the row offers
+// Unlock); a lift the server has already accepted is processing from the
+// lifter's side whether the worker has picked it up yet or not.
 function liftStatus(s: string): LiftStatus {
   if (s === 'done' || s === 'failed' || s === 'processing') return s;
+  if (s === 'queued') return 'processing';
   return 'queued';
 }
 
