@@ -38,6 +38,11 @@ function Processing({ params }: { params: Params }) {
   const [elapsed, setElapsed] = useState(Number(params.elapsed ?? 0));
   const [waiting, setWaiting] = useState(false);
 
+  // Nothing to play: no fixture in a release build. Home, never the demo.
+  useEffect(() => {
+    if (load.status === 'missing') router.replace('/');
+  }, [load.status]);
+
   useEffect(() => {
     if (fixed) return;
     const tick = setInterval(() => setElapsed((e) => e + 1), 1000);

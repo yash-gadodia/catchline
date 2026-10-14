@@ -3,9 +3,12 @@ import mock from '../../analysis/fixtures/snatch-mock.json';
 import { parseAnalysis } from '../../analysis/parse';
 import { putLiveAnalysis } from '../../analysis/live';
 import { supabase } from '../../lib/supabase';
+import { router as nav } from 'expo-router';
 import CueRoute from '../../../app/analysis/cue';
 import RevealRoute from '../../../app/analysis/reveal';
 import PlayerRoute from '../../../app/analysis/player';
+import MissRoute from '../../../app/analysis/miss';
+import ProcessingRoute from '../../../app/analysis/processing';
 
 const params: { current: Record<string, string> } = { current: {} };
 
@@ -124,6 +127,48 @@ describe('bundled fixtures still open directly', () => {
     const view = await render(<CueRoute />);
 
     expect(view.getByText(mock.cue.text)).toBeOnTheScreen();
+    expect(db.from).not.toHaveBeenCalled();
+  });
+});
+
+// Prod bug (14-10-2026, TestFlight): any result route reached without an id resolved to
+// the bundled demo snatch. In a release build that must never happen.
+describe('release build: a result route with no id never plays the demo', () => {
+  beforeEach(() => {
+    (global as { __DEV__: boolean }).__DEV__ = false;
+  });
+  afterEach(() => {
+    (global as { __DEV__: boolean }).__DEV__ = true;
+  });
+
+  it.each([
+    ['cue', CueRoute],
+    ['reveal', RevealRoute],
+    ['player', PlayerRoute],
+    ['miss', MissRoute],
+  ])('%s: shows the missing state, not the bundled snatch', async (_name, Route) => {
+    params.current = {};
+    const view = await render(<Route />);
+
+    expect(view.getByTestId('analysis-missing')).toBeOnTheScreen();
+    expect(view.getByText("Couldn't find this lift.")).toBeOnTheScreen();
+    expect(view.queryByText(mock.cue.text)).toBeNull();
+    expect(db.from).not.toHaveBeenCalled();
+  });
+
+  it('processing: goes home instead of animating the demo', async () => {
+    params.current = {};
+    const view = await render(<ProcessingRoute />);
+
+    expect(nav.replace).toHaveBeenCalledWith('/');
+    expect(view.queryByText(mock.cue.text)).toBeNull();
+  });
+
+  it('the sample lift still opens, labelled as the sample', async () => {
+    params.current = { fixture: 'snatch-sample' };
+    const view = await render(<CueRoute />);
+
+    expect(view.getByText('SAMPLE LIFT · AI ESTIMATE')).toBeOnTheScreen();
     expect(db.from).not.toHaveBeenCalled();
   });
 });

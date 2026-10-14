@@ -137,11 +137,12 @@ export const ANALYSES: Record<string, Analysis> = {
 };
 
 // A bundled fixture, the sample, or an analysis the backend returned this
-// session. No id at all is the dev entry (the demo). Any other id is a lift the
-// app has not loaded yet: undefined, never the demo (useAnalysis fetches it).
+// session. No id at all is the dev entry (the demo) in a dev build only; a
+// release build has nothing to show. Any other id is a lift the app has not
+// loaded yet: undefined, never the demo (useAnalysis fetches it).
 export function getAnalysis(key?: string | string[]): Analysis | undefined {
   const k = Array.isArray(key) ? key[0] : key;
-  if (!k) return snatchMock;
+  if (!k) return __DEV__ ? snatchMock : undefined;
   if (k === SAMPLE_ID) return snatchSample;
   return liveAnalysis(k) ?? ANALYSES[k];
 }
