@@ -2,7 +2,7 @@ import type { Movement } from '../../analysis/types';
 import { ANALYSES } from '../../analysis/fixtures';
 import { liveAnalysis } from '../../analysis/live';
 import { fmt, movementLabel, plural } from '../../analysis/format';
-import { BARBELL, GYMNASTICS, METRICS, PRIMARY_METRIC } from './metrics';
+import { BARBELL, GYMNASTICS, metricFor, PRIMARY_METRIC } from './metrics';
 import { FREE_VIDEOS, type CueRecord, type CueStatus, type Day, type LibraryState, type Lift, type Session } from './types';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -67,7 +67,7 @@ export function liftTitle(l: Lift): string {
 }
 
 export function metricText(id: string, value: number): string {
-  const m = METRICS[id];
+  const m = metricFor(id);
   return m.unit === 'deg' ? `${fmt(value)}°` : `${fmt(value)} ${m.unit}`;
 }
 
@@ -80,7 +80,7 @@ export function seriesFor(sessions: Session[], movement: Movement, metricId: str
 
 export function bestOf<T extends { value: number }>(series: T[], metricId: string): T | undefined {
   if (series.length === 0) return undefined;
-  const lower = METRICS[metricId].lowerIsBetter;
+  const lower = metricFor(metricId).lowerIsBetter;
   return series.reduce((best, p) => ((lower ? p.value < best.value : p.value > best.value) ? p : best));
 }
 
@@ -99,7 +99,7 @@ export function liftDetail(l: Lift, sessions: Session[], opts: { cueShown?: bool
   // The headline number first, so a row reads without opening it.
   if (value == null) return analysis?.cue ? analysis.cue.evidence.caption : (l.headline ?? 'analysed');
   const best = bestOf(seriesFor(sessions, l.movement, metricId), metricId);
-  const head = `${METRICS[metricId].short} ${metricText(metricId, value)}`;
+  const head = `${metricFor(metricId).short} ${metricText(metricId, value)}`;
   return best ? `${head} · best ${metricText(metricId, best.value)}` : head;
 }
 
@@ -132,21 +132,6 @@ export function newestDone(lifts: Lift[]): Set<string> {
   return ids;
 }
 
-// Trends opens on the movement with the most analysed lifts; a tie goes to the
-// one lifted most recently.
-export function defaultMovement(sessions: Session[], fallback: Movement = 'snatch'): Movement {
-  const tally = new Map<Movement, { count: number; latest: Day }>();
-  for (const s of sessions) {
-    const t = tally.get(s.movement);
-    if (!t) tally.set(s.movement, { count: 1, latest: s.date });
-    else tally.set(s.movement, { count: t.count + 1, latest: s.date > t.latest ? s.date : t.latest });
-  }
-  let best: { movement: Movement; count: number; latest: Day } | undefined;
-  for (const [movement, t] of tally) {
-    if (!best || t.count > best.count || (t.count === best.count && t.latest > best.latest)) best = { movement, ...t };
-  }
-  return best?.movement ?? fallback;
-}
 
 export function latestCue(cues: CueRecord[], movement: Movement): CueRecord | undefined {
   return cues
@@ -158,14 +143,40 @@ export function activeCue(cues: CueRecord[]): CueRecord | undefined {
   return cues.filter((c) => c.status === 'trying').sort((a, b) => (a.givenAt < b.givenAt ? 1 : -1))[0];
 }
 
+// The lifts that fed a cue: its first and last lift by id, plus every lift of the movement
+// filmed while it was being tried. Newest first. Deleted lifts simply drop out.
+export function cueLifts(cue: CueRecord, lifts: Lift[]): Lift[] {
+  return lifts
+    .filter(
+      (l) =>
+        l.id === cue.firstLiftId ||
+        l.id === cue.lastLiftId ||
+        (l.movement === cue.movement && l.date >= cue.givenAt && (cue.endedAt == null || l.date <= cue.endedAt))
+    )
+    .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+}
+
 export function cueSessions(cue: CueRecord, sessions: Session[]): Session[] {
   return sessions.filter(
     (s) => s.movement === cue.movement && s.date > cue.givenAt && (cue.endedAt == null || s.date <= cue.endedAt)
   );
 }
 
+// The server counts a cue's sessions on the hosted path; the fixtures count local sessions.
+export function sessionsDone(cue: CueRecord, sessions: Session[]): number {
+  return cue.sessionsDone ?? cueSessions(cue, sessions).length;
+}
+
 export function sessionsCounter(cue: CueRecord, sessions: Session[]): string {
-  return `${cueSessions(cue, sessions).length} of ${cue.sessionsTarget}`;
+  return `${sessionsDone(cue, sessions)} of ${cue.sessionsTarget}`;
+}
+
+export function agoLabel(day: Day, today: Day): string {
+  const n = daysBetween(day, today);
+  if (n <= 0) return 'today';
+  if (n === 1) return 'yesterday';
+  if (n < 14) return `${n} days ago`;
+  return `${Math.round(n / 7)} wks ago`;
 }
 
 // The metric's series around the cue: the session it was given on, then
@@ -184,10 +195,10 @@ export function cueChange(cue: CueRecord, sessions: Session[]): { from: number; 
 }
 
 export function pastCueSummary(cue: CueRecord, sessions: Session[]): string {
-  const n = cueSessions(cue, sessions).length;
+  const n = sessionsDone(cue, sessions);
   if (cue.status === 'dropped') return `dropped after ${plural(Math.max(1, n), 'session')}`;
   const change = cueChange(cue, sessions);
-  const m = METRICS[cue.metricId];
+  const m = metricFor(cue.metricId);
   if (!change) return m.label.toLowerCase();
   const span = `${m.label.toLowerCase()} ${fmt(change.from)} → ${fmt(change.to)} ${m.unit === 'deg' ? '°' : m.unit}`;
   return cue.status === 'stuck' ? `${span} · ${plural(change.weeks, 'wk')}` : span;
@@ -225,11 +236,11 @@ export function cueWindow(
 const NUMBER_WORDS = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten'];
 
 export function didntStickHeadline(cue: CueRecord, sessions: Session[]): string {
-  const n = cueSessions(cue, sessions).length;
+  const n = sessionsDone(cue, sessions);
   const count = `${NUMBER_WORDS[n] ?? String(n)} ${n === 1 ? 'session' : 'sessions'}`;
   const series = cueSeries(cue, sessions);
   if (series.length === 0) return `${count} and it hasn't moved yet.`;
-  const m = METRICS[cue.metricId];
+  const m = metricFor(cue.metricId);
   const v = metricText(cue.metricId, series[series.length - 1].value);
   const still = m.still ? m.still.replace('{v}', v) : `${m.label.toLowerCase()} is still ${v}`;
   return `${count} and ${still}.`;
@@ -240,7 +251,7 @@ export function trendDirection(series: { value: number }[], metricId: string): s
   const first = series[0].value;
   const last = series[series.length - 1].value;
   if (first === last) return 'Holding steady.';
-  const better = METRICS[metricId].lowerIsBetter ? last < first : last > first;
+  const better = metricFor(metricId).lowerIsBetter ? last < first : last > first;
   return better ? 'Heading the right way.' : 'Not moving yet.';
 }
 
@@ -256,7 +267,7 @@ export function trendRecap(
   const latest = series[series.length - 1];
   if (!latest) return null;
   const when = latest.date === today ? 'today' : `on ${shortDate(latest.date)}`;
-  const parts = [`${METRICS[metricId].label}: ${metricText(metricId, latest.value)} ${when}.`];
+  const parts = [`${metricFor(metricId).label}: ${metricText(metricId, latest.value)} ${when}.`];
   const best = bestOf(series, metricId);
   if (best && best.value !== latest.value) parts.push(`Best ${metricText(metricId, best.value)} on ${shortDate(best.date)}.`);
   else parts.push('Your best yet.');

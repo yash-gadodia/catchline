@@ -1,3 +1,4 @@
+import { loadLibrary } from '../library/repository';
 import { act, fireEvent, render, within } from '@testing-library/react-native';
 import * as Haptics from 'expo-haptics';
 import { COMPARE_TARGETS, snatchMock, snatchMockLow, snatchMockMiss, snatchSample } from '../../analysis/fixtures';
@@ -16,7 +17,11 @@ const press = async (el: Parameters<typeof fireEvent.press>[0]) => {
   });
 };
 
-beforeEach(() => jest.clearAllMocks());
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  loadLibrary('seeded');
+});
 
 describe('ProcessingSheet', () => {
   const handlers = { onHide: jest.fn(), onNotify: jest.fn(), onKeepWaiting: jest.fn(), onSee: jest.fn() };

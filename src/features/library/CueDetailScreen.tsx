@@ -1,10 +1,14 @@
-import { useEffect } from 'react';
-import { Text, View, useWindowDimensions } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ScrollView, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 import Svg, { Line } from 'react-native-svg';
+import { ANALYSES } from '../../analysis/fixtures';
 import { fmt } from '../../analysis/format';
+import { liveAnalysis } from '../../analysis/live';
+import type { Analysis } from '../../analysis/types';
 import Btn from '../../components/Btn';
+import WhyDrawer from '../analysis/WhyDrawer';
 import Readout from '../../components/Readout';
 import SmallCaps from '../../components/SmallCaps';
 import TopBar from '../../components/TopBar';
@@ -14,37 +18,56 @@ import { lightTick, success } from '../../lib/haptics';
 import {
   bestOf,
   cueChange,
+  cueLifts,
   cueSeries,
   cueWindow,
   didntStickHeadline,
+  liftDetail,
+  liftTitle,
   metricText,
   seriesFor,
   sessionsCounter,
   shortDate,
   STATUS_LABEL,
 } from './derive';
-import { METRICS, SINGULAR_MOVEMENT } from './metrics';
+import { metricFor, SINGULAR_MOVEMENT } from './metrics';
 import { useLibrary } from './repository';
 import TrendChart from './TrendChart';
-import type { CueRecord, Day } from './types';
+import type { CueRecord, Day, Lift, Session } from './types';
 import { DestructiveBtn, Frame, StatusDot, Underlined } from './ui';
 
 function pointLabel(day: Day, today: Day, metricId: string, value: number) {
   return `${day === today ? 'today' : shortDate(day).toLowerCase()} · ${metricText(metricId, value)}`;
 }
 
-export type CueDetailNav = { onBack: () => void; onStuck: () => void; onDrop: () => void };
+export type CueDetailNav = { onBack: () => void; onStuck: () => void; onDidntStick: () => void; onDrop: () => void };
+
+// The lift's analysis when the app has it (Analysis.id = lift id); never the demo.
+function analysisForLift(id: string | undefined): Analysis | undefined {
+  return id ? (liveAnalysis(id) ?? ANALYSES[id]) : undefined;
+}
+
+function cueLiftDetail(l: Lift, cue: CueRecord, sessions: Session[]): string {
+  if (l.status === 'done') {
+    const value = sessions.find((s) => s.liftId === l.id)?.values[cue.metricId];
+    return value == null ? 'analysed' : `${metricFor(cue.metricId).short} ${metricText(cue.metricId, value)}`;
+  }
+  return liftDetail(l, sessions);
+}
 
 export default function CueDetailScreen({ cue, nav }: { cue: CueRecord; nav: CueDetailNav }) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  const { sessions, today } = useLibrary();
+  const { sessions, lifts, today } = useLibrary();
+  const [why, setWhy] = useState(false);
   const series = cueSeries(cue, sessions);
   const first = series[0];
   const last = series[series.length - 1];
   const { series: chart, markerIndex } = cueWindow(cue, sessions);
   const best = bestOf(seriesFor(sessions, cue.movement, cue.metricId), cue.metricId);
-  const metric = METRICS[cue.metricId];
+  const metric = metricFor(cue.metricId);
+  const fed = cueLifts(cue, lifts);
+  const analysis = analysisForLift(cue.lastLiftId) ?? analysisForLift(cue.firstLiftId);
   const half = (width - 2) / 2;
   const status = cue.status === 'trying' ? `Trying · ${sessionsCounter(cue, sessions)}` : STATUS_LABEL[cue.status];
   return (
@@ -59,8 +82,22 @@ export default function CueDetailScreen({ cue, nav }: { cue: CueRecord; nav: Cue
           </View>
         }
       />
-      <View style={{ paddingTop: space.s2, paddingBottom: space.s4, paddingHorizontal: space.gutter }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: space.s4 }}>
+      <View style={{ paddingTop: space.s2, paddingBottom: space.s4, paddingHorizontal: space.gutter, gap: space.s3 }}>
         <Text style={[display(36), { color: colors.text }]}>{cue.text}</Text>
+        {cue.why ? (
+          <View style={{ gap: space.s1 }}>
+            <SmallCaps size={11}>AI estimate</SmallCaps>
+            <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }} testID="cue-why">
+              {cue.why}
+            </Text>
+          </View>
+        ) : null}
+        {analysis ? (
+          <Underlined onPress={() => setWhy(true)} testID="cue-why-open">
+            Why this?
+          </Underlined>
+        ) : null}
       </View>
       <View style={{ flexDirection: 'row', gap: 2 }} testID="before-after">
         <Frame image={cue.before.image} width={half} height={220} gray zoom={1.25} focus={{ x: 0.52, y: 0.32 }}>
@@ -97,17 +134,45 @@ export default function CueDetailScreen({ cue, nav }: { cue: CueRecord; nav: Cue
           />
         ) : null}
       </View>
-      <View style={{ flex: 1 }} />
-      {cue.status === 'trying' ? (
-        <View style={{ paddingTop: space.s4, paddingHorizontal: space.gutter, paddingBottom: space.s7, gap: space.s3 }}>
-          <Btn kind="secondary" onPress={nav.onStuck} testID="mark-stuck">
-            Mark as stuck
-          </Btn>
-          <DestructiveBtn onPress={nav.onDrop} testID="drop-cue">
-            Drop this cue
-          </DestructiveBtn>
+      {fed.length > 0 ? (
+        <View style={{ paddingTop: space.s5, paddingHorizontal: space.gutter }} testID="cue-lifts">
+          <View style={{ paddingBottom: space.s1 }}>
+            <SmallCaps size={12}>Lifts on this cue</SmallCaps>
+          </View>
+          {fed.map((l) => (
+            <View
+              key={l.id}
+              testID={`cue-lift-${l.id}`}
+              style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: space.s3, paddingVertical: 10, borderTopWidth: 1, borderTopColor: colors.hairline }}
+            >
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={{ color: colors.text, fontFamily: fontFamily.bodyMedium, fontSize: 15, lineHeight: 20 }}>{liftTitle(l)}</Text>
+                <Text numberOfLines={1} style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>
+                  {cueLiftDetail(l, cue, sessions)}
+                </Text>
+              </View>
+              <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>{shortDate(l.date).toLowerCase()}</Text>
+            </View>
+          ))}
         </View>
       ) : null}
+      </ScrollView>
+      {cue.status === 'trying' ? (
+        <View style={{ paddingTop: space.s4, paddingHorizontal: space.gutter, paddingBottom: Math.max(insets.bottom, space.s7), gap: space.s3 }}>
+          <Btn onPress={nav.onStuck} testID="mark-stuck">
+            It stuck
+          </Btn>
+          <DestructiveBtn onPress={nav.onDidntStick} testID="didnt-stick">
+            Didn't stick
+          </DestructiveBtn>
+          <View style={{ alignItems: 'center' }}>
+            <Underlined onPress={nav.onDrop} color={colors.text2} testID="drop-cue">
+              Drop this cue
+            </Underlined>
+          </View>
+        </View>
+      ) : null}
+      {why && analysis ? <WhyDrawer analysis={analysis} onClose={() => setWhy(false)} /> : null}
     </View>
   );
 }
@@ -140,7 +205,7 @@ export function StuckScreen({ cue, nav }: { cue: CueRecord; nav: StuckNav }) {
   }, [reduce]);
   const change = cueChange(cue, sessions);
   const series = cueSeries(cue, sessions);
-  const metric = METRICS[cue.metricId];
+  const metric = metricFor(cue.metricId);
   const half = (width - 2) / 2;
   const stageH = Math.round(Math.min(470, height * 0.5));
   const tick = (v: number) => Math.min(half * 0.4, Math.max(8, v * 8));

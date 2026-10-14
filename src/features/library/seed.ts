@@ -131,6 +131,7 @@ const CUES: CueRecord[] = [
 export function seededLibrary(): LibraryState {
   return {
     today: TODAY,
+    synced: true,
     plan: 'free',
     freeVideosUsed: 3,
     lifts: LIFTS.map((l) => ({ ...l })),
@@ -139,6 +140,6 @@ export function seededLibrary(): LibraryState {
   };
 }
 
-export function emptyLibrary(): LibraryState {
-  return { today: TODAY, plan: 'free', freeVideosUsed: 0, lifts: [], sessions: [], cues: [] };
+export function emptyLibrary(synced = true): LibraryState {
+  return { today: TODAY, synced, plan: 'free', freeVideosUsed: 0, lifts: [], sessions: [], cues: [] };
 }

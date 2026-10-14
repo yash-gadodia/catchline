@@ -1,14 +1,16 @@
 import { snatchMockMiss } from '../../analysis/fixtures';
 import { putLiveAnalysis } from '../../analysis/live';
+import { defaultMovement, measuredMetrics, measuredMovements, metricFor } from './metrics';
 import {
   activeCue,
+  agoLabel,
   cueWindow,
+  metricText,
   didntStickHeadline,
   trendDirection,
   bestOf,
   cueSeries,
   dayLabel,
-  defaultMovement,
   filterLifts,
   freeVideosLabel,
   groupByDay,
@@ -22,6 +24,7 @@ import {
   sessionsCounter,
 } from './derive';
 import { emptyLibrary, seededLibrary, TODAY } from './seed';
+import type { Session } from './types';
 
 const lib = seededLibrary();
 const lift = (id: string) => lib.lifts.find((l) => l.id === id)!;
@@ -194,5 +197,40 @@ describe('defaultMovement (what Trends opens on)', () => {
   it('falls back to snatch, or the given fallback, with nothing analysed', () => {
     expect(defaultMovement([])).toBe('snatch');
     expect(defaultMovement([], 'jerk')).toBe('jerk');
+  });
+});
+
+describe('real CV measurement ids', () => {
+  it('knows every fault the CV can cue, with a safe fallback for one it has never seen', () => {
+    expect(metricFor('jump_forward')).toMatchObject({ id: 'jump_forward', label: 'Jumped forward', unit: 'cm', lowerIsBetter: true });
+    expect(metricFor('no_push_away').lowerIsBetter).toBe(false);
+    expect(metricFor('bar_peak_height')).toMatchObject({ label: 'Bar peak height', lowerIsBetter: false });
+    expect(metricFor('some_new_fault')).toMatchObject({ id: 'some_new_fault', label: 'Some new fault', unit: 'cm', lowerIsBetter: true });
+    expect(metricText('some_new_fault', 4)).toBe('4 cm');
+    expect(metricText('jump_forward', 9.4)).toBe('9.4 cm');
+  });
+
+  it('prefers the server session count over counting local sessions', () => {
+    const c = { ...cue('c-stay-over'), metricId: 'jump_forward', sessionsDone: 3 };
+    expect(sessionsCounter(c, lib.sessions)).toBe('3 of 6');
+    expect(pastCueSummary({ ...c, status: 'stuck' }, [])).toBe('jumped forward');
+    expect(didntStickHeadline({ ...c, status: 'didnt_stick' }, [])).toBe("Three sessions and it hasn't moved yet.");
+  });
+
+  it('lists only the measurements a movement actually has, in the lift order', () => {
+    const sessions: Session[] = [
+      { id: 's1', movement: 'snatch', date: '2026-10-10', values: { turnover_time: 0.21, jump_forward: 9, hips_rise_early: 3 } },
+      { id: 's2', movement: 'snatch', date: '2026-10-12', values: { jump_forward: 6, bar_peak_height: 90 } },
+    ];
+    expect(measuredMetrics(sessions, 'snatch')).toEqual(['hips_rise_early', 'jump_forward', 'turnover_time', 'bar_peak_height']);
+    expect(measuredMetrics(sessions, 'clean')).toEqual([]);
+    expect(measuredMovements(sessions)).toEqual(['snatch']);
+  });
+
+  it('relative day labels', () => {
+    expect(agoLabel('2026-10-11', TODAY)).toBe('today');
+    expect(agoLabel('2026-10-10', TODAY)).toBe('yesterday');
+    expect(agoLabel('2026-10-05', TODAY)).toBe('6 days ago');
+    expect(agoLabel('2026-09-20', TODAY)).toBe('3 wks ago');
   });
 });

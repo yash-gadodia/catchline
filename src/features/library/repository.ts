@@ -11,17 +11,20 @@ import { updateCue } from '../../lib/api';
 // Supabase and cue changes are written through (a failed write re-syncs).
 function persistCue(id: string, status: CueRecord['status']): void {
   if (!backendEnabled()) return;
-  updateCue(id, status).catch(() => syncLibrary().catch(() => undefined));
+  updateCue(id, status)
+    .then((row) => useLibraryStore.getState().setCue(id, { status: row.status as CueRecord['status'] }))
+    .catch(() => syncLibrary().catch(() => undefined));
 }
 
 export function useLibrary(): LibraryState {
   const today = useLibraryStore((s) => s.today);
+  const synced = useLibraryStore((s) => s.synced);
   const plan = useLibraryStore((s) => s.plan);
   const freeVideosUsed = useLibraryStore((s) => s.freeVideosUsed);
   const lifts = useLibraryStore((s) => s.lifts);
   const sessions = useLibraryStore((s) => s.sessions);
   const cues = useLibraryStore((s) => s.cues);
-  return { today, plan, freeVideosUsed, lifts, sessions, cues };
+  return { today, synced, plan, freeVideosUsed, lifts, sessions, cues };
 }
 
 export function useLift(id: string | undefined): Lift | undefined {
@@ -41,6 +44,12 @@ export function markStuck(id: string): void {
   const { today, setCue } = useLibraryStore.getState();
   setCue(id, { status: 'stuck', endedAt: today });
   persistCue(id, 'stuck');
+}
+
+export function markDidntStick(id: string): void {
+  const { today, setCue } = useLibraryStore.getState();
+  setCue(id, { status: 'didnt_stick', endedAt: today });
+  persistCue(id, 'didnt_stick');
 }
 
 export function dropCue(id: string): void {

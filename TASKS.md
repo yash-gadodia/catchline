@@ -107,6 +107,16 @@ Rule now enforced by tests: a release build never shows fixture or sample conten
 - Why-this sheet: a Close button was added (the scrim behind a tall sheet was the only way out). The scrim press itself passes in the render test, so the bot's "cannot dismiss" was not reproduced as a logic bug; most likely the sheet covered the scrim on a small screen.
 - Session storage is AsyncStorage (`src/lib/supabase.ts`), not Keychain: deleting the app deletes the anonymous session, so a reinstall is a fresh anonymous user.
 
+## Cues and Trends on real data (14 Oct, worktree branch off catchline)
+Build 26: Cues crashed and Trends was empty on a real account. Root cause: the CV writes measurement ids equal to its fault ids (`jump_forward`, `hips_rise_early`, `bar_forward_off_hips`, plus `catch_depth`, `turnover_time`, `bar_peak_height`) and a `cues` row's `fault_id` is the cue's metric, but `METRICS` only knew the design-era ids (`bar_drift_hip`, `pull_time`...), so `METRICS[cue.metricId].caption` threw and every Trends series was empty. Rules now:
+- `metricFor(id)` never throws (label from the id, cm, lower is better); `measuredMetrics()` / `measuredMovements()` drive the Trends chips and switcher from the data the account actually has. Add a `METRICS` entry when the CV learns a fault (cv/catchline_cv/rules.py FAULTS + lifts.py LABELS).
+- The library store boots **empty** with `synced=false` when Supabase is configured (never the design fixtures); `syncLibrary()` flips `synced`. Jest sets the Supabase env, so a test that wants the fixtures must call `loadLibrary('seeded')` in `beforeEach`.
+- A cue's session count is the server's `cues.sessions` (`sessionsDone`), not a local count; cue outcomes write through `updateCue()` and a rejected write re-syncs.
+- RN's jest `RefreshControl` mock drops its props: test pull-to-refresh with `container.queryAll(i => i.type === 'RCTRefreshControl')` + `fireEvent(el, 'refresh')`.
+- `npm install` must run **after** the worktree is on the right commit; an install at an old commit leaves `expo-file-system` and the fonts missing (jest "Super expression must either be null", export "Unable to resolve @expo-google-fonts").
+- [ ] (Claude) `PRIMARY_METRIC` / `COMPARE_IDS` / `baselineSentence` still use the design ids, so the Lifts row headline and the cue-screen baseline sentence fall back to the cue caption on real data. Point them at the CV ids per movement.
+- [ ] (Yash) Every prod cue today is `jump_forward`; see the CV note in the Cues/Trends report before deciding whether `choose_cue` needs a threshold change.
+
 ## Worker speed (14 Oct, worktree branch off catchline)
 - Profile of a 364-frame app-format clip on the Mini: 77 s, of which YOLOX-m 39 s + RTMPose-m 28 s (88%, 5-9 people per gym frame, all needed for the blur), plates 4.5 s, keyframes 1.9 s, decode < 1 s. Download and the 7 keyframe uploads are < 2 s per job (worker log timestamps). 4K originals decode 10x slower but the app never sends them.
 - Landed, all bit-identical on the 10 reference goldens (`cv/tests/test_golden.py`): ORT `session.intra_op.allow_spinning=0` (1.11x in a per-frame interleaved A/B on the loaded Mini), keyframe seeks in a thread pool, `ellipse_search` vectorised over ratios, `_refine` opening on a padded crop. Mini A/B on FF600EFA-app608: 75.2/73.2 s -> 64.4/61.7 s.

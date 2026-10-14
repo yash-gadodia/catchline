@@ -117,13 +117,13 @@ describe('CuesScreen', () => {
     const onOpen = jest.fn();
     const { getByText, getByTestId } = await render(<CuesScreen onOpen={onOpen} />);
     expect(getByText('TRYING · SNATCH')).toBeOnTheScreen();
-    expect(getByText('4 of 6 sessions')).toBeOnTheScreen();
+    expect(getByText('4 of 6 sessions · 11 days ago')).toBeOnTheScreen();
     expect(getByTestId('cue-sparkline')).toBeOnTheScreen();
     expect(getByText('Bar drift at hip, cm forward. Heading the right way.')).toBeOnTheScreen();
-    expect(getByText('bar height 92 → 96 cm · 3 wks')).toBeOnTheScreen();
+    expect(getByText('snatch · bar height 92 → 96 cm · 3 wks · 4 wks ago')).toBeOnTheScreen();
     expect(getByText('Stuck')).toBeOnTheScreen();
     expect(getByText("Didn't stick")).toBeOnTheScreen();
-    expect(getByText('dropped after 1 session')).toBeOnTheScreen();
+    expect(getByText('clean · dropped after 1 session · 5 wks ago')).toBeOnTheScreen();
     expect(getByText('Dropped')).toBeOnTheScreen();
     await press(getByTestId('past-c-hips-mu'));
     expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ id: 'c-hips-mu' }));
@@ -138,16 +138,19 @@ describe('CuesScreen', () => {
 
 describe('Cue detail and outcomes', () => {
   it('shows before and after evidence and the chart with the cue marker', async () => {
-    const nav = { onBack: jest.fn(), onStuck: jest.fn(), onDrop: jest.fn() };
+    const nav = { onBack: jest.fn(), onStuck: jest.fn(), onDidntStick: jest.fn(), onDrop: jest.fn() };
     const { getByText, getByTestId } = await render(<CueDetailScreen cue={cue('c-stay-over')} nav={nav} />);
     expect(getByText('TRYING · 4 OF 6')).toBeOnTheScreen();
     expect(getByTestId('before-readout')).toHaveTextContent('30 sep · 8 cm');
     expect(getByTestId('after-readout')).toHaveTextContent('today · 6 cm');
     expect(getByText('cm · 7 sessions measured')).toBeOnTheScreen();
     expect(getByTestId('cue-marker')).toBeOnTheScreen();
+    expect(getByTestId('cue-lift-l-snatch-today')).toHaveTextContent('Snatch · 3 reps · 62.5 kgdrift 6 cm11 oct');
     await press(getByTestId('mark-stuck'));
+    await press(getByTestId('didnt-stick'));
     await press(getByTestId('drop-cue'));
     expect(nav.onStuck).toHaveBeenCalledTimes(1);
+    expect(nav.onDidntStick).toHaveBeenCalledTimes(1);
     expect(nav.onDrop).toHaveBeenCalledTimes(1);
   });
 
@@ -205,13 +208,17 @@ describe('TrendsScreen', () => {
     expect(getByTestId('trend-hero')).toHaveTextContent('36°');
   });
 
-  it('switches movement and explains a trend needs two sessions', async () => {
-    const { getByTestId, getByText } = await render(<TrendsScreen />);
+  it('switches movement, lists only movements with lifts and explains a trend needs two', async () => {
+    const { getByTestId, getByText, queryByTestId } = await render(<TrendsScreen />);
     await press(getByTestId('movement-switcher'));
+    expect(queryByTestId('pick-jerk')).toBeNull();
     await press(getByTestId('pick-clean'));
     expect(getByText('One clean so far.')).toBeOnTheScreen();
-    await press(getByTestId('movement-switcher'));
-    await press(getByTestId('pick-jerk'));
+    expect(getByText('Trends need two lifts of the same movement. Film the next one and this fills in.')).toBeOnTheScreen();
+  });
+
+  it('a lift with no analysis still lands on its movement', async () => {
+    const { getByText } = await render(<TrendsScreen initialMovement="jerk" />);
     expect(getByText('No jerks yet.')).toBeOnTheScreen();
   });
 });

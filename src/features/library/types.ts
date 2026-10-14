@@ -33,11 +33,16 @@ export type CueRecord = {
   id: string;
   movement: Movement;
   text: string;
+  why?: string;
   metricId: string;
   givenAt: Day;
   endedAt?: Day;
   status: CueStatus;
   sessionsTarget: number;
+  // Hosted path: the server's own count and the span of lifts that fed the cue.
+  sessionsDone?: number;
+  firstLiftId?: string;
+  lastLiftId?: string;
   before: { image: string; label?: string };
   after: { image: string };
   suggestion?: { text: string; why: string };
@@ -47,6 +52,8 @@ export type Plan = 'free' | 'paid';
 
 export type LibraryState = {
   today: Day;
+  // False on the hosted path until the first syncLibrary() lands.
+  synced: boolean;
   plan: Plan;
   freeVideosUsed: number;
   lifts: Lift[];

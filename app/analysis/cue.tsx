@@ -29,7 +29,7 @@ export default function CueRoute() {
         onBack: back,
         onFilmAgain: () => {
           back();
-          if (!routeAfterAnalysis()) router.push(captureHref('/capture'));
+          if (!routeAfterAnalysis()) router.push(captureHref('/capture') as Href);
         },
       }}
     />

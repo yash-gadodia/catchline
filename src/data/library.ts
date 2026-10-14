@@ -73,11 +73,15 @@ export function toCue(row: CueRow, byLift: Map<string, Analysis>): CueRecord {
     id: row.id,
     movement: row.movement as Movement,
     text: row.text,
+    why: row.why ?? undefined,
     metricId: row.fault_id,
     givenAt: dayOf(row.created_at),
     endedAt: row.status === 'trying' ? undefined : dayOf(row.updated_at),
     status: row.status as CueStatus,
     sessionsTarget: Math.max(CUE_SESSIONS_TARGET, row.sessions),
+    sessionsDone: row.sessions,
+    firstLiftId: row.first_lift_id ?? undefined,
+    lastLiftId: row.last_lift_id ?? undefined,
     before: { image: catchImage(first) ?? catchImage(last) ?? '' },
     after: { image: catchImage(last) ?? '' },
   };
@@ -96,6 +100,7 @@ export async function syncLibrary(now: Date = new Date()): Promise<void> {
     .sort((a, b) => a.date.localeCompare(b.date));
   useLibraryStore.getState().load({
     today: dayOf(now.toISOString()),
+    synced: true,
     plan: usePurchases.getState().tier === 'free' ? 'free' : 'paid',
     freeVideosUsed: useUsage.getState().usage.lifetime,
     lifts: lifts.map((l) => toLift(l, byLift.get(l.id))),

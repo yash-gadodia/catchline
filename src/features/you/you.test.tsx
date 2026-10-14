@@ -1,3 +1,4 @@
+import { loadLibrary } from '../library/repository';
 import { act, fireEvent, render, within } from '@testing-library/react-native';
 import { Linking } from 'react-native';
 import { isHapticsEnabled } from '../../lib/haptics';
@@ -37,6 +38,7 @@ const nav = { onWhatIsStored: jest.fn(), onDeleteAccount: jest.fn(), onPlan: jes
 
 beforeEach(() => {
   jest.clearAllMocks();
+  loadLibrary('seeded');
   mockBackendEnabled.mockReturnValue(false);
   useAccountStore.setState(initialAccount, true);
   useSettings.getState().reset();
