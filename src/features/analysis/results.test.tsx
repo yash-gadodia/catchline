@@ -147,7 +147,7 @@ describe('bundled fixtures still open directly', () => {
   });
 });
 
-// Prod bug (14-10-2026, TestFlight): any result route reached without an id resolved to
+// Prod bug (14-10-2026, TestFlight): every result route reached without an id resolved to
 // the bundled demo snatch. In a release build that must never happen.
 describe('release build: a result route with no id never plays the demo', () => {
   beforeEach(() => {
