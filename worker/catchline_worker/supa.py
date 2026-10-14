@@ -13,6 +13,12 @@ class Supabase:
         r.raise_for_status()
         return r.json() if r.content else None
 
+    def push_token(self, user_id: str) -> str | None:
+        r = self.http.get("/rest/v1/profiles", params={"id": f"eq.{user_id}", "select": "push_token"})
+        r.raise_for_status()
+        rows = r.json()
+        return rows[0].get("push_token") if rows else None
+
     def download(self, bucket: str, path: str, dest: str) -> None:
         with self.http.stream("GET", f"/storage/v1/object/{bucket}/{path}") as r:
             r.raise_for_status()

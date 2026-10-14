@@ -5,6 +5,8 @@ import traceback
 from collections.abc import Callable
 from dataclasses import dataclass
 
+from .push import failed_message, ready_message
+
 log = logging.getLogger("catchline_worker")
 
 RAW_BUCKET = "raw-clips"
@@ -54,12 +56,29 @@ def delete_clip(db, job: Job) -> bool:
         return False
 
 
-def process_one(db, analyse: Analyse, workdir: str | None = None, max_attempts: int = MAX_ATTEMPTS) -> dict | None:
+def notify(db, push, job: Job, ok: bool) -> None:
+    """Tell the lifter the terminal state, if they asked to be told. Best effort: the
+    lift is already saved, so a push problem is logged and never fails the job."""
+    if push is None:
+        return
+    try:
+        token = db.push_token(job.user_id)
+        if not token:
+            return
+        title, body = ready_message(job.movement) if ok else failed_message()
+        push.send(token, title, body, {"liftId": job.lift_id})
+    except Exception:
+        log.exception("push for lift %s failed", job.lift_id)
+
+
+def process_one(
+    db, analyse: Analyse, workdir: str | None = None, max_attempts: int = MAX_ATTEMPTS, push=None
+) -> dict | None:
     """Claim one job and run it to a terminal state (or back into the queue).
 
-    Success: download clip -> analyse -> upload keyframes -> complete_lift_job -> delete clip.
+    Success: download clip -> analyse -> upload keyframes -> complete_lift_job -> delete clip -> notify.
     Error with attempts left: fail_lift_job(retry) and keep the clip for the retry.
-    Error on the last attempt: fail_lift_job(no retry) and delete the clip.
+    Error on the last attempt: fail_lift_job(no retry), delete the clip and notify.
     """
     job = claim(db, max_attempts)
     if job is None:
@@ -87,6 +106,8 @@ def process_one(db, analyse: Analyse, workdir: str | None = None, max_attempts: 
                 },
             )
             deleted = False if retry else delete_clip(db, job)
+            if not retry:
+                notify(db, push, job, ok=False)
             return {
                 "lift_id": job.lift_id,
                 "status": status,
@@ -94,19 +115,22 @@ def process_one(db, analyse: Analyse, workdir: str | None = None, max_attempts: 
                 "attempt": job.attempt,
                 "clip_deleted": deleted,
             }
+    deleted = delete_clip(db, job)
+    if out["status"] in ("done", "failed"):
+        notify(db, push, job, ok=out["status"] == "done")
     return {
         "lift_id": job.lift_id,
         "status": out["status"],
         "cue_id": out.get("cue_id"),
         "keyframes": len(result.keyframes),
-        "clip_deleted": delete_clip(db, job),
+        "clip_deleted": deleted,
     }
 
 
-def drain(db, analyse: Analyse, workdir: str | None = None, limit: int = 100) -> list[dict]:
+def drain(db, analyse: Analyse, workdir: str | None = None, limit: int = 100, push=None) -> list[dict]:
     done = []
     while len(done) < limit:
-        r = process_one(db, analyse, workdir)
+        r = process_one(db, analyse, workdir, push=push)
         if r is None:
             break
         done.append(r)

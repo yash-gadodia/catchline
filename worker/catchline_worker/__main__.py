@@ -5,6 +5,7 @@ import os
 import time
 
 from .jobs import drain, process_one
+from .push import Push
 from .supa import Supabase
 
 
@@ -25,13 +26,14 @@ def main() -> None:
     from .analyse import analyse
 
     db = client()
+    push = Push()
     if a.drain:
-        for r in drain(db, analyse, a.workdir):
+        for r in drain(db, analyse, a.workdir, push=push):
             print(json.dumps(r), flush=True)
         return
     while True:
         t = time.time()
-        r = process_one(db, analyse, a.workdir)
+        r = process_one(db, analyse, a.workdir, push=push)
         if r is not None:
             print(json.dumps(r | {"seconds": round(time.time() - t, 1)}), flush=True)
         if a.once:

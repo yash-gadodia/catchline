@@ -16,10 +16,11 @@ ROW = {
 
 
 class FakeDb:
-    def __init__(self, jobs=(), fail_on=None):
+    def __init__(self, jobs=(), fail_on=None, token="ExponentPushToken[x]"):
         self.jobs = list(jobs)
         self.calls = []
         self.fail_on = fail_on
+        self.token = token
 
     def _maybe_fail(self, name):
         if self.fail_on == name:
@@ -49,8 +50,42 @@ class FakeDb:
         self.calls.append(("remove", bucket, paths))
         self._maybe_fail("remove")
 
+    def push_token(self, user_id):
+        self.calls.append(("push_token", user_id))
+        return self.token
+
     def names(self):
         return [c[1] if c[0] == "rpc" else c[0] for c in self.calls]
+
+
+class FakePush:
+    def __init__(self, fail=False):
+        self.sent = []
+        self.fail = fail
+
+    def send(self, token, title, body, data):
+        self.sent.append((token, title, body, data))
+        if self.fail:
+            raise ConnectionError("exp.host down")
+        return {"data": {"status": "ok"}}
+
+
+class TokenLookupDownDb(FakeDb):
+    def push_token(self, user_id):
+        raise ConnectionError("rest down")
+
+
+FAILED_PUSH = ("ExponentPushToken[x]", "We couldn't analyse that clip", "Tap to film it again", {"liftId": "lift-1"})
+
+
+class CvFailureDb(FakeDb):
+    """complete_lift_job marks the lift failed when the analysis carries a `failure`."""
+
+    def rpc(self, fn, args):
+        if fn == "complete_lift_job":
+            self.calls.append(("rpc", fn, args))
+            return {"status": "failed", "cue_id": None}
+        return super().rpc(fn, args)
 
 
 def fake_analyse(clip, job, workdir):
@@ -170,3 +205,67 @@ def test_retry_decision_by_attempt(attempt, retry):
     process_one(db, crashing_analyse)
     fail = next(c for c in db.calls if c[0] == "rpc" and c[1] == "fail_lift_job")
     assert fail[2]["p_retry"] is retry
+
+
+def test_success_notifies_the_owner_after_the_clip_is_deleted():
+    db = FakeDb([ROW])
+    push = FakePush()
+    out = process_one(db, fake_analyse, push=push)
+    assert out["status"] == "done"
+    assert push.sent == [("ExponentPushToken[x]", "Your snatch is ready", "Tap to see your cue", {"liftId": "lift-1"})]
+    assert db.names()[-3:] == ["remove", "mark_clip_deleted", "push_token"]
+    assert db.calls[-1] == ("push_token", "user-1")
+
+
+def test_no_token_means_no_push():
+    db = FakeDb([ROW], token=None)
+    push = FakePush()
+    process_one(db, fake_analyse, push=push)
+    assert push.sent == []
+
+
+def test_no_push_client_means_no_token_lookup():
+    db = FakeDb([ROW])
+    process_one(db, fake_analyse)
+    assert "push_token" not in db.names()
+
+
+def test_cv_failure_notifies_that_the_clip_could_not_be_analysed():
+    db = CvFailureDb([ROW])
+    push = FakePush()
+    out = process_one(db, fake_analyse, push=push)
+    assert out["status"] == "failed"
+    assert push.sent == [FAILED_PUSH]
+
+
+def test_final_failure_notifies_but_a_retry_does_not():
+    retry = FakePush()
+    process_one(FakeDb([ROW]), crashing_analyse, push=retry)
+    assert retry.sent == []
+
+    final = FakePush()
+    db = FakeDb([ROW | {"attempt": MAX_ATTEMPTS}])
+    process_one(db, crashing_analyse, push=final)
+    assert final.sent == [FAILED_PUSH]
+    assert db.names()[-4:] == ["fail_lift_job", "remove", "mark_clip_deleted", "push_token"]
+
+
+def test_push_errors_never_change_the_job_result():
+    db = FakeDb([ROW])
+    out = process_one(db, fake_analyse, push=FakePush(fail=True))
+    assert out == {"lift_id": "lift-1", "status": "done", "cue_id": "cue-1", "keyframes": 2, "clip_deleted": True}
+
+
+def test_token_lookup_errors_never_change_the_job_result():
+    db = TokenLookupDownDb([ROW])
+    push = FakePush()
+    out = process_one(db, fake_analyse, push=push)
+    assert out["status"] == "done"
+    assert push.sent == []
+
+
+def test_drain_passes_the_push_client_through():
+    db = FakeDb([ROW])
+    push = FakePush()
+    drain(db, fake_analyse, push=push)
+    assert len(push.sent) == 1
