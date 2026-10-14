@@ -1,0 +1,25 @@
+{
+ "movement": "snatch",
+ "analysis": {
+  "version": 1,
+  "id": "golden",
+  "movement": "snatch",
+  "video": {
+   "uri": "assets/analysis/golden",
+   "width": 608,
+   "height": 1080,
+   "fps": 29.97002997002997,
+   "frameCount": 389
+  },
+  "traceKind": "bar",
+  "reps": [],
+  "bestRepIndex": 0,
+  "cue": null,
+  "measurements": [],
+  "failure": {
+   "reason": "unsupported_movement",
+   "message": "No floor-to-overhead lift found in this clip."
+  }
+ },
+ "keyframes_md5": {}
+}

@@ -15,6 +15,12 @@ ssh mini 'export PATH=/opt/homebrew/bin:$PATH; cd ~/catchline-cv/cv && uv run py
 
 Output in `out/<id>/`: `<id>.json`, `keyframes/*.jpg` (1080 px tall) and `debug/` (per-rep overlay mp4, contact sheets, signal plot, `json-check.jpg`).
 Pose is cached in `out/cache/` so rule/phase changes rerun in ~20 s. `--no-video` skips the overlay mp4.
+
+**Unchanged-output check** (`tests/test_golden.py`): the Analysis JSON and keyframe JPEG bytes for the reference clips
+are recorded in `tests/golden/`. Point `CATCHLINE_CLIPS` at a directory holding those clips (laptop scratch copies or the
+Mini's `~/catchline-cv2/clips`; `.mp4` names are the app-format transcodes, see `transcode.sh` in the scale notes) and run
+`CATCHLINE_CLIPS=<dir> uv run pytest tests/test_golden.py -q`. Without the variable the test is skipped. Any speed-up to
+the pipeline must keep it green; re-record with `CATCHLINE_GOLDEN_UPDATE=1` only for an intended change in results.
 `scripts/verify_json.py <json> <root> <out.jpg>` draws the JSON's own normalised path and evidence on its keyframes (checks the contract, not the internals).
 
 To ship into the app: copy `<id>.json` to `src/analysis/fixtures/` and `keyframes/` to `assets/analysis/<id>/`; `KeyFrame.image` is `assets/analysis/<id>/<file>` (repo-relative).

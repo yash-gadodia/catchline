@@ -88,17 +88,23 @@ def _sample(mask, pts):
 
 def ellipse_search(mask, centres, majors, ratios):
     """Best vertical-major ellipse over candidate centres/sizes. Score = fill inside - fill in an outer ring."""
+    # all ratios of one major are scored in one array; the first (ratio, centre) of the highest score wins, which is
+    # what the per-ratio loop with a strictly-greater test picked (fill scores are exact means of 0/1, so the order
+    # of summation cannot change them)
     best = (-1.0, None)
     centres = np.asarray(centres, float)
+    ratios = list(ratios)
     for M in majors:
-        for q in ratios:
-            ins, ring = _ellipse_offsets(M, q)
-            vi, oki = _sample(mask, centres[:, None, :] + ins[None])
-            vo, _ = _sample(mask, centres[:, None, :] + ring[None])
-            score = vi.mean(1) - vo.mean(1) - 0.5 * (1 - oki.mean(1))
-            j = int(np.argmax(score))
-            if score[j] > best[0]:
-                best = (float(score[j]), {"centre": centres[j].copy(), "axes": (float(M), float(M * q)), "score": float(score[j])})
+        offs = [_ellipse_offsets(M, q) for q in ratios]
+        ins = np.stack([o[0] for o in offs])
+        ring = np.stack([o[1] for o in offs])
+        vi, oki = _sample(mask, centres[None, :, None, :] + ins[:, None, :, :])
+        vo, _ = _sample(mask, centres[None, :, None, :] + ring[:, None, :, :])
+        score = vi.mean(2) - vo.mean(2) - 0.5 * (1 - oki.mean(2))
+        qi, j = np.unravel_index(int(np.argmax(score)), score.shape)
+        if score[qi, j] > best[0]:
+            q = ratios[qi]
+            best = (float(score[qi, j]), {"centre": centres[j].copy(), "axes": (float(M), float(M * q)), "score": float(score[qi, j])})
     return best[1]
 
 
@@ -171,14 +177,21 @@ def refine_plate(img, plate):
 def _refine(m, plate, kf, iters=300, tol=0.035, seed=0):
     r = plate["axes"][1] / 2
     k = max(5, int(kf * r) | 1)
-    m = cv2.morphologyEx(m, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k, k)))
     c = np.asarray(plate["centre"], float)
+    R = int(1.4 * plate["axes"][0] / 2)
+    # the opening only matters inside the ROI disc: run it on a crop padded by the kernel (its reach), which is
+    # identical there to opening the whole frame
+    H, W = m.shape
+    x0, y0 = max(0, int(c[0]) - R - k), max(0, int(c[1]) - R - k)
+    x1, y1 = min(W, int(c[0]) + R + k + 1), min(H, int(c[1]) + R + k + 1)
+    m = cv2.morphologyEx(m[y0:y1, x0:x1], cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k, k)))
     roi = np.zeros_like(m)
-    cv2.circle(roi, (int(c[0]), int(c[1])), int(1.4 * plate["axes"][0] / 2), 255, -1)
+    cv2.circle(roi, (int(c[0]) - x0, int(c[1]) - y0), R, 255, -1)
     m &= roi
     cs, _ = cv2.findContours(m, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     if not cs:
         return None
+    cs = [q + np.array([x0, y0], q.dtype) for q in cs]
     pts = max(cs, key=lambda q: cv2.pointPolygonTest(q, tuple(float(v) for v in c), True)).reshape(-1, 2).astype(float)
     if len(pts) < 20:
         return None

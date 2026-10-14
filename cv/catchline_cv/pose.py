@@ -60,11 +60,19 @@ def merge_passes(upright, rotated, min_iou=0.3):
 def run_pose(path, height, mode="balanced", two_pass=False):
     """All people in every frame: list (per frame) of (bbox[4], kpts[26,2], scores[26]) in inference px, head points
     already dropped. two_pass also runs every frame rotated 180 degrees and keeps the more confident pose per person."""
+    import onnxruntime as ort
     from rtmlib import YOLOX, RTMPose, BodyWithFeet
 
     cfg = BodyWithFeet.MODE[mode]
     det = YOLOX(cfg["det"], model_input_size=cfg["det_input_size"], backend="onnxruntime", device="cpu")
     pose = RTMPose(cfg["pose"], model_input_size=cfg["pose_input_size"], backend="onnxruntime", device="cpu")
+    # same CPU provider and default threads as rtmlib, but idle worker threads sleep instead of spinning: on the
+    # shared Mini (VM, Spotlight, other agents) spinning threads fight the rest of the box for cores. Same kernels,
+    # same numbers; per-frame interleaved A/Bs on 14-10-2026: 1.11x on the Mini, 1.34x on a busy laptop.
+    so = ort.SessionOptions()
+    so.add_session_config_entry("session.intra_op.allow_spinning", "0")
+    det.session = ort.InferenceSession(det.onnx_model, sess_options=so, providers=["CPUExecutionProvider"])
+    pose.session = ort.InferenceSession(pose.onnx_model, sess_options=so, providers=["CPUExecutionProvider"])
 
     def infer(img):
         boxes = det(img)

@@ -3,6 +3,7 @@ import os
 import pickle
 import subprocess
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 import cv2
 import numpy as np
@@ -117,15 +118,17 @@ def run_snatch(ctx):
 
     keyframes_dir = assets_dir
     os.makedirs(keyframes_dir, exist_ok=True)
+    jobs = []
     for r in rep_info:
         kfs = []
         for pi, phase in enumerate(SNATCH_PHASES):
             f = r["keys"][phase]
             name = f"r{r['index']}-{pi + 1}-{phase}.jpg"
-            export_keyframe(ctx, f, os.path.join(keyframes_dir, name))
+            jobs.append((f, os.path.join(keyframes_dir, name)))
             kfs.append({"phase": phase, "frame": int(f), "image": f"{asset_prefix}/{name}"})
         out_reps.append({"index": r["index"], "startFrame": r["start"], "endFrame": r["end"], "made": r["made"],
                          "phases": r["phases"], "keyFrames": kfs, "path": r["path"]})
+    export_keyframes(ctx, jobs)
 
     analysis = base(analysis_id, meta, n) | {
         "pxPerCm": round(cue_rep["px_per_cm"] * KEYFRAME_H / H, 3),
@@ -165,14 +168,17 @@ def read_frame(clip, f, fps, height=KEYFRAME_H):
     return cv2.imdecode(np.frombuffer(raw, np.uint8), cv2.IMREAD_COLOR)
 
 
-def export_keyframe(ctx, f, path):
-    """Keyframe JPEG with every person but the lifter blurred (box from their body keypoints, padded)."""
-    f = int(min(max(f, 0), ctx["n"] - 1))
-    img = read_frame(ctx["clip"], f, ctx["fps"])
-    others = bystanders(ctx["people"][f], ctx["boxes"][f])
-    lifter = (ctx["k"][f], ctx["ks"][f]) if np.isfinite(ctx["boxes"][f]).all() else None
-    img = blur_bystanders(img, others, lifter, scale=img.shape[0] / ctx["H"])
-    cv2.imwrite(path, img, [cv2.IMWRITE_JPEG_QUALITY, 85])
+def export_keyframes(ctx, jobs):
+    """Keyframe JPEGs, one per (frame, path), with every person but the lifter blurred (box from their body
+    keypoints, padded). The frames are seeked and decoded in parallel: each is its own ffmpeg process."""
+    fs = [int(min(max(f, 0), ctx["n"] - 1)) for f, _ in jobs]
+    with ThreadPoolExecutor(4) as ex:
+        imgs = list(ex.map(lambda f: read_frame(ctx["clip"], f, ctx["fps"]), fs))
+    for f, img, (_, path) in zip(fs, imgs, jobs):
+        others = bystanders(ctx["people"][f], ctx["boxes"][f])
+        lifter = (ctx["k"][f], ctx["ks"][f]) if np.isfinite(ctx["boxes"][f]).all() else None
+        img = blur_bystanders(img, others, lifter, scale=img.shape[0] / ctx["H"])
+        cv2.imwrite(path, img, [cv2.IMWRITE_JPEG_QUALITY, 85])
 
 
 def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_dir, rep_no, kind="snatch"):

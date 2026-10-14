@@ -1,0 +1,435 @@
+{
+ "movement": "snatch",
+ "analysis": {
+  "version": 1,
+  "id": "golden",
+  "movement": "snatch",
+  "video": {
+   "uri": "assets/analysis/golden",
+   "width": 608,
+   "height": 1080,
+   "fps": 29.97002997002997,
+   "frameCount": 389
+  },
+  "traceKind": "bar",
+  "pxPerCm": 3.483,
+  "reps": [
+   {
+    "index": 1,
+    "startFrame": 55,
+    "endFrame": 103,
+    "made": true,
+    "phases": [
+     {
+      "name": "setup",
+      "startFrame": 55,
+      "endFrame": 83
+     },
+     {
+      "name": "first_pull",
+      "startFrame": 84,
+      "endFrame": 85
+     },
+     {
+      "name": "transition",
+      "startFrame": 86,
+      "endFrame": 86
+     },
+     {
+      "name": "second_pull",
+      "startFrame": 87,
+      "endFrame": 87
+     },
+     {
+      "name": "turnover",
+      "startFrame": 88,
+      "endFrame": 88
+     },
+     {
+      "name": "catch",
+      "startFrame": 89,
+      "endFrame": 100
+     },
+     {
+      "name": "recovery",
+      "startFrame": 101,
+      "endFrame": 103
+     }
+    ],
+    "keyFrames": [
+     {
+      "phase": "setup",
+      "frame": 83,
+      "image": "kf/r1-1-setup.jpg"
+     },
+     {
+      "phase": "first_pull",
+      "frame": 84,
+      "image": "kf/r1-2-first_pull.jpg"
+     },
+     {
+      "phase": "transition",
+      "frame": 84,
+      "image": "kf/r1-3-transition.jpg"
+     },
+     {
+      "phase": "second_pull",
+      "frame": 85,
+      "image": "kf/r1-4-second_pull.jpg"
+     },
+     {
+      "phase": "turnover",
+      "frame": 86,
+      "image": "kf/r1-5-turnover.jpg"
+     },
+     {
+      "phase": "catch",
+      "frame": 89,
+      "image": "kf/r1-6-catch.jpg"
+     },
+     {
+      "phase": "recovery",
+      "frame": 103,
+      "image": "kf/r1-7-recovery.jpg"
+     }
+    ],
+    "path": [
+     {
+      "frame": 55,
+      "x": 0.3936,
+      "y": 0.5538
+     },
+     {
+      "frame": 56,
+      "x": 0.4078,
+      "y": 0.6028
+     },
+     {
+      "frame": 57,
+      "x": 0.4352,
+      "y": 0.5629
+     },
+     {
+      "frame": 58,
+      "x": 0.4741,
+      "y": 0.5231
+     },
+     {
+      "frame": 59,
+      "x": 0.5168,
+      "y": 0.5174
+     },
+     {
+      "frame": 60,
+      "x": 0.5469,
+      "y": 0.5186
+     },
+     {
+      "frame": 61,
+      "x": 0.551,
+      "y": 0.5072
+     },
+     {
+      "frame": 62,
+      "x": 0.528,
+      "y": 0.4943
+     },
+     {
+      "frame": 63,
+      "x": 0.4929,
+      "y": 0.4927
+     },
+     {
+      "frame": 64,
+      "x": 0.4644,
+      "y": 0.4984
+     },
+     {
+      "frame": 65,
+      "x": 0.4502,
+      "y": 0.5005
+     },
+     {
+      "frame": 66,
+      "x": 0.4494,
+      "y": 0.4929
+     },
+     {
+      "frame": 67,
+      "x": 0.4653,
+      "y": 0.4732
+     },
+     {
+      "frame": 68,
+      "x": 0.4883,
+      "y": 0.4476
+     },
+     {
+      "frame": 69,
+      "x": 0.4957,
+      "y": 0.4311
+     },
+     {
+      "frame": 70,
+      "x": 0.4788,
+      "y": 0.4272
+     },
+     {
+      "frame": 71,
+      "x": 0.4518,
+      "y": 0.4308
+     },
+     {
+      "frame": 72,
+      "x": 0.4319,
+      "y": 0.4391
+     },
+     {
+      "frame": 73,
+      "x": 0.4212,
+      "y": 0.4496
+     },
+     {
+      "frame": 74,
+      "x": 0.4128,
+      "y": 0.4596
+     },
+     {
+      "frame": 75,
+      "x": 0.4048,
+      "y": 0.474
+     },
+     {
+      "frame": 76,
+      "x": 0.4002,
+      "y": 0.5014
+     },
+     {
+      "frame": 77,
+      "x": 0.4005,
+      "y": 0.5376
+     },
+     {
+      "frame": 78,
+      "x": 0.4037,
+      "y": 0.5672
+     },
+     {
+      "frame": 79,
+      "x": 0.407,
+      "y": 0.5795
+     },
+     {
+      "frame": 80,
+      "x": 0.4111,
+      "y": 0.5698
+     },
+     {
+      "frame": 81,
+      "x": 0.4212,
+      "y": 0.5404
+     },
+     {
+      "frame": 82,
+      "x": 0.4459,
+      "y": 0.5248
+     },
+     {
+      "frame": 83,
+      "x": 0.4856,
+      "y": 0.5704
+     },
+     {
+      "frame": 84,
+      "x": 0.5175,
+      "y": 0.6323
+     },
+     {
+      "frame": 85,
+      "x": 0.5096,
+      "y": 0.584
+     },
+     {
+      "frame": 86,
+      "x": 0.4682,
+      "y": 0.4214
+     },
+     {
+      "frame": 87,
+      "x": 0.4357,
+      "y": 0.2852
+     },
+     {
+      "frame": 88,
+      "x": 0.4326,
+      "y": 0.2485
+     },
+     {
+      "frame": 89,
+      "x": 0.4426,
+      "y": 0.2625
+     },
+     {
+      "frame": 90,
+      "x": 0.4494,
+      "y": 0.2753
+     },
+     {
+      "frame": 91,
+      "x": 0.4527,
+      "y": 0.2779
+     },
+     {
+      "frame": 92,
+      "x": 0.4555,
+      "y": 0.2769
+     },
+     {
+      "frame": 93,
+      "x": 0.4573,
+      "y": 0.2753
+     },
+     {
+      "frame": 94,
+      "x": 0.4572,
+      "y": 0.2738
+     },
+     {
+      "frame": 95,
+      "x": 0.4562,
+      "y": 0.2732
+     },
+     {
+      "frame": 96,
+      "x": 0.4578,
+      "y": 0.2739
+     },
+     {
+      "frame": 97,
+      "x": 0.4601,
+      "y": 0.2752
+     },
+     {
+      "frame": 98,
+      "x": 0.4628,
+      "y": 0.2768
+     },
+     {
+      "frame": 99,
+      "x": 0.4655,
+      "y": 0.2799
+     },
+     {
+      "frame": 100,
+      "x": 0.4671,
+      "y": 0.2838
+     },
+     {
+      "frame": 101,
+      "x": 0.4656,
+      "y": 0.2818
+     },
+     {
+      "frame": 102,
+      "x": 0.4599,
+      "y": 0.2671
+     },
+     {
+      "frame": 103,
+      "x": 0.4525,
+      "y": 0.2567
+     }
+    ]
+   }
+  ],
+  "bestRepIndex": 1,
+  "cue": {
+   "faultId": "bar_forward_off_hips",
+   "text": "Brush the bar up, don't bump it.",
+   "why": "The bar flew 20 cm forward after hip contact, so you had to chase it.",
+   "confidence": "low",
+   "confidenceText": "Seen on 1 of 1 reps, filmed ~45\u00b0 off side-on: film from the side to confirm",
+   "evidence": {
+    "rep": 1,
+    "frame": 88,
+    "from": {
+     "x": 0.511,
+     "y": 0.5848
+    },
+    "to": {
+     "x": 0.4326,
+     "y": 0.2485
+    },
+    "value": 20.1,
+    "unit": "cm",
+    "caption": "hip \u00b7 20 cm fwd"
+   }
+  },
+  "measurements": [
+   {
+    "id": "hips_rise_early",
+    "label": "Hips rose early",
+    "value": -12.4,
+    "unit": "cm",
+    "frame": 86,
+    "status": "normal",
+    "note": "hips vs shoulders, floor to knee"
+   },
+   {
+    "id": "bar_forward_off_hips",
+    "label": "Bar forward off hips",
+    "value": 20.1,
+    "unit": "cm",
+    "frame": 88,
+    "status": "cue",
+    "note": "after hip contact; corrected for a camera ~45\u00b0 off side-on, so treat as an estimate"
+   },
+   {
+    "id": "jump_forward",
+    "label": "Jumped forward",
+    "value": 16.9,
+    "unit": "cm",
+    "frame": 89,
+    "status": "follows",
+    "note": "feet, lift-off to catch; corrected for a camera ~45\u00b0 off side-on, so treat as an estimate"
+   },
+   {
+    "id": "bar_peak_height",
+    "label": "Bar peak height",
+    "value": 118.6,
+    "unit": "cm",
+    "frame": 88,
+    "status": "normal",
+    "note": "above lift-off (wrist midpoint)"
+   },
+   {
+    "id": "catch_depth",
+    "label": "Catch depth",
+    "value": 28.4,
+    "unit": "cm",
+    "frame": 102,
+    "status": "normal",
+    "note": "power catch, hip above knee, knee 103\u00b0"
+   },
+   {
+    "id": "turnover_time",
+    "label": "Extension to catch",
+    "value": 0.13,
+    "unit": "s",
+    "frame": 85,
+    "status": "normal",
+    "note": "\u00b1 1 frame at 30 fps"
+   }
+  ],
+  "failure": null
+ },
+ "keyframes_md5": {
+  "r1-1-setup.jpg": "5e6c9bfc07233f499197848dd66df144",
+  "r1-2-first_pull.jpg": "8dee5e615bf883c085e37fd2146a81b3",
+  "r1-3-transition.jpg": "8dee5e615bf883c085e37fd2146a81b3",
+  "r1-4-second_pull.jpg": "5c8946b629088d7373e9a4d6a679efc3",
+  "r1-5-turnover.jpg": "79c897f3cd9791253130bdd7ffb35346",
+  "r1-6-catch.jpg": "4d62f9dac2803388c62bf0f777dbd96c",
+  "r1-7-recovery.jpg": "85339a6d8ef67c8d00a1340bdec94289"
+ }
+}

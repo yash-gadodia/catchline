@@ -1,0 +1,759 @@
+{
+ "movement": "snatch",
+ "analysis": {
+  "version": 1,
+  "id": "golden",
+  "movement": "snatch",
+  "video": {
+   "uri": "assets/analysis/golden",
+   "width": 608,
+   "height": 1080,
+   "fps": 30.0,
+   "frameCount": 153
+  },
+  "traceKind": "bar",
+  "pxPerCm": 4.495,
+  "reps": [
+   {
+    "index": 1,
+    "startFrame": 34,
+    "endFrame": 145,
+    "made": false,
+    "phases": [
+     {
+      "name": "setup",
+      "startFrame": 34,
+      "endFrame": 63
+     },
+     {
+      "name": "first_pull",
+      "startFrame": 64,
+      "endFrame": 73
+     },
+     {
+      "name": "transition",
+      "startFrame": 74,
+      "endFrame": 78
+     },
+     {
+      "name": "second_pull",
+      "startFrame": 79,
+      "endFrame": 84
+     },
+     {
+      "name": "turnover",
+      "startFrame": 85,
+      "endFrame": 89
+     },
+     {
+      "name": "catch",
+      "startFrame": 90,
+      "endFrame": 120
+     },
+     {
+      "name": "recovery",
+      "startFrame": 121,
+      "endFrame": 145
+     }
+    ],
+    "keyFrames": [
+     {
+      "phase": "setup",
+      "frame": 63,
+      "image": "kf/r1-1-setup.jpg"
+     },
+     {
+      "phase": "first_pull",
+      "frame": 73,
+      "image": "kf/r1-2-first_pull.jpg"
+     },
+     {
+      "phase": "transition",
+      "frame": 78,
+      "image": "kf/r1-3-transition.jpg"
+     },
+     {
+      "phase": "second_pull",
+      "frame": 84,
+      "image": "kf/r1-4-second_pull.jpg"
+     },
+     {
+      "phase": "turnover",
+      "frame": 86,
+      "image": "kf/r1-5-turnover.jpg"
+     },
+     {
+      "phase": "catch",
+      "frame": 93,
+      "image": "kf/r1-6-catch.jpg"
+     },
+     {
+      "phase": "recovery",
+      "frame": 145,
+      "image": "kf/r1-7-recovery.jpg"
+     }
+    ],
+    "path": [
+     {
+      "frame": 34,
+      "x": 0.4843,
+      "y": 0.6783
+     },
+     {
+      "frame": 35,
+      "x": 0.4823,
+      "y": 0.6769
+     },
+     {
+      "frame": 36,
+      "x": 0.4806,
+      "y": 0.6762
+     },
+     {
+      "frame": 37,
+      "x": 0.4809,
+      "y": 0.6766
+     },
+     {
+      "frame": 38,
+      "x": 0.4838,
+      "y": 0.6775
+     },
+     {
+      "frame": 39,
+      "x": 0.4872,
+      "y": 0.6777
+     },
+     {
+      "frame": 40,
+      "x": 0.4893,
+      "y": 0.6766
+     },
+     {
+      "frame": 41,
+      "x": 0.49,
+      "y": 0.6747
+     },
+     {
+      "frame": 42,
+      "x": 0.4906,
+      "y": 0.6734
+     },
+     {
+      "frame": 43,
+      "x": 0.4913,
+      "y": 0.6739
+     },
+     {
+      "frame": 44,
+      "x": 0.4923,
+      "y": 0.6756
+     },
+     {
+      "frame": 45,
+      "x": 0.4939,
+      "y": 0.6773
+     },
+     {
+      "frame": 46,
+      "x": 0.4965,
+      "y": 0.6779
+     },
+     {
+      "frame": 47,
+      "x": 0.5,
+      "y": 0.6779
+     },
+     {
+      "frame": 48,
+      "x": 0.5039,
+      "y": 0.6777
+     },
+     {
+      "frame": 49,
+      "x": 0.508,
+      "y": 0.6781
+     },
+     {
+      "frame": 50,
+      "x": 0.5121,
+      "y": 0.6798
+     },
+     {
+      "frame": 51,
+      "x": 0.516,
+      "y": 0.6825
+     },
+     {
+      "frame": 52,
+      "x": 0.5191,
+      "y": 0.6844
+     },
+     {
+      "frame": 53,
+      "x": 0.5211,
+      "y": 0.6846
+     },
+     {
+      "frame": 54,
+      "x": 0.5223,
+      "y": 0.6835
+     },
+     {
+      "frame": 55,
+      "x": 0.5231,
+      "y": 0.6827
+     },
+     {
+      "frame": 56,
+      "x": 0.5235,
+      "y": 0.6829
+     },
+     {
+      "frame": 57,
+      "x": 0.5241,
+      "y": 0.6831
+     },
+     {
+      "frame": 58,
+      "x": 0.5245,
+      "y": 0.6819
+     },
+     {
+      "frame": 59,
+      "x": 0.5245,
+      "y": 0.6793
+     },
+     {
+      "frame": 60,
+      "x": 0.5246,
+      "y": 0.6762
+     },
+     {
+      "frame": 61,
+      "x": 0.5248,
+      "y": 0.674
+     },
+     {
+      "frame": 62,
+      "x": 0.5251,
+      "y": 0.6734
+     },
+     {
+      "frame": 63,
+      "x": 0.5256,
+      "y": 0.6722
+     },
+     {
+      "frame": 64,
+      "x": 0.5268,
+      "y": 0.67
+     },
+     {
+      "frame": 65,
+      "x": 0.529,
+      "y": 0.6684
+     },
+     {
+      "frame": 66,
+      "x": 0.5311,
+      "y": 0.6656
+     },
+     {
+      "frame": 67,
+      "x": 0.531,
+      "y": 0.6579
+     },
+     {
+      "frame": 68,
+      "x": 0.5275,
+      "y": 0.646
+     },
+     {
+      "frame": 69,
+      "x": 0.5243,
+      "y": 0.635
+     },
+     {
+      "frame": 70,
+      "x": 0.5251,
+      "y": 0.6273
+     },
+     {
+      "frame": 71,
+      "x": 0.5268,
+      "y": 0.6192
+     },
+     {
+      "frame": 72,
+      "x": 0.5265,
+      "y": 0.6072
+     },
+     {
+      "frame": 73,
+      "x": 0.5249,
+      "y": 0.5921
+     },
+     {
+      "frame": 74,
+      "x": 0.5228,
+      "y": 0.5749
+     },
+     {
+      "frame": 75,
+      "x": 0.5215,
+      "y": 0.5555
+     },
+     {
+      "frame": 76,
+      "x": 0.5218,
+      "y": 0.5345
+     },
+     {
+      "frame": 77,
+      "x": 0.5231,
+      "y": 0.5122
+     },
+     {
+      "frame": 78,
+      "x": 0.5242,
+      "y": 0.4887
+     },
+     {
+      "frame": 79,
+      "x": 0.5244,
+      "y": 0.4645
+     },
+     {
+      "frame": 80,
+      "x": 0.5229,
+      "y": 0.4388
+     },
+     {
+      "frame": 81,
+      "x": 0.5215,
+      "y": 0.4105
+     },
+     {
+      "frame": 82,
+      "x": 0.5256,
+      "y": 0.3807
+     },
+     {
+      "frame": 83,
+      "x": 0.5353,
+      "y": 0.3498
+     },
+     {
+      "frame": 84,
+      "x": 0.5428,
+      "y": 0.317
+     },
+     {
+      "frame": 85,
+      "x": 0.5443,
+      "y": 0.2812
+     },
+     {
+      "frame": 86,
+      "x": 0.5434,
+      "y": 0.2427
+     },
+     {
+      "frame": 87,
+      "x": 0.5408,
+      "y": 0.2066
+     },
+     {
+      "frame": 88,
+      "x": 0.5306,
+      "y": 0.1811
+     },
+     {
+      "frame": 89,
+      "x": 0.5038,
+      "y": 0.1698
+     },
+     {
+      "frame": 90,
+      "x": 0.4628,
+      "y": 0.1711
+     },
+     {
+      "frame": 91,
+      "x": 0.4358,
+      "y": 0.1806
+     },
+     {
+      "frame": 92,
+      "x": 0.4453,
+      "y": 0.1925
+     },
+     {
+      "frame": 93,
+      "x": 0.477,
+      "y": 0.2019
+     },
+     {
+      "frame": 94,
+      "x": 0.511,
+      "y": 0.2046
+     },
+     {
+      "frame": 95,
+      "x": 0.5397,
+      "y": 0.2029
+     },
+     {
+      "frame": 96,
+      "x": 0.5516,
+      "y": 0.2055
+     },
+     {
+      "frame": 97,
+      "x": 0.5478,
+      "y": 0.2154
+     },
+     {
+      "frame": 98,
+      "x": 0.5492,
+      "y": 0.2242
+     },
+     {
+      "frame": 99,
+      "x": 0.5644,
+      "y": 0.226
+     },
+     {
+      "frame": 100,
+      "x": 0.5752,
+      "y": 0.2257
+     },
+     {
+      "frame": 101,
+      "x": 0.5693,
+      "y": 0.2293
+     },
+     {
+      "frame": 102,
+      "x": 0.5596,
+      "y": 0.2342
+     },
+     {
+      "frame": 103,
+      "x": 0.5608,
+      "y": 0.2363
+     },
+     {
+      "frame": 104,
+      "x": 0.5686,
+      "y": 0.2387
+     },
+     {
+      "frame": 105,
+      "x": 0.573,
+      "y": 0.2467
+     },
+     {
+      "frame": 106,
+      "x": 0.5731,
+      "y": 0.2617
+     },
+     {
+      "frame": 107,
+      "x": 0.5721,
+      "y": 0.2829
+     },
+     {
+      "frame": 108,
+      "x": 0.5731,
+      "y": 0.3054
+     },
+     {
+      "frame": 109,
+      "x": 0.5771,
+      "y": 0.3208
+     },
+     {
+      "frame": 110,
+      "x": 0.5806,
+      "y": 0.3288
+     },
+     {
+      "frame": 111,
+      "x": 0.5796,
+      "y": 0.3402
+     },
+     {
+      "frame": 112,
+      "x": 0.5786,
+      "y": 0.3605
+     },
+     {
+      "frame": 113,
+      "x": 0.5877,
+      "y": 0.3834
+     },
+     {
+      "frame": 114,
+      "x": 0.6106,
+      "y": 0.4035
+     },
+     {
+      "frame": 115,
+      "x": 0.6348,
+      "y": 0.4225
+     },
+     {
+      "frame": 116,
+      "x": 0.6435,
+      "y": 0.4409
+     },
+     {
+      "frame": 117,
+      "x": 0.6344,
+      "y": 0.4569
+     },
+     {
+      "frame": 118,
+      "x": 0.6213,
+      "y": 0.4715
+     },
+     {
+      "frame": 119,
+      "x": 0.6171,
+      "y": 0.4894
+     },
+     {
+      "frame": 120,
+      "x": 0.6223,
+      "y": 0.5109
+     },
+     {
+      "frame": 121,
+      "x": 0.6291,
+      "y": 0.531
+     },
+     {
+      "frame": 122,
+      "x": 0.6342,
+      "y": 0.5461
+     },
+     {
+      "frame": 123,
+      "x": 0.6448,
+      "y": 0.5565
+     },
+     {
+      "frame": 124,
+      "x": 0.6706,
+      "y": 0.5645
+     },
+     {
+      "frame": 125,
+      "x": 0.7082,
+      "y": 0.569
+     },
+     {
+      "frame": 126,
+      "x": 0.7421,
+      "y": 0.567
+     },
+     {
+      "frame": 127,
+      "x": 0.7654,
+      "y": 0.5607
+     },
+     {
+      "frame": 128,
+      "x": 0.7838,
+      "y": 0.5544
+     },
+     {
+      "frame": 129,
+      "x": 0.8006,
+      "y": 0.5489
+     },
+     {
+      "frame": 130,
+      "x": 0.8147,
+      "y": 0.5433
+     },
+     {
+      "frame": 131,
+      "x": 0.8294,
+      "y": 0.5389
+     },
+     {
+      "frame": 132,
+      "x": 0.8516,
+      "y": 0.5386
+     },
+     {
+      "frame": 133,
+      "x": 0.8798,
+      "y": 0.5428
+     },
+     {
+      "frame": 134,
+      "x": 0.9032,
+      "y": 0.5498
+     },
+     {
+      "frame": 135,
+      "x": 0.9138,
+      "y": 0.5576
+     },
+     {
+      "frame": 136,
+      "x": 0.9123,
+      "y": 0.5631
+     },
+     {
+      "frame": 137,
+      "x": 0.9039,
+      "y": 0.5667
+     },
+     {
+      "frame": 138,
+      "x": 0.8969,
+      "y": 0.5765
+     },
+     {
+      "frame": 139,
+      "x": 0.8936,
+      "y": 0.5975
+     },
+     {
+      "frame": 140,
+      "x": 0.8896,
+      "y": 0.6239
+     },
+     {
+      "frame": 141,
+      "x": 0.8868,
+      "y": 0.6493
+     },
+     {
+      "frame": 142,
+      "x": 0.8895,
+      "y": 0.6702
+     },
+     {
+      "frame": 143,
+      "x": 0.8922,
+      "y": 0.6805
+     },
+     {
+      "frame": 144,
+      "x": 0.8896,
+      "y": 0.6791
+     },
+     {
+      "frame": 145,
+      "x": 0.8839,
+      "y": 0.6717
+     }
+    ]
+   }
+  ],
+  "bestRepIndex": 1,
+  "cue": {
+   "faultId": "missed_forward",
+   "text": "Film one more rep from the side.",
+   "why": "Missed forward. The bar left you 22 cm in front of mid-foot. I can't tell why from this clip: nothing in the pull was outside its window. Film one more rep, or a lighter make, and I'll compare.",
+   "confidence": "low",
+   "confidenceText": "One missed rep",
+   "evidence": {
+    "rep": 1,
+    "frame": 120,
+    "from": {
+     "x": 0.4493,
+     "y": 0.7388
+    },
+    "to": {
+     "x": 0.6223,
+     "y": 0.5109
+    },
+    "value": 22.2,
+    "unit": "cm",
+    "caption": "bar 22 cm in front of mid-foot"
+   }
+  },
+  "measurements": [
+   {
+    "id": "hips_rise_early",
+    "label": "Hips rose early",
+    "value": -10.3,
+    "unit": "cm",
+    "frame": 74,
+    "status": "normal",
+    "note": "hips vs shoulders, floor to knee"
+   },
+   {
+    "id": "bar_forward_off_hips",
+    "label": "Bar forward off hips",
+    "value": 1.9,
+    "unit": "cm",
+    "frame": 85,
+    "status": "normal",
+    "note": "after hip contact"
+   },
+   {
+    "id": "jump_forward",
+    "label": "Jumped forward",
+    "value": 1.0,
+    "unit": "cm",
+    "frame": 93,
+    "status": "normal",
+    "note": "feet, lift-off to catch"
+   },
+   {
+    "id": "bar_peak_height",
+    "label": "Bar peak height",
+    "value": 122.8,
+    "unit": "cm",
+    "frame": 89,
+    "status": "normal",
+    "note": "above lift-off (wrist midpoint)"
+   },
+   {
+    "id": "catch_depth",
+    "label": "Catch depth",
+    "value": 12.7,
+    "unit": "cm",
+    "frame": 120,
+    "status": "normal",
+    "note": "squat catch, hip above knee, knee 29\u00b0"
+   },
+   {
+    "id": "turnover_time",
+    "label": "Extension to catch",
+    "value": 0.3,
+    "unit": "s",
+    "frame": 84,
+    "status": "normal",
+    "note": "\u00b1 1 frame at 30 fps"
+   },
+   {
+    "id": "outcome",
+    "label": "Missed forward",
+    "value": 22.2,
+    "unit": "cm",
+    "frame": 120,
+    "status": "cue",
+    "note": "bar vs mid-foot when it left you (+ = in front)"
+   }
+  ],
+  "failure": null
+ },
+ "keyframes_md5": {
+  "r1-1-setup.jpg": "be4e5b4390ec163fe71b348d2c92e273",
+  "r1-2-first_pull.jpg": "d8ded6dcd25f0fded295fcef7e90c832",
+  "r1-3-transition.jpg": "9176d808e92199ae933279e55169a29c",
+  "r1-4-second_pull.jpg": "b0e464f982316273858ed236bca0706b",
+  "r1-5-turnover.jpg": "427ef83135224588a8740643e6a2b964",
+  "r1-6-catch.jpg": "3f509fce926dba313c3ee7af5dd1a08f",
+  "r1-7-recovery.jpg": "6bd53c2aec1469d57d0276fbca710bb3"
+ }
+}

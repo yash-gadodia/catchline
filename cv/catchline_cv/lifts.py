@@ -105,22 +105,23 @@ def load_window(ctx, s0, e0, wrist_band=False):
 
 
 def write_out(ctx, rep_info, extra_fields=None):
-    from .pipeline import KEYFRAME_H, base, export_keyframe, write
+    from .pipeline import KEYFRAME_H, base, export_keyframes, write
     movement = ctx["movement"]
     best = max(rep_info, key=lambda r: (r["made"], -r["severity"]))
     for i, r in enumerate(rep_info):
         r["index"] = i + 1
     measurements, cue, cue_rep = build(movement, rep_info, best, ctx["W"], ctx["H"])
     os.makedirs(ctx["assets_dir"], exist_ok=True)
-    out_reps = []
+    out_reps, jobs = [], []
     for r in rep_info:
         kfs = []
         for pi, (phase, f) in enumerate(r["keys"].items()):
             name = f"r{r['index']}-{pi + 1}-{phase}.jpg"
-            export_keyframe(ctx, f, os.path.join(ctx["assets_dir"], name))
+            jobs.append((f, os.path.join(ctx["assets_dir"], name)))
             kfs.append({"phase": phase, "frame": int(f), "image": f"{ctx['asset_prefix']}/{name}"})
         out_reps.append({"index": r["index"], "startFrame": r["start"], "endFrame": r["end"], "made": r["made"],
                          "phases": r["phases"], "keyFrames": kfs, "path": r["path"]})
+    export_keyframes(ctx, jobs)
     analysis = base(ctx["analysis_id"], ctx["meta"], ctx["n"], movement) | {
         "reps": out_reps, "bestRepIndex": best["index"], "cue": cue, "measurements": measurements, "failure": None}
     if cue_rep["px_per_cm"]:
