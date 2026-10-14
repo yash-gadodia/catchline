@@ -4,8 +4,9 @@
 set -euo pipefail
 export PATH="/opt/homebrew/bin:$PATH"
 BOT="$HOME/.catchline-bot"
-mkdir -p "$BOT/security" "$BOT/evidence" "$BOT/clips" "$HOME/Library/Logs/catchline-bot" "$HOME/dev/catchline-bot"
+mkdir -p "$BOT/security" "$BOT/evidence" "$BOT/clips" "$BOT/memory" "$HOME/Library/Logs/catchline-bot" "$HOME/dev/catchline-bot"
 chmod 700 "$BOT/security"
+touch "$BOT/memory/tester.md" "$BOT/memory/fixer.md"
 test -f "$HOME/.config/catchline-bot/env.local" || { echo "missing ~/.config/catchline-bot/env.local"; exit 1; }
 
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
@@ -28,26 +29,27 @@ ux|c5def5|Works, but confusing or rough
 security|000000|Details in the private ledger, never in public
 LABELS
 
-# tester at 02:00 08:00 14:00 20:00, fixer an hour later (the lock serialises overlaps).
-plist() {
-  local role=$1; shift
-  local p="$HOME/Library/LaunchAgents/com.catchline.bot.$role.plist"
-  {
-    echo '<?xml version="1.0" encoding="UTF-8"?>'
-    echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">'
-    echo '<plist version="1.0"><dict>'
-    echo "<key>Label</key><string>com.catchline.bot.$role</string>"
-    echo "<key>ProgramArguments</key><array><string>/bin/bash</string><string>-lc</string><string>exec \"\$HOME/dev/catchline-bot/runner/bot/run.sh\" $role</string></array>"
-    echo '<key>StartCalendarInterval</key><array>'
-    for h in "$@"; do echo "<dict><key>Hour</key><integer>$h</integer><key>Minute</key><integer>0</integer></dict>"; done
-    echo '</array>'
-    echo "<key>StandardOutPath</key><string>$HOME/Library/Logs/catchline-bot/launchd-$role.log</string>"
-    echo "<key>StandardErrorPath</key><string>$HOME/Library/Logs/catchline-bot/launchd-$role.log</string>"
-    echo '</dict></plist>'
-  } > "$p"
+# The old calendar agents (tester 02/08/14/20, fixer 03/09/15/21) are replaced by one loop agent that
+# launchd keeps alive; run.sh loop alternates the roles with a cooldown and daily caps, and polls STOP.
+for role in tester fixer; do
   launchctl bootout "gui/$(id -u)/com.catchline.bot.$role" 2>/dev/null || true
-  launchctl bootstrap "gui/$(id -u)" "$p"
-}
-plist tester 2 8 14 20
-plist fixer 3 9 15 21
-echo "installed: labels, launchd tester + fixer. Stop the loop: touch $BOT/STOP"
+  rm -f "$HOME/Library/LaunchAgents/com.catchline.bot.$role.plist"
+done
+P="$HOME/Library/LaunchAgents/com.catchline.bot.loop.plist"
+cat > "$P" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>Label</key><string>com.catchline.bot.loop</string>
+<key>ProgramArguments</key><array><string>/bin/bash</string><string>-lc</string><string>exec "\$HOME/dev/catchline-bot/runner/bot/run.sh" loop</string></array>
+<key>RunAtLoad</key><true/>
+<key>KeepAlive</key><true/>
+<key>ThrottleInterval</key><integer>300</integer>
+<key>StandardOutPath</key><string>$HOME/Library/Logs/catchline-bot/launchd-loop.log</string>
+<key>StandardErrorPath</key><string>$HOME/Library/Logs/catchline-bot/launchd-loop.log</string>
+</dict></plist>
+EOF
+launchctl bootout "gui/$(id -u)/com.catchline.bot.loop" 2>/dev/null || true
+launchctl bootstrap "gui/$(id -u)" "$P"
+echo "installed: labels, launchd loop agent com.catchline.bot.loop (polls STOP every 5 min)."
+echo "pause: touch $BOT/STOP    resume: rm $BOT/STOP    status: $REPO_DIR/bot/status.sh"
