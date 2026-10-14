@@ -109,13 +109,13 @@ describe('CuesScreen', () => {
     const onOpen = jest.fn();
     const { getByText, getByTestId } = await render(<CuesScreen onOpen={onOpen} />);
     expect(getByText('TRYING · SNATCH')).toBeOnTheScreen();
-    expect(getByText('4 of 6 sessions')).toBeOnTheScreen();
+    expect(getByText('4 of 6 sessions · 11 days ago')).toBeOnTheScreen();
     expect(getByTestId('cue-sparkline')).toBeOnTheScreen();
     expect(getByText('Bar drift at hip, cm forward. Heading the right way.')).toBeOnTheScreen();
-    expect(getByText('bar height 92 → 96 cm · 3 wks')).toBeOnTheScreen();
+    expect(getByText('snatch · bar height 92 → 96 cm · 3 wks · 4 wks ago')).toBeOnTheScreen();
     expect(getByText('Stuck')).toBeOnTheScreen();
     expect(getByText("Didn't stick")).toBeOnTheScreen();
-    expect(getByText('dropped after 1 session')).toBeOnTheScreen();
+    expect(getByText('clean · dropped after 1 session · 5 wks ago')).toBeOnTheScreen();
     expect(getByText('Dropped')).toBeOnTheScreen();
     await press(getByTestId('past-c-hips-mu'));
     expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ id: 'c-hips-mu' }));

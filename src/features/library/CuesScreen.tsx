@@ -1,44 +1,75 @@
-import { Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
+import { useState } from 'react';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SmallCaps from '../../components/SmallCaps';
 import { colors, space } from '../../design/tokens';
 import { display, fontFamily } from '../../design/typography';
-import { bestOf, cueWindow, pastCueSummary, seriesFor, sessionsCounter, shortDate, STATUS_LABEL, trendDirection } from './derive';
-import { METRICS, SINGULAR_MOVEMENT } from './metrics';
+import { backendEnabled } from '../../data/backend';
+import { syncLibrary } from '../../data/library';
+import { agoLabel, bestOf, cueWindow, pastCueSummary, seriesFor, sessionsCounter, shortDate, STATUS_LABEL, trendDirection } from './derive';
+import { metricFor, SINGULAR_MOVEMENT } from './metrics';
 import { useLibrary } from './repository';
 import TrendChart from './TrendChart';
-import type { CueRecord, Session } from './types';
+import type { CueRecord, Day, Session } from './types';
 import { StatusDot, Title } from './ui';
+
+// Pull-to-refresh re-reads cues, lifts and analyses from the server (a no-op in dev mode).
+export function useRefresh(): { refreshing: boolean; onRefresh: () => void } {
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = () => {
+    if (!backendEnabled()) return;
+    setRefreshing(true);
+    syncLibrary()
+      .catch(() => undefined)
+      .finally(() => setRefreshing(false));
+  };
+  return { refreshing, onRefresh };
+}
 
 export default function CuesScreen({ onOpen }: { onOpen: (cue: CueRecord) => void }) {
   const insets = useSafeAreaInsets();
-  const { cues, sessions } = useLibrary();
+  const { cues, sessions, today, synced } = useLibrary();
+  const { refreshing, onRefresh } = useRefresh();
   const trying = cues.filter((c) => c.status === 'trying');
   const past = cues.filter((c) => c.status !== 'trying');
+  const top = { paddingTop: insets.top + space.s3, paddingHorizontal: space.gutter };
 
   if (cues.length === 0) {
+    const loading = backendEnabled() && !synced;
     return (
-      <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top + space.s3, paddingHorizontal: space.gutter }} testID="cues-empty">
+      <ScrollView
+        style={{ flex: 1, backgroundColor: colors.bg }}
+        contentContainerStyle={[top, { flexGrow: 1 }]}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.text2} testID="cues-refresh" />}
+        testID={loading ? 'cues-loading' : 'cues-empty'}
+      >
         <Title>Cues</Title>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.s4 }}>
-          <Text style={[display(32), { color: colors.text, textAlign: 'center' }]}>Your first cue lands here.</Text>
-          <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21, textAlign: 'center' }}>
-            After you film a lift, the one thing to fix lives on this tab until it sticks.
-          </Text>
+          {loading ? (
+            <ActivityIndicator color={colors.text2} />
+          ) : (
+            <>
+              <Text style={[display(32), { color: colors.text, textAlign: 'center' }]}>Your first cue lands here.</Text>
+              <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21, textAlign: 'center' }}>
+                After you film a lift, the one thing to fix lives on this tab until it sticks.
+              </Text>
+            </>
+          )}
         </View>
-      </View>
+      </ScrollView>
     );
   }
 
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: colors.bg }}
-      contentContainerStyle={{ paddingTop: insets.top + space.s3, paddingHorizontal: space.gutter, paddingBottom: space.s6, gap: space.s5 }}
+      contentContainerStyle={[top, { paddingBottom: space.s6, gap: space.s5 }]}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.text2} testID="cues-refresh" />}
       testID="cues"
     >
       <Title>Cues</Title>
       {trying.map((c) => (
-        <ActiveCue key={c.id} cue={c} sessions={sessions} onOpen={() => onOpen(c)} />
+        <ActiveCue key={c.id} cue={c} sessions={sessions} today={today} onOpen={() => onOpen(c)} />
       ))}
       {past.length > 0 ? (
         <View style={{ borderTopWidth: 1, borderTopColor: colors.hairline }}>
@@ -65,7 +96,7 @@ export default function CuesScreen({ onOpen }: { onOpen: (cue: CueRecord) => voi
                   {c.text}
                 </Text>
                 <Text style={{ color: c.status === 'dropped' ? colors.text3 : colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>
-                  {pastCueSummary(c, sessions)}
+                  {`${SINGULAR_MOVEMENT[c.movement]} · ${pastCueSummary(c, sessions)} · ${agoLabel(c.endedAt ?? c.givenAt, today)}`}
                 </Text>
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -82,7 +113,7 @@ export default function CuesScreen({ onOpen }: { onOpen: (cue: CueRecord) => voi
   );
 }
 
-function ActiveCue({ cue, sessions, onOpen }: { cue: CueRecord; sessions: Session[]; onOpen: () => void }) {
+function ActiveCue({ cue, sessions, today, onOpen }: { cue: CueRecord; sessions: Session[]; today: Day; onOpen: () => void }) {
   const { width } = useWindowDimensions();
   const { series, markerIndex } = cueWindow(cue, sessions);
   const best = bestOf(seriesFor(sessions, cue.movement, cue.metricId), cue.metricId);
@@ -94,7 +125,7 @@ function ActiveCue({ cue, sessions, onOpen }: { cue: CueRecord; sessions: Sessio
           <SmallCaps size={12} color={colors.text}>{`Trying · ${SINGULAR_MOVEMENT[cue.movement]}`}</SmallCaps>
         </View>
         <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>
-          {`${sessionsCounter(cue, sessions)} sessions`}
+          {`${sessionsCounter(cue, sessions)} sessions · ${agoLabel(cue.givenAt, today)}`}
         </Text>
       </View>
       <Text style={[display(32), { color: colors.text }]}>{cue.text}</Text>
@@ -110,7 +141,7 @@ function ActiveCue({ cue, sessions, onOpen }: { cue: CueRecord; sessions: Sessio
         />
       ) : null}
       <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>
-        {`${METRICS[cue.metricId].caption} ${trendDirection(series.slice(markerIndex ?? 0), cue.metricId)}`.trim()}
+        {`${metricFor(cue.metricId).caption} ${trendDirection(series.slice(markerIndex ?? 0), cue.metricId)}`.trim()}
       </Text>
     </Pressable>
   );
