@@ -33,6 +33,14 @@ beforeEach(() => {
 });
 
 describe('LiftsScreen', () => {
+  it('shows a low-confidence cue once: the status line, never "possible" on the same row', async () => {
+    const lib = useLibraryStore.getState();
+    lib.load({ ...lib, lifts: lib.lifts.filter((l) => l.id === 'l-snatch-low') });
+    const { getByTestId, queryByText } = await render(<LiftsScreen nav={liftsNav()} />);
+    expect(getByTestId('lift-l-snatch-low')).toHaveTextContent('Snatch · 3 reps · 62.5 kgdrift 7 cm · best 2 cmTrying · stay over the bar longer');
+    expect(queryByText(/possible/)).toBeNull();
+  });
+
   it('shows every row state with the counter chip and the current cue', async () => {
     const nav = liftsNav();
     const { getByText, getAllByText, getByTestId } = await render(<LiftsScreen nav={nav} />);

@@ -218,7 +218,7 @@ function LiftRow({ lift, sessions, cues, newest, nav }: { lift: Lift; sessions: 
               : { color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 20 }
           }
         >
-          {liftDetail(lift, sessions)}
+          {liftDetail(lift, sessions, { cueShown: !!cue })}
         </Text>
         {cue ? (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>

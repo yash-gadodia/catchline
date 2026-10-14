@@ -84,13 +84,15 @@ export function bestOf<T extends { value: number }>(series: T[], metricId: strin
   return series.reduce((best, p) => ((lower ? p.value < best.value : p.value > best.value) ? p : best));
 }
 
-export function liftDetail(l: Lift, sessions: Session[]): string {
+// cueShown: the row already carries the cue status line ("Trying · …"), so the
+// low-confidence "possible · …" qualifier would repeat the cue on the same row.
+export function liftDetail(l: Lift, sessions: Session[], opts: { cueShown?: boolean } = {}): string {
   if (l.status === 'processing') return 'analysing · about 20 s';
   if (l.status === 'queued') return 'Queued · free videos used';
   if (l.status === 'failed') return l.failure?.message ?? "Couldn't analyse";
   const analysis = l.analysisId ? (liveAnalysis(l.analysisId) ?? ANALYSES[l.analysisId]) : undefined;
   if (analysis?.cue && analysis.reps.every((r) => !r.made)) return `miss · ${analysis.cue.text.toLowerCase()}`;
-  if (analysis?.cue && analysis.cue.confidence !== 'clear') return `possible · ${analysis.cue.text.toLowerCase()}`;
+  if (analysis?.cue && analysis.cue.confidence !== 'clear' && !opts.cueShown) return `possible · ${analysis.cue.text.toLowerCase()}`;
   const session = sessions.find((s) => s.liftId === l.id);
   const metricId = PRIMARY_METRIC[l.movement];
   const value = session?.values[metricId];

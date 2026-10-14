@@ -72,6 +72,12 @@ describe('lift list', () => {
     expect(liftDetail({ ...lift('l-snatch-real'), analysisId: 'gone', headline: 'hip · 5 cm fwd' }, [])).toBe('hip · 5 cm fwd');
   });
 
+  it('drops the "possible" qualifier when the row already carries the cue status line', () => {
+    expect(liftDetail(lift('l-snatch-low'), lib.sessions)).toBe('possible · bar drifting at the knee');
+    expect(liftDetail(lift('l-snatch-low'), lib.sessions, { cueShown: true })).toBe('drift 7 cm · best 2 cm');
+    expect(liftDetail(lift('l-snatch-miss'), lib.sessions, { cueShown: true })).toBe('miss · the bar was out front at the turnover');
+  });
+
   it('opens each row in the right screen with the right fixture', () => {
     expect(liftLink(lift('l-snatch-today'))).toEqual({ pathname: '/analysis/cue', params: { fixture: 'snatch-mock' } });
     expect(liftLink(lift('l-snatch-low'))).toEqual({ pathname: '/analysis/cue', params: { fixture: 'snatch-mock-low' } });
