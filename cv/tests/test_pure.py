@@ -107,6 +107,20 @@ def test_find_reps_floor_to_overhead():
     assert find_reps(wrist, nose, knee, 30) == [(51, 119, 58)]
 
 
+def test_a_jump_behind_a_measured_bar_swing_cues_the_swing_even_under_its_threshold():
+    # IMG_0226 (side-on squat snatch, missed forward): bar 5.2 cm forward off the hips, feet 8.6 cm forward
+    miss = {"hips_rise_early": 7.82, "bar_forward_off_hips": 5.2, "jump_forward": 8.64}
+    assert rules.fired(miss) == {"jump_forward": pytest.approx(1.728), "bar_forward_off_hips": pytest.approx(1.728)}
+    assert rules.choose_cue(miss) == "bar_forward_off_hips"
+    # prod 14 Oct side-on snatches: bar 5.7 / 5.9 cm, feet 6.5 / 6.1 cm
+    assert rules.choose_cue({"hips_rise_early": -1.3, "bar_forward_off_hips": 5.7, "jump_forward": 6.5}) == "bar_forward_off_hips"
+    assert rules.choose_cue({"hips_rise_early": -5.0, "bar_forward_off_hips": 5.9, "jump_forward": 6.1}) == "bar_forward_off_hips"
+    # IMG_8149 (feet landed ~8 cm forward by eye, bar stayed close): the jump is its own fault
+    assert rules.choose_cue({"hips_rise_early": -2.33, "bar_forward_off_hips": 4.56, "jump_forward": 8.56}) == "jump_forward"
+    # E0DF8887 (made power snatch, feet ~3 cm forward by eye): nothing to cue
+    assert rules.choose_cue({"hips_rise_early": -1.74, "bar_forward_off_hips": 3.59, "jump_forward": 3.99}) is None
+
+
 def test_rules_gate_the_jump_behind_the_bar_swing_and_cap_confidence_off_side_on():
     vals = {"hips_rise_early": -3.0, "bar_forward_off_hips": 13.0, "jump_forward": 7.0}
     assert rules.fired(vals) == {"bar_forward_off_hips": pytest.approx(1.3), "jump_forward": pytest.approx(1.4)}
