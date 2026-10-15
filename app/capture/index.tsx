@@ -10,11 +10,13 @@ import ViewfinderScreen from '../../src/features/capture/ViewfinderScreen';
 import { groupOf } from '../../src/features/onboarding/lifts';
 import { hasConsent, useHydrated, useOnboarding } from '../../src/features/onboarding/store';
 import { colors } from '../../src/design/tokens';
+import { useLibrary } from '../../src/features/library/repository';
+import { previousValue, targetLine } from '../../src/features/library/retest';
 
 // TODO(paywall): the free-video count comes from the account in Phase 3.
 const FREE_TOTAL = 3;
 
-type Params = { checks?: string; state?: string; still?: string; left?: string };
+type Params = { checks?: string; state?: string; still?: string; left?: string; retest?: string };
 
 // Dev links: ?still=1 (no camera), &checks=whole_body, &state=countdown|recording|toolong|storage.
 function initialSession(state?: string, left?: string): Session {
@@ -36,6 +38,14 @@ export default function CaptureRoute() {
   const camera = useCameraPermission();
   const { movement, setMovement, originals, setOriginals, setDraft, addOriginal } = useCapture();
   const checker = useMemo(() => (params.checks ? fixedChecker(parseChecks(params.checks)) : stubChecker), [params.checks]);
+  const { cues, sessions, lifts } = useLibrary();
+  const retest = cues.find((c) => c.id === params.retest && c.status === 'trying');
+
+  // A retest films the cue's movement.
+  useEffect(() => {
+    if (retest && captureReady) setMovement(retest.movement);
+  }, [retest?.id, captureReady]);
+
   const blocked = !still && (!hydrated || !hasConsent(consent) || !camera.ready || camera.status !== 'granted');
 
   useEffect(() => {
@@ -56,13 +66,15 @@ export default function CaptureRoute() {
       secondsLeft={() => secondsLeft(RECORD_FPS)}
       originals={originals.length}
       onDeleteOriginals={() => setOriginals(deleteOriginals(originals))}
-      onImport={() => router.push('/capture/import')}
+      onImport={() => router.push(retest ? { pathname: '/capture/import', params: { retest: retest.id } } : '/capture/import')}
       onGuide={() => router.push({ pathname: '/onboarding/guide', params: { group: groupOf(movement), from: 'capture' } })}
       onRecorded={({ uri, durationS, overridden }) => {
         if (uri) addOriginal(uri);
-        setDraft(newClip({ uri, durationS, fps: RECORD_FPS, source: 'camera', movement, overridden }));
+        const target = retest ? { retest: { cueId: retest.id, movement: retest.movement } } : {};
+        setDraft(newClip({ uri, durationS, fps: RECORD_FPS, source: 'camera', movement, overridden, ...target }));
         router.push('/capture/review');
       }}
+      target={retest && retest.movement === movement ? targetLine(retest, previousValue(retest, sessions, lifts)) : undefined}
       camera={!still}
       initial={initialSession(params.state, params.left)}
     />

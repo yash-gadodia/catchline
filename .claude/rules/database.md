@@ -17,6 +17,7 @@ Backend is Supabase (Postgres + Auth + Storage + Realtime + pgmq/pg_cron). Migra
 - **Never rely on default privileges — state grants AND revokes explicitly.** Stock Supabase grants `anon`+`authenticated` ALL on every new table via default ACLs (the Parallax 0036 lesson). Every table starts from `revoke all` and grants back only what the client needs; RLS still gates rows.
 - Apple (0009): `apple_tokens` is service-role only (RLS on, no policies); `apple-token` stores it, `delete-account` revokes it. Proven by `apple_tokens_test.sql`.
 - Ops (0008): `worker_heartbeats` + `ops_alerts` are service-role only; `worker_heartbeat` (worker), `ops_health` / `ops_health_check` (pg_cron `catchline-health`, every 5 min, posts changes to the `ops-alert` function). Proven by `ops_health_test.sql`.
+- Retest (0011): `lifts.retest_cue_id` is set only by `create_lift(p_movement, p_load_kg, p_retest_cue_id)` (own trying cue, same movement, else null); `complete_lift_job` counts a retest as a session of that cue even when another fault is the headline. Proven by `retest_cue_test.sql`.
 - Realtime needs the table in `supabase_realtime` (`lifts`, `analyses` today).
 - `service_role` / secrets never ship in the client — only `EXPO_PUBLIC_SUPABASE_URL` + anon key (`.env.local`, gitignored).
 

@@ -29,6 +29,7 @@ import Scrubber from './Scrubber';
 import JogWheel from './JogWheel';
 import PhaseChips from './PhaseChips';
 import CueNotes, { Disclaimer } from './CueNotes';
+import { useRetestable } from './RetestVerdict';
 
 export type Speed = '0.25' | '0.5' | '1';
 type Overlays = { path: boolean; strobe: boolean; lines: boolean };
@@ -42,6 +43,8 @@ export default function PlayerScreen({
   onCompare,
   onShare,
   onMore,
+  retestCueId,
+  onRetest,
 }: {
   analysis: Analysis;
   initialFrame?: number;
@@ -49,6 +52,8 @@ export default function PlayerScreen({
   onCompare?: () => void;
   onShare: () => void;
   onMore?: () => void;
+  retestCueId?: string;
+  onRetest?: (cueId: string) => void;
 }) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -59,6 +64,7 @@ export default function PlayerScreen({
   const [scrubbing, setScrubbing] = useState(false);
   const [overlays, setOverlays] = useState<Overlays>({ path: true, strobe: false, lines: true });
   const frameRef = useRef(frame);
+  const retestable = useRetestable(analysis, retestCueId);
 
   const setFrame = (next: number, tick: 'phase' | 'frame' = 'phase') => {
     const f = clampFrame(rep, next);
@@ -250,6 +256,11 @@ export default function PlayerScreen({
         <Btn kind="secondary" compact onPress={onShare} style={{ flex: 1 }} testID="player-share">
           Share
         </Btn>
+        {retestable && onRetest ? (
+          <Btn compact onPress={() => onRetest(retestable.id)} style={{ flex: 2 }} testID="player-retest">
+            Retest this cue
+          </Btn>
+        ) : null}
       </View>
     </View>
   );

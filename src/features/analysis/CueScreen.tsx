@@ -18,23 +18,48 @@ import { baselineSentence } from './baseline';
 import { useLibrary } from '../library/repository';
 import Stage from './Stage';
 import { FlarePath, OverlaySvg } from './overlays';
+import RetestVerdict, { useRetest, useRetestable, type Retest } from './RetestVerdict';
+import type { CueRecord } from '../library/types';
 
-type Nav = { onTry: () => void; onNotForMe: () => void; onBack: () => void; onFilmAgain: () => void; onKeep?: () => void; onMore?: () => void };
+type Nav = {
+  onTry: () => void;
+  onNotForMe: () => void;
+  onBack: () => void;
+  onFilmAgain: () => void;
+  onKeep?: () => void;
+  onMore?: () => void;
+  onRetest?: (cueId: string) => void;
+  onStuck?: (cueId: string) => void;
+};
 
-export default function CueScreen({ analysis, initialWhy = false, nav }: { analysis: Analysis; initialWhy?: boolean; nav: Nav }) {
+type RetestProps = { retest: Retest | null; retestable?: CueRecord };
+
+export default function CueScreen({
+  analysis,
+  initialWhy = false,
+  retestCueId,
+  nav,
+}: {
+  analysis: Analysis;
+  initialWhy?: boolean;
+  retestCueId?: string;
+  nav: Nav;
+}) {
   const [why, setWhy] = useState(initialWhy);
+  const retest = useRetest(analysis, retestCueId);
+  const retestable = useRetestable(analysis, retestCueId);
   const cue = analysis.cue;
-  if (!cue) return <NoCue analysis={analysis} onBack={nav.onBack} />;
-  if (cue.confidence !== 'clear') return <LowConfidence analysis={analysis} nav={nav} />;
+  if (!cue) return <NoCue analysis={analysis} nav={nav} retest={retest} retestable={retestable} />;
+  if (cue.confidence !== 'clear') return <LowConfidence analysis={analysis} nav={nav} retest={retest} retestable={retestable} />;
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }} testID="cue-screen">
-      <CueBody analysis={analysis} nav={nav} onWhy={() => setWhy(true)} />
+      <CueBody analysis={analysis} nav={nav} onWhy={() => setWhy(true)} retest={retest} retestable={retestable} />
       {why ? <WhyDrawer analysis={analysis} onClose={() => setWhy(false)} /> : null}
     </View>
   );
 }
 
-function CueBody({ analysis, nav, onWhy }: { analysis: Analysis; nav: Nav; onWhy: () => void }) {
+function CueBody({ analysis, nav, onWhy, retest, retestable }: { analysis: Analysis; nav: Nav; onWhy: () => void } & RetestProps) {
   const { width } = useWindowDimensions();
   const { lifts, sessions } = useLibrary();
   const cue = analysis.cue!;
@@ -44,6 +69,7 @@ function CueBody({ analysis, nav, onWhy }: { analysis: Analysis; nav: Nav; onWhy
     <>
       <EvidenceStage analysis={analysis} cue={cue} box={{ width, height: width }} />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: space.s5, paddingHorizontal: space.gutter, gap: space.s3 }}>
+        {retest ? <RetestVerdict retest={retest} onStuck={nav.onStuck} /> : null}
         <SmallCaps>{sample ? 'Sample lift · AI estimate' : 'One thing to fix · AI estimate'}</SmallCaps>
         <Text style={[display(40), { color: colors.text }]} testID="cue-text">
           {cue.text}
@@ -62,6 +88,7 @@ function CueBody({ analysis, nav, onWhy }: { analysis: Analysis; nav: Nav; onWhy
         <Btn onPress={nav.onTry} testID="cue-try">
           Try this next session
         </Btn>
+        <RetestButton cue={retestable} nav={nav} />
         <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
           <TextAction onPress={nav.onNotForMe} testID="cue-not-for-me">
             Not for me
@@ -72,6 +99,15 @@ function CueBody({ analysis, nav, onWhy }: { analysis: Analysis; nav: Nav; onWhy
         </View>
       </View>
     </>
+  );
+}
+
+function RetestButton({ cue, nav }: { cue?: CueRecord; nav: Nav }) {
+  if (!cue || !nav.onRetest) return null;
+  return (
+    <Btn kind="secondary" onPress={() => nav.onRetest?.(cue.id)} testID="cue-retest">
+      Retest this cue
+    </Btn>
   );
 }
 
@@ -94,7 +130,7 @@ function TextAction({ children, onPress, testID }: { children: string; onPress?:
   );
 }
 
-function LowConfidence({ analysis, nav }: { analysis: Analysis; nav: Nav }) {
+function LowConfidence({ analysis, nav, retest, retestable }: { analysis: Analysis; nav: Nav } & RetestProps) {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const cue = analysis.cue!;
@@ -136,6 +172,7 @@ function LowConfidence({ analysis, nav }: { analysis: Analysis; nav: Nav }) {
         </Stage>
       </View>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: space.s4, paddingHorizontal: space.gutter, gap: space.s2 }}>
+        {retest ? <RetestVerdict retest={retest} onStuck={nav.onStuck} /> : null}
         <SmallCaps>Possible</SmallCaps>
         <Text style={[display(32), { color: colors.text }]}>{cue.text}</Text>
         <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>{cue.why}</Text>
@@ -152,6 +189,7 @@ function LowConfidence({ analysis, nav }: { analysis: Analysis; nav: Nav }) {
         >
           See the breakdown
         </Btn>
+        <RetestButton cue={retestable} nav={nav} />
         {filmedAtAngle(cue) ? (
           <View style={{ alignItems: 'center' }}>
             <TextAction onPress={nav.onFilmAgain} testID="film-again">
@@ -164,12 +202,13 @@ function LowConfidence({ analysis, nav }: { analysis: Analysis; nav: Nav }) {
   );
 }
 
-function NoCue({ analysis, onBack }: { analysis: Analysis; onBack: () => void }) {
+function NoCue({ analysis, nav, retest, retestable }: { analysis: Analysis; nav: Nav } & RetestProps) {
   const insets = useSafeAreaInsets();
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }}>
-      <TopBar title={liftTitle(analysis)} onBack={onBack} />
-      <View style={{ padding: space.gutter, gap: space.s2 }}>
+      <TopBar title={liftTitle(analysis)} onBack={nav.onBack} />
+      <View style={{ flex: 1, padding: space.gutter, gap: space.s2 }}>
+        {retest ? <RetestVerdict retest={retest} onStuck={nav.onStuck} /> : null}
         <Text style={[display(32), { color: colors.text }]}>
           {analysis.failure ? "We couldn't read this one" : 'Nothing to fix on this set'}
         </Text>
@@ -177,6 +216,13 @@ function NoCue({ analysis, onBack }: { analysis: Analysis; onBack: () => void })
           {analysis.failure?.message ?? 'Every rep matched your best. Keep filming.'}
         </Text>
       </View>
+      {retestable && nav.onRetest ? (
+        <View style={{ paddingHorizontal: space.gutter, paddingBottom: Math.max(insets.bottom, space.s7) }}>
+          <Btn onPress={() => nav.onRetest?.(retestable.id)} testID="cue-retest">
+            Retest this cue
+          </Btn>
+        </View>
+      ) : null}
     </View>
   );
 }

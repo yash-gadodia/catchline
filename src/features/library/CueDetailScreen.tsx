@@ -13,7 +13,7 @@ import Readout from '../../components/Readout';
 import SmallCaps from '../../components/SmallCaps';
 import TopBar from '../../components/TopBar';
 import { colors, space } from '../../design/tokens';
-import { display, fontFamily } from '../../design/typography';
+import { display, fontFamily, type } from '../../design/typography';
 import { lightTick, success } from '../../lib/haptics';
 import {
   bestOf,
@@ -31,16 +31,17 @@ import {
   STATUS_LABEL,
 } from './derive';
 import { metricFor, SINGULAR_MOVEMENT } from './metrics';
+import { cleanStreak, RETESTS_TO_STICK } from './retest';
 import { useLibrary } from './repository';
 import TrendChart from './TrendChart';
 import type { CueRecord, Day, Lift, Session } from './types';
-import { DestructiveBtn, Frame, StatusDot, Underlined } from './ui';
+import { Frame, StatusDot, Underlined } from './ui';
 
 function pointLabel(day: Day, today: Day, metricId: string, value: number) {
   return `${day === today ? 'today' : shortDate(day).toLowerCase()} · ${metricText(metricId, value)}`;
 }
 
-export type CueDetailNav = { onBack: () => void; onStuck: () => void; onDidntStick: () => void; onDrop: () => void };
+export type CueDetailNav = { onBack: () => void; onStuck: () => void; onDidntStick: () => void; onDrop: () => void; onRetest?: () => void };
 
 // The lift's analysis when the app has it (Analysis.id = lift id); never the demo.
 function analysisForLift(id: string | undefined): Analysis | undefined {
@@ -70,6 +71,9 @@ export default function CueDetailScreen({ cue, nav }: { cue: CueRecord; nav: Cue
   const analysis = analysisForLift(cue.lastLiftId) ?? analysisForLift(cue.firstLiftId);
   const half = (width - 2) / 2;
   const status = cue.status === 'trying' ? `Trying · ${sessionsCounter(cue, sessions)}` : STATUS_LABEL[cue.status];
+  const streak = cleanStreak(cue, lifts, (id) => analysisForLift(id));
+  // Clean on the last retests: "It stuck" leads. Until then the next retest does.
+  const stuckFirst = streak >= RETESTS_TO_STICK || !nav.onRetest;
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }} testID="cue-detail">
       <TopBar
@@ -159,13 +163,23 @@ export default function CueDetailScreen({ cue, nav }: { cue: CueRecord; nav: Cue
       </ScrollView>
       {cue.status === 'trying' ? (
         <View style={{ paddingTop: space.s4, paddingHorizontal: space.gutter, paddingBottom: Math.max(insets.bottom, space.s7), gap: space.s3 }}>
-          <Btn onPress={nav.onStuck} testID="mark-stuck">
-            It stuck
+          {streak >= RETESTS_TO_STICK ? (
+            <Text testID="cue-streak" style={{ ...type.callout, color: colors.text2 }}>
+              {`${metric.label} didn't come up on your last ${streak} retests.`}
+            </Text>
+          ) : null}
+          <Btn onPress={stuckFirst ? nav.onStuck : nav.onRetest} testID={stuckFirst ? 'mark-stuck' : 'cue-retest'}>
+            {stuckFirst ? 'It stuck' : 'Retest this cue'}
           </Btn>
-          <DestructiveBtn onPress={nav.onDidntStick} testID="didnt-stick">
-            Didn't stick
-          </DestructiveBtn>
-          <View style={{ alignItems: 'center' }}>
+          {nav.onRetest ? (
+            <Btn kind="secondary" onPress={stuckFirst ? nav.onRetest : nav.onStuck} testID={stuckFirst ? 'cue-retest' : 'mark-stuck'}>
+              {stuckFirst ? 'Retest this cue' : 'It stuck'}
+            </Btn>
+          ) : null}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            <Underlined onPress={nav.onDidntStick} testID="didnt-stick">
+              Didn't stick
+            </Underlined>
             <Underlined onPress={nav.onDrop} color={colors.text2} testID="drop-cue">
               Drop this cue
             </Underlined>

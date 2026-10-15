@@ -120,6 +120,16 @@ describe('createLift', () => {
     expect(tus.file).toBe(file);
   });
 
+  it('names the cue a retest lift is testing', async () => {
+    mocked.rpc
+      .mockResolvedValueOnce({ data: LIFT, error: null })
+      .mockResolvedValueOnce({ data: { ...LIFT, status: 'queued' }, error: null });
+
+    await createLift({ movement: 'snatch', loadKg: 70, retestCueId: 'cue-9', file: new Blob([new Uint8Array(4)]) });
+
+    expect(mocked.rpc.mock.calls[0]).toEqual(['create_lift', { p_movement: 'snatch', p_load_kg: 70, p_retest_cue_id: 'cue-9' }]);
+  });
+
   it('turns the server reason into a typed error and uploads nothing', async () => {
     mocked.rpc.mockResolvedValueOnce({ data: null, error: { message: 'cap_reached' } });
     await expect(createLift({ movement: 'snatch', file: new Blob([]) })).rejects.toEqual(new ApiError('cap_reached'));

@@ -51,6 +51,7 @@ export function toLift(row: LiftRow, a: Analysis | undefined): Lift {
     thumb: catchImage(a),
     failure: a?.failure ?? (status === 'failed' ? workerFailure(row) : undefined),
     headline: a?.cue?.evidence.caption,
+    retestCueId: row.retest_cue_id ?? undefined,
   };
 }
 

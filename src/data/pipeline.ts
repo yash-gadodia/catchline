@@ -23,6 +23,7 @@ export type Job = {
   error: JobError | null;
   maxS: number | null;
   uri: string | null;
+  retestCueId?: string;
 };
 
 type PipelineState = {
@@ -99,6 +100,7 @@ export async function startLift(sub: ClipSubmission & { uri: string }, read: (ur
     error: null,
     maxS: null,
     uri: sub.uri,
+    retestCueId: sub.retestCueId,
   });
   let prepared: string | null = null;
   try {
@@ -110,6 +112,7 @@ export async function startLift(sub: ClipSubmission & { uri: string }, read: (ur
     const lift = await createLiftSynced({
       movement: sub.movement,
       loadKg: sub.loadKg ?? undefined,
+      retestCueId: sub.retestCueId,
       file,
       contentType: 'video/mp4',
       onUploadUrl: (uploadUrl) => patch({ uploadUrl }),

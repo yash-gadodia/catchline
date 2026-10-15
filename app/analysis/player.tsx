@@ -7,7 +7,7 @@ import { openLiftActions } from '../../src/features/analysis/liftActions';
 import { captureHref } from '../../src/features/paywall/hooks';
 
 export default function PlayerRoute() {
-  const { fixture, frame } = useLocalSearchParams<{ fixture?: string; frame?: string }>();
+  const { fixture, frame, retest } = useLocalSearchParams<{ fixture?: string; frame?: string; retest?: string }>();
   const router = useRouter();
   const load = useAnalysis(fixture);
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
@@ -25,6 +25,8 @@ export default function PlayerRoute() {
       // Compare targets are fixture variants, not the lifter's history: dev preview only.
       onCompare={__DEV__ ? () => router.push({ pathname: '/analysis/compare', params: { fixture: analysis.id, mode: 'ghost' } }) : undefined}
       onShare={share}
+      retestCueId={retest}
+      onRetest={(id) => router.push(captureHref(`/capture?retest=${id}`) as Href)}
       onMore={() => openLiftActions(analysis, { onShare: share, onFilmAnother: () => router.push(captureHref('/capture') as Href) })}
     />
   );

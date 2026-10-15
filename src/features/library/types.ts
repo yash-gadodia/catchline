@@ -15,6 +15,7 @@ export type Lift = {
   thumb?: string;
   failure?: Failure;
   headline?: string;
+  retestCueId?: string;
 };
 
 export type Session = {

@@ -60,3 +60,37 @@ test('release build: a clip with no file goes back to capture, never to the fixt
     (global as unknown as { __DEV__: boolean }).__DEV__ = true;
   }
 });
+
+describe('retest', () => {
+  const retest = { cueId: 'c-stay-over', movement: 'snatch' as const };
+
+  test('the cue under test goes up with the lift', () => {
+    useCapture.setState({ draft: newClip({ uri: 'file:///clip.mov', durationS: 8, fps: 30, source: 'camera', movement: 'snatch', retest }) });
+    usePurchases.setState({ tier: 'pull', period: 'annual' });
+
+    submitDraft();
+
+    expect(startLift).toHaveBeenCalledWith(expect.objectContaining({ movement: 'snatch', retestCueId: 'c-stay-over' }));
+  });
+
+  test('a clip moved to another movement is no longer a retest', () => {
+    useCapture.setState({ draft: newClip({ uri: 'file:///clip.mov', durationS: 8, fps: 30, source: 'camera', movement: 'clean', retest }) });
+    usePurchases.setState({ tier: 'pull', period: 'annual' });
+
+    submitDraft();
+
+    expect((startLift as jest.Mock).mock.calls[0][0].retestCueId).toBeUndefined();
+  });
+
+  test('dev build: the sample result still knows which cue it tested', () => {
+    useCapture.setState({ draft: newClip({ uri: null, durationS: 8, fps: 30, source: 'camera', movement: 'snatch', retest }) });
+    usePurchases.setState({ tier: 'pull', period: 'annual' });
+
+    submitDraft();
+
+    expect(mockNav.push).toHaveBeenCalledWith({
+      pathname: '/analysis/processing',
+      params: { fixture: 'snatch-mock', count: '1', retest: 'c-stay-over' },
+    });
+  });
+});

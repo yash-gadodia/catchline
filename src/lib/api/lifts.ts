@@ -19,6 +19,7 @@ export type UploadOptions = {
 export type CreateLiftInput = UploadOptions & {
   movement: Movement;
   loadKg?: number;
+  retestCueId?: string;
   file: UploadSource;
 };
 
@@ -65,6 +66,7 @@ export async function createLift(input: CreateLiftInput): Promise<Lift> {
   const { data, error } = await supabase.rpc('create_lift', {
     p_movement: input.movement,
     p_load_kg: input.loadKg,
+    ...(input.retestCueId ? { p_retest_cue_id: input.retestCueId } : {}),
   });
   if (error) throw toApiError(error);
   const lift = data as Lift;
