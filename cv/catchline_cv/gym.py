@@ -3,6 +3,8 @@ positive, x in the lifter's forward direction, any consistent unit. Frames index
 import numpy as np
 from scipy.signal import find_peaks
 
+from .pose import L_SHO, R_SHO
+
 KIP_PHASES = ["arch", "hollow", "hip_drive", "recovery"]
 BMU_PHASES = ["arch", "hollow", "hip_drive", "transition", "support", "lockout"]
 HSPU_PHASES = ["tuck", "drive", "press", "lockout"]
@@ -21,6 +23,12 @@ def cycle_tops(h, scale, fps, prominence=0.4, min_gap_s=0.6):
         b = t + int(np.argmin(h[t:hi + 1]))
         out.append((int(a), int(t), int(b)))
     return out
+
+
+def shoulders_cut_off(k, a, b, height, edge=0.03):
+    """True when the pose put a shoulder at the top edge of the frame (within `edge` of the frame height) in frames
+    a..b: the head and the bar above it are out of shot, so every height measured against the bar is a guess."""
+    return bool(np.nanmin(k[a:b + 1, [L_SHO, R_SHO], 1]) < edge * height)
 
 
 def merge_cycles(cycles, h, rel, hang_level):

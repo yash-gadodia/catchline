@@ -221,6 +221,18 @@ def test_segment_jerk_events_and_phases():
 
 # ---------------------------------------------------------------- gymnastics signals
 
+def test_shoulders_at_the_top_edge_mean_the_top_of_the_rep_is_cut_off():
+    # BD1AE773 (banded pull-ups, bar above a 1280 px frame): the pose put the shoulders as high as y -36 px on the
+    # original and 8 px on the app's transcode, scores ~0.45; A1F2F738 (bar in view): shoulders 336..497 px
+    original = body_seq(60, np.linspace(89.0, -36.0, 60), 330.0, 200.0)
+    transcode = body_seq(60, np.linspace(87.0, 8.0, 60), 330.0, 200.0)
+    seen = body_seq(60, np.linspace(497.0, 336.0, 60), 700.0, 250.0)
+    assert gym.shoulders_cut_off(original, 10, 50, 1280) is True
+    assert gym.shoulders_cut_off(transcode, 0, 59, 1280) is True
+    assert gym.shoulders_cut_off(original, 0, 20, 1280) is False
+    assert gym.shoulders_cut_off(seen, 0, 59, 1280) is False
+
+
 def test_cycle_tops_finds_each_rep_and_its_valleys():
     t = np.arange(150)
     h = -np.cos(2 * np.pi * t / 50)          # tops at 25, 75, 125
