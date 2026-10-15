@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Analysis, PhaseName } from '../../analysis/types';
-import { liftTitle, phaseLabel } from '../../analysis/format';
+import { liftTitle, phaseLabel, shortPhase } from '../../analysis/format';
 import { toScreen } from '../../analysis/geometry';
 import {
   clampFrame,
@@ -15,7 +15,6 @@ import {
   phaseAt,
   pointAt,
   repByIndex,
-  stepKeyFrame,
 } from '../../analysis/timeline';
 import Btn from '../../components/Btn';
 import Readout from '../../components/Readout';
@@ -97,6 +96,11 @@ export default function PlayerScreen({
       }
     });
   }
+
+  const step = (n: number) => {
+    setPlaying(false);
+    setFrame(frameRef.current + n, 'frame');
+  };
 
   const pickPhase = (name: PhaseName) => {
     const k = keyFrameForPhase(rep, name);
@@ -203,21 +207,20 @@ export default function PlayerScreen({
             { value: '1', label: '1×' },
           ]}
         />
-        <JogWheel
-          onStep={(n) => setFrame(frameRef.current + n, 'frame')}
-          onKeyStep={(dir) => setFrame(stepKeyFrame(rep, frameRef.current, dir))}
-        />
-        <Text testID="frame-number" style={{
-            color: colors.text,
-            fontFamily: fontFamily.mono,
-            fontSize: 13,
-            lineHeight: 18,
-            minWidth: 40,
-            textAlign: 'right',
-            fontVariant: ['tabular-nums'],
-          }}>
-          {frame}
-        </Text>
+        <StepButton dir={-1} onPress={() => step(-1)} />
+        <JogWheel onStep={step} onTap={step} />
+        <StepButton dir={1} onPress={() => step(1)} />
+        <View style={{ minWidth: 48, alignItems: 'flex-end' }}>
+          <Text
+            testID="frame-number"
+            style={{ color: colors.text, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18, fontVariant: ['tabular-nums'] }}
+          >
+            {frame}
+          </Text>
+          <Text testID="frame-phase" numberOfLines={1} style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 11, lineHeight: 14 }}>
+            {phase ? shortPhase(phase.name) : '–'}
+          </Text>
+        </View>
       </View>
       <ScrollView
         testID="player-cue-area"
@@ -242,5 +245,20 @@ export default function PlayerScreen({
         </Btn>
       </View>
     </View>
+  );
+}
+
+function StepButton({ dir, onPress }: { dir: 1 | -1; onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      testID={dir < 0 ? 'step-back' : 'step-forward'}
+      accessibilityRole="button"
+      accessibilityLabel={dir < 0 ? 'Back one frame' : 'Forward one frame'}
+      hitSlop={4}
+      style={{ width: 36, height: 40, marginLeft: dir < 0 ? space.s2 : 0, alignItems: 'center', justifyContent: 'center' }}
+    >
+      <Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 22, lineHeight: 26 }}>{dir < 0 ? '‹' : '›'}</Text>
+    </Pressable>
   );
 }

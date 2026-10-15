@@ -240,6 +240,30 @@ describe('PlayerScreen', () => {
     expect(getByTestId('chip-first_pull')).toHaveTextContent('1ST PULL0.42');
     expect(getByTestId('chip-setup')).toHaveTextContent('SETUP');
   });
+
+  it('steps one frame at a time from the buttons and names the phase the frame is in', async () => {
+    const { getByTestId } = await render(<PlayerScreen analysis={snatchMock} {...props} />);
+    expect(getByTestId('frame-phase')).toHaveTextContent('hip');
+    await press(getByTestId('step-forward'));
+    expect(getByTestId('frame-number')).toHaveTextContent('423');
+    await press(getByTestId('step-back'));
+    await press(getByTestId('step-back'));
+    expect(getByTestId('frame-number')).toHaveTextContent('421');
+    expect(Haptics.impactAsync).toHaveBeenLastCalledWith('light');
+    for (let i = 0; i < 7; i++) await press(getByTestId('step-forward'));
+    expect(getByTestId('frame-number')).toHaveTextContent('428');
+    await press(getByTestId('step-forward'));
+    expect(getByTestId('frame-number')).toHaveTextContent('429');
+    expect(getByTestId('frame-phase')).toHaveTextContent('2nd');
+  });
+
+  it('stepping pauses playback', async () => {
+    const { getByTestId } = await render(<PlayerScreen analysis={snatchMock} {...props} />);
+    await press(getByTestId('stage-press'));
+    expect(getByTestId('stage-press')).toHaveProp('accessibilityLabel', 'Pause');
+    await press(getByTestId('step-back'));
+    expect(getByTestId('stage-press')).toHaveProp('accessibilityLabel', 'Play');
+  });
 });
 
 describe('CompareScreen', () => {
