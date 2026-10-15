@@ -9,6 +9,7 @@ import cv2
 import numpy as np
 
 from . import detect
+from . import external_pose
 from . import movement as mv
 from . import outcome
 from . import rules
@@ -32,7 +33,11 @@ def mid(k, a, b):
     return (k[:, a] + k[:, b]) / 2
 
 
-def load_pose(clip, cache_dir, two_pass=False):
+def load_pose(clip, cache_dir, two_pass=False, external=None):
+    """external: the phone's pose (external_pose.py) used instead of RTMPose. Inverted lifts (two_pass) still run
+    RTMPose: Vision has not been checked upside down."""
+    if external is not None and not two_pass:
+        return external_pose.to_people(external, probe(clip), INFER_H)
     os.makedirs(cache_dir, exist_ok=True)
     cache = os.path.join(cache_dir, os.path.basename(clip) + (".2pass" if two_pass else "") + ".pose.pkl")
     if os.path.exists(cache):
@@ -43,10 +48,10 @@ def load_pose(clip, cache_dir, two_pass=False):
     return strip_head(people), shape  # caches written before head points were dropped at the pose step
 
 
-def detect_movement(clip, cache_dir):
+def detect_movement(clip, cache_dir, external=None):
     """Which barbell lift the clip shows (snatch, clean, jerk or unknown) and how sure, from the pose alone. It shares
     the pose cache with run(), so a run that follows costs no second inference."""
-    people, _ = load_pose(clip, cache_dir)
+    people, _ = load_pose(clip, cache_dir, external=external)
     k, _, _ = select_lifter(people)
     world = to_world(k, camera_path(clip, people, INFER_H))
     return detect.detect(world, probe(clip)["fps"], lifts=True)
@@ -59,11 +64,12 @@ def stamp(res, out_json, det):
     return res
 
 
-def run(clip, out_json, assets_dir, asset_prefix, debug_dir, cache_dir, analysis_id, movement="snatch", detected=None):
+def run(clip, out_json, assets_dir, asset_prefix, debug_dir, cache_dir, analysis_id, movement="snatch", detected=None,
+        external=None):
     t0 = time.time()
     meta = probe(clip)
     fps = meta["fps"]
-    people, shape = load_pose(clip, cache_dir, two_pass=movement == "kipping_hspu")
+    people, shape = load_pose(clip, cache_dir, two_pass=movement == "kipping_hspu", external=external)
     t_pose = time.time() - t0
     if shape is None:
         raise ClipUnreadable("no frames decoded")

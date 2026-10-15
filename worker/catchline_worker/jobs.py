@@ -5,6 +5,7 @@ import traceback
 from collections.abc import Callable
 from dataclasses import dataclass
 
+from catchline_cv import external_pose
 from catchline_cv.video import ClipUnreadable
 
 from .push import failed_message, ready_message
@@ -38,6 +39,10 @@ class Job:
     def keyframe_prefix(self) -> str:
         return f"{self.user_id}/{self.lift_id}"
 
+    @property
+    def pose_path(self) -> str:
+        return f"{self.clip_path}.pose.json"
+
 
 @dataclass(frozen=True)
 class Result:
@@ -53,11 +58,25 @@ def claim(db, max_attempts: int = MAX_ATTEMPTS) -> Job | None:
     return Job(**rows[0]) if rows else None
 
 
-def delete_clip(db, job: Job) -> bool:
-    """Delete the raw clip and record it. If Storage is unreachable the clip stays for
-    purge_storage (the pg_cron backstop) to remove within 24 h, so this logs instead of raising."""
+def fetch_pose(db, job: Job, workdir: str) -> dict | None:
+    """The phone's body pose for a lift enqueue_lift marked pose_source 'device', else None. A pose that will not
+    download or parse is logged and the job falls back to running RTMPose here."""
+    if db.pose_source(job.lift_id) != "device":
+        return None
+    path = os.path.join(workdir, "pose.json")
     try:
-        db.remove(RAW_BUCKET, [job.clip_path])
+        db.download(RAW_BUCKET, job.pose_path, path)
+        return external_pose.load(path)
+    except Exception:
+        log.exception("device pose for lift %s unusable; running server pose", job.lift_id)
+        return None
+
+
+def delete_clip(db, job: Job) -> bool:
+    """Delete the raw clip (and the phone's pose next to it, if any) and record it. If Storage is unreachable the
+    clip stays for purge_storage (the pg_cron backstop) to remove within 24 h, so this logs instead of raising."""
+    try:
+        db.remove(RAW_BUCKET, [job.clip_path, job.pose_path])
         db.rpc("mark_clip_deleted", {"p_lift_id": job.lift_id})
         return True
     except Exception:
@@ -85,7 +104,8 @@ def process_one(
 ) -> dict | None:
     """Claim one job and run it to a terminal state (or back into the queue).
 
-    Success: download clip -> analyse -> upload keyframes -> complete_lift_job -> delete clip -> notify.
+    Success: download clip (+ the phone's pose for a pose_source 'device' lift) ->
+    analyse -> upload keyframes -> complete_lift_job -> delete clip -> notify.
     Error with attempts left: fail_lift_job(retry) and keep the clip for the retry.
     Error on the last attempt: fail_lift_job(no retry), delete the clip and notify.
     """
@@ -96,7 +116,8 @@ def process_one(
         try:
             clip = os.path.join(tmp, "clip")
             db.download(RAW_BUCKET, job.clip_path, clip)
-            result = analyse(clip, job, tmp)
+            pose = fetch_pose(db, job, tmp)
+            result = analyse(clip, job, tmp) if pose is None else analyse(clip, job, tmp, pose=pose)
             for path in result.keyframes:
                 db.upload(KEYFRAME_BUCKET, f"{job.keyframe_prefix}/{os.path.basename(path)}", path, "image/jpeg")
             out = db.rpc(

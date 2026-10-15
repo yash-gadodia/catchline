@@ -14,7 +14,8 @@ def with_movement(movement):
     return Job(**{**JOB.__dict__, "movement": movement})
 
 
-def fake_run(clip, out_json, assets_dir, asset_prefix, debug_dir, cache_dir, analysis_id, movement, detected=None):
+def fake_run(clip, out_json, assets_dir, asset_prefix, debug_dir, cache_dir, analysis_id, movement, detected=None,
+             external=None):
     os.makedirs(assets_dir)
     for name in ("r1-2-first_pull.jpg", "r1-1-setup.jpg"):
         open(os.path.join(assets_dir, name), "wb").close()
@@ -43,8 +44,9 @@ def detected(monkeypatch):
     """Stub the pose-only detector; the test sets what it finds. Records the cache dir it was given."""
     seen = {}
 
-    def fake_detect(clip, cache_dir):
+    def fake_detect(clip, cache_dir, external=None):
         seen["cache_dir"] = cache_dir
+        seen["external"] = external
         return seen["result"]
 
     monkeypatch.setattr(mod.pipeline, "detect_movement", fake_detect)
@@ -123,3 +125,25 @@ def test_unsupported_movement_is_a_failure_analysis_without_running_pose(monkeyp
     assert r.analysis["video"] == {"uri": "user-9/lift-9", "width": 608, "height": 1080, "fps": 60.0, "frameCount": 600}
     assert "loadKg" not in r.analysis
     assert "movementUsed" not in r.analysis
+
+
+def test_the_phone_pose_reaches_the_detector_and_the_pipeline(detected, monkeypatch, tmp_path):
+    detected["result"] = {"movement": "snatch", "confidence": 0.9, "lifts": []}
+    pose = {"source": "apple-vision", "frames": []}
+    ran = {}
+
+    def run_recording(*a, external=None, **k):
+        ran["external"] = external
+        return fake_run(*a, **k)
+
+    monkeypatch.setattr(mod.pipeline, "run", run_recording)
+    r = mod.analyse("clip.mov", JOB, str(tmp_path), pose=pose)
+    assert detected["external"] is pose
+    assert ran["external"] is pose
+    assert r.analysis["movementUsed"] == "snatch"
+
+
+def test_without_a_phone_pose_the_pipeline_runs_its_own(detected, tmp_path):
+    detected["result"] = {"movement": "snatch", "confidence": 0.9, "lifts": []}
+    mod.analyse("clip.mov", JOB, str(tmp_path))
+    assert detected["external"] is None

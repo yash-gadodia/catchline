@@ -19,6 +19,12 @@ class Supabase:
         rows = r.json()
         return rows[0].get("push_token") if rows else None
 
+    def pose_source(self, lift_id: str) -> str:
+        r = self.http.get("/rest/v1/lifts", params={"id": f"eq.{lift_id}", "select": "pose_source"})
+        r.raise_for_status()
+        rows = r.json()
+        return rows[0]["pose_source"] if rows else "server"
+
     def download(self, bucket: str, path: str, dest: str) -> None:
         with self.http.stream("GET", f"/storage/v1/object/{bucket}/{path}") as r:
             r.raise_for_status()

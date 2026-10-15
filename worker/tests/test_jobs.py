@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import subprocess
@@ -19,11 +20,12 @@ ROW = {
 
 
 class FakeDb:
-    def __init__(self, jobs=(), fail_on=None, token="ExponentPushToken[x]"):
+    def __init__(self, jobs=(), fail_on=None, token="ExponentPushToken[x]", pose=None):
         self.jobs = list(jobs)
         self.calls = []
         self.fail_on = fail_on
         self.token = token
+        self.pose = pose  # the phone's pose object: dict, raw bytes, or None for a server-pose lift
 
     def _maybe_fail(self, name):
         if self.fail_on == name:
@@ -40,11 +42,18 @@ class FakeDb:
             return "queued" if args["p_retry"] else "failed"
         return None
 
+    def pose_source(self, lift_id):
+        self.calls.append(("pose_source", lift_id))
+        return "server" if self.pose is None else "device"
+
     def download(self, bucket, path, dest):
         self.calls.append(("download", bucket, path))
         self._maybe_fail("download")
+        body = b"clip"
+        if path.endswith(".pose.json"):
+            body = self.pose if isinstance(self.pose, bytes) else json.dumps(self.pose).encode()
         with open(dest, "wb") as fh:
-            fh.write(b"clip")
+            fh.write(body)
 
     def upload(self, bucket, path, src, content_type):
         self.calls.append(("upload", bucket, path, content_type))
@@ -121,6 +130,7 @@ def test_success_runs_download_analyse_upload_complete_then_deletes_clip():
     assert db.names() == [
         "claim_lift_job",
         "download",
+        "pose_source",
         "upload",
         "upload",
         "complete_lift_job",
@@ -128,9 +138,10 @@ def test_success_runs_download_analyse_upload_complete_then_deletes_clip():
         "mark_clip_deleted",
     ]
     assert db.calls[1] == ("download", "raw-clips", "user-1/lift-1")
-    assert db.calls[2] == ("upload", "keyframes", "user-1/lift-1/r1-1-setup.jpg", "image/jpeg")
-    assert db.calls[3] == ("upload", "keyframes", "user-1/lift-1/r1-2-first_pull.jpg", "image/jpeg")
-    assert db.calls[4] == (
+    assert db.calls[2] == ("pose_source", "lift-1")
+    assert db.calls[3] == ("upload", "keyframes", "user-1/lift-1/r1-1-setup.jpg", "image/jpeg")
+    assert db.calls[4] == ("upload", "keyframes", "user-1/lift-1/r1-2-first_pull.jpg", "image/jpeg")
+    assert db.calls[5] == (
         "rpc",
         "complete_lift_job",
         {
@@ -139,8 +150,44 @@ def test_success_runs_download_analyse_upload_complete_then_deletes_clip():
             "p_analysis": {"version": 1, "id": "lift-1", "cue": {"faultId": "hips_rise_early"}},
         },
     )
-    assert db.calls[5] == ("remove", "raw-clips", ["user-1/lift-1"])
-    assert db.calls[6] == ("rpc", "mark_clip_deleted", {"p_lift_id": "lift-1"})
+    assert db.calls[6] == ("remove", "raw-clips", ["user-1/lift-1", "user-1/lift-1.pose.json"])
+    assert db.calls[7] == ("rpc", "mark_clip_deleted", {"p_lift_id": "lift-1"})
+
+
+POSE = {"source": "apple-vision", "fps": 30, "width": 1080, "height": 1920, "frames": []}
+
+
+def test_device_pose_is_downloaded_and_handed_to_analyse():
+    seen = {}
+
+    def analyse_with_pose(clip, job, workdir, pose=None):
+        seen["pose"] = pose
+        return fake_analyse(clip, job, workdir)
+
+    db = FakeDb([ROW], pose=POSE)
+    out = process_one(db, analyse_with_pose)
+    assert out["status"] == "done"
+    assert seen["pose"] == POSE
+    assert db.calls[1:4] == [
+        ("download", "raw-clips", "user-1/lift-1"),
+        ("pose_source", "lift-1"),
+        ("download", "raw-clips", "user-1/lift-1.pose.json"),
+    ]
+    assert ("remove", "raw-clips", ["user-1/lift-1", "user-1/lift-1.pose.json"]) in db.calls
+
+
+def test_server_pose_lift_never_downloads_a_pose():
+    db = FakeDb([ROW])
+    assert process_one(db, fake_analyse)["status"] == "done"
+    assert [c for c in db.calls if c[0] == "download"] == [("download", "raw-clips", "user-1/lift-1")]
+
+
+def test_unreadable_device_pose_falls_back_to_server_pose(caplog):
+    db = FakeDb([ROW], pose=b"{not json")
+    with caplog.at_level(logging.ERROR, logger="catchline_worker"):
+        out = process_one(db, fake_analyse)
+    assert out["status"] == "done"
+    assert "device pose for lift lift-1 unusable; running server pose" in caplog.text
 
 
 def test_error_with_attempts_left_requeues_and_keeps_the_clip():
