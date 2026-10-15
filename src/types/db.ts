@@ -284,6 +284,7 @@ export type Database = {
           id: string
           load_kg: number | null
           movement: string
+          pose_source: string
           processed_at: string | null
           queued_at: string | null
           status: string
@@ -300,6 +301,7 @@ export type Database = {
           id?: string
           load_kg?: number | null
           movement: string
+          pose_source?: string
           processed_at?: string | null
           queued_at?: string | null
           status?: string
@@ -316,6 +318,7 @@ export type Database = {
           id?: string
           load_kg?: number | null
           movement?: string
+          pose_source?: string
           processed_at?: string | null
           queued_at?: string | null
           status?: string
@@ -473,6 +476,7 @@ export type Database = {
           id: string
           load_kg: number | null
           movement: string
+          pose_source: string
           processed_at: string | null
           queued_at: string | null
           status: string
@@ -499,6 +503,7 @@ export type Database = {
           id: string
           load_kg: number | null
           movement: string
+          pose_source: string
           processed_at: string | null
           queued_at: string | null
           status: string
