@@ -188,10 +188,13 @@ function LiveProcessing({ lift }: { lift?: string }) {
   const tooLong = job?.error === 'clip_too_long';
   const state: ProcessingState = tooLong ? 'too_long' : analysis ? 'done' : serverElapsed > LONG_WAIT_S && !waiting ? 'long' : 'progress';
   const first = uploadStep(job);
+  // The clip is still on the phone only for the lift this session sent.
+  const clipUri = job && (!lift || lift === job.liftId) ? job.uri : null;
 
   return (
     <ProcessingSheet
       analysis={analysis}
+      clipUri={clipUri}
       meta={first.meta ?? `${elapsed} s`}
       firstStep={first.label}
       maxS={job?.maxS ?? undefined}

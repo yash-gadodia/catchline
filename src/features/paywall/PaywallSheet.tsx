@@ -6,8 +6,8 @@ import Sheet from '../../components/Sheet';
 import { colors, space } from '../../design/tokens';
 import { display, fontFamily } from '../../design/typography';
 import type { PurchaseStatus } from '../purchases/usePurchases';
-import { FREE_VIDEOS, SUB_TIERS, TIER_NAME, maxAnnualSavingPct, type Period, type StorePlatform, type SubTier } from './entitlements';
-import { chargeNote, continueLabel, planPrice, tierSummary } from './copy';
+import { FREE_VIDEOS, TIER_NAME, annualSavingPct, type Period, type StorePlatform } from './entitlements';
+import { PULL_SUMMARY, chargeNote, continueLabel, planPrice } from './copy';
 import { cueStatusLabel, type ProofCue } from './proofCues';
 import type { Plan } from './products';
 import { foundingState, seatsLeftLabel, type FoundingSeats } from './seats';
@@ -23,20 +23,21 @@ type Props = {
   initialPeriod?: Period;
   initialPhase?: Phase;
   priceFor?: (plan: Plan) => string;
+  savePct?: number;
   purchase: (plan: Plan) => Promise<PurchaseStatus>;
   onNotNow: () => void;
   onRestore: () => void;
   onWatch: () => void;
 };
 
-type Choice = SubTier | 'founding';
+type Choice = 'pull' | 'founding';
 
 function planOf(choice: Choice, period: Period): Plan {
-  return choice === 'founding' ? { kind: 'founding' } : { kind: 'sub', tier: choice, period };
+  return choice === 'founding' ? { kind: 'founding' } : { kind: 'sub', tier: 'pull', period };
 }
 
 // Video 4: the clip is already saved, the sheet rises over Review, and the proof is the
-// lifter's own cues. Pull is preselected on annual.
+// lifter's own cues. One plan, Pull, preselected on annual, plus the founding seat.
 export default function PaywallSheet({
   cues,
   seats,
@@ -47,6 +48,7 @@ export default function PaywallSheet({
   initialPeriod = 'annual',
   initialPhase = 'choose',
   priceFor = planPrice,
+  savePct = annualSavingPct('pull'),
   purchase,
   onNotNow,
   onRestore,
@@ -108,27 +110,22 @@ export default function PaywallSheet({
                 onChange={setPeriod}
                 options={[
                   { value: 'monthly', label: 'Monthly' },
-                  { value: 'annual', label: `Annual · save up to ${maxAnnualSavingPct()}%` },
+                  { value: 'annual', label: `Annual · save ${savePct}%` },
                 ]}
               />
             </View>
             <View style={{ gap: space.s2 }}>
-              {SUB_TIERS.map((t) => {
-                const p: Plan = { kind: 'sub', tier: t, period };
-                return (
-                  <OptionCard key={t} selected={choice === t} onPress={() => setChoice(t)} testID={`tier-${t}`}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 17, lineHeight: 22 }}>
-                        {TIER_NAME[t]}
-                      </Text>
-                      <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 13, lineHeight: 18 }}>
-                        {tierSummary(t)}
-                      </Text>
-                    </View>
-                    <Price amount={priceFor(p)} suffix={period === 'annual' ? '/yr' : '/mo'} />
-                  </OptionCard>
-                );
-              })}
+              <OptionCard selected={choice === 'pull'} onPress={() => setChoice('pull')} testID="tier-pull">
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 17, lineHeight: 22 }}>
+                    {TIER_NAME.pull}
+                  </Text>
+                  <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 13, lineHeight: 18 }}>
+                    {PULL_SUMMARY}
+                  </Text>
+                </View>
+                <Price amount={priceFor(planOf('pull', period))} suffix={period === 'annual' ? '/yr' : '/mo'} />
+              </OptionCard>
               {seats && founding !== 'soldOut' ? (
                 <OptionCard selected={choice === 'founding'} onPress={() => setChoice('founding')} testID="tier-founding">
                   <View style={{ flex: 1 }}>

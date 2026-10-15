@@ -249,7 +249,7 @@ export const usePurchases = create<PurchasesState>((set, get) => ({
 type Sdk = NonNullable<ReturnType<typeof liveSdk>>;
 
 // Play needs the old subscription to switch tiers; upgrades charge the prorated
-// difference now (see upgradeQuote), downgrades wait for the renewal.
+// difference now, downgrades wait for the renewal.
 function playChangeInfo(current: Tier, plan: Plan, Purchases: Sdk): StoreProductChangeInfo | null {
   if (Platform.OS !== 'android' || plan.kind !== 'sub') return null;
   if (current !== 'hook' && current !== 'pull' && current !== 'platform') return null;

@@ -2,48 +2,24 @@ import { View } from 'react-native';
 import Btn from '../../components/Btn';
 import Sheet from '../../components/Sheet';
 import { colors, space } from '../../design/tokens';
-import { MONTHLY_CAP, capResetDate, nextTier, type PaidTier, type Period } from './entitlements';
-import { capUpgradeLabel, capUpgradeNote, shortDate } from './copy';
-import { Backdrop, Body, Fine, SheetTitle } from './ui';
+import { MONTHLY_CAP, capResetDate, type PaidTier } from './entitlements';
+import { shortDate } from './copy';
+import { Backdrop, Body, SheetTitle } from './ui';
 
-// Monthly cap: queueing is the first option, the upgrade second.
-export default function CapSheet({
-  tier,
-  period,
-  now,
-  onQueue,
-  onUpgrade,
-}: {
-  tier: PaidTier;
-  period: Period;
-  now: Date;
-  onQueue: () => void;
-  onUpgrade: () => void;
-}) {
+// Monthly cap: Pull is the top plan, so the only way on is the reset.
+export default function CapSheet({ tier, now, onQueue }: { tier: PaidTier; now: Date; onQueue: () => void }) {
   const reset = shortDate(capResetDate(now));
-  const to = nextTier(tier);
-  const cap = MONTHLY_CAP[tier];
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }} testID={`cap-${tier}`}>
       <Backdrop image="asset:snatch/ghost/3-hip" opacity={0.55} />
       <Sheet gap={space.s4}>
-        <SheetTitle size={34}>{`That's ${cap} this month.`}</SheetTitle>
+        <SheetTitle size={34}>{`You've used your ${MONTHLY_CAP[tier]} this month.`}</SheetTitle>
         <Body>
-          {to
-            ? `Filming and everything you've already analysed keep working. This clip is saved; it can wait for ${reset} or go through now.`
-            : `Platform is ${cap} a month, fair use. Filming and everything you've already analysed keep working. This clip is saved and goes through on ${reset}.`}
+          {`Resets on ${reset}. This clip is saved and goes through then. Filming and everything you've already analysed keep working.`}
         </Body>
         <Btn kind="secondary" onPress={onQueue} testID="queue">
           {`Queue until ${reset}`}
         </Btn>
-        {to && tier !== 'platform' ? (
-          <>
-            <Btn onPress={onUpgrade} testID="cap-upgrade">
-              {capUpgradeLabel(tier, to, period)}
-            </Btn>
-            <Fine center>{capUpgradeNote(to)}</Fine>
-          </>
-        ) : null}
       </Sheet>
     </View>
   );

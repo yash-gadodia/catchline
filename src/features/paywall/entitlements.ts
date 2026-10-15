@@ -4,7 +4,6 @@ export type SubTier = 'hook' | 'pull' | 'platform';
 export type Period = 'monthly' | 'annual';
 export type Variant = 'organic' | 'ad';
 
-export const SUB_TIERS: readonly SubTier[] = ['hook', 'pull', 'platform'];
 export const TIER_NAME: Record<Tier, string> = {
   free: 'Free',
   hook: 'Hook',
@@ -63,13 +62,6 @@ export function cueMemoryDays(tier: Tier): number | 'all' {
 }
 
 export const TIER_RANK: Record<Tier, number> = { free: 0, hook: 1, pull: 2, founding: 2, platform: 3 };
-
-// The one tier to offer next. Free goes straight to Pull (the preselected default).
-export function nextTier(tier: Tier): SubTier | null {
-  if (tier === 'free' || tier === 'hook') return 'pull';
-  if (tier === 'pull' || tier === 'founding') return 'platform';
-  return null;
-}
 
 // RevenueCat entitlement ids. Products attach to every entitlement at or below their tier.
 export const ENTITLEMENT = { hook: 'hook', pull: 'pull', platform: 'platform', founding: 'founding' } as const;
@@ -158,47 +150,17 @@ export function chipState(tier: Tier, usage: Usage, now: Date, variant: Variant 
   return null;
 }
 
-// ── comparison and upgrade deltas ────────────────────────────────────────────
-
-const GROUPS: { label: string; features: Feature[] }[] = [
-  { label: 'Ghost of your best rep', features: ['ghostCompare'] },
-  { label: '"Did it stick" tracking', features: ['didItStick'] },
-  { label: '240 fps, no watermark', features: ['fps240', 'watermarkFreeExport'] },
-  { label: 'Coach link', features: ['coachLink'] },
-  { label: 'Explainer from your own clip', features: ['explainer'] },
-  { label: 'CSV export', features: ['csvExport'] },
-  { label: 'Priority queue', features: ['priorityQueue'] },
-];
-
-export function cueMemoryLabel(tier: Tier): string {
-  const d = cueMemoryDays(tier);
-  if (d === 'all') return 'all';
-  return d === 0 ? 'none' : `${d} days`;
-}
-
-export type DeltaRow = { label: string; value: string };
-
-export function featureDelta(from: Tier, to: Tier): DeltaRow[] {
-  const rows: DeltaRow[] = [];
-  const videos = (t: Tier) => (t === 'free' ? `${FREE_VIDEOS.organic} total` : String(MONTHLY_CAP[t]));
-  if (videos(from) !== videos(to)) rows.push({ label: 'Videos a month', value: `${videos(from)} → ${videos(to)}` });
-  if (cueMemoryLabel(from) !== cueMemoryLabel(to)) {
-    rows.push({ label: 'Cue memory', value: `${cueMemoryLabel(from)} → ${cueMemoryLabel(to)}` });
-  }
-  for (const g of GROUPS) {
-    const gained = g.features.every((f) => hasFeature(to, f) && !hasFeature(from, f));
-    if (gained) rows.push({ label: g.label, value: 'added' });
-  }
-  return rows;
-}
+// ── comparison ────────────────────────────────────────────
 
 export type Cell = { kind: 'dot' } | { kind: 'none' } | { kind: 'text'; text: string };
-export type ComparisonRow = { label: string; cells: Record<Tier, Cell> };
-export const TABLE_TIERS: readonly Tier[] = ['free', 'hook', 'pull', 'platform', 'founding'];
+// Hook and Platform still resolve from their entitlements but are no longer offered.
+export type TableTier = 'free' | 'pull' | 'founding';
+export type ComparisonRow = { label: string; cells: Record<TableTier, Cell> };
+export const TABLE_TIERS: readonly TableTier[] = ['free', 'pull', 'founding'];
 
 export function comparisonRows(): ComparisonRow[] {
-  const each = (fn: (t: Tier) => Cell) =>
-    Object.fromEntries(TABLE_TIERS.map((t) => [t, fn(t)])) as Record<Tier, Cell>;
+  const each = (fn: (t: TableTier) => Cell) =>
+    Object.fromEntries(TABLE_TIERS.map((t) => [t, fn(t)])) as Record<TableTier, Cell>;
   const dot = (f: Feature) => each((t) => (hasFeature(t, f) ? { kind: 'dot' } : { kind: 'none' }));
   return [
     {
@@ -221,9 +183,6 @@ export function comparisonRows(): ComparisonRow[] {
       label: 'Watermark',
       cells: each((t) => ({ kind: 'text', text: hasFeature(t, 'watermarkFreeExport') ? 'no' : 'yes' })),
     },
-    { label: 'Coach link', cells: dot('coachLink') },
-    { label: 'Explainer', cells: dot('explainer') },
-    { label: 'CSV, priority', cells: dot('csvExport') },
   ];
 }
 
@@ -239,41 +198,8 @@ export function annualSavingPct(tier: SubTier): number {
   return Math.round((1 - p.annual / (p.monthly * 12)) * 100);
 }
 
-export function maxAnnualSavingPct(): number {
-  return Math.max(...SUB_TIERS.map(annualSavingPct));
-}
-
 export function annualPerMonthCents(tier: SubTier): number {
   return Math.round(PRICE_CENTS[tier].annual / 12);
 }
 
 export type StorePlatform = 'ios' | 'android';
-export type UpgradeQuote = { deltaCents: number; chargeTodayCents: number; creditCents: number };
-
-// Same-period upgrade between subscription tiers. Google Play is configured with
-// CHARGE_PRORATED_PRICE: it charges the price difference for the days left and keeps
-// the renewal date. The App Store upgrades immediately, charges the new tier's full
-// price and refunds the unused part of the old one.
-export function upgradeQuote(
-  from: SubTier,
-  to: SubTier,
-  period: Period,
-  daysLeft: number,
-  periodDays: number,
-  platform: StorePlatform
-): UpgradeQuote {
-  const fromCents = PRICE_CENTS[from][period];
-  const toCents = PRICE_CENTS[to][period];
-  const deltaCents = toCents - fromCents;
-  const fraction = Math.min(1, Math.max(0, daysLeft / periodDays));
-  if (platform === 'android') {
-    return { deltaCents, chargeTodayCents: Math.round(deltaCents * fraction), creditCents: 0 };
-  }
-  return { deltaCents, chargeTodayCents: toCents, creditCents: Math.round(fromCents * fraction) };
-}
-
-// A founding seat is a one-off purchase, so Platform is a new subscription at full price.
-export function foundingUpgradeQuote(to: SubTier, period: Period): UpgradeQuote {
-  const cents = PRICE_CENTS[to][period];
-  return { deltaCents: cents, chargeTodayCents: cents, creditCents: 0 };
-}

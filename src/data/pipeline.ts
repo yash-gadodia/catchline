@@ -22,6 +22,7 @@ export type Job = {
   uploadUrl: string | null;
   error: JobError | null;
   maxS: number | null;
+  uri: string | null;
 };
 
 type PipelineState = {
@@ -97,6 +98,7 @@ export async function startLift(sub: ClipSubmission & { uri: string }, read: (ur
     uploadUrl: null,
     error: null,
     maxS: null,
+    uri: sub.uri,
   });
   let prepared: string | null = null;
   try {

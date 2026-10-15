@@ -16,13 +16,14 @@ import { colors } from '../src/design/tokens';
 import { supabase } from '../src/lib/supabase';
 import { backendEnabled } from '../src/data/backend';
 import { syncLibrary } from '../src/data/library';
-import { liftIdFromResponse, registerPushToken, routeForLift } from '../src/features/notifications';
+import { installForegroundHandler, liftIdFromResponse, registerPushToken, routeForLift } from '../src/features/notifications';
 import { init as initAnalytics, identify, reset, track, EVENTS } from '../src/lib/analytics';
 import { startAuthUserSync } from '../src/features/auth/authUser';
 
 export const unstable_settings = { initialRouteName: '(tabs)' };
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
+installForegroundHandler();
 
 export default function RootLayout() {
   const fontsLoaded = useAppFonts();

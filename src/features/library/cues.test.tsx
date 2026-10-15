@@ -92,6 +92,8 @@ describe('Cues tab on a real account', () => {
     });
     expect(view.getByTestId('cues-empty')).toBeOnTheScreen();
     expect(view.getByText('Your first cue lands here.')).toBeOnTheScreen();
+    expect(view.getByTestId('cues-empty-art')).toHaveProp('source', require('../../../assets/art/empty-cues.png'));
+    expect(view.getByTestId('cues-empty-art')).toHaveStyle({ width: 160, height: 160, tintColor: '#A39F97' });
   });
 
   it('pull-to-refresh re-syncs the library', async () => {

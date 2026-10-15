@@ -1,8 +1,10 @@
 import { useEffect, type ReactNode } from 'react';
-import { Pressable, Text, View, useWindowDimensions } from 'react-native';
+import { Image, Pressable, Text, View, useWindowDimensions } from 'react-native';
+import { useVideoPlayer, VideoView } from 'expo-video';
 import Animated, {
   Easing,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withRepeat,
   withSequence,
@@ -10,7 +12,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import type { Analysis } from '../../analysis/types';
 import { doneTitle, formatWait, processingSteps } from '../../analysis/format';
-import { polylineLength, svgPath, toScreen } from '../../analysis/geometry';
+import { polylineLength, svgPath } from '../../analysis/geometry';
+import { snatchMock } from '../../analysis/fixtures';
 import { keyFrameForPhase, liftPath, repByIndex } from '../../analysis/timeline';
 import Btn from '../../components/Btn';
 import Sheet from '../../components/Sheet';
@@ -26,8 +29,12 @@ export type ProcessingState = 'progress' | 'long' | 'done' | 'too_long';
 // One analysis on the single production worker takes about this long; jobs are serial.
 export const EXPECTED_ANALYSIS_S = 150;
 
+const PROCESSING_ART = require('../../../assets/art/processing-backdrop.png');
+
 type Props = {
   analysis: Analysis | null;
+  clipUri?: string | null;
+  reduceMotion?: boolean;
   meta?: string;
   firstStep?: string;
   maxS?: number;
@@ -44,15 +51,19 @@ type Props = {
   onTrim?: () => void;
 };
 
-export default function ProcessingSheet({ analysis, meta, firstStep, maxS, state, step, elapsed, etaSeconds = EXPECTED_ANALYSIS_S, onServer, ahead, ...on }: Props) {
+export default function ProcessingSheet({ analysis, clipUri, reduceMotion, meta, firstStep, maxS, state, step, elapsed, etaSeconds = EXPECTED_ANALYSIS_S, onServer, ahead, ...on }: Props) {
   const { width, height } = useWindowDimensions();
   const box = { width, height };
+  const systemReduce = useReducedMotion();
+  const reduce = reduceMotion ?? systemReduce;
   useEffect(() => {
     if (state === 'done') success();
   }, [state]);
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }} testID={`processing-${state}`}>
-      {analysis ? (
+      {state === 'progress' ? (
+        <ProgressBackdrop analysis={analysis} clipUri={clipUri} step={step} reduce={reduce} box={box} />
+      ) : analysis ? (
         <Backdrop analysis={analysis} state={state} box={box} />
       ) : (
         <View style={{ width, height, backgroundColor: colors.surface }} />
@@ -118,6 +129,82 @@ export default function ProcessingSheet({ analysis, meta, firstStep, maxS, state
   );
 }
 
+// Behind the step list: the lifter's own clip when it is still on the phone,
+// else the silhouette, with the bar path drawing itself in at every step.
+function ProgressBackdrop({
+  analysis,
+  clipUri,
+  step,
+  reduce,
+  box,
+}: {
+  analysis: Analysis | null;
+  clipUri?: string | null;
+  step: number;
+  reduce: boolean;
+  box: { width: number; height: number };
+}) {
+  const layer = { position: 'absolute', left: 0, top: 0, width: box.width, height: box.height } as const;
+  return (
+    <View pointerEvents="none" style={layer} testID="processing-art-layer">
+      {clipUri ? (
+        <>
+          <ClipLayer uri={clipUri} reduce={reduce} box={box} />
+          <View testID="processing-scrim" style={[layer, { backgroundColor: 'rgba(0,0,0,0.35)' }]} />
+        </>
+      ) : (
+        <Image testID="processing-art" source={PROCESSING_ART} resizeMode="cover" style={layer} />
+      )}
+      {reduce ? null : <PathLayer analysis={analysis ?? snatchMock} step={step} box={box} />}
+    </View>
+  );
+}
+
+function ClipLayer({ uri, reduce, box }: { uri: string; reduce: boolean; box: { width: number; height: number } }) {
+  const player = useVideoPlayer(uri, (p) => {
+    p.muted = true;
+    p.loop = !reduce;
+    if (!reduce) p.play();
+  });
+  return (
+    <View testID="processing-clip" style={{ position: 'absolute', left: 0, top: 0, width: box.width, height: box.height, opacity: 0.28 }}>
+      <VideoView player={player} style={{ width: box.width, height: box.height }} contentFit="cover" nativeControls={false} />
+    </View>
+  );
+}
+
+function PathLayer({ analysis, step, box }: { analysis: Analysis; step: number; box: { width: number; height: number } }) {
+  const { width, height } = analysis.video;
+  const px = liftPath(repByIndex(analysis, analysis.bestRepIndex)).map((p) => ({ x: p.x * width, y: p.y * height }));
+  const pts = anchoredPath(px, box);
+  const draw = useSharedValue(0);
+  useEffect(() => {
+    draw.value = 0;
+    draw.value = withTiming(1, { duration: 2400, easing: Easing.out(Easing.cubic) });
+  }, [step, draw]);
+  return (
+    <View testID="processing-motion" style={{ position: 'absolute', left: 0, top: 0, width: box.width, height: box.height, opacity: 0.8 }}>
+      <OverlaySvg box={box}>
+        <DrawnPath d={svgPath(pts)} length={polylineLength(pts)} progress={draw} halo={false} />
+      </OverlaySvg>
+    </View>
+  );
+}
+
+// The silhouette's near plate sits at (27%, 48%) of the screen: the path starts
+// there and rises 30% of the screen, keeping its own proportions.
+const PLATE = { x: 0.27, y: 0.48 };
+const RISE = 0.3;
+
+function anchoredPath(path: { x: number; y: number }[], box: { width: number; height: number }) {
+  if (path.length === 0) return [];
+  const ys = path.map((p) => p.y);
+  const span = Math.max(...ys) - Math.min(...ys) || 1;
+  const k = (box.height * RISE) / span;
+  const start = path[0];
+  return path.map((p) => ({ x: box.width * PLATE.x + (p.x - start.x) * k, y: box.height * PLATE.y + (p.y - start.y) * k }));
+}
+
 function Backdrop({ analysis, state, box }: { analysis: Analysis; state: ProcessingState; box: { width: number; height: number } }) {
   const rep = repByIndex(analysis, analysis.cue?.evidence.rep ?? analysis.bestRepIndex);
   const bg =
@@ -125,31 +212,13 @@ function Backdrop({ analysis, state, box }: { analysis: Analysis; state: Process
       ? keyFrameForPhase(rep, 'catch') ?? rep.keyFrames[rep.keyFrames.length - 1]
       : keyFrameForPhase(rep, 'first_pull') ?? rep.keyFrames[0];
   const src = { width: analysis.video.width, height: analysis.video.height };
-  const draw = useSharedValue(0);
-  useEffect(() => {
-    if (state !== 'progress') return;
-    draw.value = withRepeat(
-      withSequence(withTiming(1, { duration: 2800, easing: Easing.linear }), withTiming(1, { duration: 1200 })),
-      -1
-    );
-  }, [state, draw]);
   return (
     <Stage
       src={src}
       box={box}
       focus={{ x: 0.5, y: 0.45 }}
       layers={[{ image: bg.image, gray: state !== 'done', opacity: state === 'done' ? 0.6 : 0.35 }]}
-    >
-      {(fit) => {
-        if (state !== 'progress') return null;
-        const pts = liftPath(rep).map((p) => toScreen(p, fit));
-        return (
-          <OverlaySvg box={box}>
-            <DrawnPath d={svgPath(pts)} length={polylineLength(pts)} progress={draw} halo={false} />
-          </OverlaySvg>
-        );
-      }}
-    </Stage>
+    />
   );
 }
 

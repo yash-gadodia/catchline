@@ -19,6 +19,15 @@ function isAvailable(): boolean {
   return Platform.OS === 'ios' || Platform.OS === 'android';
 }
 
+// Without a handler iOS drops a push that arrives while the app is open.
+export function foregroundBehavior(): Notifications.NotificationBehavior {
+  return { shouldShowBanner: true, shouldShowList: true, shouldPlaySound: true, shouldSetBadge: false };
+}
+
+export function installForegroundHandler(): void {
+  Notifications.setNotificationHandler({ handleNotification: async () => foregroundBehavior() });
+}
+
 export async function requestPermissions(): Promise<boolean> {
   if (!isAvailable()) return false;
   try {
