@@ -51,7 +51,7 @@ export default function CuesScreen({ onOpen }: { onOpen: (cue: CueRecord) => voi
             <ActivityIndicator color={colors.text2} />
           ) : (
             <>
-              <Image testID="cues-empty-art" source={EMPTY_CUES_ART} style={{ width: 160, height: 160 }} />
+              <Image testID="cues-empty-art" source={EMPTY_CUES_ART} style={{ width: 160, height: 160, tintColor: colors.text2 }} />
               <Text style={[display(32), { color: colors.text, textAlign: 'center' }]}>Your first cue lands here.</Text>
               <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21, textAlign: 'center' }}>
                 After you film a lift, the one thing to fix lives on this tab until it sticks.

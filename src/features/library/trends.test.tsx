@@ -97,7 +97,7 @@ describe('Trends tab on a real account', () => {
     expect(view.getByText('Film a lift and the trend starts here.')).toBeOnTheScreen();
     expect(view.getByText('Trends need two lifts of the same movement.')).toBeOnTheScreen();
     expect(view.getByTestId('trends-empty-art')).toHaveProp('source', require('../../../assets/art/empty-trends.png'));
-    expect(view.getByTestId('trends-empty-art')).toHaveStyle({ width: 160, height: 160 });
+    expect(view.getByTestId('trends-empty-art')).toHaveStyle({ width: 160, height: 160, tintColor: '#A39F97' });
     expect(view.queryByTestId('movement-switcher')).toBeNull();
   });
 

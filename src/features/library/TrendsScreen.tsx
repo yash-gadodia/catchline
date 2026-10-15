@@ -82,7 +82,7 @@ export default function TrendsScreen({ initialMovement }: { initialMovement?: Mo
     <ScrollView contentContainerStyle={{ flexGrow: 1 }} refreshControl={refresh} testID={testID}>
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.s4, paddingHorizontal: space.gutter }}>
         {art ? (
-          <Image testID="trends-empty-art" source={EMPTY_TRENDS_ART} style={{ width: 160, height: 160 }} />
+          <Image testID="trends-empty-art" source={EMPTY_TRENDS_ART} style={{ width: 160, height: 160, tintColor: colors.text2 }} />
         ) : (
           <Svg width={200} height={60}>
             <Line x1={0} y1={50} x2={200} y2={50} stroke={colors.text} strokeDasharray="4 6" opacity={0.35} />
