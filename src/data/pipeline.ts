@@ -7,6 +7,7 @@ import type { ClipSubmission } from '../features/capture/submit';
 import { usePurchases } from '../features/purchases/usePurchases';
 import { syncConsent } from './backend';
 import { ClipTooLongError, discardPrepared, prepareClip } from './prepare';
+import { rememberClip } from '../features/share/localClips';
 
 export type JobStatus = 'preparing' | 'uploading' | 'queued' | 'processing' | 'done' | 'failed';
 export type JobError = ApiErrorCode | 'clip_too_long';
@@ -113,6 +114,7 @@ export async function startLift(sub: ClipSubmission & { uri: string }, read: (ur
       onUploadUrl: (uploadUrl) => patch({ uploadUrl }),
       onProgress: (sent, total) => patch({ sent, total }),
     });
+    rememberClip(lift.id, sub.uri, sub.trim.start);
     patch({ liftId: lift.id, status: lift.status as JobStatus });
   } catch (e) {
     if (e instanceof ClipTooLongError) patch({ status: 'failed', error: 'clip_too_long', maxS: e.maxS });

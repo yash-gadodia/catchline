@@ -312,8 +312,21 @@ jest.mock('./modules/clip-transcoder', () => ({
       frames: Math.round((o.endS - o.startS) * o.fps),
       durationS: o.endS - o.startS,
     })),
+    renderShareVideo: jest.fn(async (_uri: string, spec: { width: number; height: number; durationS: number }) => ({
+      uri: 'file:///cache/share-video/catchline.mp4',
+      width: spec.width,
+      height: spec.height,
+      durationS: spec.durationS,
+    })),
     addListener: jest.fn(() => ({ remove: jest.fn() })),
   },
+}));
+
+// expo-media-library is native: Save to Photos is granted and saves unless a test overrides it.
+jest.mock('expo-media-library', () => ({
+  __esModule: true,
+  requestPermissionsAsync: jest.fn(async () => ({ granted: true, status: 'granted', canAskAgain: true, expires: 'never' })),
+  Asset: { create: jest.fn(async () => ({ id: 'asset-1' })) },
 }));
 
 // The RN preset stubs AppState.addEventListener with a bare jest.fn (nothing to

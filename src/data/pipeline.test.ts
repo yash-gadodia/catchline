@@ -1,5 +1,6 @@
 import { startLift, uploadStep, usePipeline, type Job } from './pipeline';
 import type { ClipSubmission } from '../features/capture/submit';
+import { useLocalClips } from '../features/share/localClips';
 
 jest.mock('expo-file-system', () => ({ File: jest.fn() }));
 jest.mock('./backend', () => ({ syncConsent: jest.fn(async () => undefined) }));
@@ -61,6 +62,7 @@ describe('startLift when create_lift says cap_reached', () => {
     expect(mockCreateLift).toHaveBeenCalledTimes(2);
     expect(mockCreateLift.mock.calls[1][0]).toMatchObject({ movement: 'snatch', loadKg: 70 });
     expect(usePipeline.getState().job).toMatchObject({ status: 'queued', liftId: 'l1', error: null });
+    expect(useLocalClips.getState().clips.l1).toEqual({ uri: 'file:///clip.mov', startS: 0 });
   });
 
   it('still capped after the sync: the cap paywall, after exactly one retry', async () => {

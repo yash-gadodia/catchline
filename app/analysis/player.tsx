@@ -1,4 +1,3 @@
-import { Share } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAnalysis } from '../../src/analysis/useAnalysis';
 import AnalysisPlaceholder from '../../src/features/analysis/AnalysisPlaceholder';
@@ -19,9 +18,7 @@ export default function PlayerRoute() {
       onBack={back}
       // Compare targets are fixture variants, not the lifter's history: dev preview only.
       onCompare={__DEV__ ? () => router.push({ pathname: '/analysis/compare', params: { fixture: analysis.id, mode: 'ghost' } }) : undefined}
-      onShare={() => {
-        if (analysis.cue) Share.share({ message: analysis.cue.text });
-      }}
+      onShare={() => router.push({ pathname: '/share', params: { fixture: analysis.id } })}
     />
   );
 }
