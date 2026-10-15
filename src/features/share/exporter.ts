@@ -1,51 +1,43 @@
 import type { RefObject } from 'react';
-import { Linking, Share, type View } from 'react-native';
+import { Share, type View } from 'react-native';
 import { captureRef } from 'react-native-view-shot';
-import type { Aspect, ShareOptions, ShareType } from './model';
-import { exportSize } from './model';
+import { File } from 'expo-file-system';
+import { Asset, requestPermissionsAsync } from 'expo-media-library';
+import Transcoder from '../../../modules/clip-transcoder';
+import type { OverlaySpec, ShareAspect } from './overlay';
+import { OUTPUT } from './overlay';
 
-// Static cards render on-device: the card view is captured at export size.
-export async function renderStill(ref: RefObject<View | null>, type: ShareType, aspect: Aspect): Promise<string> {
-  const size = exportSize(type, aspect);
+// The still card renders on-device: the card view is captured at export size.
+export async function renderStill(ref: RefObject<View | null>, aspect: ShareAspect): Promise<string> {
+  const size = OUTPUT[aspect];
   return captureRef(ref, { format: 'png', quality: 1, width: size.width, height: size.height, result: 'tmpfile' });
 }
 
-// The iOS share sheet carries "Save Image". expo-media-library would save
-// straight to Photos but is not a dependency yet.
-export async function saveImage(uri: string): Promise<'saved' | 'cancelled'> {
+// The overlay video, rendered on the phone from the lifter's own clip.
+export async function renderVideo(uri: string, spec: OverlaySpec, onProgress: (p: number) => void): Promise<string> {
+  const sub = Transcoder.addListener('onProgress', (e) => onProgress(e.progress));
+  try {
+    return (await Transcoder.renderShareVideo(uri, spec)).uri;
+  } finally {
+    sub.remove();
+  }
+}
+
+// The iOS share sheet with the file: Instagram (Stories, Reels, Feed), WhatsApp,
+// Messages, Save, AirDrop.
+export async function shareFile(uri: string): Promise<'shared' | 'cancelled'> {
   const res = await Share.share({ url: uri });
-  return res.action === Share.dismissedAction ? 'cancelled' : 'saved';
+  return res.action === Share.dismissedAction ? 'cancelled' : 'shared';
 }
 
-export async function openInstagram(): Promise<void> {
-  const app = 'instagram://library';
-  if (await Linking.canOpenURL(app)) return Linking.openURL(app);
-  return Linking.openURL('https://www.instagram.com/');
+export async function saveToPhotos(uri: string): Promise<'saved' | 'denied'> {
+  const perm = await requestPermissionsAsync(true);
+  if (!perm.granted) return 'denied';
+  await Asset.create(uri);
+  return 'saved';
 }
 
-export type OverlayVideoRequest = {
-  analysisId: string;
-  aspect: Aspect;
-  options: ShareOptions;
-  watermark: string | null;
-  fps: 30 | 60;
-};
-
-export type OverlayVideoJob =
-  | { status: 'rendering'; progress: number }
-  | { status: 'done'; uri: string }
-  | { status: 'failed'; reason: 'not_available' | 'render_error' };
-
-export interface OverlayVideoRenderer {
-  render(req: OverlayVideoRequest, onProgress?: (p: number) => void): Promise<OverlayVideoJob>;
+export function discardRender(uri: string): void {
+  const f = new File(uri);
+  if (f.exists) f.delete();
 }
-
-// TODO(phase-3): the overlay video is rendered server-side from the same
-// Analysis JSON (comet path drawn with playback, phase strip). Until that
-// endpoint exists the request resolves as not available and the screen offers
-// the still instead.
-export const overlayVideoRenderer: OverlayVideoRenderer = {
-  async render() {
-    return { status: 'failed', reason: 'not_available' };
-  },
-};

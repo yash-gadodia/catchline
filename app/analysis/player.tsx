@@ -1,4 +1,3 @@
-import { Share } from 'react-native';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useAnalysis } from '../../src/analysis/useAnalysis';
 import AnalysisPlaceholder from '../../src/features/analysis/AnalysisPlaceholder';
@@ -13,9 +12,7 @@ export default function PlayerRoute() {
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
   if (load.status !== 'ready') return <AnalysisPlaceholder status={load.status} onBack={back} />;
   const analysis = load.analysis;
-  const share = () => {
-    if (analysis.cue) Share.share({ message: analysis.cue.text });
-  };
+  const share = () => router.push({ pathname: '/share', params: { fixture: analysis.id } });
   return (
     <PlayerScreen
       key={`${analysis.id}-${frame ?? ''}`}

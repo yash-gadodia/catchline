@@ -63,14 +63,14 @@ describe('openLiftActions', () => {
 });
 
 describe('the ··· button on the result screens', () => {
-  it('player: opens the sheet; Share shares the cue and Film another set goes to capture', async () => {
+  it('player: opens the sheet; Share opens the share screen and Film another set goes to capture', async () => {
     mockParams.current = { fixture: 'snatch-mock' };
     const view = await render(<PlayerRoute />);
     pick = 0;
     await act(async () => {
       fireEvent.press(view.getByTestId('topbar-more'));
     });
-    expect(share).toHaveBeenCalledWith({ message: snatchMock.cue!.text });
+    expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/share', params: { fixture: 'snatch-mock' } });
     pick = 1;
     await act(async () => {
       fireEvent.press(view.getByTestId('topbar-more'));
