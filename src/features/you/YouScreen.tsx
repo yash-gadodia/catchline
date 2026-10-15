@@ -131,6 +131,7 @@ export default function YouScreen({
             testID="row-plan"
           />
         ) : null}
+        <Row title="See how it works" right={<Value>›</Value>} onPress={nav.onDemo} testID="row-demo" />
         <Section>Lifting</Section>
         <Row title="Units" right={<Value>{UNIT_LABELS[units]}</Value>} onPress={() => setPicker('units')} testID="row-units" />
         <Row title="Default lift" right={<Value>{labels.defaultMovement}</Value>} onPress={() => setPicker('defaultMovement')} testID="row-movement" />
@@ -149,7 +150,6 @@ export default function YouScreen({
           testID="row-reminder"
         />
         <Section>Privacy</Section>
-        <Row title="See how it works" right={<Value>›</Value>} onPress={nav.onDemo} testID="row-demo" />
         <Row title="What is stored" right={<Value>›</Value>} onPress={nav.onWhatIsStored} testID="row-stored" />
         <Row title="Auto-delete originals" right={<Value>{labels.autoDelete}</Value>} onPress={() => setPicker('autoDelete')} testID="row-auto-delete" />
         <Row title="Export all my data" right={<Value>›</Value>} onPress={doExport} testID="row-export" />

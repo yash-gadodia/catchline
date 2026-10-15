@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Image, Pressable, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { DEMO_CLIP, demoBest } from '../../analysis/fixtures';
-import { repByIndex } from '../../analysis/timeline';
+import { frameSource } from '../../analysis/frames';
+import { keyFrameForPhase, repByIndex } from '../../analysis/timeline';
 import type { Analysis } from '../../analysis/types';
 import Btn from '../../components/Btn';
 import { colors, radius, space, stroke } from '../../design/tokens';
@@ -32,7 +34,7 @@ export default function DemoScreen({
 }) {
   const insets = useSafeAreaInsets();
   const { step, skip } = useDemo(start);
-  if (step === 'end') return <TryYours onImport={onImport} onRecord={onRecord} />;
+  if (step === 'end') return <TryYours analysis={analysis} onImport={onImport} onRecord={onRecord} />;
   const index = DEMO_STEPS.findIndex((s) => s.step === step);
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }} testID={`demo-${step}`}>
@@ -52,9 +54,11 @@ export default function DemoScreen({
           top: insets.top + space.s2,
           right: space.gutter,
           height: 36,
-          paddingHorizontal: space.s3,
+          paddingHorizontal: space.s4,
           justifyContent: 'center',
-          backgroundColor: colors.scrim,
+          backgroundColor: colors.bg,
+          borderWidth: stroke.hairline,
+          borderColor: colors.hairline,
           borderRadius: radius.control,
         }}
       >
@@ -67,7 +71,8 @@ export default function DemoScreen({
           position: 'absolute',
           left: space.gutter,
           right: space.gutter,
-          bottom: Math.max(insets.bottom, space.s4) + 120,
+          // The processing sheet fills the bottom, so its caption sits up top.
+          ...(step === 'processing' ? { top: insets.top + 64 } : { bottom: Math.max(insets.bottom, space.s4) }),
           paddingVertical: space.s3,
           paddingHorizontal: space.s4,
           backgroundColor: colors.surface,
@@ -123,8 +128,12 @@ function DemoPlayer({ analysis }: { analysis: Analysis }) {
   return <PlayerScreen key={frames[i]} analysis={analysis} initialFrame={frames[i]} onBack={noop} onShare={noop} />;
 }
 
-export function TryYours({ onImport, onRecord }: { onImport: () => void; onRecord: () => void }) {
+export function TryYours({ analysis, onImport, onRecord }: { analysis: Analysis; onImport: () => void; onRecord: () => void }) {
   const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
+  const rep = repByIndex(analysis, analysis.bestRepIndex);
+  const still = frameSource((keyFrameForPhase(rep, 'catch') ?? rep.keyFrames[rep.keyFrames.length - 1]).image);
+  const art = { width, height: Math.max(height - 340, width) };
   return (
     <View
       testID="demo-try-yours"
@@ -137,6 +146,12 @@ export function TryYours({ onImport, onRecord }: { onImport: () => void; onRecor
         gap: space.s5,
       }}
     >
+      {still ? (
+        <View pointerEvents="none" style={{ position: 'absolute', left: 0, top: 0, width: art.width, height: art.height }}>
+          <Image testID="demo-try-art" source={still} resizeMode="cover" style={{ width: art.width, height: art.height, opacity: 0.55 }} />
+          <LinearGradient colors={['rgba(0,0,0,0)', colors.bg]} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 200 }} />
+        </View>
+      ) : null}
       <View style={{ gap: space.s3 }}>
         <Text style={[display(44), { color: colors.text }]}>Now try yours</Text>
         <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 17, lineHeight: 24 }}>
