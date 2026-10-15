@@ -80,6 +80,15 @@ export type Cue = {
   };
 };
 
+// Another fault that fired, ranked under the headline cue (most important first, at most 3).
+export type Note = {
+  faultId: string;
+  text: string;
+  why: string;
+  severity: number;
+  reps: number;
+};
+
 export type Failure = {
   reason:
     | 'bar_out_of_frame'
@@ -120,6 +129,8 @@ export type Analysis = {
   reps: Rep[];
   bestRepIndex: number;
   cue: Cue | null;
+  // Absent on analyses made before sub-notes shipped.
+  notes?: Note[];
   measurements: Measurement[];
   failure: Failure | null;
 };
