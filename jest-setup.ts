@@ -330,9 +330,10 @@ jest.mock('./modules/clip-transcoder', () => ({
   },
 }));
 
-// On-device pose (modules/pose-vision): one frame with the lifter and one empty
-// frame; addListener hands each subscriber 0.5 then 1 as analyzePose runs.
-jest.mock('./modules/pose-vision', () => {
+// On-device pose (modules/pose-coreml): one frame with one person (head points
+// null, as the phone drops them) and one empty frame; addListener hands each
+// subscriber 0.5 then 1 as analyzePose runs.
+jest.mock('./modules/pose-coreml', () => {
   const listeners: ((e: { progress: number }) => void)[] = [];
   return {
     __esModule: true,
@@ -340,17 +341,14 @@ jest.mock('./modules/pose-vision', () => {
       analyzePose: jest.fn(async () => {
         listeners.forEach((l) => l({ progress: 0.5 }));
         listeners.forEach((l) => l({ progress: 1 }));
+        const kp = [null, null, null, null, null, [310.5, 402.1, 0.912], ...Array(20).fill([300, 500, 0.5])];
         return {
           fps: 30,
-          width: 1080,
-          height: 1920,
+          width: 720,
+          height: 1280,
           frames: [
-            {
-              t: 0,
-              joints: { left_hand_joint: [500.4, 900.6, 0.812], left_foot_joint: [480, 1800, 0.05] },
-              box: [400.2, 300.7, 700, 1850],
-            },
-            { t: 0.033333, joints: {} },
+            { t: 0, people: [{ box: [250.2, 180, 470.8, 1210.4], kp }], lifter: 0 },
+            { t: 0.0333, people: [] },
           ],
         };
       }),

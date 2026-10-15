@@ -1,6 +1,6 @@
 {
   "platforms": ["apple"],
   "apple": {
-    "modules": ["PoseVisionModule"]
+    "modules": ["PoseCoreMLModule"]
   }
 }
