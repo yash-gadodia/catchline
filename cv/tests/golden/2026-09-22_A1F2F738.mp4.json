@@ -866,7 +866,11 @@
     "note": "hip travel front to back"
    }
   ],
-  "failure": null
+  "failure": null,
+  "detectedMovement": {
+   "movement": "unknown",
+   "confidence": 0.0
+  }
  },
  "keyframes_md5": {
   "r1-1-arch.jpg": "94c7d043677208bc1bbc488be48fe22f",

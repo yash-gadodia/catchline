@@ -34,6 +34,7 @@ def test_reference_clip_output_is_unchanged(name, tmp_path):
     keyframes = {os.path.basename(p): hashlib.md5(open(p, "rb").read()).hexdigest()
                  for p in sorted(glob.glob(str(tmp_path / "keyframes" / "*.jpg")))}
     if os.environ.get("CATCHLINE_GOLDEN_UPDATE"):
-        json.dump({"analysis": analysis, "keyframes_md5": keyframes}, open(os.path.join(GOLDEN, name + ".json"), "w"), indent=1)
+        json.dump({"movement": golden.get("movement", "snatch"), "analysis": analysis, "keyframes_md5": keyframes},
+                  open(os.path.join(GOLDEN, name + ".json"), "w"), indent=1)
     assert analysis == golden["analysis"]
     assert keyframes == golden["keyframes_md5"]

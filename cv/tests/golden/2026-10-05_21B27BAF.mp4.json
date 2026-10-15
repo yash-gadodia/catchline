@@ -745,7 +745,11 @@
     "note": "bar vs mid-foot when it left you (+ = in front)"
    }
   ],
-  "failure": null
+  "failure": null,
+  "detectedMovement": {
+   "movement": "snatch",
+   "confidence": 0.9
+  }
  },
  "keyframes_md5": {
   "r1-1-setup.jpg": "be4e5b4390ec163fe71b348d2c92e273",
