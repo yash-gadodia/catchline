@@ -142,3 +142,10 @@ Build 26: Cues crashed and Trends was empty on a real account. Root cause: the C
 - [ ] (Yash, device) `restorePurchases` runs silently after every Apple sign-in whose RevenueCat tier is free. If an App Store / sandbox login prompt appears right after the Apple sheet, switch `settlePlanAfterSignIn` to `Purchases.syncPurchases()` (never prompts)
 - [ ] (Claude) You tab sign-out has no catch: an offline `auth.signOut()` rejects unhandled (busy flag still resets). Show the app's own error copy
 - Gotchas: RNTL v14 `unmount()` is async; an un-awaited one leaks an act() into the next test ("overlapping act() calls") and every later render in the file fails. The RN jest preset stubs `AppState.addEventListener` with a bare `jest.fn()` (returns undefined, so `.remove()` throws on cleanup); `jest-setup.ts` now gives it a subscription
+
+## Share as an overlay video (15 Oct, worktree branch off catchline)
+- [x] (Claude) Share renders a 9:16 / 4:5 MP4 on the phone from the lifter's own clip (path drawing in sync, phase dots, label + number + cue, wordmark), Share video + Save to Photos, still card fallback when the original is gone. Research: ~/dev/liftcheck-research/35-share-card.md. Needs build 28 (new native code + expo-media-library).
+- [ ] (Yash) Facebook App ID, so Share can open the Instagram Story composer directly (`instagram-stories://share?source_application=<id>` + pasteboard), one tap fewer than the share sheet.
+- [ ] (Claude) Blurred letterbox instead of black bars when the clip is not 9:16 (4:5 feed and landscape clips).
+- [ ] (Claude) Android: renderShareVideo is iOS only; Android shows the still card.
+- Gotchas: `AVVideoCompositionCoreAnimationTool` crashes the iOS 26 simulator (CA::OGL IOSurfaceCreate), so the overlay is drawn per frame with Core Image; iPhone HLG clips need the composition pinned to Rec.709 or the overlay's white exports grey.
