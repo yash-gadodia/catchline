@@ -169,14 +169,14 @@ def read_frame(clip, f, fps, height=KEYFRAME_H):
 
 
 def export_keyframes(ctx, jobs):
-    """Keyframe JPEGs, one per (frame, path), with every person but the lifter blurred (box from their body
-    keypoints, padded). The frames are seeked and decoded in parallel: each is its own ffmpeg process."""
+    """Keyframe JPEGs, one per (frame, path), with every person but the lifter blurred (privacy.blur_bystanders).
+    The frames are seeked and decoded in parallel: each is its own ffmpeg process."""
     fs = [int(min(max(f, 0), ctx["n"] - 1)) for f, _ in jobs]
     with ThreadPoolExecutor(4) as ex:
         imgs = list(ex.map(lambda f: read_frame(ctx["clip"], f, ctx["fps"]), fs))
     for f, img, (_, path) in zip(fs, imgs, jobs):
         others = bystanders(ctx["people"][f], ctx["boxes"][f])
-        lifter = (ctx["k"][f], ctx["ks"][f]) if np.isfinite(ctx["boxes"][f]).all() else None
+        lifter = (ctx["boxes"][f], ctx["k"][f], ctx["ks"][f]) if np.isfinite(ctx["boxes"][f]).all() else None
         img = blur_bystanders(img, others, lifter, scale=img.shape[0] / ctx["H"])
         cv2.imwrite(path, img, [cv2.IMWRITE_JPEG_QUALITY, 85])
 
