@@ -29,7 +29,7 @@ import {
   type Settings,
 } from './settings';
 
-type Nav = { onWhatIsStored: () => void; onDeleteAccount: () => void; onPlan: () => void; onHelp: () => void };
+type Nav = { onDemo: () => void; onWhatIsStored: () => void; onDeleteAccount: () => void; onPlan: () => void; onHelp: () => void };
 type Picker = 'name' | 'units' | 'defaultMovement' | 'frameRate' | 'cueReminder' | 'autoDelete' | null;
 
 function options<T extends string>(labels: Record<T, string>): { value: T; label: string }[] {
@@ -149,6 +149,7 @@ export default function YouScreen({
           testID="row-reminder"
         />
         <Section>Privacy</Section>
+        <Row title="See how it works" right={<Value>›</Value>} onPress={nav.onDemo} testID="row-demo" />
         <Row title="What is stored" right={<Value>›</Value>} onPress={nav.onWhatIsStored} testID="row-stored" />
         <Row title="Auto-delete originals" right={<Value>{labels.autoDelete}</Value>} onPress={() => setPicker('autoDelete')} testID="row-auto-delete" />
         <Row title="Export all my data" right={<Value>›</Value>} onPress={doExport} testID="row-export" />

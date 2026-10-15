@@ -7,15 +7,7 @@ import { display } from '../../design/typography';
 
 const HERO = require('../../../assets/art/welcome-hero.png');
 
-export default function WelcomeScreen({
-  onStart,
-  onImport,
-  onSample,
-}: {
-  onStart: () => void;
-  onImport: () => void;
-  onSample?: () => void;
-}) {
+export default function WelcomeScreen({ onDemo, onImport }: { onDemo: () => void; onImport: () => void }) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const box = { width, height: Math.max(height - 260, width) };
@@ -37,18 +29,13 @@ export default function WelcomeScreen({
       </View>
       <View style={{ paddingHorizontal: space.gutter, paddingBottom: Math.max(insets.bottom, space.s4) + space.s6, gap: space.s5 }}>
         <Text style={[display(44), { color: colors.text }]}>{'Film a lift.\nGet the one thing to fix.'}</Text>
-        <Btn onPress={onStart} testID="welcome-start">
-          Start
-        </Btn>
-        <View style={{ flexDirection: 'row', justifyContent: 'center', gap: space.s6 }}>
-          <Btn kind="text" onPress={onImport} testID="welcome-import">
-            Import a clip
+        <View style={{ gap: space.s3 }}>
+          <Btn onPress={onDemo} testID="welcome-demo">
+            See how it works
           </Btn>
-          {onSample ? (
-            <Btn kind="text" onPress={onSample} testID="welcome-sample">
-              Try a sample lift
-            </Btn>
-          ) : null}
+          <Btn kind="secondary" onPress={onImport} testID="welcome-import">
+            Import your video
+          </Btn>
         </View>
       </View>
     </View>

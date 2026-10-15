@@ -1,4 +1,4 @@
-export type Step = 'launch' | 'welcome' | 'lifts' | 'sample' | 'guide' | 'camera' | 'account' | 'privacy';
+export type Step = 'launch' | 'welcome' | 'demo' | 'lifts' | 'sample' | 'guide' | 'camera' | 'account' | 'privacy';
 
 // 'film' heads for the viewfinder; 'import' heads for the library picker and
 // never asks for the camera.
@@ -33,16 +33,16 @@ function afterGuide(ctx: FlowContext): Destination {
   return finish(ctx);
 }
 
-// Launch to first analysis: welcome, lift picker, sample, filming guide, camera,
+// Launch to first analysis: welcome, the demo, lift picker, filming guide, camera,
 // account (Apple or not), privacy. Each step skips what the user has already done.
 export function nextAfter(current: Step, ctx: FlowContext): Destination {
   switch (current) {
     case 'launch':
       return ctx.completed ? finish(ctx) : step('welcome');
     case 'welcome':
+    case 'demo':
       return ctx.intent === 'import' ? finish(ctx) : step('lifts');
     case 'lifts':
-      return step('sample');
     case 'sample':
       return ctx.guideHidden ? afterGuide(ctx) : step('guide');
     case 'guide':
