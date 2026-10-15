@@ -36,13 +36,14 @@ export default function CueScreen({ analysis, initialWhy = false, nav }: { analy
 
 function CueBody({ analysis, nav, onWhy }: { analysis: Analysis; nav: Nav; onWhy: () => void }) {
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const { lifts, sessions } = useLibrary();
   const cue = analysis.cue!;
   const sample = isSample(analysis);
   const baseline = sample ? null : baselineSentence(analysis, lifts, sessions);
   return (
     <>
-      <EvidenceStage analysis={analysis} cue={cue} box={{ width, height: width }} />
+      <EvidenceStage analysis={analysis} cue={cue} box={{ width, height: width }} safeTop={insets.top} />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: space.s5, paddingHorizontal: space.gutter, gap: space.s3 }}>
         <SmallCaps>{sample ? 'Sample lift · AI estimate' : 'One thing to fix · AI estimate'}</SmallCaps>
         <Text style={[display(40), { color: colors.text }]} testID="cue-text">

@@ -2,7 +2,9 @@ import { loadLibrary } from '../library/repository';
 import { act, fireEvent, render, within } from '@testing-library/react-native';
 import * as Haptics from 'expo-haptics';
 import { useVideoPlayer } from 'expo-video';
-import { COMPARE_TARGETS, snatchMock, snatchMockLow, snatchMockMiss, snatchSample } from '../../analysis/fixtures';
+import { COMPARE_TARGETS, demoBest, snatchMock, snatchMockLow, snatchMockMiss, snatchSample } from '../../analysis/fixtures';
+import { StyleSheet } from 'react-native';
+import EvidenceStage from './EvidenceStage';
 import CueScreen from './CueScreen';
 import PlayerScreen from './PlayerScreen';
 import CompareScreen, { syncByPhase } from './CompareScreen';
@@ -135,6 +137,19 @@ describe('ProcessingSheet', () => {
     expect(Haptics.notificationAsync).toHaveBeenCalledWith('success');
     await press(getByText('See it'));
     expect(handlers.onSee).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('EvidenceStage', () => {
+  // The demo's evidence point is the bar at its peak (y 0.10): on a full-bleed
+  // stage the number landed ~16 pt from the top, under the status bar.
+  it('keeps the hero number below the safe area when the evidence is near the top', async () => {
+    const box = { width: 390, height: 390 };
+    const { getByTestId, rerender } = await render(<EvidenceStage analysis={demoBest} cue={demoBest.cue!} box={box} />);
+    expect(getByTestId('hero-number')).toHaveTextContent('13 cm');
+    expect(StyleSheet.flatten(getByTestId('hero-number').props.style).top).toBeCloseTo(15.55, 2);
+    await rerender(<EvidenceStage analysis={demoBest} cue={demoBest.cue!} box={box} safeTop={62} />);
+    expect(getByTestId('hero-number')).toHaveStyle({ top: 70 });
   });
 });
 
