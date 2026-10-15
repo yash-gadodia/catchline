@@ -120,6 +120,25 @@ supabase functions deploy ops-alert --project-ref slowxjhvrdswdabjfydk --use-api
 ```
 The owner's profile needs a `push_token` (the app writes it once notifications are allowed). Caveat: the worker beats between jobs, so a single analysis longer than 3 minutes raises `worker_silent` (and a recovery right after).
 
+### 5. Apple token revocation on account deletion (built 2026-10-15, GATED, NOT deployed)
+App Store guideline 5.1.1(v): an app with Sign in with Apple must revoke the user's Apple token when the account is deleted. After `signInWithIdToken`, the app (`src/features/auth/appleSignIn.ts`) posts Apple's one-time `authorizationCode` to `apple-token` (fire and forget; never blocks sign-in). `apple-token` (`verify_jwt` on, the JWT's user) exchanges it at `https://appleid.apple.com/auth/token` with a `client_secret` (ES256 JWT: `iss` P6QG53Y747, `sub` = `client_id` = `com.yashgadodia.parallax`, `aud` `https://appleid.apple.com`, `kid` = key id, 10 min expiry; `supabase/functions/_shared/apple.ts`) and upserts the refresh token into `apple_tokens` (0009: RLS on, no policies, service role only). `delete-account` now runs `delete_my_account`, then revokes the stored token at `/auth/revoke` (`token_type_hint=refresh_token`), then deletes the auth user (which cascades the token row); a revoke failure is logged and never blocks the deletion. **GATE:** until `APPLE_SIWA_KEY_ID` and `APPLE_SIWA_PRIVATE_KEY` are set, both functions skip Apple and log "apple revocation not configured" (`// GATE:` in `_shared/apple.ts`). Users who signed in before the key exists have no stored token, so they are not revoked; they get one on their next Apple sign-in. Proven by `supabase/tests/apple_tokens_test.sql` (9), `deno test supabase/functions` (`_shared/apple_test.ts` 7, `apple-token` 4, `delete-account` 6), `src/features/auth/appleSignIn.test.ts`.
+
+Owner steps (Yash), once:
+1. developer.apple.com -> Certificates, IDs & Profiles -> Keys -> **+**.
+2. Name it (e.g. "Catchline SIWA"), tick **Sign in with Apple**, **Configure** -> primary App ID `com.yashgadodia.parallax` -> Save -> Continue -> Register.
+3. **Download** the `.p8` (Apple lets you download it once) and note the 10-character **Key ID**.
+4. Move it into `~/dev/parallax/.secrets/apple/` (e.g. `AuthKey_<KEYID>.p8`), `chmod 600`, delete the Downloads copy. Claude then sets the secrets.
+
+Deploy (after the key exists; the functions are safe to deploy before it, they no-op):
+```sh
+supabase db push --linked                                   # 0009 (after 0008)
+supabase secrets set --project-ref slowxjhvrdswdabjfydk \
+  APPLE_SIWA_KEY_ID=<key id> APPLE_SIWA_PRIVATE_KEY="$(cat .secrets/apple/AuthKey_<KEYID>.p8)"
+supabase functions deploy apple-token --project-ref slowxjhvrdswdabjfydk --use-api
+supabase functions deploy delete-account --project-ref slowxjhvrdswdabjfydk --use-api
+```
+Smoke: sign in with Apple on a build that has this app change, then `select user_id, created_at from public.apple_tokens;` shows the row; delete a throwaway Apple account in the app and check the function log for no "apple revoke failed", and that the app is gone from Settings -> Apple ID -> Sign in with Apple.
+
 ## Known gaps (not built here)
 - **Face blur.** Bystanders are blurred from pose boxes and head keypoints are dropped (CV v2). The lifter's face is not yet blurred in exports/coach links (`14-legal-privacy.md` s.9.2); do it before the coach link is public.
 - **Coach page.** `get_coach_link` returns the analysis, but keyframe images are private storage paths; the public page needs an edge function that mints signed URLs for a valid token. No page exists yet.

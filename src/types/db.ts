@@ -56,6 +56,24 @@ export type Database = {
         }
         Relationships: []
       }
+      apple_tokens: {
+        Row: {
+          created_at: string
+          refresh_token: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          refresh_token: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          refresh_token?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       analyses: {
         Row: {
           analysis: Json

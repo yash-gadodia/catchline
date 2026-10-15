@@ -54,6 +54,16 @@ export async function signInWithApple(): Promise<AppleSignIn> {
   if (error || !data.user) throw new ApiError('not_authenticated', error?.message);
   const userId = data.user.id;
 
+  // Apple's one-time code buys the refresh token that account deletion revokes
+  // (guideline 5.1.1(v)). Server-side only; a failure never blocks sign-in.
+  if (credential.authorizationCode) {
+    void supabase.functions
+      .invoke('apple-token', { body: { authorizationCode: credential.authorizationCode } })
+      .then(({ error: tokenError }) => {
+        if (tokenError) console.log(`[auth] apple-token failed: ${tokenError.message}`);
+      }, () => undefined);
+  }
+
   let transferred = false;
   if (token) {
     const { error: transferError } = await supabase.rpc('complete_account_transfer', { p_token: token });

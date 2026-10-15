@@ -66,3 +66,6 @@ verify_jwt = true
 
 [functions.ops-alert]
 verify_jwt = true
+
+[functions.apple-token]
+verify_jwt = true
