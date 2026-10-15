@@ -1,0 +1,843 @@
+{
+  "id": "demo-best",
+  "cue": {
+    "why": "The bar flew 15 cm forward after hip contact, so you had to chase it.",
+    "text": "Brush the bar up, don't bump it.",
+    "faultId": "bar_forward_off_hips",
+    "evidence": {
+      "to": {
+        "x": 0.4243,
+        "y": 0.3691
+      },
+      "rep": 1,
+      "from": {
+        "x": 0.5247,
+        "y": 0.5775
+      },
+      "unit": "cm",
+      "frame": 358,
+      "value": 15.1,
+      "caption": "hip · 15 cm fwd"
+    },
+    "confidence": "low",
+    "confidenceText": "Seen on 1 of 1 reps, filmed ~43° off side-on: film from the side to confirm"
+  },
+  "reps": [
+    {
+      "made": true,
+      "path": [
+        {
+          "x": 0.4605,
+          "y": 0.7299,
+          "frame": 298
+        },
+        {
+          "x": 0.4625,
+          "y": 0.735,
+          "frame": 299
+        },
+        {
+          "x": 0.4642,
+          "y": 0.7392,
+          "frame": 300
+        },
+        {
+          "x": 0.4655,
+          "y": 0.7426,
+          "frame": 301
+        },
+        {
+          "x": 0.4669,
+          "y": 0.7458,
+          "frame": 302
+        },
+        {
+          "x": 0.4683,
+          "y": 0.7494,
+          "frame": 303
+        },
+        {
+          "x": 0.4697,
+          "y": 0.7528,
+          "frame": 304
+        },
+        {
+          "x": 0.4714,
+          "y": 0.7557,
+          "frame": 305
+        },
+        {
+          "x": 0.4732,
+          "y": 0.7583,
+          "frame": 306
+        },
+        {
+          "x": 0.475,
+          "y": 0.7609,
+          "frame": 307
+        },
+        {
+          "x": 0.4767,
+          "y": 0.7637,
+          "frame": 308
+        },
+        {
+          "x": 0.478,
+          "y": 0.7665,
+          "frame": 309
+        },
+        {
+          "x": 0.4789,
+          "y": 0.7691,
+          "frame": 310
+        },
+        {
+          "x": 0.4796,
+          "y": 0.7707,
+          "frame": 311
+        },
+        {
+          "x": 0.4804,
+          "y": 0.7719,
+          "frame": 312
+        },
+        {
+          "x": 0.4812,
+          "y": 0.7728,
+          "frame": 313
+        },
+        {
+          "x": 0.4818,
+          "y": 0.7736,
+          "frame": 314
+        },
+        {
+          "x": 0.4822,
+          "y": 0.7744,
+          "frame": 315
+        },
+        {
+          "x": 0.4821,
+          "y": 0.7752,
+          "frame": 316
+        },
+        {
+          "x": 0.482,
+          "y": 0.7762,
+          "frame": 317
+        },
+        {
+          "x": 0.4818,
+          "y": 0.7771,
+          "frame": 318
+        },
+        {
+          "x": 0.4814,
+          "y": 0.7776,
+          "frame": 319
+        },
+        {
+          "x": 0.4812,
+          "y": 0.778,
+          "frame": 320
+        },
+        {
+          "x": 0.4812,
+          "y": 0.7783,
+          "frame": 321
+        },
+        {
+          "x": 0.4814,
+          "y": 0.7782,
+          "frame": 322
+        },
+        {
+          "x": 0.4816,
+          "y": 0.7776,
+          "frame": 323
+        },
+        {
+          "x": 0.4814,
+          "y": 0.7762,
+          "frame": 324
+        },
+        {
+          "x": 0.4809,
+          "y": 0.7742,
+          "frame": 325
+        },
+        {
+          "x": 0.4805,
+          "y": 0.7711,
+          "frame": 326
+        },
+        {
+          "x": 0.4804,
+          "y": 0.7667,
+          "frame": 327
+        },
+        {
+          "x": 0.4801,
+          "y": 0.7612,
+          "frame": 328
+        },
+        {
+          "x": 0.4794,
+          "y": 0.755,
+          "frame": 329
+        },
+        {
+          "x": 0.4779,
+          "y": 0.7483,
+          "frame": 330
+        },
+        {
+          "x": 0.476,
+          "y": 0.7408,
+          "frame": 331
+        },
+        {
+          "x": 0.4743,
+          "y": 0.7325,
+          "frame": 332
+        },
+        {
+          "x": 0.4735,
+          "y": 0.7236,
+          "frame": 333
+        },
+        {
+          "x": 0.4736,
+          "y": 0.7145,
+          "frame": 334
+        },
+        {
+          "x": 0.474,
+          "y": 0.7055,
+          "frame": 335
+        },
+        {
+          "x": 0.4742,
+          "y": 0.697,
+          "frame": 336
+        },
+        {
+          "x": 0.4741,
+          "y": 0.6885,
+          "frame": 337
+        },
+        {
+          "x": 0.4745,
+          "y": 0.6795,
+          "frame": 338
+        },
+        {
+          "x": 0.4757,
+          "y": 0.67,
+          "frame": 339
+        },
+        {
+          "x": 0.4776,
+          "y": 0.66,
+          "frame": 340
+        },
+        {
+          "x": 0.4804,
+          "y": 0.6497,
+          "frame": 341
+        },
+        {
+          "x": 0.4842,
+          "y": 0.6387,
+          "frame": 342
+        },
+        {
+          "x": 0.4894,
+          "y": 0.6262,
+          "frame": 343
+        },
+        {
+          "x": 0.4964,
+          "y": 0.6125,
+          "frame": 344
+        },
+        {
+          "x": 0.5049,
+          "y": 0.599,
+          "frame": 345
+        },
+        {
+          "x": 0.5139,
+          "y": 0.5872,
+          "frame": 346
+        },
+        {
+          "x": 0.5214,
+          "y": 0.5779,
+          "frame": 347
+        },
+        {
+          "x": 0.5252,
+          "y": 0.5699,
+          "frame": 348
+        },
+        {
+          "x": 0.5235,
+          "y": 0.5606,
+          "frame": 349
+        },
+        {
+          "x": 0.5154,
+          "y": 0.547,
+          "frame": 350
+        },
+        {
+          "x": 0.5029,
+          "y": 0.5259,
+          "frame": 351
+        },
+        {
+          "x": 0.4896,
+          "y": 0.4963,
+          "frame": 352
+        },
+        {
+          "x": 0.4791,
+          "y": 0.4618,
+          "frame": 353
+        },
+        {
+          "x": 0.4748,
+          "y": 0.4316,
+          "frame": 354
+        },
+        {
+          "x": 0.4774,
+          "y": 0.4105,
+          "frame": 355
+        },
+        {
+          "x": 0.473,
+          "y": 0.3949,
+          "frame": 356
+        },
+        {
+          "x": 0.4464,
+          "y": 0.3811,
+          "frame": 357
+        },
+        {
+          "x": 0.4243,
+          "y": 0.3691,
+          "frame": 358
+        },
+        {
+          "x": 0.4461,
+          "y": 0.3567,
+          "frame": 359
+        },
+        {
+          "x": 0.4934,
+          "y": 0.3417,
+          "frame": 360
+        },
+        {
+          "x": 0.5228,
+          "y": 0.3276,
+          "frame": 361
+        },
+        {
+          "x": 0.5251,
+          "y": 0.3181,
+          "frame": 362
+        },
+        {
+          "x": 0.5154,
+          "y": 0.3121,
+          "frame": 363
+        },
+        {
+          "x": 0.5071,
+          "y": 0.3071,
+          "frame": 364
+        },
+        {
+          "x": 0.5041,
+          "y": 0.3022,
+          "frame": 365
+        },
+        {
+          "x": 0.5041,
+          "y": 0.2987,
+          "frame": 366
+        },
+        {
+          "x": 0.5053,
+          "y": 0.2981,
+          "frame": 367
+        },
+        {
+          "x": 0.5066,
+          "y": 0.3009,
+          "frame": 368
+        },
+        {
+          "x": 0.5067,
+          "y": 0.307,
+          "frame": 369
+        },
+        {
+          "x": 0.5054,
+          "y": 0.3154,
+          "frame": 370
+        },
+        {
+          "x": 0.5041,
+          "y": 0.3249,
+          "frame": 371
+        },
+        {
+          "x": 0.5034,
+          "y": 0.3341,
+          "frame": 372
+        },
+        {
+          "x": 0.5031,
+          "y": 0.3423,
+          "frame": 373
+        },
+        {
+          "x": 0.5035,
+          "y": 0.3503,
+          "frame": 374
+        },
+        {
+          "x": 0.5053,
+          "y": 0.3584,
+          "frame": 375
+        },
+        {
+          "x": 0.5078,
+          "y": 0.3662,
+          "frame": 376
+        },
+        {
+          "x": 0.5096,
+          "y": 0.3732,
+          "frame": 377
+        },
+        {
+          "x": 0.5104,
+          "y": 0.3796,
+          "frame": 378
+        },
+        {
+          "x": 0.5104,
+          "y": 0.3859,
+          "frame": 379
+        },
+        {
+          "x": 0.5095,
+          "y": 0.3927,
+          "frame": 380
+        },
+        {
+          "x": 0.508,
+          "y": 0.3996,
+          "frame": 381
+        },
+        {
+          "x": 0.5068,
+          "y": 0.4065,
+          "frame": 382
+        },
+        {
+          "x": 0.5066,
+          "y": 0.4137,
+          "frame": 383
+        },
+        {
+          "x": 0.5082,
+          "y": 0.4209,
+          "frame": 384
+        },
+        {
+          "x": 0.5111,
+          "y": 0.4277,
+          "frame": 385
+        },
+        {
+          "x": 0.5128,
+          "y": 0.4337,
+          "frame": 386
+        },
+        {
+          "x": 0.5116,
+          "y": 0.4387,
+          "frame": 387
+        },
+        {
+          "x": 0.5096,
+          "y": 0.4427,
+          "frame": 388
+        },
+        {
+          "x": 0.509,
+          "y": 0.4462,
+          "frame": 389
+        },
+        {
+          "x": 0.5091,
+          "y": 0.4492,
+          "frame": 390
+        },
+        {
+          "x": 0.5085,
+          "y": 0.4516,
+          "frame": 391
+        },
+        {
+          "x": 0.5076,
+          "y": 0.4536,
+          "frame": 392
+        },
+        {
+          "x": 0.5076,
+          "y": 0.4558,
+          "frame": 393
+        },
+        {
+          "x": 0.5076,
+          "y": 0.458,
+          "frame": 394
+        },
+        {
+          "x": 0.5068,
+          "y": 0.4599,
+          "frame": 395
+        },
+        {
+          "x": 0.5057,
+          "y": 0.461,
+          "frame": 396
+        },
+        {
+          "x": 0.505,
+          "y": 0.4613,
+          "frame": 397
+        },
+        {
+          "x": 0.5042,
+          "y": 0.4612,
+          "frame": 398
+        },
+        {
+          "x": 0.5028,
+          "y": 0.4607,
+          "frame": 399
+        },
+        {
+          "x": 0.5021,
+          "y": 0.4595,
+          "frame": 400
+        },
+        {
+          "x": 0.5024,
+          "y": 0.4573,
+          "frame": 401
+        },
+        {
+          "x": 0.5024,
+          "y": 0.4539,
+          "frame": 402
+        },
+        {
+          "x": 0.5019,
+          "y": 0.4498,
+          "frame": 403
+        },
+        {
+          "x": 0.5021,
+          "y": 0.4451,
+          "frame": 404
+        },
+        {
+          "x": 0.504,
+          "y": 0.4395,
+          "frame": 405
+        },
+        {
+          "x": 0.5066,
+          "y": 0.433,
+          "frame": 406
+        },
+        {
+          "x": 0.5079,
+          "y": 0.4251,
+          "frame": 407
+        },
+        {
+          "x": 0.5073,
+          "y": 0.4161,
+          "frame": 408
+        },
+        {
+          "x": 0.5059,
+          "y": 0.4068,
+          "frame": 409
+        },
+        {
+          "x": 0.5054,
+          "y": 0.3978,
+          "frame": 410
+        },
+        {
+          "x": 0.5063,
+          "y": 0.3894,
+          "frame": 411
+        },
+        {
+          "x": 0.5085,
+          "y": 0.3812,
+          "frame": 412
+        },
+        {
+          "x": 0.5117,
+          "y": 0.3727,
+          "frame": 413
+        },
+        {
+          "x": 0.515,
+          "y": 0.363,
+          "frame": 414
+        },
+        {
+          "x": 0.517,
+          "y": 0.3527,
+          "frame": 415
+        },
+        {
+          "x": 0.5162,
+          "y": 0.3426,
+          "frame": 416
+        },
+        {
+          "x": 0.5144,
+          "y": 0.3321,
+          "frame": 417
+        },
+        {
+          "x": 0.5138,
+          "y": 0.3205,
+          "frame": 418
+        },
+        {
+          "x": 0.5147,
+          "y": 0.3082,
+          "frame": 419
+        },
+        {
+          "x": 0.5158,
+          "y": 0.2959,
+          "frame": 420
+        },
+        {
+          "x": 0.5165,
+          "y": 0.2848,
+          "frame": 421
+        },
+        {
+          "x": 0.5173,
+          "y": 0.2748,
+          "frame": 422
+        },
+        {
+          "x": 0.5185,
+          "y": 0.2639,
+          "frame": 423
+        },
+        {
+          "x": 0.5194,
+          "y": 0.2503,
+          "frame": 424
+        },
+        {
+          "x": 0.5196,
+          "y": 0.2358,
+          "frame": 425
+        },
+        {
+          "x": 0.518,
+          "y": 0.2242,
+          "frame": 426
+        },
+        {
+          "x": 0.5145,
+          "y": 0.2155,
+          "frame": 427
+        },
+        {
+          "x": 0.5109,
+          "y": 0.2055,
+          "frame": 428
+        },
+        {
+          "x": 0.5099,
+          "y": 0.1927,
+          "frame": 429
+        }
+      ],
+      "index": 1,
+      "phases": [
+        {
+          "name": "setup",
+          "endFrame": 327,
+          "startFrame": 298
+        },
+        {
+          "name": "first_pull",
+          "endFrame": 344,
+          "startFrame": 328
+        },
+        {
+          "name": "transition",
+          "endFrame": 348,
+          "startFrame": 345
+        },
+        {
+          "name": "second_pull",
+          "endFrame": 353,
+          "startFrame": 349
+        },
+        {
+          "name": "turnover",
+          "endFrame": 367,
+          "startFrame": 354
+        },
+        {
+          "name": "catch",
+          "endFrame": 397,
+          "startFrame": 368
+        },
+        {
+          "name": "recovery",
+          "endFrame": 429,
+          "startFrame": 398
+        }
+      ],
+      "endFrame": 429,
+      "keyFrames": [
+        {
+          "frame": 327,
+          "image": "assets/demo/r1-1-setup.jpg",
+          "phase": "setup"
+        },
+        {
+          "frame": 344,
+          "image": "assets/demo/r1-2-first_pull.jpg",
+          "phase": "first_pull"
+        },
+        {
+          "frame": 348,
+          "image": "assets/demo/r1-3-transition.jpg",
+          "phase": "transition"
+        },
+        {
+          "frame": 353,
+          "image": "assets/demo/r1-4-second_pull.jpg",
+          "phase": "second_pull"
+        },
+        {
+          "frame": 360,
+          "image": "assets/demo/r1-5-turnover.jpg",
+          "phase": "turnover"
+        },
+        {
+          "frame": 367,
+          "image": "assets/demo/r1-6-catch.jpg",
+          "phase": "catch"
+        },
+        {
+          "frame": 429,
+          "image": "assets/demo/r1-7-recovery.jpg",
+          "phase": "recovery"
+        }
+      ],
+      "startFrame": 298
+    }
+  ],
+  "video": {
+    "fps": 30,
+    "uri": "assets/demo/demo-best.mp4",
+    "width": 608,
+    "height": 1080,
+    "frameCount": 491
+  },
+  "failure": null,
+  "pxPerCm": 5.593,
+  "version": 1,
+  "movement": "snatch",
+  "traceKind": "bar",
+  "bestRepIndex": 1,
+  "measurements": [
+    {
+      "id": "hips_rise_early",
+      "note": "hips vs shoulders, floor to knee",
+      "unit": "cm",
+      "frame": 335,
+      "label": "Hips rose early",
+      "value": -4.3,
+      "status": "normal"
+    },
+    {
+      "id": "bar_forward_off_hips",
+      "note": "after hip contact; corrected for a camera ~43° off side-on, so treat as an estimate",
+      "unit": "cm",
+      "frame": 358,
+      "label": "Bar forward off hips",
+      "value": 15.1,
+      "status": "cue"
+    },
+    {
+      "id": "jump_forward",
+      "note": "feet, lift-off to catch; corrected for a camera ~43° off side-on, so treat as an estimate",
+      "unit": "cm",
+      "frame": 367,
+      "label": "Jumped forward",
+      "value": 2.4,
+      "status": "normal"
+    },
+    {
+      "id": "bar_peak_height",
+      "note": "above lift-off (wrist midpoint)",
+      "unit": "cm",
+      "frame": 367,
+      "label": "Bar peak height",
+      "value": 88.9,
+      "status": "normal"
+    },
+    {
+      "id": "catch_depth",
+      "note": "power catch, hip above knee, knee 71°",
+      "unit": "cm",
+      "frame": 396,
+      "label": "Catch depth",
+      "value": 0.4,
+      "status": "normal"
+    },
+    {
+      "id": "turnover_time",
+      "note": "± 1 frame at 30 fps",
+      "unit": "s",
+      "frame": 353,
+      "label": "Extension to catch",
+      "value": 0.47,
+      "status": "normal"
+    }
+  ],
+  "movementUsed": "snatch",
+  "detectedMovement": {
+    "movement": "snatch",
+    "confidence": 0.9
+  }
+}

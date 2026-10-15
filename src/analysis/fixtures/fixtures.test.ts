@@ -1,4 +1,4 @@
-import { COMPARE_TARGETS, getAnalysis, horizontalCm, snatchMock, snatchMockLow, snatchMockMiss } from '.';
+import { COMPARE_TARGETS, DEMO_ID, demoBest, demoBestRaw, getAnalysis, horizontalCm, isSample, snatchMock, snatchMockLow, snatchMockMiss } from '.';
 import { frameSource } from '../frames';
 import { pointAt, repByIndex } from '../timeline';
 
@@ -50,5 +50,41 @@ describe('snatch mock fixture', () => {
     expect(getAnalysis(undefined)?.id).toBe('snatch-mock');
     expect(getAnalysis(['snatch-mock-low'])?.id).toBe('snatch-mock-low');
     expect(getAnalysis('snatch-sample')?.id).toBe('snatch-sample');
+  });
+});
+
+describe('demo-best fixture (the owner\'s snatch, prod lift 4d50a976)', () => {
+  it('parses the stored analysis with its real cue, one full rep and every keyframe bundled', () => {
+    expect(demoBestRaw.id).toBe('demo-best');
+    expect(demoBestRaw.movement).toBe('snatch');
+    expect(demoBestRaw.movementUsed).toBe('snatch');
+    expect(demoBestRaw.cue?.text).toBe("Brush the bar up, don't bump it.");
+    expect(demoBestRaw.cue?.confidence).toBe('low');
+    expect(demoBestRaw.cue?.evidence.caption).toBe('hip · 15 cm fwd');
+    const rep = demoBestRaw.reps[0];
+    expect([rep.startFrame, rep.endFrame]).toEqual([298, 429]);
+    expect(rep.path).toHaveLength(132);
+    expect(rep.keyFrames.map((k) => k.image)).toEqual([
+      'asset:demo-best/r1-1-setup',
+      'asset:demo-best/r1-2-first_pull',
+      'asset:demo-best/r1-3-transition',
+      'asset:demo-best/r1-4-second_pull',
+      'asset:demo-best/r1-5-turnover',
+      'asset:demo-best/r1-6-catch',
+      'asset:demo-best/r1-7-recovery',
+    ]);
+    for (const k of rep.keyFrames) {
+      expect(frameSource(k.image)).not.toBeNull();
+      expect(frameSource(k.image, true)).not.toBeNull();
+    }
+  });
+
+  it('shows the standard result in the demo, says why the numbers are estimates, and counts as a sample', () => {
+    expect(demoBest.cue?.confidence).toBe('clear');
+    expect(demoBest.cue?.confidenceText).toBe('Filmed ~43° off side-on, so the numbers are estimates');
+    expect(demoBest.cue?.text).toBe(demoBestRaw.cue?.text);
+    expect(getAnalysis(DEMO_ID)).toBe(demoBest);
+    expect(isSample(demoBest)).toBe(true);
+    expect(isSample(snatchMock)).toBe(false);
   });
 });
