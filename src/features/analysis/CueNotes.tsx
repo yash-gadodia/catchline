@@ -3,7 +3,7 @@ import { Pressable, Text, View } from 'react-native';
 import type { Note } from '../../analysis/types';
 import SmallCaps from '../../components/SmallCaps';
 import { colors, space } from '../../design/tokens';
-import { fontFamily } from '../../design/typography';
+import { type } from '../../design/typography';
 
 const LONG_WHY = 60;
 
@@ -24,7 +24,7 @@ export const DISCLAIMER = 'AI estimate from one camera angle. Not coaching or me
 
 export function Disclaimer() {
   return (
-    <Text testID="disclaimer" style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 12, lineHeight: 16, paddingTop: space.s2 }}>
+    <Text testID="disclaimer" style={{ ...type.small, color: colors.text2, paddingTop: space.s2 }}>
       {DISCLAIMER}
     </Text>
   );
@@ -40,15 +40,15 @@ function NoteRow({ note }: { note: Note }) {
       onPress={() => setOpen((o) => !o)}
       accessibilityRole={long ? 'button' : undefined}
       accessibilityState={long ? { expanded: open } : undefined}
-      style={{ gap: 2 }}
+      style={{ gap: space.s1 }}
     >
-      <Text numberOfLines={1} style={{ color: colors.text, fontFamily: fontFamily.bodyMedium, fontSize: 15, lineHeight: 20 }}>
+      <Text numberOfLines={1} style={{ ...type.label, color: colors.text }}>
         {note.text}
       </Text>
       <Text
         testID={`note-why-${note.faultId}`}
         numberOfLines={open ? undefined : 1}
-        style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 13, lineHeight: 18 }}
+        style={{ ...type.small, color: colors.text2 }}
       >
         {note.why}
       </Text>

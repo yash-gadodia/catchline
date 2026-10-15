@@ -22,7 +22,7 @@ import Segmented from '../../components/Segmented';
 import TopBar from '../../components/TopBar';
 import { impact } from '../../lib/haptics';
 import { colors, opacity, radius, space } from '../../design/tokens';
-import { display, fontFamily } from '../../design/typography';
+import { display, fontFamily, type } from '../../design/typography';
 import Stage, { type StageLayer } from './Stage';
 import { CurrentDot, FlarePath, KeyDots, OverlaySvg, RefLine } from './overlays';
 import Scrubber from './Scrubber';
@@ -214,11 +214,11 @@ export default function PlayerScreen({
         <View style={{ minWidth: 48, alignItems: 'flex-end' }}>
           <Text
             testID="frame-number"
-            style={{ color: colors.text, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18, fontVariant: ['tabular-nums'] }}
+            style={{ ...type.readout, color: colors.text, fontVariant: ['tabular-nums'] }}
           >
             {frame}
           </Text>
-          <Text testID="frame-phase" numberOfLines={1} style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 11, lineHeight: 14 }}>
+          <Text testID="frame-phase" numberOfLines={1} style={{ ...type.caption, color: colors.text2 }}>
             {phase ? shortPhase(phase.name) : '–'}
           </Text>
         </View>
@@ -233,7 +233,7 @@ export default function PlayerScreen({
             <Text style={[display(26), { color: colors.text }]} numberOfLines={2}>
               {analysis.cue.text}
             </Text>
-            <Text testID="player-confidence" style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 12, lineHeight: 16 }}>
+            <Text testID="player-confidence" style={{ ...type.caption, color: colors.text2 }}>
               {confidenceLine(analysis.cue)}
             </Text>
           </>
@@ -265,7 +265,7 @@ function StepButton({ dir, onPress }: { dir: 1 | -1; onPress: () => void }) {
       hitSlop={4}
       style={{ width: 36, height: 40, marginLeft: dir < 0 ? space.s2 : 0, alignItems: 'center', justifyContent: 'center' }}
     >
-      <Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 22, lineHeight: 26 }}>{dir < 0 ? '‹' : '›'}</Text>
+      <Text style={{ ...type.title, color: colors.text }}>{dir < 0 ? '‹' : '›'}</Text>
     </Pressable>
   );
 }
