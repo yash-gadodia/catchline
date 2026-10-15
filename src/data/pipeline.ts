@@ -6,6 +6,7 @@ import type { Lift } from '../types/db';
 import type { ClipSubmission } from '../features/capture/submit';
 import { usePurchases } from '../features/purchases/usePurchases';
 import { syncConsent } from './backend';
+import { analyzeClipPose, onDevicePoseEnabled } from './onDevicePose';
 import { ClipTooLongError, discardPrepared, prepareClip } from './prepare';
 
 export type JobStatus = 'preparing' | 'uploading' | 'queued' | 'processing' | 'done' | 'failed';
@@ -61,7 +62,8 @@ export async function readClip(uri: string): Promise<UploadSource> {
 }
 
 // The first processing step: "Preparing your clip" while it is trimmed and
-// re-encoded on the phone, then "Uploading your clip" with the bytes sent.
+// re-encoded on the phone (behind EXPO_PUBLIC_ON_DEVICE_POSE the encode fills the
+// first half of the bar and the body pose the second), then "Uploading your clip" with the bytes sent.
 export function uploadStep(job: Job | null): { label: string; meta: string | null } {
   if (job?.status === 'preparing') return { label: 'Preparing your clip', meta: `preparing ${Math.round(job.prepared * 100)}%` };
   const meta = job?.status === 'uploading' && job.total > 0 ? `uploading ${Math.round((job.sent / job.total) * 100)}%` : null;
@@ -103,14 +105,17 @@ export async function startLift(sub: ClipSubmission & { uri: string }, read: (ur
   let prepared: string | null = null;
   try {
     await syncConsent();
-    const clip = await prepareClip(sub.uri, sub.trim, (p) => patch({ prepared: p }));
+    const pose = onDevicePoseEnabled();
+    const clip = await prepareClip(sub.uri, sub.trim, (p) => patch({ prepared: pose ? p / 2 : p }));
     prepared = clip.uri;
+    const poseJson = pose ? await analyzeClipPose(clip.uri, (p) => patch({ prepared: 0.5 + p / 2 })) : null;
     const file = await read(clip.uri);
     patch({ status: 'uploading', prepared: 1, total: file.size });
     const lift = await createLiftSynced({
       movement: sub.movement,
       loadKg: sub.loadKg ?? undefined,
       file,
+      pose: poseJson ?? undefined,
       contentType: 'video/mp4',
       onUploadUrl: (uploadUrl) => patch({ uploadUrl }),
       onProgress: (sent, total) => patch({ sent, total }),

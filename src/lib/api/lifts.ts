@@ -20,6 +20,7 @@ export type CreateLiftInput = UploadOptions & {
   movement: Movement;
   loadKg?: number;
   file: UploadSource;
+  pose?: string;
 };
 
 async function accessToken(): Promise<string> {
@@ -54,13 +55,27 @@ export async function uploadLiftClip(lift: Pick<Lift, 'clip_path'>, file: Upload
   }
 }
 
+export const posePath = (clipPath: string) => `${clipPath}.pose.json`;
+
+/** The on-device body pose, next to the clip. enqueue_lift marks the lift pose_source 'device' when it is there. */
+export async function uploadLiftPose(lift: Pick<Lift, 'clip_path'>, json: string): Promise<boolean> {
+  const { error } = await supabase.storage
+    .from(RAW_BUCKET)
+    .upload(posePath(lift.clip_path), json, { contentType: 'application/json', upsert: false });
+  return !error;
+}
+
 export async function enqueueLift(liftId: string): Promise<Lift> {
   const { data, error } = await supabase.rpc('enqueue_lift', { p_lift_id: liftId });
   if (error) throw toApiError(error);
   return data as Lift;
 }
 
-/** Reserve a lift (consent + cap checked server-side), upload the clip, queue it for analysis. */
+/**
+ * Reserve a lift (consent + cap checked server-side), upload the clip (and the
+ * on-device pose, if any), queue it for analysis. A pose that fails to upload is
+ * dropped: the worker then runs its own pose model.
+ */
 export async function createLift(input: CreateLiftInput): Promise<Lift> {
   const { data, error } = await supabase.rpc('create_lift', {
     p_movement: input.movement,
@@ -69,6 +84,7 @@ export async function createLift(input: CreateLiftInput): Promise<Lift> {
   if (error) throw toApiError(error);
   const lift = data as Lift;
   await uploadLiftClip(lift, input.file, input);
+  if (input.pose) await uploadLiftPose(lift, input.pose).catch(() => false);
   return enqueueLift(lift.id);
 }
 

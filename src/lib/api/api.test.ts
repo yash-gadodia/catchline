@@ -120,6 +120,39 @@ describe('createLift', () => {
     expect(tus.file).toBe(file);
   });
 
+  it('uploads the on-device pose next to the clip before it enqueues', async () => {
+    const order: string[] = [];
+    const upload = jest.fn(async () => {
+      order.push('pose');
+      return { data: { path: 'u1/l1.pose.json' }, error: null };
+    });
+    mocked.storage.from.mockReturnValueOnce({ upload });
+    mocked.rpc
+      .mockImplementationOnce(async () => ({ data: LIFT, error: null }))
+      .mockImplementationOnce(async (fn: string) => {
+        order.push(fn);
+        return { data: { ...LIFT, status: 'queued' }, error: null };
+      });
+
+    await createLift({ movement: 'snatch', file: new Blob([]), pose: '{"frames":[]}' });
+
+    expect(mocked.storage.from.mock.calls).toEqual([['raw-clips']]);
+    expect(upload.mock.calls).toEqual([['u1/l1.pose.json', '{"frames":[]}', { contentType: 'application/json', upsert: false }]]);
+    expect(order).toEqual(['pose', 'enqueue_lift']);
+  });
+
+  it('a pose upload that fails still enqueues the lift (the worker runs pose)', async () => {
+    mocked.storage.from.mockReturnValueOnce({ upload: jest.fn(async () => ({ data: null, error: { message: 'denied' } })) });
+    mocked.rpc
+      .mockResolvedValueOnce({ data: LIFT, error: null })
+      .mockResolvedValueOnce({ data: { ...LIFT, status: 'queued' }, error: null });
+
+    const lift = await createLift({ movement: 'snatch', file: new Blob([]), pose: '{"frames":[]}' });
+
+    expect(lift.status).toBe('queued');
+    expect(mocked.rpc.mock.calls[1]).toEqual(['enqueue_lift', { p_lift_id: 'l1' }]);
+  });
+
   it('turns the server reason into a typed error and uploads nothing', async () => {
     mocked.rpc.mockResolvedValueOnce({ data: null, error: { message: 'cap_reached' } });
     await expect(createLift({ movement: 'snatch', file: new Blob([]) })).rejects.toEqual(new ApiError('cap_reached'));

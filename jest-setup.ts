@@ -330,6 +330,38 @@ jest.mock('./modules/clip-transcoder', () => ({
   },
 }));
 
+// On-device pose (modules/pose-vision): one frame with the lifter and one empty
+// frame; addListener hands each subscriber 0.5 then 1 as analyzePose runs.
+jest.mock('./modules/pose-vision', () => {
+  const listeners: ((e: { progress: number }) => void)[] = [];
+  return {
+    __esModule: true,
+    default: {
+      analyzePose: jest.fn(async () => {
+        listeners.forEach((l) => l({ progress: 0.5 }));
+        listeners.forEach((l) => l({ progress: 1 }));
+        return {
+          fps: 30,
+          width: 1080,
+          height: 1920,
+          frames: [
+            {
+              t: 0,
+              joints: { left_hand_joint: [500.4, 900.6, 0.812], left_foot_joint: [480, 1800, 0.05] },
+              box: [400.2, 300.7, 700, 1850],
+            },
+            { t: 0.033333, joints: {} },
+          ],
+        };
+      }),
+      addListener: jest.fn((_e: string, l: (e: { progress: number }) => void) => {
+        listeners.push(l);
+        return { remove: jest.fn(() => listeners.splice(listeners.indexOf(l), 1)) };
+      }),
+    },
+  };
+});
+
 // The RN preset stubs AppState.addEventListener with a bare jest.fn (nothing to
 // remove on cleanup); give it the real shape so screens that watch the
 // foreground unmount cleanly.

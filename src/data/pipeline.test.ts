@@ -5,8 +5,20 @@ jest.mock('expo-file-system', () => ({ File: jest.fn() }));
 jest.mock('./backend', () => ({ syncConsent: jest.fn(async () => undefined) }));
 jest.mock('./prepare', () => ({
   ClipTooLongError: class ClipTooLongError extends Error {},
-  prepareClip: jest.fn(async (uri: string) => ({ uri: `${uri}.mp4` })),
+  prepareClip: jest.fn(async (uri: string, _trim: unknown, onProgress: (p: number) => void) => {
+    onProgress(0.5);
+    onProgress(1);
+    return { uri: `${uri}.mp4` };
+  }),
   discardPrepared: jest.fn(),
+}));
+jest.mock('./onDevicePose', () => ({
+  onDevicePoseEnabled: jest.fn(() => false),
+  analyzeClipPose: jest.fn(async (_uri: string, onProgress: (p: number) => void) => {
+    onProgress(0.5);
+    onProgress(1);
+    return '{"source":"apple-vision"}';
+  }),
 }));
 jest.mock('../lib/api', () => ({
   ...jest.requireActual('../lib/api/errors'),
@@ -19,6 +31,7 @@ jest.mock('../features/purchases/usePurchases', () => ({
 }));
 
 import { ApiError, createLift, syncPlan } from '../lib/api';
+import { analyzeClipPose, onDevicePoseEnabled } from './onDevicePose';
 
 const mockCreateLift = createLift as jest.Mock;
 const mockSyncPlan = syncPlan as jest.Mock;
@@ -79,6 +92,45 @@ describe('startLift when create_lift says cap_reached', () => {
     await startLift(SUB, read);
     expect(mockSyncPlan).not.toHaveBeenCalled();
     expect(usePipeline.getState().job).toMatchObject({ status: 'failed', error: 'consent_required' });
+  });
+});
+
+describe('startLift with on-device pose', () => {
+  const prepared: number[] = [];
+  let unsub: () => void = () => undefined;
+  beforeEach(() => {
+    prepared.length = 0;
+    unsub = usePipeline.subscribe((s, prev) => {
+      if (s.job && s.job.prepared !== prev.job?.prepared) prepared.push(s.job.prepared);
+    });
+  });
+  afterEach(() => unsub());
+
+  it('flag off: no Vision call, no pose sent, the encode fills the whole bar', async () => {
+    mockCreateLift.mockResolvedValueOnce(LIFT);
+    await startLift(SUB, read);
+    expect(analyzeClipPose).not.toHaveBeenCalled();
+    expect(mockCreateLift.mock.calls[0][0].pose).toBeUndefined();
+    expect(prepared).toEqual([0, 0.5, 1]);
+  });
+
+  it('flag on: pose of the prepared clip goes up with the lift, each step half the bar', async () => {
+    (onDevicePoseEnabled as jest.Mock).mockReturnValueOnce(true);
+    mockCreateLift.mockResolvedValueOnce(LIFT);
+    await startLift(SUB, read);
+    expect((analyzeClipPose as jest.Mock).mock.calls[0][0]).toBe('file:///clip.mov.mp4');
+    expect(mockCreateLift.mock.calls[0][0].pose).toBe('{"source":"apple-vision"}');
+    expect(prepared).toEqual([0, 0.25, 0.5, 0.75, 1]);
+    expect(usePipeline.getState().job).toMatchObject({ status: 'queued', liftId: 'l1', error: null });
+  });
+
+  it('flag on but Vision gave nothing: the lift goes up without a pose', async () => {
+    (onDevicePoseEnabled as jest.Mock).mockReturnValueOnce(true);
+    (analyzeClipPose as jest.Mock).mockResolvedValueOnce(null);
+    mockCreateLift.mockResolvedValueOnce(LIFT);
+    await startLift(SUB, read);
+    expect(mockCreateLift.mock.calls[0][0].pose).toBeUndefined();
+    expect(usePipeline.getState().job).toMatchObject({ status: 'queued', liftId: 'l1', error: null });
   });
 });
 
