@@ -817,6 +817,15 @@
     "caption": "knees through 59\u00b0"
    }
   },
+  "notes": [
+   {
+    "faultId": "no_push_away",
+    "text": "Chin over, then push the bar away.",
+    "why": "You dropped straight down after the rep, so the next swing had nothing to load.",
+    "severity": 2.0,
+    "reps": 1
+   }
+  ],
   "measurements": [
    {
     "id": "leg_kip",

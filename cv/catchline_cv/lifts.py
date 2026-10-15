@@ -123,10 +123,12 @@ def write_out(ctx, rep_info, extra_fields=None):
                          "phases": r["phases"], "keyFrames": kfs, "path": r["path"]})
     export_keyframes(ctx, jobs)
     analysis = base(ctx["analysis_id"], ctx["meta"], ctx["n"], movement) | {
-        "reps": out_reps, "bestRepIndex": best["index"], "cue": cue, "measurements": measurements, "failure": None}
+        "reps": out_reps, "bestRepIndex": best["index"], "cue": cue, "notes": rules.notes(movement, rep_info, cue),
+        "measurements": measurements, "failure": None}
     if cue_rep["px_per_cm"]:
         analysis = {**analysis, "pxPerCm": round(cue_rep["px_per_cm"] * KEYFRAME_H / ctx["H"], 3)}
-        order = ["version", "id", "movement", "video", "traceKind", "pxPerCm", "reps", "bestRepIndex", "cue", "measurements", "failure"]
+        order = ["version", "id", "movement", "video", "traceKind", "pxPerCm", "reps", "bestRepIndex", "cue", "notes",
+                 "measurements", "failure"]
         analysis = {kk: analysis[kk] for kk in order if kk in analysis}
     write(ctx["out_json"], analysis)
     timing = {"pose_s": round(ctx["t_pose"], 1), "total_s": round(time.time() - ctx["t0"], 1)}

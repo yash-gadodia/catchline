@@ -343,12 +343,12 @@ describe('capture → upload → processing → cue (backend mode)', () => {
     expect(nav.push.mock.calls).toEqual([[{ pathname: '/analysis/processing', params: { live: '1' } }]]);
   });
 
-  it('"Film another set" on a low-confidence cue goes to the Lifts tab, then the viewfinder', async () => {
+  it('"Film again from the side" on a low-confidence (camera angle) cue goes to the Lifts tab, then the viewfinder', async () => {
     await submitClip(CLIP);
     await settle();
     params.current = { live: '1' };
     const processing = await render(<ProcessingRoute />);
-    analysisRow = { analysis: { ...mock, id: 'lift-1', cue: { ...mock.cue, confidence: 'low', confidenceText: 'Hip hidden.' } } };
+    analysisRow = { analysis: { ...mock, id: 'lift-1', cue: { ...mock.cue, confidence: 'low', confidenceText: 'Seen on 1 of 1 reps, filmed ~40° off side-on: film from the side to confirm' } } };
     await act(async () => {
       channel.change?.({ new: { ...LIFT, status: 'done' } });
     });

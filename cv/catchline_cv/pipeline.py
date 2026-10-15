@@ -135,6 +135,7 @@ def run_snatch(ctx):
         "reps": out_reps,
         "bestRepIndex": best["index"],
         "cue": cue,
+        "notes": rules.notes("snatch", rep_info, cue),
         "measurements": measurements,
         "failure": None,
     }

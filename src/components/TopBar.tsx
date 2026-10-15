@@ -9,12 +9,14 @@ export default function TopBar({
   title,
   center,
   more = true,
+  onMore,
 }: {
   back?: string;
   onBack?: () => void;
   title?: string;
   center?: ReactNode;
   more?: boolean;
+  onMore?: () => void;
 }) {
   return (
     <View
@@ -40,17 +42,27 @@ export default function TopBar({
             {title}
           </Text>
         ) : null)}
-      <Text
-        style={{
-          color: more ? colors.text : 'transparent',
-          fontFamily: fontFamily.bodyBold,
-          fontSize: 17,
-          lineHeight: 22,
-          letterSpacing: 1,
-        }}
+      <Pressable
+        onPress={onMore}
+        disabled={!more || !onMore}
+        hitSlop={12}
+        accessibilityRole="button"
+        accessibilityLabel="More"
+        accessibilityElementsHidden={!more || !onMore}
+        testID="topbar-more"
       >
-        ···
-      </Text>
+        <Text
+          style={{
+            color: more && onMore ? colors.text : 'transparent',
+            fontFamily: fontFamily.bodyBold,
+            fontSize: 17,
+            lineHeight: 22,
+            letterSpacing: 1,
+          }}
+        >
+          ···
+        </Text>
+      </Pressable>
     </View>
   );
 }

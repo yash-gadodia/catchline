@@ -190,10 +190,29 @@ describe('CueScreen', () => {
     expect(getByText('Bar drifting at the knee')).toBeOnTheScreen();
     expect(getByTestId('dashed-path')).toBeOnTheScreen();
     expect(getByText('dashed path = lower confidence')).toBeOnTheScreen();
-    await press(getByText('Film another set'));
-    expect(nav.onFilmAgain).toHaveBeenCalledTimes(1);
-    await press(getByText('Analyse'));
+    await press(getByTestId('see-breakdown'));
     expect(nav.onTry).toHaveBeenCalledTimes(1);
+  });
+
+  it('low confidence: one primary action that tracks the cue and opens the breakdown', async () => {
+    const onKeep = jest.fn(() => expect(nav.onTry).not.toHaveBeenCalled());
+    const { getByTestId, queryByTestId, queryByText } = await render(<CueScreen analysis={snatchMockLow} nav={{ ...nav, onKeep }} />);
+    expect(getByTestId('see-breakdown')).toHaveTextContent('See the breakdown');
+    expect(queryByText('Analyse')).toBeNull();
+    expect(queryByText('Film another set')).toBeNull();
+    expect(queryByTestId('film-again')).toBeNull();
+    await press(getByTestId('see-breakdown'));
+    expect(onKeep).toHaveBeenCalledTimes(1);
+    expect(nav.onTry).toHaveBeenCalledTimes(1);
+  });
+
+  it('low confidence from the camera angle offers filming again from the side', async () => {
+    const angled = { ...snatchMockLow, cue: { ...snatchMockLow.cue!, confidence: 'low' as const, confidenceText: 'Seen on 1 of 2 reps, filmed ~36° off side-on: film from the side to confirm' } };
+    const { getByTestId } = await render(<CueScreen analysis={angled} nav={nav} />);
+    expect(getByTestId('film-again')).toHaveTextContent('Film again from the side');
+    await press(getByTestId('film-again'));
+    expect(nav.onFilmAgain).toHaveBeenCalledTimes(1);
+    expect(nav.onTry).not.toHaveBeenCalled();
   });
 });
 
@@ -240,6 +259,37 @@ describe('PlayerScreen', () => {
     const { getByTestId } = await render(<PlayerScreen analysis={snatchMock} {...props} />);
     expect(getByTestId('chip-first_pull')).toHaveTextContent('1ST PULL0.42');
     expect(getByTestId('chip-setup')).toHaveTextContent('SETUP');
+  });
+
+  it('steps one frame at a time from the buttons and names the phase the frame is in', async () => {
+    const { getByTestId } = await render(<PlayerScreen analysis={snatchMock} {...props} />);
+    expect(getByTestId('frame-phase')).toHaveTextContent('hip');
+    await press(getByTestId('step-forward'));
+    expect(getByTestId('frame-number')).toHaveTextContent('423');
+    await press(getByTestId('step-back'));
+    await press(getByTestId('step-back'));
+    expect(getByTestId('frame-number')).toHaveTextContent('421');
+    expect(Haptics.impactAsync).toHaveBeenLastCalledWith('light');
+    for (let i = 0; i < 7; i++) await press(getByTestId('step-forward'));
+    expect(getByTestId('frame-number')).toHaveTextContent('428');
+    await press(getByTestId('step-forward'));
+    expect(getByTestId('frame-number')).toHaveTextContent('429');
+    expect(getByTestId('frame-phase')).toHaveTextContent('2nd');
+  });
+
+  it('says how confident the cue is, with the reason when not high', async () => {
+    const clear = await render(<PlayerScreen analysis={snatchMock} {...props} />);
+    expect(clear.getByTestId('player-confidence')).toHaveTextContent('Confidence: high');
+    const low = await render(<PlayerScreen analysis={snatchMockLow} {...props} />);
+    expect(low.getByTestId('player-confidence')).toHaveTextContent('Confidence: medium · bar partly hidden, seen on 2 of 3 reps');
+  });
+
+  it('stepping pauses playback', async () => {
+    const { getByTestId } = await render(<PlayerScreen analysis={snatchMock} {...props} />);
+    await press(getByTestId('stage-press'));
+    expect(getByTestId('stage-press')).toHaveProp('accessibilityLabel', 'Pause');
+    await press(getByTestId('step-back'));
+    expect(getByTestId('stage-press')).toHaveProp('accessibilityLabel', 'Play');
   });
 });
 

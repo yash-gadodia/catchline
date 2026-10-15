@@ -253,3 +253,46 @@ def test_plate_track_is_not_quantised_and_gives_the_same_depth_ratio_at_1280_and
         wrist = 500 + (c[:, 1] - 0.75 * h) * 0.85
         ratios[h] = round(rise_ratio(c[:, 1], wrist), 4)
     assert ratios == {1280: 0.85, 1080: 0.85}
+
+
+def test_notes_rank_the_other_faults_by_severity_gate_the_effect_and_drop_the_headline():
+    det = {"trunk_change": 12.0}
+    reps = [
+        {"values": {"hips_rise_early": 12.0, "early_arm_bend": 0.2, "incomplete_extension": 10.0,
+                    "bar_forward_off_hips": 25.0, "jump_forward": 9.0}, "detail": {}},
+        {"values": {"hips_rise_early": 16.0, "early_arm_bend": None, "incomplete_extension": 4.0,
+                    "bar_forward_off_hips": 13.0, "jump_forward": 2.0}, "detail": {"hips_rise_early": det}},
+    ]
+    cue_id, _ = rules.choose_set_cue("clean", [r["values"] for r in reps])
+    assert cue_id == "bar_forward_off_hips"
+    out = rules.notes("clean", reps, {"faultId": cue_id, "text": rules.CUES[cue_id]})
+    # early_arm_bend is gated behind hips_rise_early, jump_forward behind bar_forward_off_hips
+    assert out == [
+        {"faultId": "hips_rise_early", "text": "Push the floor down, chest comes up.",
+         "why": "Your back angle dropped 12 deg between the floor and the knee, which put the bar in front of you.",
+         "severity": 2.0, "reps": 2},
+        {"faultId": "incomplete_extension", "text": "Finish tall, then drop.",
+         "why": "Your hips stopped 10 deg short of straight before you went under.", "severity": 1.25, "reps": 1},
+    ]
+
+
+def test_notes_keep_at_most_three_ties_to_the_earlier_fault_and_none_without_a_headline():
+    reps = [{"values": {"forward_dip": 8.0, "press_out": 45.0, "chest_dive": 30.0, "bar_forward_overhead": 9.0}, "detail": {}}]
+    assert rules.notes("jerk", reps, None) == []
+    cue = {"faultId": "press_out", "text": rules.CUES["press_out"]}
+    assert [n["faultId"] for n in rules.notes("jerk", reps, cue)] == ["forward_dip", "chest_dive", "bar_forward_overhead"]
+    assert [n["faultId"] for n in rules.notes("jerk", reps, cue, limit=2)] == ["forward_dip", "chest_dive"]
+
+
+def test_notes_for_gymnastics_put_repeating_faults_first_then_causal_order():
+    reps = [{"values": {"leg_kip": 60.0, "early_arm_pull": 0.2, "no_push_away": 1.0}, "detail": {}},
+            {"values": {"leg_kip": 40.0, "early_arm_pull": 0.2, "no_push_away": 1.0}, "detail": {}}]
+    cue = {"faultId": "early_arm_pull", "text": rules.CUES["early_arm_pull"]}
+    out = rules.notes("kipping_pull_up", reps, cue)
+    assert [(n["faultId"], n["reps"]) for n in out] == [("no_push_away", 2), ("leg_kip", 1)]
+
+
+def test_notes_drop_a_fault_whose_cue_is_already_the_headline_text():
+    reps = [{"values": {"hips_rise_early": 12.0, "bar_forward_off_hips": 15.0}, "detail": {}}]
+    cue = {"faultId": "missed_behind", "text": rules.CUES["hips_rise_early"]}
+    assert [n["faultId"] for n in rules.notes("snatch", reps, cue)] == ["bar_forward_off_hips"]

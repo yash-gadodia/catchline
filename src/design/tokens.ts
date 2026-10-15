@@ -81,8 +81,8 @@ export const shape = {
 export const stroke = {
   hairline: 1,
   outline: 2,
-  path: 3,
-  halo: 8,
+  path: 2.5,
+  halo: 4,
   ghost: 2,
 } as const;
 

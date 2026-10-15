@@ -25,4 +25,11 @@ describe('parseAnalysis', () => {
     );
     expect(() => parseAnalysis({ ...mock, movementUsed: 'deadlift' })).toThrow('Invalid Analysis: movementUsed deadlift');
   });
+
+  it('accepts sub-notes, and an analysis from before they existed', () => {
+    const note = { faultId: 'hips_rise_early', text: 'Push the floor down, chest comes up.', why: 'w', severity: 1.5, reps: 2 };
+    expect(parseAnalysis({ ...mock, notes: [note] }).notes).toEqual([note]);
+    expect(parseAnalysis(mock).notes).toBeUndefined();
+    expect(() => parseAnalysis({ ...mock, notes: 'x' })).toThrow('Invalid Analysis: notes');
+  });
 });
