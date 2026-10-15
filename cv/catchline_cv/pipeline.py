@@ -12,6 +12,7 @@ from . import detect
 from . import movement as mv
 from . import outcome
 from . import rules
+from . import speed
 from .geometry import angle, bar_from_wrists, lowpass, normalise, rise_ratio, trunk_angle
 from .lifter import select_lifter
 from .phases import SNATCH_PHASES, catch_depth, find_reps, key_frames, plate_liftoff, segment_snatch
@@ -367,6 +368,7 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
     path = [{"frame": g(f)} | normalise(raw(bar[f], f), W, H) for f in range(phases[0]["startFrame"], len(fr))
             if f <= ev["recovered"]]
 
+    sp = speed.peak_up_speed(bar[:, 1], fps, px_per_cm, ev["liftoff"], ev["caught"])
     info = {
         "rep_no": rep_no, "start": g(phases[0]["startFrame"]), "end": g(ev["recovered"]), "made": made,
         "phases": [p | {"startFrame": g(p["startFrame"]), "endFrame": g(p["endFrame"])} for p in phases],
@@ -378,6 +380,7 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
         "catch_knee_min": float(np.min(knee_ang[ev["caught"]: max(ev["caught"], depth_end) + 1])), "plate_tracked": int(np.isfinite(plate_raw[:, 0]).sum()),
         "plate_lost_at": g(int(np.where(np.isfinite(plate_raw[:, 0]))[0].max())), "plate_wrist_corr": agree,
         "peak_h": peak_h, "drop": drop, "turnover_s": turnover_s, "standing_h": standing_h,
+        "bar_speed": (sp[0], g(sp[1])) if sp else None,
         "hands_overlap": bool(hands_overlap), "stab_inliers_min": int(min(inliers)) if inliers else 0, "fwd": fwd,
         "severity": max(rules.fired(vals).values(), default=0.0), "outcome": outcome_kind, "miss": miss,
         "_ref": {"s0": s0, "Ms": Ms, "ksm": ksm, "bar": bar, "plate_ref": plate_ref, "knee_ang": knee_ang,
@@ -426,6 +429,7 @@ def build_cue(r, reps, best_rep, W, H):
          "note": f"{r['catch_kind']} catch, hip {'below' if r['catch_depth'] > 0 else 'above'} knee, knee {r['catch_knee_min']:.0f}°"},
         {"id": "turnover_time", "label": "Extension to catch", "value": round(r["turnover_s"], 2), "unit": "s",
          "frame": r["events"]["second_ext"], "status": "normal", "note": "± 1 frame at 30 fps"},
+        speed.measurement(r),
     ]
     if r["outcome"] == "missed_behind":
         return miss_behind_card(r, meas, W, H)

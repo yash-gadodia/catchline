@@ -4,7 +4,7 @@ import AnalysisPlaceholder from '../../src/features/analysis/AnalysisPlaceholder
 import RevealScreen from '../../src/features/analysis/RevealScreen';
 
 export default function Reveal() {
-  const { fixture } = useLocalSearchParams<{ fixture?: string }>();
+  const { fixture, retest } = useLocalSearchParams<{ fixture?: string; retest?: string }>();
   const router = useRouter();
   const load = useAnalysis(fixture);
   if (load.status !== 'ready') return <AnalysisPlaceholder status={load.status} onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))} />;
@@ -12,7 +12,7 @@ export default function Reveal() {
   return (
     <RevealScreen
       analysis={analysis}
-      onDone={() => router.replace({ pathname: '/analysis/cue', params: { fixture: analysis.id } })}
+      onDone={() => router.replace({ pathname: '/analysis/cue', params: retest ? { fixture: analysis.id, retest } : { fixture: analysis.id } })}
     />
   );
 }

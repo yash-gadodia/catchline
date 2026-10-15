@@ -51,6 +51,7 @@ export function toLift(row: LiftRow, a: Analysis | undefined): Lift {
     thumb: catchImage(a),
     failure: a?.failure ?? (status === 'failed' ? workerFailure(row) : undefined),
     headline: a?.cue?.evidence.caption,
+    retestCueId: row.retest_cue_id ?? undefined,
   };
 }
 
@@ -62,7 +63,7 @@ export function toSession(row: LiftRow, a: Analysis): Session {
     loadKg: row.load_kg ?? undefined,
     liftId: row.id,
     thumb: catchImage(a),
-    values: Object.fromEntries(a.measurements.map((m) => [m.id, m.value])),
+    values: Object.fromEntries(a.measurements.filter((m) => m.status !== 'not_seen').map((m) => [m.id, m.value])),
   };
 }
 

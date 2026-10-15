@@ -304,6 +304,7 @@ export type Database = {
           movement: string
           processed_at: string | null
           queued_at: string | null
+          retest_cue_id: string | null
           status: string
           updated_at: string
           user_id: string
@@ -320,6 +321,7 @@ export type Database = {
           movement: string
           processed_at?: string | null
           queued_at?: string | null
+          retest_cue_id?: string | null
           status?: string
           updated_at?: string
           user_id: string
@@ -336,6 +338,7 @@ export type Database = {
           movement?: string
           processed_at?: string | null
           queued_at?: string | null
+          retest_cue_id?: string | null
           status?: string
           updated_at?: string
           user_id?: string
@@ -522,7 +525,7 @@ export type Database = {
         }
       }
       create_lift: {
-        Args: { p_load_kg?: number; p_movement: string }
+        Args: { p_load_kg?: number; p_movement: string; p_retest_cue_id?: string }
         Returns: {
           attempts: number
           charged_to: string | null
@@ -535,6 +538,7 @@ export type Database = {
           movement: string
           processed_at: string | null
           queued_at: string | null
+          retest_cue_id: string | null
           status: string
           updated_at: string
           user_id: string
@@ -561,6 +565,7 @@ export type Database = {
           movement: string
           processed_at: string | null
           queued_at: string | null
+          retest_cue_id: string | null
           status: string
           updated_at: string
           user_id: string

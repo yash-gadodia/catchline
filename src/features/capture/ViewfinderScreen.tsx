@@ -35,6 +35,7 @@ export default function ViewfinderScreen({
   onImport,
   onGuide,
   onRecorded,
+  target,
   camera = true,
   initial = { kind: 'idle' },
   speak = (t: string) => Speech.speak(t),
@@ -51,6 +52,8 @@ export default function ViewfinderScreen({
   onImport: () => void;
   onGuide: () => void;
   onRecorded: (r: Recorded) => void;
+  // A retest: the cue and the number to beat, one line over the shutter.
+  target?: string;
   // false: no camera (simulator, design QA), show a still frame instead.
   camera?: boolean;
   initial?: Session;
@@ -208,6 +211,11 @@ export default function ViewfinderScreen({
             />
           ) : null}
           <View style={{ alignItems: 'center', gap: 20, paddingBottom: Math.max(insets.bottom, space.s4) + space.s5 }}>
+            {target && session.kind === 'idle' ? (
+              <Text testID="retest-target" numberOfLines={2} style={[type.label, { color: colors.text, textAlign: 'center', paddingHorizontal: space.gutter }]}>
+                {target}
+              </Text>
+            ) : null}
             {session.kind === 'idle' ? (
               <Segmented
                 testID="reps-mode"

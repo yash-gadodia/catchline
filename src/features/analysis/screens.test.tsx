@@ -227,6 +227,11 @@ describe('PlayerScreen', () => {
     expect(getByTestId('stage-layer-asset:snatch/3-hip')).toBeOnTheScreen();
   });
 
+  it('keeps the peak bar speed hidden until it is validated against a sensor', async () => {
+    const { queryByTestId } = await render(<PlayerScreen analysis={snatchMock} {...props} />);
+    expect(queryByTestId('bar-speed')).toBeNull();
+  });
+
   it('jumps to a phase keyframe from its chip with a rigid tick', async () => {
     const { getByTestId } = await render(<PlayerScreen analysis={snatchMock} {...props} />);
     await act(async () => {

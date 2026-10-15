@@ -11,7 +11,7 @@ import { colors } from '../../src/design/tokens';
 
 // Dev link: ?demo=1 loads the design's long muscle-up clip without a picker (dev builds only).
 export default function ImportRoute() {
-  const { demo } = useLocalSearchParams<{ demo?: string }>();
+  const { demo, retest } = useLocalSearchParams<{ demo?: string; retest?: string }>();
   const router = useRouter();
   const onboarded = useHydrated();
   const captureReady = useCaptureHydrated();
@@ -27,7 +27,7 @@ export default function ImportRoute() {
     setEmpty(false);
     pickClip(movement).then((clip) => {
       if (!clip) return setEmpty(true);
-      setDraft(clip);
+      setDraft(retest ? { ...clip, retest: { cueId: retest, movement } } : clip);
       setReady(true);
     }, () => {
       Alert.alert("Couldn't open that video", 'Try again, or pick a clip saved on this phone.');

@@ -1,7 +1,7 @@
 import type { Movement } from '../../analysis/types';
 import { ANALYSES } from '../../analysis/fixtures';
 import { liveAnalysis } from '../../analysis/live';
-import { fmt, movementLabel, plural } from '../../analysis/format';
+import { fmt, movementLabel, plural, speedText } from '../../analysis/format';
 import { BARBELL, GYMNASTICS, metricFor, PRIMARY_METRIC } from './metrics';
 import { FREE_VIDEOS, type CueRecord, type CueStatus, type Day, type LibraryState, type Lift, type Session } from './types';
 
@@ -68,6 +68,7 @@ export function liftTitle(l: Lift): string {
 
 export function metricText(id: string, value: number): string {
   const m = metricFor(id);
+  if (m.unit === 'm/s') return speedText(value);
   return m.unit === 'deg' ? `${fmt(value)}°` : `${fmt(value)} ${m.unit}`;
 }
 

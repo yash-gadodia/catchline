@@ -9,6 +9,7 @@ import numpy as np
 from . import gym
 from . import movement as mv
 from . import rules
+from . import speed
 from .geometry import angle, bar_from_wrists, lowpass, normalise, trunk_angle
 from .phases import find_jerk_reps, find_rack_reps, jerk_key_frames, segment_jerk
 from .pose import (L_ANK, L_BIGTOE, L_ELB, L_HEEL, L_HIP, L_KNEE, L_SHO, L_WRI, R_ANK, R_BIGTOE, R_ELB, R_HEEL, R_HIP,
@@ -354,6 +355,7 @@ def clean_info(ctx, r):
          "note": f"{r['catch_kind']} clean, hip {'below' if r['catch_depth'] > 0 else 'above'} knee, knee {r['catch_knee_min']:.0f}°"},
         {"id": "turnover_time", "label": "Extension to rack", "value": round(r["turnover_s"], 2), "unit": "s",
          "frame": ev["second_ext"], "status": "normal", "note": "± 1 frame at 30 fps"},
+        speed.measurement(r),
     ]
     return r
 

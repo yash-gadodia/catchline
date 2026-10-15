@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { ActivityIndicator, Share, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import Btn from '../../src/components/Btn';
 import { colors, space } from '../../src/design/tokens';
 import { display, fontFamily } from '../../src/design/typography';
@@ -10,6 +10,7 @@ import { syncLibrary } from '../../src/data/library';
 import CueDetailScreen, { DidntStickScreen, StuckScreen } from '../../src/features/library/CueDetailScreen';
 import { dropCue, keepTrying, markDidntStick, markStuck, tryNewCue, useCue } from '../../src/features/library/repository';
 import { useLibraryStore } from '../../src/features/library/store';
+import { captureHref } from '../../src/features/paywall/hooks';
 
 // One route per cue; the screen follows its status, so marking it stuck turns
 // this screen into the "It stuck" moment in place. A cue the store does not
@@ -81,6 +82,7 @@ export default function CueRoute() {
       cue={cue}
       nav={{
         onBack: back,
+        onRetest: () => router.push(captureHref(`/capture?retest=${cue.id}`) as Href),
         onStuck: () => markStuck(cue.id),
         onDidntStick: () => markDidntStick(cue.id),
         onDrop: () => {

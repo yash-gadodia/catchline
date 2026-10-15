@@ -59,6 +59,22 @@ export function fmt(n: number): string {
   return String(Number(n.toFixed(2)));
 }
 
+// Bar speed always shows two decimals: 1.80 m/s, like a VBT readout.
+export function speedText(v: number): string {
+  return `${v.toFixed(2)} m/s`;
+}
+
+// Off until the reading is checked against a bar-speed sensor: on the reference clips a snatch read
+// 3.40 m/s (real peaks are ~1.7-2.2) and two others had no trustworthy scale (15-10-2026).
+export const SHOW_BAR_SPEED = false;
+
+// The clip's peak bar speed, or null when it was not measured (gymnastics, jerk, or a scale too uncertain).
+export function peakSpeed(a: Analysis, show: boolean = SHOW_BAR_SPEED): string | null {
+  if (!show) return null;
+  const m = a.measurements.find((x) => x.id === 'bar_speed');
+  return m && m.status !== 'not_seen' ? speedText(m.value) : null;
+}
+
 export function seconds(s: number): string {
   return s.toFixed(2);
 }
@@ -92,7 +108,7 @@ const STATUS_TEXT: Partial<Record<Measurement['status'], string>> = {
 
 export function measurementReadout(m: Measurement): string {
   if (m.status === 'not_seen') return 'not seen';
-  const parts = [`${fmt(m.value)} ${m.unit}`];
+  const parts = [m.unit === 'm/s' ? speedText(m.value) : `${fmt(m.value)} ${m.unit}`];
   if (m.note) parts.push(m.note);
   const showBest = m.status === 'normal' && m.best != null;
   if (showBest) parts.push(`best ${fmt(m.best!)}`);
