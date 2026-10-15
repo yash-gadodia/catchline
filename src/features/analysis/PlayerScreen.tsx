@@ -50,7 +50,7 @@ export default function PlayerScreen({
   onShare: () => void;
   onMore?: () => void;
 }) {
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const rep = repByIndex(analysis, analysis.cue?.evidence.rep ?? analysis.bestRepIndex);
   const [frame, setFrameState] = useState(clampFrame(rep, initialFrame ?? analysis.cue?.evidence.frame ?? rep.startFrame));
@@ -84,7 +84,8 @@ export default function PlayerScreen({
 
   const phase = phaseAt(rep, frame);
   const key = keyFrameAt(rep, frame);
-  const box = { width, height: Math.round(width * 1.25) };
+  // capped so the cue, its notes and the disclaimer start above the fold on a 6.1" phone
+  const box = { width, height: Math.round(Math.min(width * 1.25, height * 0.45)) };
   const src = { width: analysis.video.width, height: analysis.video.height };
   const focus = { x: 0.5, y: 0.3 };
 
