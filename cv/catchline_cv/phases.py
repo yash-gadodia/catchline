@@ -34,6 +34,13 @@ def segment_snatch(bar_h, knee, fps, knee_pass=None, elbow=None, setup_s=1.0, mi
             if len(dip) and bar_h[f] - dip.min() >= 0.03 * rng:
                 peak = f
                 break
+    else:
+        # a power snatch received without a dip: the wrists creep up as the lifter stands, so the highest point is
+        # the stand-up. The turnover ends where the fast rise stops (under a fifth of its top speed)
+        fast = liftoff + int(np.argmax(v[liftoff: top + 1]))
+        slow = np.where(v[fast: top + 1] < 0.2 * v[fast])[0]
+        if len(slow):
+            peak = fast + int(slow[0])
 
     from_hang = False
     if catch_mask is not None and np.asarray(catch_mask, bool).any():
@@ -80,8 +87,11 @@ def segment_snatch(bar_h, knee, fps, knee_pass=None, elbow=None, setup_s=1.0, mi
     # to the top of the hold); squat and power ride-downs alike. Without a stand-up (a miss) search the next 4 s.
     hold = bar_h[caught: max(caught + 1, min(hold_end, n))]
     dipped = np.where(hold < hold[0] - 0.03 * rng)[0]
-    if len(dipped):
-        up_again = np.where(hold >= hold[0] + 0.5 * (hold.max() - hold[0]))[0]
+    up_again = np.where(hold >= hold[0] + 0.5 * (hold.max() - hold[0]))[0]
+    # a catch with no ride-down stands up (the bar rises over a tenth of the lift) before any dip; the first dip is
+    # then the bar being lowered after the lift
+    stood_first = hold.max() - hold[0] > 0.1 * rng and len(dipped) and up_again[0] < dipped[0]
+    if len(dipped) and not stood_first:
         up_again = up_again[up_again > dipped[0]]
         stop = int(up_again[0]) if len(up_again) else int(4 * fps)
     else:

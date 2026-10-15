@@ -101,6 +101,37 @@ def test_plate_liftoff_is_where_the_plate_starts_its_rise():
     assert plate_liftoff(y[:14], 1, 288.0) is None  # no rise before the end of the search (the second pull)
 
 
+def test_power_snatch_received_without_a_dip_peaks_where_the_fast_rise_stops():
+    # E0DF8887 (made power snatch, cm above lift-off every 2 frames from f74): the wrists rose fast to 127 cm by f100,
+    # then crept up to 162 cm as the lifter stood; no 3% dip, so the peak fell back to the stand-up at f134
+    h = np.interp(np.arange(0, 116), np.arange(0, 116, 2), [
+        0.0, 5.0, 9.2, 9.6, 15.7, 31.2, 36.4, 42.6, 54.9, 68.1, 84.7, 107.4, 123.2, 127.3, 127.4, 131.0, 131.5,
+        131.7, 133.3, 135.2, 138.7, 144.1, 149.6, 150.8, 155.3, 154.4, 155.3, 157.1, 159.0, 160.4, 161.8, 160.0,
+        160.3, 161.4, 161.0, 160.4, 161.1, 159.7, 158.3, 157.5, 154.7, 148.2, 135.5, 117.2, 97.9, 81.7, 68.1, 62.7,
+        62.0, 62.6, 62.9, 63.1, 64.6, 66.8, 68.4, 69.5, 69.6, 69.6])
+    h = np.concatenate([np.zeros(30), h])
+    knee = np.concatenate([np.full(30, 83.0), np.interp(np.arange(0, 116), [0, 10, 14, 20, 32, 50, 116],
+                                                         [91, 138, 125, 167, 105, 168, 172])])
+    elbow = np.full(len(h), 170.0)
+    _, ev = segment_snatch(h, knee, 30, elbow=elbow)
+    assert ev["liftoff"] == 30
+    assert ev["peak"] == 55
+    assert ev["caught"] == 55
+    assert ev["recovered"] == 86  # f130: the bar back within 10% of its stand-up height
+
+
+def test_a_squat_catch_at_the_top_of_the_bar_still_finds_its_bottom():
+    # 21B27BAF (missed squat snatch): caught at the bar's highest point, rode down 0.9 s, then dumped it. With no
+    # rise after the catch the ride-down is the catch, not a lowering after a stand-up
+    h = np.concatenate([np.zeros(30), np.linspace(0, 127, 30), [127.0, 127.0, 127.0], np.linspace(127, 80, 27),
+                        np.linspace(80, 30, 5), np.zeros(20)])
+    knee = np.concatenate([np.full(30, 80.0), np.linspace(80, 170, 30), np.linspace(170, 60, 30), np.full(25, 60.0)])
+    _, ev = segment_snatch(h, knee, 30, elbow=np.full(len(h), 170.0))
+    assert ev["caught"] == 59
+    assert ev["hold_end"] == 93
+    assert ev["catch_bottom"] == 92
+
+
 def test_segment_snatch_takes_a_given_liftoff():
     h, knee, elbow = synthetic_snatch()
     phases, ev = segment_snatch(h, knee, 30, elbow=elbow, liftoff=34)
