@@ -297,6 +297,20 @@ jest.mock('expo-notifications', () => ({
   setNotificationHandler: jest.fn(),
 }));
 
+// expo-video: a View for the surface and a player that records play/pause.
+jest.mock('expo-video', () => {
+  const { View } = require('react-native');
+  return {
+    __esModule: true,
+    VideoView: View,
+    useVideoPlayer: jest.fn((_source: unknown, setup?: (p: object) => void) => {
+      const player = { play: jest.fn(), pause: jest.fn(), addListener: () => ({ remove: jest.fn() }) };
+      setup?.(player);
+      return player;
+    }),
+  };
+});
+
 // The clip transcoder is a local native module (modules/clip-transcoder): a 12 s
 // 4K 30 fps source comes back as a 12 MB 1080p copy unless a test overrides it.
 jest.mock('./modules/clip-transcoder', () => ({

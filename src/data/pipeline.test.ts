@@ -94,6 +94,7 @@ describe('uploadStep (the first processing line)', () => {
     uploadUrl: null,
     error: null,
     maxS: null,
+    uri: null,
     ...over,
   });
 

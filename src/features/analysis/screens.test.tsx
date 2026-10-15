@@ -1,6 +1,7 @@
 import { loadLibrary } from '../library/repository';
 import { act, fireEvent, render, within } from '@testing-library/react-native';
 import * as Haptics from 'expo-haptics';
+import { useVideoPlayer } from 'expo-video';
 import { COMPARE_TARGETS, snatchMock, snatchMockLow, snatchMockMiss, snatchSample } from '../../analysis/fixtures';
 import CueScreen from './CueScreen';
 import PlayerScreen from './PlayerScreen';
@@ -53,6 +54,42 @@ describe('ProcessingSheet', () => {
     expect(queryByText(/ahead of you/)).toBeNull();
     await rerender(<ProcessingSheet analysis={null} state="progress" step={1} elapsed={31} meta="31 s" onServer ahead={2} {...handlers} />);
     expect(getByText('2 ahead of you')).toBeOnTheScreen();
+  });
+
+  it('plays the lifter’s own clip, muted and looping, behind the steps', async () => {
+    const { getByTestId, queryByTestId } = await render(
+      <ProcessingSheet analysis={null} clipUri="file:///clips/power-snatch.mov" state="progress" step={0} elapsed={3} {...handlers} />
+    );
+    expect(useVideoPlayer).toHaveBeenCalledWith('file:///clips/power-snatch.mov', expect.any(Function));
+    const player = (useVideoPlayer as jest.Mock).mock.results[0].value;
+    expect(player).toMatchObject({ loop: true, muted: true });
+    expect(player.play).toHaveBeenCalled();
+    expect(getByTestId('processing-clip')).toHaveStyle({ opacity: 0.28 });
+    expect(getByTestId('processing-scrim')).toHaveStyle({ backgroundColor: 'rgba(0,0,0,0.35)' });
+    expect(queryByTestId('processing-art')).toBeNull();
+    expect(getByTestId('processing-motion')).toBeOnTheScreen();
+  });
+
+  it('falls back to the silhouette without a local clip', async () => {
+    const { getByTestId, queryByTestId } = await render(
+      <ProcessingSheet analysis={null} clipUri={null} state="progress" step={0} elapsed={3} {...handlers} />
+    );
+    expect(useVideoPlayer).not.toHaveBeenCalled();
+    expect(queryByTestId('processing-clip')).toBeNull();
+    expect(getByTestId('processing-art')).toBeOnTheScreen();
+    expect(getByTestId('processing-motion')).toBeOnTheScreen();
+  });
+
+  it('Reduce Motion: a still frame and no animated layer', async () => {
+    const { getByTestId, queryByTestId } = await render(
+      <ProcessingSheet analysis={null} clipUri="file:///clips/power-snatch.mov" state="progress" step={1} elapsed={3} reduceMotion {...handlers} />
+    );
+    const player = (useVideoPlayer as jest.Mock).mock.results[0].value;
+    expect(player.play).not.toHaveBeenCalled();
+    expect(player.loop).toBe(false);
+    expect(getByTestId('processing-clip')).toBeOnTheScreen();
+    expect(queryByTestId('processing-motion')).toBeNull();
+    expect(queryByTestId('step-active')).toBeOnTheScreen();
   });
 
   it('offers a ping on a long wait', async () => {

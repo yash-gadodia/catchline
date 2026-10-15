@@ -3,6 +3,7 @@ import { AppState } from 'react-native';
 import mock from '../analysis/fixtures/snatch-mock.json';
 import { usePurchases } from '../features/purchases/usePurchases';
 import { router } from 'expo-router';
+import { useVideoPlayer } from 'expo-video';
 import { supabase } from '../lib/supabase';
 import { tusUpload } from '../lib/api/tus';
 import { submitClip, type ClipSubmission } from '../features/capture/submit';
@@ -151,6 +152,8 @@ describe('capture → upload → processing → cue (backend mode)', () => {
     const view = await render(<ProcessingRoute />);
     expect(view.getByTestId('processing-progress')).toBeOnTheScreen();
     expect(view.getByText('Uploading your clip')).toBeOnTheScreen();
+    expect(view.getByTestId('processing-clip')).toBeOnTheScreen();
+    expect(useVideoPlayer).toHaveBeenCalledWith('file:///clips/power-snatch.mov', expect.any(Function));
 
     analysisRow = { analysis: { ...mock, id: 'lift-1' } };
     await act(async () => {
@@ -417,7 +420,7 @@ describe('preparing the clip before upload', () => {
   });
 
   it('shows "Preparing your clip" with its progress, then "Uploading your clip"', async () => {
-    const base: Job = { id: 'job-1', movement: 'snatch', status: 'preparing', liftId: null, prepared: 0.42, sent: 0, total: 0, uploadUrl: null, error: null, maxS: null };
+    const base: Job = { id: 'job-1', movement: 'snatch', status: 'preparing', liftId: null, prepared: 0.42, sent: 0, total: 0, uploadUrl: null, error: null, maxS: null, uri: null };
     usePipeline.getState().start(base);
     params.current = { live: '1' };
     const view = await render(<ProcessingRoute />);
@@ -451,6 +454,8 @@ describe('a processing lift opened from the library', () => {
     });
     await waitFor(() => expect(view.getByText('Watching your reps')).toBeOnTheScreen());
     expect(view.queryByText(mock.cue.text)).toBeNull();
+    expect(view.getByTestId('processing-art')).toBeOnTheScreen();
+    expect(view.queryByTestId('processing-clip')).toBeNull();
 
     await act(async () => {
       channel.change?.({ new: { ...LIFT, id: 'lift-9', status: 'done' } });
@@ -468,7 +473,7 @@ describe('long wait', () => {
 
   it('counts the wait from when the clip reaches the server, and says "taking longer" only past about 2 min plus a margin', async () => {
     jest.useFakeTimers();
-    usePipeline.getState().start({ id: 'job-2', movement: 'snatch', status: 'preparing', liftId: null, prepared: 0.9, sent: 0, total: 0, uploadUrl: null, error: null, maxS: null });
+    usePipeline.getState().start({ id: 'job-2', movement: 'snatch', status: 'preparing', liftId: null, prepared: 0.9, sent: 0, total: 0, uploadUrl: null, error: null, maxS: null, uri: null });
     params.current = { live: '1' };
     const view = await render(<ProcessingRoute />);
     await act(async () => {
@@ -496,7 +501,7 @@ describe('long wait', () => {
   it('polls the queue position every 10 s while queued or processing and shows who is ahead', async () => {
     jest.useFakeTimers();
     db.rpc.mockImplementation(async (fn: string) => (fn === 'lifts_ahead' ? { data: 2, error: null } : { data: null, error: null }));
-    usePipeline.getState().start({ id: 'job-3', movement: 'snatch', status: 'queued', liftId: 'lift-1', prepared: 1, sent: 1, total: 1, uploadUrl: null, error: null, maxS: null });
+    usePipeline.getState().start({ id: 'job-3', movement: 'snatch', status: 'queued', liftId: 'lift-1', prepared: 1, sent: 1, total: 1, uploadUrl: null, error: null, maxS: null, uri: null });
     params.current = { live: '1' };
     const view = await render(<ProcessingRoute />);
     await waitFor(() => expect(view.getByText('2 ahead of you')).toBeOnTheScreen());
@@ -514,7 +519,7 @@ describe('long wait', () => {
 });
 
 describe('uploadStep', () => {
-  const job: Job = { id: 'j', movement: 'snatch', status: 'preparing', liftId: null, prepared: 0, sent: 0, total: 0, uploadUrl: null, error: null, maxS: null };
+  const job: Job = { id: 'j', movement: 'snatch', status: 'preparing', liftId: null, prepared: 0, sent: 0, total: 0, uploadUrl: null, error: null, maxS: null, uri: null };
 
   it('labels each upload state', () => {
     expect(uploadStep(null)).toEqual({ label: 'Uploading your clip', meta: null });
