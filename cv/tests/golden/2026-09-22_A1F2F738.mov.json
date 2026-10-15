@@ -812,6 +812,22 @@
     "caption": "knees through 68\u00b0"
    }
   },
+  "notes": [
+   {
+    "faultId": "early_arm_pull",
+    "text": "Press the bar down before you bend.",
+    "why": "Your elbows bent 130 ms before your hips opened, turning the kip into a strict pull.",
+    "severity": 1.03,
+    "reps": 1
+   },
+   {
+    "faultId": "no_push_away",
+    "text": "Chin over, then push the bar away.",
+    "why": "You dropped straight down after the rep, so the next swing had nothing to load.",
+    "severity": 2.0,
+    "reps": 1
+   }
+  ],
   "measurements": [
    {
     "id": "leg_kip",
