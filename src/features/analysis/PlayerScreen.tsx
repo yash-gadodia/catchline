@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Analysis, PhaseName } from '../../analysis/types';
-import { liftTitle, phaseLabel, shortPhase } from '../../analysis/format';
+import { confidenceLine, liftTitle, phaseLabel, shortPhase } from '../../analysis/format';
 import { toScreen } from '../../analysis/geometry';
 import {
   clampFrame,
@@ -228,9 +228,14 @@ export default function PlayerScreen({
         contentContainerStyle={{ paddingTop: space.s2, paddingHorizontal: space.gutter, gap: space.s2 }}
       >
         {analysis.cue ? (
-          <Text style={[display(26), { color: colors.text }]} numberOfLines={2}>
-            {analysis.cue.text}
-          </Text>
+          <>
+            <Text style={[display(26), { color: colors.text }]} numberOfLines={2}>
+              {analysis.cue.text}
+            </Text>
+            <Text testID="player-confidence" style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 12, lineHeight: 16 }}>
+              {confidenceLine(analysis.cue)}
+            </Text>
+          </>
         ) : null}
         <CueNotes notes={analysis.notes} />
       </ScrollView>

@@ -257,6 +257,13 @@ describe('PlayerScreen', () => {
     expect(getByTestId('frame-phase')).toHaveTextContent('2nd');
   });
 
+  it('says how confident the cue is, with the reason when not high', async () => {
+    const clear = await render(<PlayerScreen analysis={snatchMock} {...props} />);
+    expect(clear.getByTestId('player-confidence')).toHaveTextContent('Confidence: high');
+    const low = await render(<PlayerScreen analysis={snatchMockLow} {...props} />);
+    expect(low.getByTestId('player-confidence')).toHaveTextContent('Confidence: medium · bar partly hidden, seen on 2 of 3 reps');
+  });
+
   it('stepping pauses playback', async () => {
     const { getByTestId } = await render(<PlayerScreen analysis={snatchMock} {...props} />);
     await press(getByTestId('stage-press'));
