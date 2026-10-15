@@ -1,8 +1,10 @@
+import { Share } from 'react-native';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useAnalysis } from '../../src/analysis/useAnalysis';
 import AnalysisPlaceholder from '../../src/features/analysis/AnalysisPlaceholder';
 import CueScreen from '../../src/features/analysis/CueScreen';
 import { captureHref, routeAfterAnalysis } from '../../src/features/paywall/hooks';
+import { openLiftActions } from '../../src/features/analysis/liftActions';
 
 export default function CueRoute() {
   const { fixture, why } = useLocalSearchParams<{ fixture?: string; why?: string }>();
@@ -18,6 +20,10 @@ export default function CueRoute() {
   };
   if (load.status !== 'ready') return <AnalysisPlaceholder status={load.status} onBack={back} />;
   const analysis = load.analysis;
+  const filmAgain = () => {
+    back();
+    if (!routeAfterAnalysis()) router.push(captureHref('/capture') as Href);
+  };
   return (
     <CueScreen
       key={`${analysis.id}-${why ?? ''}`}
@@ -27,10 +33,14 @@ export default function CueRoute() {
         onTry: () => router.push({ pathname: '/analysis/player', params: { fixture: analysis.id } }),
         onNotForMe: back,
         onBack: back,
-        onFilmAgain: () => {
-          back();
-          if (!routeAfterAnalysis()) router.push(captureHref('/capture') as Href);
-        },
+        onFilmAgain: filmAgain,
+        onMore: () =>
+          openLiftActions(analysis, {
+            onShare: () => {
+              if (analysis.cue) Share.share({ message: analysis.cue.text });
+            },
+            onFilmAnother: filmAgain,
+          }),
       }}
     />
   );

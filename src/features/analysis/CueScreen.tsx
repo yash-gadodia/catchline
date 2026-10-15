@@ -19,7 +19,7 @@ import { useLibrary } from '../library/repository';
 import Stage from './Stage';
 import { FlarePath, OverlaySvg } from './overlays';
 
-type Nav = { onTry: () => void; onNotForMe: () => void; onBack: () => void; onFilmAgain: () => void; onKeep?: () => void };
+type Nav = { onTry: () => void; onNotForMe: () => void; onBack: () => void; onFilmAgain: () => void; onKeep?: () => void; onMore?: () => void };
 
 export default function CueScreen({ analysis, initialWhy = false, nav }: { analysis: Analysis; initialWhy?: boolean; nav: Nav }) {
   const [why, setWhy] = useState(initialWhy);
@@ -103,7 +103,7 @@ function LowConfidence({ analysis, nav }: { analysis: Analysis; nav: Nav }) {
   const src = { width: analysis.video.width, height: analysis.video.height };
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }} testID="low-confidence">
-      <TopBar title={liftTitle(analysis)} onBack={nav.onBack} />
+      <TopBar title={liftTitle(analysis)} onBack={nav.onBack} onMore={nav.onMore} />
       <View
         testID="confidence-banner"
         style={{

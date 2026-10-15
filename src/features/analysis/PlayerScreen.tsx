@@ -42,12 +42,14 @@ export default function PlayerScreen({
   onBack,
   onCompare,
   onShare,
+  onMore,
 }: {
   analysis: Analysis;
   initialFrame?: number;
   onBack: () => void;
   onCompare?: () => void;
   onShare: () => void;
+  onMore?: () => void;
 }) {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -104,7 +106,7 @@ export default function PlayerScreen({
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }} testID="player-screen">
-      <TopBar title={liftTitle(analysis, rep.index)} onBack={onBack} />
+      <TopBar title={liftTitle(analysis, rep.index)} onBack={onBack} onMore={onMore} />
       <View>
         <Pressable
           onPress={() => {
