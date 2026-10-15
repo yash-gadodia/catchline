@@ -142,3 +142,8 @@ Build 26: Cues crashed and Trends was empty on a real account. Root cause: the C
 - [ ] (Yash, device) `restorePurchases` runs silently after every Apple sign-in whose RevenueCat tier is free. If an App Store / sandbox login prompt appears right after the Apple sheet, switch `settlePlanAfterSignIn` to `Purchases.syncPurchases()` (never prompts)
 - [ ] (Claude) You tab sign-out has no catch: an offline `auth.signOut()` rejects unhandled (busy flag still resets). Show the app's own error copy
 - Gotchas: RNTL v14 `unmount()` is async; an un-awaited one leaks an act() into the next test ("overlapping act() calls") and every later render in the file fails. The RN jest preset stubs `AppState.addEventListener` with a bare `jest.fn()` (returns undefined, so `.remove()` throws on cleanup); `jest-setup.ts` now gives it a subscription
+
+## Build 28 (15 Oct, worktree branch off catchline)
+
+- [x] One plan: the paywall offers Pull (Monthly / Annual toggle, annual preselected, "save X%" from the store's own Pull prices) plus the Founding seat. Hook and Platform are gone from the paywall, plans table, cap sheet and dev menu; the upgrade sheet and `/paywall/upgrade` are deleted. A Pull or founding lifter at the cap sees "You've used your 40 this month" and the reset date, no upgrade. Free stays 3 for life; the ad trial is unchanged
+- [ ] (Yash) RevenueCat's `default` offering still holds the `hook_*` and `platform_*` packages. The app now ignores them (it only reads `pull_monthly`, `pull_annual`, `founding`), so nothing breaks; remove them from the offering when convenient. Product ids, entitlements and `tierFromEntitlements` stay so a Hook or Platform receipt (none exist) still resolves

@@ -1,11 +1,9 @@
 import {
+  PULL_SUMMARY,
   addMonths,
-  capUpgradeLabel,
-  capUpgradeNote,
   chargeNote,
   continueLabel,
   failedBody,
-  foundingUpgradeLine,
   failedTitle,
   longDate,
   purchasingLine,
@@ -13,10 +11,8 @@ import {
   renewalDate,
   shortDate,
   successBody,
-  tierSummary,
   trialNote,
   trialOptionLine,
-  upgradePriceLine,
 } from './copy';
 
 const OCT11 = new Date(2026, 9, 11);
@@ -74,10 +70,8 @@ describe('charge copy', () => {
     expect(trialOptionLine('monthly')).toBe('$9.99 a month');
   });
 
-  it('tier summaries', () => {
-    expect(tierSummary('hook')).toBe('12 videos a month · 90-day cue memory');
-    expect(tierSummary('pull')).toBe('40 a month · ghost of best · did it stick · no watermark');
-    expect(tierSummary('platform')).toBe('100 a month · coach link · CSV · priority');
+  it('the Pull summary', () => {
+    expect(PULL_SUMMARY).toBe('40 videos a month · ghost of best · did it stick · no watermark');
   });
 });
 
@@ -106,29 +100,5 @@ describe('purchase states', () => {
     expect(successBody(PULL_MONTHLY, OCT11)).toBe('Pull, renews 11 Nov 2026.');
     expect(successBody(FOUNDING, OCT11, 'clean')).toBe('Pull, for life. No renewal. Your queued clean is first in line.');
     expect(successBody({ ...PULL_ANNUAL, trial: true }, OCT11)).toBe('Pull trial, first charge 18 Oct.');
-  });
-});
-
-describe('upgrade copy', () => {
-  it('Play shows the prorated charge', () => {
-    expect(upgradePriceLine(3000, 'annual', 1840, 0)).toBe('+$30 a year · $18.40 today, pro-rated');
-  });
-
-  it('App Store shows full price and the credit', () => {
-    expect(upgradePriceLine(3000, 'annual', 5999, 600)).toBe(
-      '+$30 a year · $59.99 today, $6 back for unused time'
-    );
-  });
-
-  it('founding upgrade line', () => {
-    expect(foundingUpgradeLine('annual', 9999)).toBe('$99.99 a year · your founding seat stays');
-  });
-
-  it('cap upgrade labels', () => {
-    expect(capUpgradeLabel('pull', 'platform', 'annual')).toBe('Upgrade to Platform · +$40 a year');
-    expect(capUpgradeLabel('hook', 'pull', 'monthly')).toBe('Upgrade to Pull · +$5 a month');
-    expect(capUpgradeLabel('founding', 'platform', 'annual')).toBe('Upgrade to Platform · $99.99 a year');
-    expect(capUpgradeNote('platform')).toBe('Platform: 100 a month, coach link, CSV. Pro-rated from today.');
-    expect(capUpgradeNote('pull')).toBe('Pull: 40 a month, ghost of best, did it stick. Pro-rated from today.');
   });
 });

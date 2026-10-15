@@ -6,10 +6,8 @@ import PaywallSheet from './PaywallSheet';
 import PlansScreen from './PlansScreen';
 import QuizScreen from './QuizScreen';
 import TrialPaywall from './TrialPaywall';
-import UpgradeSheet from './UpgradeSheet';
 import { getProofCues } from './proofCues';
 import { FreeVideosChip } from './ui';
-import { upgradeQuote } from './entitlements';
 
 const NOW = new Date(2026, 9, 11);
 const SEATS = { total: 500, remaining: 137 };
@@ -64,27 +62,40 @@ describe('PaywallSheet', () => {
     );
 
   it('uses the lifter’s own cues as proof with Pull annual preselected', async () => {
-    const { getByText, getByTestId, getAllByTestId } = await renderPaywall(handlers());
+    const { getByText, getByTestId, getAllByTestId} = await renderPaywall(handlers());
     expect(getByText('Your 3 free videos are done. Keep the cues coming.')).toBeOnTheScreen();
     expect(getByText('Stay over the bar longer')).toBeOnTheScreen();
     expect(getByText('Trying · 3 of 6')).toBeOnTheScreen();
     expect(getAllByTestId('dot-trying')).toHaveLength(2);
     expect(getAllByTestId('dot-stuck')).toHaveLength(1);
     expect(getByTestId('tier-pull')).toBeSelected();
-    expect(getByTestId('tier-hook')).not.toBeSelected();
+    expect(getByTestId('period-annual')).toBeSelected();
     expect(getByText('Continue · $59.99 a year')).toBeOnTheScreen();
     expect(
       getByText('Charged today, renews yearly, cancel any time. This lift is saved and goes first.')
     ).toBeOnTheScreen();
-    expect(getByText('Annual · save up to 50%')).toBeOnTheScreen();
+    expect(getByText('Annual · save 50%')).toBeOnTheScreen();
+    expect(getByTestId('tier-pull')).toHaveTextContent('Pull40 videos a month · ghost of best · did it stick · no watermark$59.99/yr');
     expect(getByTestId('founding-seats')).toHaveTextContent('137 of 500 left');
+  });
+
+  it('offers one plan, Pull, and the founding seat: no Hook, no Platform', async () => {
+    const { queryByTestId, queryByText } = await renderPaywall(handlers());
+    expect(queryByTestId('tier-hook')).toBeNull();
+    expect(queryByTestId('tier-platform')).toBeNull();
+    expect(queryByText(/Hook|Platform/)).toBeNull();
+  });
+
+  it('shows the saving computed from the store prices', async () => {
+    const { getByText } = await renderPaywall(handlers(), { savePct: 34 });
+    expect(getByText('Annual · save 34%')).toBeOnTheScreen();
   });
 
   it('switches to monthly and to the founding seat with exact charge copy', async () => {
     const { getByText, getByTestId } = await renderPaywall(handlers());
     await press(getByTestId('period-monthly'));
     expect(getByText('Continue · $9.99 a month')).toBeOnTheScreen();
-    expect(getByText('$4.99/mo')).toBeOnTheScreen();
+    expect(getByTestId('tier-pull')).toHaveTextContent('Pull40 videos a month · ghost of best · did it stick · no watermark$9.99/mo');
     await press(getByTestId('tier-founding'));
     expect(getByText('Take a seat · $49.99')).toBeOnTheScreen();
     expect(
@@ -97,14 +108,22 @@ describe('PaywallSheet', () => {
     expect(queryByTestId('tier-founding')).toBeNull();
   });
 
+  it('buys the founding seat', async () => {
+    const h = handlers();
+    const { getByTestId } = await renderPaywall(h);
+    await press(getByTestId('tier-founding'));
+    await press(getByTestId('continue'));
+    expect(h.purchase).toHaveBeenCalledWith({ kind: 'founding' });
+  });
+
   it('buys the selected plan and shows success', async () => {
     const h = handlers();
     const { getByTestId, getByText } = await renderPaywall(h);
-    await press(getByTestId('tier-platform'));
+    await press(getByTestId('period-monthly'));
     await press(getByTestId('continue'));
-    expect(h.purchase).toHaveBeenCalledWith({ kind: 'sub', tier: 'platform', period: 'annual' });
+    expect(h.purchase).toHaveBeenCalledWith({ kind: 'sub', tier: 'pull', period: 'monthly' });
     expect(getByText('Unlocked. Analysing your lift.')).toBeOnTheScreen();
-    expect(getByText('Platform, renews 11 Oct 2027. Your queued snatch is first in line.')).toBeOnTheScreen();
+    expect(getByText('Pull, renews 11 Nov 2026. Your queued snatch is first in line.')).toBeOnTheScreen();
     await press(getByText('Watch it'));
     expect(h.onWatch).toHaveBeenCalledTimes(1);
   });
@@ -158,13 +177,16 @@ describe('PaywallSheet', () => {
 describe('PlansScreen', () => {
   it('marks the current plan and its renewal', async () => {
     const onChangePlan = jest.fn();
-    const { getByTestId, getByText } = await render(
+    const { getByTestId, getByText, queryByText } = await render(
       <PlansScreen current="pull" renews={new Date(2027, 9, 11)} onBack={jest.fn()} onChangePlan={onChangePlan} />
     );
     expect(getByTestId('col-current-pull')).toHaveStyle({ backgroundColor: '#1F1F1F' });
     expect(getByTestId('current-plan')).toHaveTextContent('Current plan: Pullrenews 11 Oct 2027');
     expect(getByText('$59.99/yr')).toBeOnTheScreen();
     expect(getByText('once')).toBeOnTheScreen();
+    expect(getByText('Free')).toBeOnTheScreen();
+    expect(getByText('Founding')).toBeOnTheScreen();
+    expect(queryByText(/Hook|Platf|Coach link|CSV|Explainer/)).toBeNull();
     await press(getByText('Change plan'));
     expect(onChangePlan).toHaveBeenCalledTimes(1);
   });
@@ -224,59 +246,22 @@ describe('FoundingSheet', () => {
 });
 
 describe('CapSheet', () => {
-  it('queue first, then the upgrade', async () => {
+  it('a Pull subscriber at the cap sees the reset date and no upgrade', async () => {
     const onQueue = jest.fn();
-    const onUpgrade = jest.fn();
-    const { getByText } = await render(
-      <CapSheet tier="pull" period="annual" now={NOW} onQueue={onQueue} onUpgrade={onUpgrade} />
-    );
-    expect(getByText("That's 40 this month.")).toBeOnTheScreen();
+    const { getByText, queryByTestId, queryByText } = await render(<CapSheet tier="pull" now={NOW} onQueue={onQueue} />);
+    expect(getByText("You've used your 40 this month.")).toBeOnTheScreen();
     expect(
-      getByText("Filming and everything you've already analysed keep working. This clip is saved; it can wait for 1 Nov or go through now.")
+      getByText("Resets on 1 Nov. This clip is saved and goes through then. Filming and everything you've already analysed keep working.")
     ).toBeOnTheScreen();
     await press(getByText('Queue until 1 Nov'));
-    await press(getByText('Upgrade to Platform · +$40 a year'));
     expect(onQueue).toHaveBeenCalledTimes(1);
-    expect(onUpgrade).toHaveBeenCalledTimes(1);
-    expect(getByText('Platform: 100 a month, coach link, CSV. Pro-rated from today.')).toBeOnTheScreen();
-  });
-
-  it('Platform at its fair-use cap only queues', async () => {
-    const { getByText, queryByTestId } = await render(
-      <CapSheet tier="platform" period="annual" now={NOW} onQueue={jest.fn()} onUpgrade={jest.fn()} />
-    );
-    expect(getByText("That's 100 this month.")).toBeOnTheScreen();
     expect(queryByTestId('cap-upgrade')).toBeNull();
+    expect(queryByText(/Upgrade|Platform/)).toBeNull();
   });
-});
 
-describe('UpgradeSheet', () => {
-  it('shows only the delta and the charge today', async () => {
-    const purchase = jest.fn(() => Promise.resolve('success' as const));
-    const onStay = jest.fn();
-    const quote = upgradeQuote('hook', 'pull', 'annual', 73, 365, 'android');
-    const { getByText, getByTestId } = await render(
-      <UpgradeSheet
-        from="hook"
-        to="pull"
-        period="annual"
-        quote={quote}
-        platform="android"
-        now={NOW}
-        purchase={purchase}
-        onStay={onStay}
-        onDone={jest.fn()}
-      />
-    );
-    expect(getByText('What changes')).toBeOnTheScreen();
-    expect(getByText('12 → 40')).toBeOnTheScreen();
-    expect(getByText('90 days → all')).toBeOnTheScreen();
-    expect(getByText('240 fps, no watermark')).toBeOnTheScreen();
-    expect(getByTestId('upgrade-price')).toHaveTextContent('+$30 a year · $6 today, pro-rated');
-    await press(getByText('Stay on Hook'));
-    expect(onStay).toHaveBeenCalledTimes(1);
-    await press(getByText('Upgrade · $6 today'));
-    expect(purchase).toHaveBeenCalledWith({ kind: 'sub', tier: 'pull', period: 'annual' });
+  it('a founding member gets the same 40 and reset', async () => {
+    const { getByText } = await render(<CapSheet tier="founding" now={NOW} onQueue={jest.fn()} />);
+    expect(getByText("You've used your 40 this month.")).toBeOnTheScreen();
   });
 });
 

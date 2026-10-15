@@ -5,21 +5,17 @@ import {
   canAnalyse,
   capResetDate,
   chipState,
+  TABLE_TIERS,
   comparisonRows,
   cueMemoryDays,
-  featureDelta,
   featuresFor,
   formatUsd,
-  foundingUpgradeQuote,
   gateFor,
   hasFeature,
-  maxAnnualSavingPct,
   monthKey,
-  nextTier,
   recordAnalysis,
   tierFromEntitlements,
   trialDue,
-  upgradeQuote,
   videosRemaining,
   type Usage,
 } from './entitlements';
@@ -140,14 +136,6 @@ describe('features per tier', () => {
 });
 
 describe('tiers', () => {
-  it('nextTier offers Pull first, then Platform, then nothing', () => {
-    expect(nextTier('free')).toBe('pull');
-    expect(nextTier('hook')).toBe('pull');
-    expect(nextTier('pull')).toBe('platform');
-    expect(nextTier('founding')).toBe('platform');
-    expect(nextTier('platform')).toBeNull();
-  });
-
   it('tierFromEntitlements picks the highest entitlement', () => {
     expect(tierFromEntitlements([])).toBe('free');
     expect(tierFromEntitlements(['hook'])).toBe('hook');
@@ -187,39 +175,10 @@ describe('chipState', () => {
   });
 });
 
-describe('featureDelta', () => {
-  it('Hook → Pull lists only what changes', () => {
-    expect(featureDelta('hook', 'pull')).toEqual([
-      { label: 'Videos a month', value: '12 → 40' },
-      { label: 'Cue memory', value: '90 days → all' },
-      { label: 'Ghost of your best rep', value: 'added' },
-      { label: '"Did it stick" tracking', value: 'added' },
-      { label: '240 fps, no watermark', value: 'added' },
-    ]);
-  });
-
-  it('Pull → Platform', () => {
-    expect(featureDelta('pull', 'platform')).toEqual([
-      { label: 'Videos a month', value: '40 → 100' },
-      { label: 'Coach link', value: 'added' },
-      { label: 'Explainer from your own clip', value: 'added' },
-      { label: 'CSV export', value: 'added' },
-      { label: 'Priority queue', value: 'added' },
-    ]);
-  });
-
-  it('Founding → Platform matches Pull → Platform', () => {
-    expect(featureDelta('founding', 'platform')).toEqual(featureDelta('pull', 'platform'));
-  });
-
-  it('no change gives no rows', () => {
-    expect(featureDelta('pull', 'founding')).toEqual([]);
-  });
-});
-
 describe('comparisonRows', () => {
-  it('matches the plans table', () => {
+  it('compares Free, Pull and Founding only', () => {
     const rows = comparisonRows();
+    expect(TABLE_TIERS).toEqual(['free', 'pull', 'founding']);
     expect(rows.map((r) => r.label)).toEqual([
       'Videos',
       'Cue, player',
@@ -228,28 +187,19 @@ describe('comparisonRows', () => {
       'Did it stick',
       '240 fps',
       'Watermark',
-      'Coach link',
-      'Explainer',
-      'CSV, priority',
     ]);
     expect(rows[0].cells).toEqual({
       free: { kind: 'text', text: '3' },
-      hook: { kind: 'text', text: '12/mo' },
       pull: { kind: 'text', text: '40/mo' },
-      platform: { kind: 'text', text: '100/mo' },
       founding: { kind: 'text', text: '40/mo' },
     });
     expect(rows[2].cells).toEqual({
       free: { kind: 'none' },
-      hook: { kind: 'text', text: '90 d' },
       pull: { kind: 'text', text: 'all' },
-      platform: { kind: 'text', text: 'all' },
       founding: { kind: 'text', text: 'all' },
     });
-    expect(rows[6].cells.hook).toEqual({ kind: 'text', text: 'yes' });
+    expect(rows[6].cells.free).toEqual({ kind: 'text', text: 'yes' });
     expect(rows[6].cells.founding).toEqual({ kind: 'text', text: 'no' });
-    expect(rows[7].cells.platform).toEqual({ kind: 'dot' });
-    expect(rows[7].cells.founding).toEqual({ kind: 'none' });
   });
 });
 
@@ -262,54 +212,21 @@ describe('money', () => {
     expect(formatUsd(1840)).toBe('$18.40');
   });
 
-  it('annual savings per tier and the headline max', () => {
-    expect(annualSavingPct('hook')).toBe(50);
+  it('annual saving on the USD table', () => {
     expect(annualSavingPct('pull')).toBe(50);
-    expect(annualSavingPct('platform')).toBe(44);
-    expect(maxAnnualSavingPct()).toBe(50);
   });
 
   it('annual per month', () => {
     expect(annualPerMonthCents('pull')).toBe(500);
     expect(annualPerMonthCents('hook')).toBe(250);
   });
-
-  it('Play upgrade charges the delta for the days left', () => {
-    expect(upgradeQuote('hook', 'pull', 'annual', 73, 365, 'android')).toEqual({
-      deltaCents: 3000,
-      chargeTodayCents: 600,
-      creditCents: 0,
-    });
-    expect(upgradeQuote('pull', 'platform', 'annual', 365, 365, 'android')).toEqual({
-      deltaCents: 4000,
-      chargeTodayCents: 4000,
-      creditCents: 0,
-    });
-  });
-
-  it('App Store upgrade charges full price and credits unused time', () => {
-    expect(upgradeQuote('hook', 'pull', 'annual', 73, 365, 'ios')).toEqual({
-      deltaCents: 3000,
-      chargeTodayCents: 5999,
-      creditCents: 600,
-    });
-  });
-
-  it('clamps days left to the period', () => {
-    expect(upgradeQuote('hook', 'pull', 'monthly', 45, 30, 'android').chargeTodayCents).toBe(500);
-    expect(upgradeQuote('hook', 'pull', 'monthly', -3, 30, 'android').chargeTodayCents).toBe(0);
-  });
 });
 
-describe('ad funnel and founding upgrades', () => {
+describe('ad funnel', () => {
   it('the trial is due after the one free ad analysis only', () => {
     expect(trialDue('free', used(0), 'ad')).toBe(false);
     expect(trialDue('free', used(1), 'ad')).toBe(true);
     expect(trialDue('free', used(1), 'organic')).toBe(false);
     expect(trialDue('pull', used(1), 'ad')).toBe(false);
-  });
-
-  it('founding to Platform is the full subscription price', () => {
-    expect(foundingUpgradeQuote('platform', 'annual')).toEqual({ deltaCents: 9999, chargeTodayCents: 9999, creditCents: 0 });
   });
 });

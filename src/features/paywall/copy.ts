@@ -7,7 +7,6 @@ import {
   formatUsd,
   type Period,
   type StorePlatform,
-  type SubTier,
 } from './entitlements';
 import type { Plan } from './products';
 
@@ -65,11 +64,7 @@ export function trialOptionLine(period: Period): string {
   return `${formatUsd(annualPerMonthCents('pull'))} a month, billed ${formatUsd(PRICE_CENTS.pull.annual)}`;
 }
 
-export function tierSummary(tier: SubTier): string {
-  if (tier === 'hook') return '12 videos a month · 90-day cue memory';
-  if (tier === 'pull') return '40 a month · ghost of best · did it stick · no watermark';
-  return '100 a month · coach link · CSV · priority';
-}
+export const PULL_SUMMARY = '40 videos a month · ghost of best · did it stick · no watermark';
 
 export function storeName(platform: StorePlatform): string {
   return platform === 'ios' ? 'the App Store' : 'Google Play';
@@ -104,24 +99,3 @@ export function successBody(plan: Plan, now: Date, queuedMovement?: string): str
 }
 
 export const OFFLINE_BODY = "Plans need a connection. The clip is saved on your phone and will queue when you're back.";
-
-export function upgradePriceLine(deltaCents: number, period: Period, chargeTodayCents: number, creditCents: number): string {
-  const head = `+${formatUsd(deltaCents)} ${per(period)}`;
-  if (creditCents > 0) return `${head} · ${formatUsd(chargeTodayCents)} today, ${formatUsd(creditCents)} back for unused time`;
-  return `${head} · ${formatUsd(chargeTodayCents)} today, pro-rated`;
-}
-
-export function capUpgradeLabel(from: 'hook' | 'pull' | 'founding', to: SubTier, period: Period): string {
-  if (from === 'founding') return `Upgrade to ${TIER_NAME[to]} · ${formatUsd(PRICE_CENTS[to][period])} ${per(period)}`;
-  const delta = PRICE_CENTS[to][period] - PRICE_CENTS[from][period];
-  return `Upgrade to ${TIER_NAME[to]} · +${formatUsd(delta)} ${per(period)}`;
-}
-
-export function capUpgradeNote(to: SubTier): string {
-  if (to === 'platform') return 'Platform: 100 a month, coach link, CSV. Pro-rated from today.';
-  return 'Pull: 40 a month, ghost of best, did it stick. Pro-rated from today.';
-}
-
-export function foundingUpgradeLine(period: Period, cents: number): string {
-  return `${formatUsd(cents)} ${per(period)} · your founding seat stays`;
-}

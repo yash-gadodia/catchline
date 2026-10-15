@@ -12,13 +12,14 @@ import {
   comparisonRows,
   formatUsd,
   type Cell,
+  type TableTier,
   type Tier,
 } from './entitlements';
 import { longDate } from './copy';
 
-const SHORT: Record<Tier, string> = { free: 'Free', hook: 'Hook', pull: 'Pull', platform: 'Platf.', founding: 'Found.' };
+const SHORT: Record<TableTier, string> = { free: 'Free', pull: 'Pull', founding: 'Founding' };
 
-function priceLines(t: Tier): [string, string] {
+function priceLines(t: TableTier): [string, string] {
   if (t === 'free') return ['$0', ''];
   if (t === 'founding') return [formatUsd(FOUNDING_PRICE_CENTS), 'once'];
   return [formatUsd(PRICE_CENTS[t].monthly), `${formatUsd(PRICE_CENTS[t].annual)}/yr`];
@@ -62,7 +63,7 @@ export default function PlansScreen({
 }) {
   const insets = useSafeAreaInsets();
   const rows = comparisonRows();
-  const col = (t: Tier) => ({
+  const col = (t: TableTier) => ({
     flex: 1,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,

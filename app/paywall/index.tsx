@@ -4,7 +4,7 @@ import { track, EVENTS } from '../../src/lib/analytics';
 import { usePurchases, type PurchaseStatus } from '../../src/features/purchases/usePurchases';
 import PaywallSheet from '../../src/features/paywall/PaywallSheet';
 import { getProofCues } from '../../src/features/paywall/proofCues';
-import { makePriceFor } from '../../src/features/paywall/storePrices';
+import { annualSavingFor, makePriceFor } from '../../src/features/paywall/storePrices';
 import { purchasePlan, storePlatform, useFoundingSeats } from '../../src/features/paywall/hooks';
 import { FOUNDING_SEATS_TOTAL } from '../../src/features/paywall/entitlements';
 import { submitDraft } from '../../src/features/capture/submit';
@@ -26,6 +26,7 @@ export default function PaywallRoute() {
   const loaded = useFoundingSeats();
   const seats = p.seats !== undefined ? { total: FOUNDING_SEATS_TOTAL, remaining: Number(p.seats) } : loaded;
   const priceFor = useMemo(() => makePriceFor(offerings), [offerings]);
+  const savePct = useMemo(() => annualSavingFor(offerings), [offerings]);
   const movement = p.movement ?? 'lift';
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
@@ -46,6 +47,7 @@ export default function PaywallRoute() {
       queuedMovement={p.clip ? movement : undefined}
       initialPhase={p.phase}
       priceFor={priceFor}
+      savePct={savePct}
       purchase={purchasePlan}
       onNotNow={back}
       onRestore={async () => {
