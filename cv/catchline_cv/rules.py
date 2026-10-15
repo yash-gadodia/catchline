@@ -137,6 +137,32 @@ def choose_set_cue(movement, reps_values):
     return fid, len(seen[fid])
 
 
+def notes(movement, reps, cue, limit=3):
+    """The other faults worth a look under the headline cue. reps: [{"values", "detail"}] per rep. Ranked as the
+    set cue is (gymnastics: repeating first, then causal order; barbell: most severe, ties to the earlier fault),
+    gated across the set, the headline (its fault or its cue text) left out. Each note's why comes from the rep
+    where it was most severe. Empty when there is no headline cue."""
+    if cue is None:
+        return []
+    seen = {}
+    for i, r in enumerate(reps):
+        for fid, sev in fired(r["values"]).items():
+            seen.setdefault(fid, []).append((sev, i))
+    keep = [f for f in gate(set(seen)) if f != cue["faultId"] and CUES[f] != cue["text"]]
+    order = lambda f: RULES[f]["order"]
+    if movement in CAUSAL:
+        keep.sort(key=lambda f: (len(seen[f]) < 2, order(f)))
+    else:
+        keep.sort(key=lambda f: (-round(max(seen[f])[0], 2), order(f)))
+    out = []
+    for fid in keep[:limit]:
+        sev, i = max(seen[fid])
+        r = reps[i]
+        out.append({"faultId": fid, "text": CUES[fid], "why": why_sentence(fid, r["values"], r["detail"].get(fid)),
+                    "severity": round(sev, 2), "reps": len(seen[fid])})
+    return out
+
+
 def confidence(fault_id, severity, side_on_off_deg):
     """Camera angle caps confidence: horizontal distances are foreshortened off side-on; vertical ones survive."""
     if side_on_off_deg is None or side_on_off_deg <= 20:
