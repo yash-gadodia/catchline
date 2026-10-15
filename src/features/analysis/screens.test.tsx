@@ -170,10 +170,29 @@ describe('CueScreen', () => {
     expect(getByText('Bar drifting at the knee')).toBeOnTheScreen();
     expect(getByTestId('dashed-path')).toBeOnTheScreen();
     expect(getByText('dashed path = lower confidence')).toBeOnTheScreen();
-    await press(getByText('Film another set'));
-    expect(nav.onFilmAgain).toHaveBeenCalledTimes(1);
-    await press(getByText('Analyse'));
+    await press(getByTestId('see-breakdown'));
     expect(nav.onTry).toHaveBeenCalledTimes(1);
+  });
+
+  it('low confidence: one primary action that tracks the cue and opens the breakdown', async () => {
+    const onKeep = jest.fn(() => expect(nav.onTry).not.toHaveBeenCalled());
+    const { getByTestId, queryByTestId, queryByText } = await render(<CueScreen analysis={snatchMockLow} nav={{ ...nav, onKeep }} />);
+    expect(getByTestId('see-breakdown')).toHaveTextContent('See the breakdown');
+    expect(queryByText('Analyse')).toBeNull();
+    expect(queryByText('Film another set')).toBeNull();
+    expect(queryByTestId('film-again')).toBeNull();
+    await press(getByTestId('see-breakdown'));
+    expect(onKeep).toHaveBeenCalledTimes(1);
+    expect(nav.onTry).toHaveBeenCalledTimes(1);
+  });
+
+  it('low confidence from the camera angle offers filming again from the side', async () => {
+    const angled = { ...snatchMockLow, cue: { ...snatchMockLow.cue!, confidence: 'low' as const, confidenceText: 'Seen on 1 of 2 reps, filmed ~36° off side-on: film from the side to confirm' } };
+    const { getByTestId } = await render(<CueScreen analysis={angled} nav={nav} />);
+    expect(getByTestId('film-again')).toHaveTextContent('Film again from the side');
+    await press(getByTestId('film-again'));
+    expect(nav.onFilmAgain).toHaveBeenCalledTimes(1);
+    expect(nav.onTry).not.toHaveBeenCalled();
   });
 });
 

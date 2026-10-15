@@ -1,7 +1,9 @@
-import type { Measurement } from './types';
+import type { Cue, Measurement } from './types';
 import {
   compareRows,
+  confidenceLine,
   doneTitle,
+  filmedAtAngle,
   evidenceReadout,
   fmt,
   formatWait,
@@ -152,5 +154,26 @@ describe('compare captions', () => {
     expect(signedCm(3.6)).toBe('+4 cm');
     expect(signedCm(-2.2)).toBe('-2 cm');
     expect(signedCm(0)).toBe('0 cm');
+  });
+});
+
+describe('confidenceLine', () => {
+  const cue = (confidence: Cue['confidence'], confidenceText: string): Cue => ({ ...snatchMock.cue!, confidence, confidenceText });
+
+  it('maps the three confidence levels to plain bands, with the reason when not high', () => {
+    expect(confidenceLine(cue('clear', 'Clear on all 3 reps'))).toBe('Confidence: high');
+    expect(confidenceLine(cue('worth_checking', 'Seen on 2 of 3 reps and the hip was behind a plate on rep 1.'))).toBe(
+      'Confidence: medium · bar partly hidden, seen on 2 of 3 reps'
+    );
+    expect(confidenceLine(cue('low', 'Seen on 1 of 2 reps, filmed ~36° off side-on: film from the side to confirm'))).toBe(
+      'Confidence: low · filmed at an angle, seen on 1 of 2 reps'
+    );
+    expect(confidenceLine(cue('worth_checking', 'Seen on 1 of 1 reps'))).toBe('Confidence: medium · one rep only');
+    expect(confidenceLine(cue('low', 'Something new'))).toBe('Confidence: low');
+  });
+
+  it('knows when the camera angle is the reason', () => {
+    expect(filmedAtAngle(cue('low', 'Seen on 1 of 2 reps, filmed ~36° off side-on: film from the side to confirm'))).toBe(true);
+    expect(filmedAtAngle(cue('worth_checking', 'Seen on 2 of 3 reps'))).toBe(false);
   });
 });

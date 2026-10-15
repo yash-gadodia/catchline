@@ -191,3 +191,28 @@ export function signedCm(cm: number): string {
   const r = Math.round(cm);
   return `${r > 0 ? '+' : ''}${r} cm`;
 }
+
+export const CONFIDENCE_BAND: Record<Cue['confidence'], 'high' | 'medium' | 'low'> = {
+  clear: 'high',
+  worth_checking: 'medium',
+  low: 'low',
+};
+
+export function filmedAtAngle(cue: Cue): boolean {
+  return /off side-on/.test(cue.confidenceText);
+}
+
+// "Confidence: high", or the band plus why it is not high (read from the CV's confidenceText).
+export function confidenceLine(cue: Cue): string {
+  const band = CONFIDENCE_BAND[cue.confidence];
+  if (band === 'high') return 'Confidence: high';
+  const t = cue.confidenceText;
+  const seen = /Seen on (\d+) of (\d+) reps/.exec(t);
+  const reasons = new Set<string>();
+  if (filmedAtAngle(cue)) reasons.add('filmed at an angle');
+  if (/behind a plate|hidden/.test(t)) reasons.add('bar partly hidden');
+  if (seen && seen[2] === '1') reasons.add('one rep only');
+  else if (seen && seen[1] !== seen[2]) reasons.add(`seen on ${seen[1]} of ${seen[2]} reps`);
+  if (/One missed rep/.test(t)) reasons.add('one rep only');
+  return `Confidence: ${band}${reasons.size ? ` · ${[...reasons].join(', ')}` : ''}`;
+}

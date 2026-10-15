@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Analysis } from '../../analysis/types';
-import { liftTitle } from '../../analysis/format';
+import { filmedAtAngle, liftTitle } from '../../analysis/format';
 import { keyFrameAt, liftPath, repByIndex } from '../../analysis/timeline';
 import { toScreen } from '../../analysis/geometry';
 import Btn from '../../components/Btn';
@@ -141,14 +141,22 @@ function LowConfidence({ analysis, nav }: { analysis: Analysis; nav: Nav }) {
         <CueNotes notes={analysis.notes} />
       </ScrollView>
       <View style={{ paddingTop: space.s4, paddingHorizontal: space.gutter, paddingBottom: space.s7, gap: space.s2 }}>
-        <Btn kind="secondary" onPress={nav.onFilmAgain} testID="film-again">
-          Film another set
+        <Btn
+          onPress={() => {
+            nav.onKeep?.();
+            nav.onTry();
+          }}
+          testID="see-breakdown"
+        >
+          See the breakdown
         </Btn>
-        <View style={{ alignItems: 'center' }}>
-          <TextAction onPress={nav.onKeep ?? nav.onTry} testID="keep-anyway">
-            Analyse
-          </TextAction>
-        </View>
+        {filmedAtAngle(cue) ? (
+          <View style={{ alignItems: 'center' }}>
+            <TextAction onPress={nav.onFilmAgain} testID="film-again">
+              Film again from the side
+            </TextAction>
+          </View>
+        ) : null}
       </View>
     </View>
   );
