@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="75 95 450 450">
+  <!-- Bar muscle-up, support position: body above the bar, arms locked, hips at the bar, legs together and a little forward. -->
+  <g fill="#A39F97" stroke="#A39F97" stroke-linecap="round" stroke-linejoin="round">
+    <!-- rig: two uprights and the bar -->
+    <line x1="130" y1="110" x2="130" y2="530" stroke-width="12"/>
+    <line x1="470" y1="110" x2="470" y2="530" stroke-width="12"/>
+    <line x1="130" y1="300" x2="470" y2="300" stroke-width="12"/>
+    <!-- head -->
+    <ellipse cx="330" cy="136" rx="26" ry="29" stroke-width="0"/>
+    <!-- body: neck, back, glutes, legs together with toes pointed, then the front back up to the chest -->
+    <path stroke-width="4" d="
+      M 310 164
+      C 292 174, 276 188, 270 210
+      C 262 238, 258 270, 258 298
+      C 254 322, 258 344, 266 366
+      C 272 386, 276 400, 280 414
+      C 284 430, 286 446, 290 466
+      C 294 480, 298 492, 304 502
+      C 312 512, 330 522, 344 524
+      C 350 524, 350 516, 342 512
+      C 334 506, 326 496, 322 484
+      C 318 466, 318 446, 320 428
+      C 322 416, 322 404, 318 390
+      C 314 372, 312 350, 314 330
+      C 316 300, 326 264, 338 240
+      C 346 222, 348 200, 342 184
+      C 338 174, 332 168, 324 164
+      Z"/>
+  </g>
+  <g fill="none" stroke="#A39F97" stroke-linecap="round" stroke-linejoin="round">
+    <!-- locked arm: shoulder over the hand on the bar -->
+    <path d="M 322 200 C 332 232, 340 264, 348 296" stroke-width="26"/>
+  </g>
+  <g fill="#A39F97">
+    <circle cx="320" cy="202" r="22"/>
+    <ellipse cx="322" cy="168" rx="13" ry="16"/>
+    <ellipse cx="349" cy="300" rx="15" ry="13"/>
+  </g>
+</svg>
