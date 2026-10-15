@@ -3,7 +3,7 @@ import pytest
 
 from catchline_cv import rules
 from catchline_cv.geometry import angle, bar_from_wrists, lowpass, normalise, rise_ratio, trunk_angle
-from catchline_cv.phases import SNATCH_PHASES, catch_depth, find_reps, segment_snatch
+from catchline_cv.phases import SNATCH_PHASES, catch_depth, find_reps, plate_liftoff, segment_snatch
 
 
 def test_angle_right_and_straight():
@@ -86,6 +86,27 @@ def test_segment_snatch_synthetic_events():
     assert phases[5] == {"name": "catch", "startFrame": 62, "endFrame": 97}
     for a, b in zip(phases, phases[1:]):
         assert b["startFrame"] == a["endFrame"] + 1
+
+
+def test_plate_liftoff_is_where_the_plate_starts_its_rise():
+    # IMG_0226 (side-on, 288 px plate): the wrists rose 4-5 cm taking the slack out while the plate sat on the floor
+    # (+-1.5 cm of track noise), then the plate rose ~1.2 cm a frame
+    px = 288.0 / 45.0
+    rise_cm = np.concatenate([[0.7, -0.7, 0.5, 0.8, -1.5, -1.3, -1.4, -1.3, -1.0, -1.4, -1.3, -1.4],
+                              -1.3 + 1.2 * np.arange(1, 13)])
+    y = 1000.0 - rise_cm * px
+    assert plate_liftoff(y, 1, 288.0) == 11
+    assert plate_liftoff(np.where(np.arange(len(y)) == 8, np.nan, y), 1, 288.0) is None
+    assert plate_liftoff(np.full(30, 1000.0), 1, 288.0) is None
+    assert plate_liftoff(y[:14], 1, 288.0) is None  # no rise before the end of the search (the second pull)
+
+
+def test_segment_snatch_takes_a_given_liftoff():
+    h, knee, elbow = synthetic_snatch()
+    phases, ev = segment_snatch(h, knee, 30, elbow=elbow, liftoff=34)
+    assert ev["liftoff"] == 34
+    assert phases[1]["startFrame"] == 34
+    assert ev["peak"] == 61
 
 
 def test_segment_snatch_without_rebend_uses_knee_pass():

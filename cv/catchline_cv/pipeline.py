@@ -14,7 +14,7 @@ from . import outcome
 from . import rules
 from .geometry import angle, bar_from_wrists, lowpass, normalise, rise_ratio, trunk_angle
 from .lifter import select_lifter
-from .phases import SNATCH_PHASES, catch_depth, find_reps, key_frames, segment_snatch
+from .phases import SNATCH_PHASES, catch_depth, find_reps, key_frames, plate_liftoff, segment_snatch
 from .pose import (L_ANK, L_BIGTOE, L_ELB, L_HEEL, R_ELB, L_HIP, L_KNEE, L_SHO, L_WRI, R_ANK, R_BIGTOE, R_HEEL,
                    R_HIP, R_KNEE, R_SHO, R_WRI, run_pose, strip_head)
 from .privacy import blur_bystanders, bystanders
@@ -257,6 +257,15 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
     foreshort = 1 / np.cos(np.radians(off_side))
     plate_raw, plate_score = track_plate(fr, seed, near)
     plate_ref = to_ref(plate_raw, Ms)
+    # the wrists rise a few cm while the lifter takes the slack out of the bar; the bar leaves the floor with the plate
+    plate_lo = plate_liftoff(plate_ref[: ev["second_ext"], 1], lo, near["axes"][0])
+    if plate_lo is not None and plate_lo > lo:
+        phases, ev = segment_snatch(up(bar[:, 1]), knee_ang, fps, elbow=elbow, catch_mask=rack, liftoff=plate_lo)
+        lo = ev["liftoff"]
+        knee_pass = next((f for f in range(lo, ev["peak"]) if bar[f, 1] <= knee[f, 1]), None)
+        if knee_pass is not None and not ev["double_knee_bend"]:
+            phases, ev = segment_snatch(up(bar[:, 1]), knee_ang, fps, knee_pass=knee_pass, elbow=elbow, catch_mask=rack,
+                                        liftoff=plate_lo)
     depth_ratio = None
     if far is None:
         # side-on, only the near plate is visible and it sits ~75 cm closer to the camera than the lifter.
