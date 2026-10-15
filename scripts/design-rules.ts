@@ -77,6 +77,7 @@ function radiusOk(e: ts.Expression): 'ok' | 'token' | 'raw' {
   if (ts.isPropertyAccessExpression(e) && e.expression.getText() === 'radius') {
     return e.name.text === 'image' ? 'ok' : 'token';
   }
+  if (ts.isElementAccessExpression(e) && e.expression.getText() === 'radius') return 'token';
   if (ts.isBinaryExpression(e) && e.operatorToken.kind === ts.SyntaxKind.SlashToken && e.right.getText() === '2') {
     return 'ok';
   }
