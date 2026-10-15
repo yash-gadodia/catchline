@@ -162,29 +162,35 @@ def test_find_reps_floor_to_overhead():
 def test_a_jump_behind_a_measured_bar_swing_cues_the_swing_even_under_its_threshold():
     # IMG_0226 (side-on squat snatch, missed forward): bar 5.2 cm forward off the hips, feet 8.6 cm forward
     miss = {"hips_rise_early": 7.82, "bar_forward_off_hips": 5.2, "jump_forward": 8.64}
-    assert rules.fired(miss) == {"jump_forward": pytest.approx(1.728), "bar_forward_off_hips": pytest.approx(1.728)}
+    assert rules.fired(miss) == {"jump_forward": pytest.approx(1.08), "bar_forward_off_hips": pytest.approx(1.08)}
     assert rules.choose_cue(miss) == "bar_forward_off_hips"
-    # prod 14 Oct side-on snatches: bar 5.7 / 5.9 cm, feet 6.5 / 6.1 cm
-    assert rules.choose_cue({"hips_rise_early": -1.3, "bar_forward_off_hips": 5.7, "jump_forward": 6.5}) == "bar_forward_off_hips"
-    assert rules.choose_cue({"hips_rise_early": -5.0, "bar_forward_off_hips": 5.9, "jump_forward": 6.1}) == "bar_forward_off_hips"
     # IMG_8149 (feet landed ~8 cm forward by eye, bar stayed close): the jump is its own fault
     assert rules.choose_cue({"hips_rise_early": -2.33, "bar_forward_off_hips": 4.56, "jump_forward": 8.56}) == "jump_forward"
-    # E0DF8887 (made power snatch, feet ~3 cm forward by eye): nothing to cue
-    assert rules.choose_cue({"hips_rise_early": -1.74, "bar_forward_off_hips": 3.59, "jump_forward": 3.99}) is None
+
+
+def test_a_jump_inside_the_foot_noise_is_not_cued():
+    # E0DF8887 (made power snatch, near heel back on its start line by eye) reads 5.3 cm (original) and 6.3 cm (app
+    # transcode) at the landing; the threshold is the lenient 5 cm plus ~3 cm of foot-point noise
+    assert rules.RULES["jump_forward"]["threshold"] == 8.0
+    assert rules.choose_cue({"hips_rise_early": -1.7, "bar_forward_off_hips": 3.6, "jump_forward": 5.3}) is None
+    assert rules.choose_cue({"hips_rise_early": -5.3, "bar_forward_off_hips": 3.7, "jump_forward": 6.3}) is None
+    # prod 14 Oct side-on snatches (bar 5.7 / 5.9 cm, feet 6.5 / 6.1 cm): neither fault is past its threshold
+    assert rules.choose_cue({"hips_rise_early": -1.3, "bar_forward_off_hips": 5.7, "jump_forward": 6.5}) is None
+    assert rules.choose_cue({"hips_rise_early": -5.0, "bar_forward_off_hips": 5.9, "jump_forward": 6.1}) is None
 
 
 def test_rules_gate_the_jump_behind_the_bar_swing_and_cap_confidence_off_side_on():
-    vals = {"hips_rise_early": -3.0, "bar_forward_off_hips": 13.0, "jump_forward": 7.0}
+    vals = {"hips_rise_early": -3.0, "bar_forward_off_hips": 13.0, "jump_forward": 11.2}
     assert rules.fired(vals) == {"bar_forward_off_hips": pytest.approx(1.3), "jump_forward": pytest.approx(1.4)}
     # the jump is more severe, but the swing comes first and causes it (25 section 4 causal gating)
     assert rules.choose_cue(vals) == "bar_forward_off_hips"
-    assert rules.choose_cue({"hips_rise_early": -3.0, "bar_forward_off_hips": 2.0, "jump_forward": 7.0}) == "jump_forward"
+    assert rules.choose_cue({"hips_rise_early": -3.0, "bar_forward_off_hips": 2.0, "jump_forward": 11.0}) == "jump_forward"
     assert rules.confidence("jump_forward", 1.4, 36.0) == "low"
     assert rules.confidence("hips_rise_early", 1.6, 36.0) == "worth_checking"
     assert rules.confidence("jump_forward", 1.6, 5.0) == "clear"
     assert rules.choose_cue({"hips_rise_early": 1.0, "bar_forward_off_hips": None, "jump_forward": 0.0}) is None
     assert len(rules.CUES["jump_forward"].split()) < 8
-    assert rules.why_sentence("jump_forward", vals) == "Your feet landed 7 cm in front of where they started."
+    assert rules.why_sentence("jump_forward", vals) == "Your feet landed 11 cm in front of where they started."
     assert rules.why_sentence("hips_rise_early", {"hips_rise_early": 9.0}, {"trunk_change": 13.4}) == (
         "Your back angle dropped 14 deg between the floor and the knee, which put the bar in front of you.")
     assert rules.why_sentence("early_arm_bend", {"early_arm_bend": 0.137}) == (
