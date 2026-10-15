@@ -4,6 +4,9 @@ paths: ["app/**", "src/components/**", "src/design/**"]
 
 # React Native fidelity (hard-won — these caused real visual bugs)
 
+The visual rules (palette, type voices, spacing, shape, motion, art, copy) are `.claude/skills/catchline-ui`; screen review on the simulator is `.claude/skills/design-review`.
+The design guards (`scripts/check-{raw-colors,type-tokens,radius-tokens,no-pills,text-color,spacing-tokens}.ts`) enforce them; escape a deliberate case with `// design-ok: <reason>`.
+
 Porting the web prototype (`design_handoff_parallax/`) to RN. The traps that bit us, in priority order:
 
 - **`lineHeight` is PIXELS, not a CSS multiplier.** `lineHeight: 1.5` clips text to a ~1.5px sliver (invisible). Use `lineHeight: fontSize * ~1.4` (e.g. 14px → 20, button 16.5 → 20). This made descriptions and button labels invisible.
