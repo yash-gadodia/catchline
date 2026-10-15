@@ -101,6 +101,25 @@ Built and deployed (2026-10-11): `revenuecat-webhook`, `verify_jwt` off, secret 
 - Deploy: `supabase functions deploy revenuecat-webhook --project-ref slowxjhvrdswdabjfydk --use-api --no-verify-jwt`.
 - Proven on hosted: wrong/missing header 401; synthetic INITIAL_PURCHASE (pull) on a throwaway anonymous user -> `profiles.plan = pull`, `lift_allowance` cap 40/month; replay -> `duplicate`; EXPIRATION -> free, cap 3 lifetime; user deleted after.
 
+### 4. Ops alerts (built 2026-10-15, NOT deployed)
+What it does: the worker calls `worker_heartbeat(worker, version)` (service role only) at most once a minute from its poll loop; `worker_heartbeats` holds the last beat per worker (`CATCHLINE_WORKER_ID` or the hostname; version = `~/catchline-worker/REVISION`). pg_cron `catchline-health` (every 5 min) runs `ops_health_check()` (0008), which judges three conditions: a lift `queued`/`processing` for more than 5 min, no heartbeat for 3 min (or none ever), more than 3 failed lifts in 30 min. A condition that newly holds opens one `ops_alerts` row (a partial unique index allows one open row per kind, so one incident = one alert); when it clears the row gets `closed_at` and a recovery goes out. Each run with changes posts once (pg_net, `catchline_api_url` + `catchline_service_key` from Vault) to the `ops-alert` function, which sends an Expo push to the `profiles.push_token` of each id in the `OPS_ALERT_USER_IDS` secret, e.g. "Catchline alert: 3 lifts waiting over 5 min, worker last seen 12 min ago", then "Catchline recovered: recovered: queue moving, worker back". `ops-alert` runs with `verify_jwt` on and requires role `service_role` (Vault holds the legacy service-role JWT, which the gateway accepts). Without the Vault secrets the check changes nothing and returns null. Proven by `supabase/tests/ops_health_test.sql` (27), `deno test supabase/functions/ops-alert` (8), `worker/tests/test_heartbeat.py` (3).
+
+Deploy, in this order (worker first, or the first check alerts "no worker heartbeat yet"):
+```sh
+# 1. Worker with heartbeats: the "Update after a merge" block under "Mini worker" above.
+# 2. Migration 0008 (pushes every pending migration; check the list first)
+supabase migration list --linked
+supabase db push --linked
+# 3. Recipients (comma-separated profile ids; never in the repo) + the function
+supabase secrets set OPS_ALERT_USER_IDS=<owner profile id> --project-ref slowxjhvrdswdabjfydk
+supabase functions deploy ops-alert --project-ref slowxjhvrdswdabjfydk --use-api
+# 4. Check: the job exists, a heartbeat landed, the check returns health and no changes
+#    select jobname, schedule from cron.job where jobname = 'catchline-health';
+#    select * from public.worker_heartbeats;
+#    select public.ops_health_check();
+```
+The owner's profile needs a `push_token` (the app writes it once notifications are allowed). Caveat: the worker beats between jobs, so a single analysis longer than 3 minutes raises `worker_silent` (and a recovery right after).
+
 ## Known gaps (not built here)
 - **Face blur.** Bystanders are blurred from pose boxes and head keypoints are dropped (CV v2). The lifter's face is not yet blurred in exports/coach links (`14-legal-privacy.md` s.9.2); do it before the coach link is public.
 - **Coach page.** `get_coach_link` returns the analysis, but keyframe images are private storage paths; the public page needs an edge function that mints signed URLs for a valid token. No page exists yet.

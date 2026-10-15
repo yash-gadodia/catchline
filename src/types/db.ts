@@ -324,6 +324,30 @@ export type Database = {
         }
         Relationships: []
       }
+      ops_alerts: {
+        Row: {
+          closed_at: string | null
+          detail: Json | null
+          id: number
+          kind: string
+          opened_at: string
+        }
+        Insert: {
+          closed_at?: string | null
+          detail?: Json | null
+          id?: never
+          kind: string
+          opened_at: string
+        }
+        Update: {
+          closed_at?: string | null
+          detail?: Json | null
+          id?: never
+          kind?: string
+          opened_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -399,6 +423,24 @@ export type Database = {
           period_start?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      worker_heartbeats: {
+        Row: {
+          seen_at: string
+          version: string | null
+          worker_id: string
+        }
+        Insert: {
+          seen_at?: string
+          version?: string | null
+          worker_id: string
+        }
+        Update: {
+          seen_at?: string
+          version?: string | null
+          worker_id?: string
         }
         Relationships: []
       }
@@ -526,6 +568,8 @@ export type Database = {
       lift_allowance: { Args: never; Returns: Json }
       lifts_ahead: { Args: { p_lift_id: string }; Returns: number }
       mark_clip_deleted: { Args: { p_lift_id: string }; Returns: undefined }
+      ops_health: { Args: { p_now?: string }; Returns: Json }
+      ops_health_check: { Args: { p_now?: string }; Returns: Json }
       plan_cap: {
         Args: { p_plan: string }
         Returns: {
@@ -540,6 +584,7 @@ export type Database = {
         Returns: boolean
       }
       wake_worker: { Args: never; Returns: undefined }
+      worker_heartbeat: { Args: { p_version: string; p_worker: string }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
