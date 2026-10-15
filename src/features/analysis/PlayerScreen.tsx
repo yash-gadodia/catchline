@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, Text, View, useWindowDimensions } from 'react-native';
+import { Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Analysis, PhaseName } from '../../analysis/types';
 import { liftTitle, phaseLabel } from '../../analysis/format';
@@ -29,6 +29,7 @@ import { CurrentDot, FlarePath, KeyDots, OverlaySvg, RefLine } from './overlays'
 import Scrubber from './Scrubber';
 import JogWheel from './JogWheel';
 import PhaseChips from './PhaseChips';
+import CueNotes from './CueNotes';
 
 export type Speed = '0.25' | '0.5' | '1';
 type Overlays = { path: boolean; strobe: boolean; lines: boolean };
@@ -216,13 +217,18 @@ export default function PlayerScreen({
           {frame}
         </Text>
       </View>
-      <View style={{ flex: 1, paddingTop: space.s2, paddingHorizontal: space.gutter }}>
+      <ScrollView
+        testID="player-cue-area"
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingTop: space.s2, paddingHorizontal: space.gutter, gap: space.s2 }}
+      >
         {analysis.cue ? (
           <Text style={[display(26), { color: colors.text }]} numberOfLines={2}>
             {analysis.cue.text}
           </Text>
         ) : null}
-      </View>
+        <CueNotes notes={analysis.notes} />
+      </ScrollView>
       <View style={{ flexDirection: 'row', gap: space.s2, paddingTop: space.s2, paddingHorizontal: space.gutter, paddingBottom: Math.max(insets.bottom, space.s4) }}>
         {onCompare ? (
           <Btn kind="secondary" compact onPress={onCompare} style={{ flex: 1 }} testID="player-compare">

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, Text, View, useWindowDimensions } from 'react-native';
+import { Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Analysis } from '../../analysis/types';
 import { liftTitle } from '../../analysis/format';
@@ -12,6 +12,7 @@ import { colors, space } from '../../design/tokens';
 import { display, fontFamily } from '../../design/typography';
 import EvidenceStage from './EvidenceStage';
 import WhyDrawer from './WhyDrawer';
+import CueNotes from './CueNotes';
 import { isSample } from '../../analysis/fixtures';
 import { baselineSentence } from './baseline';
 import { useLibrary } from '../library/repository';
@@ -42,7 +43,7 @@ function CueBody({ analysis, nav, onWhy }: { analysis: Analysis; nav: Nav; onWhy
   return (
     <>
       <EvidenceStage analysis={analysis} cue={cue} box={{ width, height: width }} />
-      <View style={{ flex: 1, paddingTop: space.s5, paddingHorizontal: space.gutter, gap: space.s3 }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: space.s5, paddingHorizontal: space.gutter, gap: space.s3 }}>
         <SmallCaps>{sample ? 'Sample lift · AI estimate' : 'One thing to fix · AI estimate'}</SmallCaps>
         <Text style={[display(40), { color: colors.text }]} testID="cue-text">
           {cue.text}
@@ -54,7 +55,8 @@ function CueBody({ analysis, nav, onWhy }: { analysis: Analysis; nav: Nav; onWhy
           </Text>
         ) : null}
         <StatusRow>{cue.confidenceText}</StatusRow>
-      </View>
+        <CueNotes notes={analysis.notes} />
+      </ScrollView>
       <View style={{ paddingTop: space.s4, paddingHorizontal: space.gutter, paddingBottom: space.s7, gap: space.s2 }}>
         <Btn onPress={nav.onTry} testID="cue-try">
           Try this next session
@@ -132,11 +134,12 @@ function LowConfidence({ analysis, nav }: { analysis: Analysis; nav: Nav }) {
           )}
         </Stage>
       </View>
-      <View style={{ flex: 1, paddingTop: space.s4, paddingHorizontal: space.gutter, gap: space.s2 }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: space.s4, paddingHorizontal: space.gutter, gap: space.s2 }}>
         <SmallCaps>Possible</SmallCaps>
         <Text style={[display(32), { color: colors.text }]}>{cue.text}</Text>
         <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>{cue.why}</Text>
-      </View>
+        <CueNotes notes={analysis.notes} />
+      </ScrollView>
       <View style={{ paddingTop: space.s4, paddingHorizontal: space.gutter, paddingBottom: space.s7, gap: space.s2 }}>
         <Btn kind="secondary" onPress={nav.onFilmAgain} testID="film-again">
           Film another set
