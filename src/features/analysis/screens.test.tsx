@@ -67,7 +67,7 @@ describe('ProcessingSheet', () => {
     expect(getByTestId('processing-clip')).toHaveStyle({ opacity: 0.28 });
     expect(getByTestId('processing-scrim')).toHaveStyle({ backgroundColor: 'rgba(0,0,0,0.35)' });
     expect(queryByTestId('processing-art')).toBeNull();
-    expect(getByTestId('processing-motion')).toBeOnTheScreen();
+    expect(queryByTestId('processing-path')).toBeNull();
   });
 
   it('falls back to the silhouette without a local clip', async () => {
@@ -77,10 +77,21 @@ describe('ProcessingSheet', () => {
     expect(useVideoPlayer).not.toHaveBeenCalled();
     expect(queryByTestId('processing-clip')).toBeNull();
     expect(getByTestId('processing-art')).toBeOnTheScreen();
-    expect(getByTestId('processing-motion')).toBeOnTheScreen();
+    expect(getByTestId('processing-path')).toBeOnTheScreen();
   });
 
-  it('Reduce Motion: a still frame and no animated layer', async () => {
+  it('draws the silhouette bar path up to the current phase with a pulsing leading dot', async () => {
+    const { getByTestId, getAllByTestId, queryAllByTestId, rerender } = await render(
+      <ProcessingSheet analysis={null} state="progress" step={0} elapsed={3} reduceMotion={false} {...handlers} />
+    );
+    expect(queryAllByTestId('processing-path-dot')).toHaveLength(0);
+    expect(getByTestId('processing-path-lead')).toBeOnTheScreen();
+    await rerender(<ProcessingSheet analysis={null} state="progress" step={2} elapsed={5} reduceMotion={false} {...handlers} />);
+    expect(getAllByTestId('processing-path-dot')).toHaveLength(2);
+    expect(getByTestId('processing-path-lead')).toBeOnTheScreen();
+  });
+
+  it('Reduce Motion over the clip: a still frame and no path', async () => {
     const { getByTestId, queryByTestId } = await render(
       <ProcessingSheet analysis={null} clipUri="file:///clips/power-snatch.mov" state="progress" step={1} elapsed={3} reduceMotion {...handlers} />
     );
@@ -88,8 +99,17 @@ describe('ProcessingSheet', () => {
     expect(player.play).not.toHaveBeenCalled();
     expect(player.loop).toBe(false);
     expect(getByTestId('processing-clip')).toBeOnTheScreen();
-    expect(queryByTestId('processing-motion')).toBeNull();
+    expect(queryByTestId('processing-path')).toBeNull();
     expect(queryByTestId('step-active')).toBeOnTheScreen();
+  });
+
+  it('Reduce Motion over the silhouette: the whole path, all four phase dots, no pulse', async () => {
+    const { getByTestId, getAllByTestId, queryByTestId } = await render(
+      <ProcessingSheet analysis={null} state="progress" step={0} elapsed={3} reduceMotion {...handlers} />
+    );
+    expect(getByTestId('processing-path')).toBeOnTheScreen();
+    expect(getAllByTestId('processing-path-dot')).toHaveLength(4);
+    expect(queryByTestId('processing-path-lead')).toBeNull();
   });
 
   it('offers a ping on a long wait', async () => {
