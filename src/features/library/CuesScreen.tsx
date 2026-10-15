@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Image, Pressable, RefreshControl, ScrollView, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SmallCaps from '../../components/SmallCaps';
 import { colors, space } from '../../design/tokens';
@@ -26,6 +26,8 @@ export function useRefresh(): { refreshing: boolean; onRefresh: () => void } {
   return { refreshing, onRefresh };
 }
 
+const EMPTY_CUES_ART = require('../../../assets/art/empty-cues.png');
+
 export default function CuesScreen({ onOpen }: { onOpen: (cue: CueRecord) => void }) {
   const insets = useSafeAreaInsets();
   const { cues, sessions, today, synced } = useLibrary();
@@ -49,6 +51,7 @@ export default function CuesScreen({ onOpen }: { onOpen: (cue: CueRecord) => voi
             <ActivityIndicator color={colors.text2} />
           ) : (
             <>
+              <Image testID="cues-empty-art" source={EMPTY_CUES_ART} style={{ width: 160, height: 160 }} />
               <Text style={[display(32), { color: colors.text, textAlign: 'center' }]}>Your first cue lands here.</Text>
               <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21, textAlign: 'center' }}>
                 After you film a lift, the one thing to fix lives on this tab until it sticks.

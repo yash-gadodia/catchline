@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Image, Pressable, RefreshControl, ScrollView, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Line } from 'react-native-svg';
 import type { Movement } from '../../analysis/types';
@@ -16,6 +16,8 @@ import { useRefresh } from './CuesScreen';
 import TrendChart from './TrendChart';
 import FadeRow from '../analysis/FadeRow';
 import { Chip, Frame, Title } from './ui';
+
+const EMPTY_TRENDS_ART = require('../../../assets/art/empty-trends.png');
 
 export default function TrendsScreen({ initialMovement }: { initialMovement?: Movement }) {
   const insets = useSafeAreaInsets();
@@ -76,15 +78,19 @@ export default function TrendsScreen({ initialMovement }: { initialMovement?: Mo
   const latest = visible[visible.length - 1];
   const refresh = <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.text2} />;
 
-  const sparse = (headline: string, body: string, testID: string) => (
+  const sparse = (headline: string, body: string, testID: string, art = false) => (
     <ScrollView contentContainerStyle={{ flexGrow: 1 }} refreshControl={refresh} testID={testID}>
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.s4, paddingHorizontal: space.gutter }}>
-        <Svg width={200} height={60}>
-          <Line x1={0} y1={50} x2={200} y2={50} stroke={colors.text} strokeDasharray="4 6" opacity={0.35} />
-          {count === 1 ? <Circle cx={40} cy={22} r={5} fill={colors.flare} /> : null}
-          <Circle cx={100} cy={30} r={3} stroke={colors.text3} strokeDasharray="2 2" fill="none" />
-          <Circle cx={160} cy={30} r={3} stroke={colors.text3} strokeDasharray="2 2" fill="none" />
-        </Svg>
+        {art ? (
+          <Image testID="trends-empty-art" source={EMPTY_TRENDS_ART} style={{ width: 160, height: 160 }} />
+        ) : (
+          <Svg width={200} height={60}>
+            <Line x1={0} y1={50} x2={200} y2={50} stroke={colors.text} strokeDasharray="4 6" opacity={0.35} />
+            {count === 1 ? <Circle cx={40} cy={22} r={5} fill={colors.flare} /> : null}
+            <Circle cx={100} cy={30} r={3} stroke={colors.text3} strokeDasharray="2 2" fill="none" />
+            <Circle cx={160} cy={30} r={3} stroke={colors.text3} strokeDasharray="2 2" fill="none" />
+          </Svg>
+        )}
         <Text style={[display(32), { color: colors.text, textAlign: 'center' }]}>{headline}</Text>
         <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21, textAlign: 'center' }}>{body}</Text>
       </View>
@@ -127,7 +133,7 @@ export default function TrendsScreen({ initialMovement }: { initialMovement?: Mo
           <ActivityIndicator color={colors.text2} />
         </View>
       ) : movements.length === 0 && !initialMovement ? (
-        sparse('Film a lift and the trend starts here.', 'Trends need two lifts of the same movement.', 'trends-empty')
+        sparse('Film a lift and the trend starts here.', 'Trends need two lifts of the same movement.', 'trends-empty', true)
       ) : count < 2 ? (
         sparse(
           count === 1 ? `One ${SINGULAR_MOVEMENT[movement]} so far.` : `No ${PLURAL_MOVEMENT[movement]} yet.`,

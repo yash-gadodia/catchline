@@ -26,21 +26,15 @@ describe('Launch', () => {
 });
 
 describe('Welcome', () => {
-  it('stacks the sample strobe under the drawing path and offers start or import', async () => {
+  it('shows the snatch silhouette hero and offers start or import', async () => {
     const onStart = jest.fn();
     const onImport = jest.fn();
     const onSample = jest.fn();
-    const { getByTestId, getByText, getAllByTestId } = await render(
-      <WelcomeScreen sample={snatchMock} onStart={onStart} onImport={onImport} onSample={onSample} reduceMotion />
+    const { getByTestId, getByText, queryAllByTestId } = await render(
+      <WelcomeScreen onStart={onStart} onImport={onImport} onSample={onSample} />
     );
-    expect(getAllByTestId(/^welcome-strobe-/).map((n) => n.props.testID)).toEqual([
-      'welcome-strobe-setup',
-      'welcome-strobe-first_pull',
-      'welcome-strobe-transition',
-      'welcome-strobe-second_pull',
-      'welcome-strobe-catch',
-    ]);
-    expect(getByTestId('drawn-path')).toBeOnTheScreen();
+    expect(getByTestId('welcome-hero')).toHaveProp('source', require('../../../assets/art/welcome-hero.png'));
+    expect(queryAllByTestId(/^welcome-strobe-/)).toHaveLength(0);
     expect(getByText('Film a lift.\nGet the one thing to fix.')).toBeOnTheScreen();
     await press(getByTestId('welcome-start'));
     await press(getByTestId('welcome-import'));

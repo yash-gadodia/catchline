@@ -1,7 +1,6 @@
 import { useEffect, type ReactNode } from 'react';
-import { Pressable, Text, View, useWindowDimensions } from 'react-native';
+import { Image, Pressable, Text, View, useWindowDimensions } from 'react-native';
 import Animated, {
-  Easing,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
@@ -10,21 +9,20 @@ import Animated, {
 } from 'react-native-reanimated';
 import type { Analysis } from '../../analysis/types';
 import { doneTitle, formatWait, processingSteps } from '../../analysis/format';
-import { polylineLength, svgPath, toScreen } from '../../analysis/geometry';
-import { keyFrameForPhase, liftPath, repByIndex } from '../../analysis/timeline';
+import { keyFrameForPhase, repByIndex } from '../../analysis/timeline';
 import Btn from '../../components/Btn';
 import Sheet from '../../components/Sheet';
 import { colors } from '../../design/tokens';
 import { fontFamily } from '../../design/typography';
 import { impact, success } from '../../lib/haptics';
 import Stage from './Stage';
-import DrawnPath from './DrawnPath';
-import { OverlaySvg } from './overlays';
 
 export type ProcessingState = 'progress' | 'long' | 'done' | 'too_long';
 
 // One analysis on the single production worker takes about this long; jobs are serial.
 export const EXPECTED_ANALYSIS_S = 150;
+
+const PROCESSING_ART = require('../../../assets/art/processing-backdrop.png');
 
 type Props = {
   analysis: Analysis | null;
@@ -52,7 +50,11 @@ export default function ProcessingSheet({ analysis, meta, firstStep, maxS, state
   }, [state]);
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }} testID={`processing-${state}`}>
-      {analysis ? (
+      {state === 'progress' ? (
+        <View testID="processing-art-layer" pointerEvents="none" style={{ position: 'absolute', left: 0, top: 0, width, height }}>
+          <Image testID="processing-art" source={PROCESSING_ART} resizeMode="cover" style={{ width, height }} />
+        </View>
+      ) : analysis ? (
         <Backdrop analysis={analysis} state={state} box={box} />
       ) : (
         <View style={{ width, height, backgroundColor: colors.surface }} />
@@ -125,31 +127,13 @@ function Backdrop({ analysis, state, box }: { analysis: Analysis; state: Process
       ? keyFrameForPhase(rep, 'catch') ?? rep.keyFrames[rep.keyFrames.length - 1]
       : keyFrameForPhase(rep, 'first_pull') ?? rep.keyFrames[0];
   const src = { width: analysis.video.width, height: analysis.video.height };
-  const draw = useSharedValue(0);
-  useEffect(() => {
-    if (state !== 'progress') return;
-    draw.value = withRepeat(
-      withSequence(withTiming(1, { duration: 2800, easing: Easing.linear }), withTiming(1, { duration: 1200 })),
-      -1
-    );
-  }, [state, draw]);
   return (
     <Stage
       src={src}
       box={box}
       focus={{ x: 0.5, y: 0.45 }}
       layers={[{ image: bg.image, gray: state !== 'done', opacity: state === 'done' ? 0.6 : 0.35 }]}
-    >
-      {(fit) => {
-        if (state !== 'progress') return null;
-        const pts = liftPath(rep).map((p) => toScreen(p, fit));
-        return (
-          <OverlaySvg box={box}>
-            <DrawnPath d={svgPath(pts)} length={polylineLength(pts)} progress={draw} halo={false} />
-          </OverlaySvg>
-        );
-      }}
-    </Stage>
+    />
   );
 }
 

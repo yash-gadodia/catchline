@@ -83,6 +83,7 @@ describe('Trends tab on a real account', () => {
     expect(getByTestId('trends-sparse')).toBeOnTheScreen();
     expect(getByText('One clean so far.')).toBeOnTheScreen();
     expect(getByText('Trends need two lifts of the same movement. Film the next one and this fills in.')).toBeOnTheScreen();
+    expect(queryByTestId('trends-empty-art')).toBeNull();
   });
 
   it('spins until the first sync, then shows the no-lifts state with no switcher', async () => {
@@ -95,6 +96,8 @@ describe('Trends tab on a real account', () => {
     expect(view.getByTestId('trends-empty')).toBeOnTheScreen();
     expect(view.getByText('Film a lift and the trend starts here.')).toBeOnTheScreen();
     expect(view.getByText('Trends need two lifts of the same movement.')).toBeOnTheScreen();
+    expect(view.getByTestId('trends-empty-art')).toHaveProp('source', require('../../../assets/art/empty-trends.png'));
+    expect(view.getByTestId('trends-empty-art')).toHaveStyle({ width: 160, height: 160 });
     expect(view.queryByTestId('movement-switcher')).toBeNull();
   });
 

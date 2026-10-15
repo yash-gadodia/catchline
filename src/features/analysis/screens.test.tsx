@@ -27,10 +27,13 @@ describe('ProcessingSheet', () => {
   const handlers = { onHide: jest.fn(), onNotify: jest.fn(), onKeepWaiting: jest.fn(), onSee: jest.fn() };
 
   it('lists the pipeline steps with the current one active', async () => {
-    const { getByText, queryByText, getAllByTestId } = await render(
+    const { getByText, getByTestId, queryByText, getAllByTestId } = await render(
       <ProcessingSheet analysis={snatchMock} state="progress" step={2} elapsed={6} {...handlers} />
     );
     expect(getByText('Watching your reps')).toBeOnTheScreen();
+    expect(getByTestId('processing-art')).toHaveProp('source', require('../../../assets/art/processing-backdrop.png'));
+    expect(getByTestId('processing-art-layer')).toHaveProp('pointerEvents', 'none');
+    expect(getByTestId('processing-art')).toHaveProp('resizeMode', 'cover');
     expect(getByText('about 2 min')).toBeOnTheScreen();
     expect(queryByText('usually about 2 min')).toBeNull();
     expect(getAllByTestId('step-done')).toHaveLength(2);
@@ -42,20 +45,22 @@ describe('ProcessingSheet', () => {
 
   it('expects about 2 minutes and names the queue once the clip is on the server', async () => {
     expect(EXPECTED_ANALYSIS_S).toBe(150);
-    const { getByText, queryByText, rerender } = await render(
+    const { getByText, getByTestId, queryByText, rerender } = await render(
       <ProcessingSheet analysis={null} state="progress" step={1} elapsed={30} meta="30 s" onServer ahead={0} {...handlers} />
     );
     expect(getByText('usually about 2 min')).toBeOnTheScreen();
+    expect(getByTestId('processing-art')).toBeOnTheScreen();
     expect(queryByText(/ahead of you/)).toBeNull();
     await rerender(<ProcessingSheet analysis={null} state="progress" step={1} elapsed={31} meta="31 s" onServer ahead={2} {...handlers} />);
     expect(getByText('2 ahead of you')).toBeOnTheScreen();
   });
 
   it('offers a ping on a long wait', async () => {
-    const { getByText } = await render(
+    const { getByText, queryByTestId } = await render(
       <ProcessingSheet analysis={snatchMock} state="long" step={3} elapsed={190} ahead={1} {...handlers} />
     );
     expect(getByText('Taking longer than usual')).toBeOnTheScreen();
+    expect(queryByTestId('processing-art')).toBeNull();
     expect(getByText('190 s')).toBeOnTheScreen();
     expect(getByText('usually about 2 min')).toBeOnTheScreen();
     expect(getByText('1 ahead of you')).toBeOnTheScreen();
