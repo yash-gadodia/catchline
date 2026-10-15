@@ -17,6 +17,7 @@ OVERHEAD_T = 0.5
 SURE_LOCK_T = 0.7
 RACK_T = 0.35
 SURE_RACK_T = 0.3
+STILL_T = 0.4         # a rack hold moves 0.12-0.29 torsos in its first 0.3 s; a snatch bar sweeping past the shoulders 0.63
 DIP_DEG = 15.0        # knee bend before the drive that makes a jerk a jerk, not a press (front-on noise reads 6-12)
 FEET_T = 0.4          # a jerk's feet stay near the floor; a kip or muscle-up carries the whole body up
 JERK_GAP_S = 3.0
@@ -67,7 +68,8 @@ def detect(k, fps, lifts=False):
         a, b = fb + 1, floor[i + 1][0] if i + 1 < len(floor) else n
         if b - a < hold:
             continue
-        over, rk = runs(overhead[a:b], hold), runs(rack[a:b], hold)
+        over = runs(overhead[a:b], hold)
+        rk = [r for r in runs(rack[a:b], hold) if np.ptp(h[a + r[0]: a + r[0] + hold]) <= STILL_T]
         if rk and (not over or rk[0][0] < over[0][0]):
             s, e = rk[0]
             hh = float(np.median(np.abs(h[a + s: a + e + 1])))
