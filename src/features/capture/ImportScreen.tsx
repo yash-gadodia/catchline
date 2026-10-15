@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Movement } from '../../analysis/types';
 import Btn from '../../components/Btn';
 import { colors, radius, space, stroke } from '../../design/tokens';
-import { fontFamily } from '../../design/typography';
+import { fontFamily, type } from '../../design/typography';
 import ClipPlayer from './ClipPlayer';
 import { Header, LiftChip, Meta, Underlined } from './hud';
 import LiftSheet from './LiftSheet';
@@ -42,14 +42,14 @@ export default function ImportScreen({
     <View testID="import-screen" style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }}>
       <Header
         left={<Underlined onPress={onCancel} testID="import-cancel">Cancel</Underlined>}
-        center={<Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 17, lineHeight: 22 }}>Import</Text>}
+        center={<Text style={[type.button, { color: colors.text }]}>Import</Text>}
         right={<Meta testID="import-meta">{clipMeta({ ...clip, repsFound: null })}</Meta>}
       />
       <ClipPlayer uri={clip.uri} trim={trim} durationS={clip.durationS} width={width} height={Math.min(Math.round(width * 0.97), 380)} progress={false} />
       <View style={{ paddingHorizontal: space.gutter, paddingTop: space.s4, gap: space.s3 }}>
         {many ? (
           <>
-            <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>
+            <Text style={[type.callout, { color: colors.text2 }]}>
               {`Long clip. We found ${clip.sets.length} sets; pick one.`}
             </Text>
             <View style={{ height: 64, flexDirection: 'row', gap: 2 }} testID="set-strip">
@@ -75,7 +75,7 @@ export default function ImportScreen({
                   >
                     <Text
                       numberOfLines={1}
-                      style={{ color: on ? colors.text : colors.text2, fontFamily: fontFamily.mono, fontSize: 12, lineHeight: 16 }}
+                      style={[type.caption, { color: on ? colors.text : colors.text2 }]}
                     >
                       {on && r ? `set ${c.index + 1} · ${r} reps` : `set ${c.index + 1}`}
                     </Text>
@@ -85,7 +85,7 @@ export default function ImportScreen({
             </View>
           </>
         ) : clip.durationS > TOO_LONG_S ? (
-          <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>
+          <Text style={[type.callout, { color: colors.text2 }]}>
             Long clip. Trim it to the one set you want looked at.
           </Text>
         ) : null}
@@ -96,7 +96,7 @@ export default function ImportScreen({
           </Underlined>
         </View>
         <View style={{ gap: space.s2 }}>
-          <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>Which rep?</Text>
+          <Text style={[type.callout, { color: colors.text2 }]}>Which rep?</Text>
           <View style={{ flexDirection: 'row', gap: 6 }}>
             {[...repOptions(reps), 'all' as const].map((r) => {
               const on = clip.rep === r;
@@ -144,6 +144,34 @@ export default function ImportScreen({
           onClose={() => setPicking(false)}
         />
       ) : null}
+    </View>
+  );
+}
+
+// The picker was cancelled (or failed): pick again, or record instead.
+export function ImportEmpty({ onPick, onRecord, onCancel }: { onPick: () => void; onRecord: () => void; onCancel: () => void }) {
+  const insets = useSafeAreaInsets();
+  return (
+    <View testID="import-empty" style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }}>
+      <Header
+        left={<Underlined onPress={onCancel} testID="import-cancel">Cancel</Underlined>}
+        center={<Text style={[type.button, { color: colors.text }]}>Import</Text>}
+        right={<View style={{ minWidth: 60 }} />}
+      />
+      <View style={{ flex: 1, justifyContent: 'center', paddingHorizontal: space.gutter, gap: space.s3 }}>
+        <Text style={[type.title, { color: colors.text }]}>No video picked</Text>
+        <Text style={[type.body, { color: colors.text2 }]}>
+          Pick one set filmed from the side, whole body and bar in frame.
+        </Text>
+      </View>
+      <View style={{ paddingHorizontal: space.gutter, paddingBottom: Math.max(insets.bottom, space.s4) + space.s2, gap: space.s3 }}>
+        <Btn onPress={onPick} testID="import-pick">
+          Choose a video
+        </Btn>
+        <Btn kind="secondary" onPress={onRecord} testID="import-record">
+          Record instead
+        </Btn>
+      </View>
     </View>
   );
 }

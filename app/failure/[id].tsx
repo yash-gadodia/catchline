@@ -23,7 +23,7 @@ export default function FailureRoute() {
   const partial = lift?.analysisId ?? (__DEV__ ? 'snatch-mock' : null);
   const onAction = (a: FailureAction) => {
     if (a === 'retake') router.push('/capture' as Href);
-    else if (a === 'import') router.push('/capture?source=import' as Href);
+    else if (a === 'import') router.push('/capture/import' as Href);
     else if (a === 'pickA' || a === 'pickB' || a === 'reanalyse') {
       if (!submitDraft({ replace: true })) router.replace('/capture');
     } else if (a === 'partial' && partial) router.replace({ pathname: '/analysis/player', params: { fixture: partial } });

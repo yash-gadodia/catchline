@@ -1,4 +1,4 @@
-import { render, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useCapture } from './store';
 import ReviewRoute from '../../../app/capture/review';
@@ -105,5 +105,33 @@ describe('dev build: the simulator still gets its sample clip', () => {
     expect(launch).not.toHaveBeenCalled();
     expect(useCapture.getState().draft?.source).toBe('library');
     expect(view.getByTestId('import-screen')).toBeOnTheScreen();
+  });
+});
+
+describe('import is the main way in', () => {
+  it('a cancelled picker shows the empty state with Record instead, not the viewfinder', async () => {
+    const view = await render(<ImportRoute />);
+
+    await waitFor(() => expect(view.getByTestId('import-empty')).toBeOnTheScreen());
+    expect(launch).toHaveBeenCalledTimes(1);
+    expect(mockNav.replace).not.toHaveBeenCalled();
+    expect(view.getByTestId('import-record')).toHaveTextContent('Record instead');
+
+    fireEvent.press(view.getByTestId('import-record'));
+    expect(mockNav.replace).toHaveBeenCalledWith('/capture');
+  });
+
+  it('Choose a video opens the picker again; Cancel goes home', async () => {
+    const view = await render(<ImportRoute />);
+    await waitFor(() => expect(view.getByTestId('import-empty')).toBeOnTheScreen());
+
+    await act(async () => {
+      fireEvent.press(view.getByTestId('import-pick'));
+    });
+    await waitFor(() => expect(launch).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(view.getByTestId('import-empty')).toBeOnTheScreen());
+
+    fireEvent.press(view.getByTestId('import-cancel'));
+    expect(mockNav.replace).toHaveBeenCalledWith('/');
   });
 });

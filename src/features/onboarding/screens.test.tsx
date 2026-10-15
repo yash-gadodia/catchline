@@ -26,22 +26,21 @@ describe('Launch', () => {
 });
 
 describe('Welcome', () => {
-  it('shows the snatch silhouette hero and offers start or import', async () => {
-    const onStart = jest.fn();
+  it('shows the snatch silhouette hero and offers the demo first, then import', async () => {
+    const onDemo = jest.fn();
     const onImport = jest.fn();
-    const onSample = jest.fn();
-    const { getByTestId, getByText, queryAllByTestId } = await render(
-      <WelcomeScreen onStart={onStart} onImport={onImport} onSample={onSample} />
-    );
+    const { getByTestId, getByText, queryByText, queryAllByTestId } = await render(<WelcomeScreen onDemo={onDemo} onImport={onImport} />);
     expect(getByTestId('welcome-hero')).toHaveProp('source', require('../../../assets/art/welcome-hero.png'));
     expect(queryAllByTestId(/^welcome-strobe-/)).toHaveLength(0);
     expect(getByText('Film a lift.\nGet the one thing to fix.')).toBeOnTheScreen();
-    await press(getByTestId('welcome-start'));
+    expect(getByTestId('welcome-demo')).toHaveTextContent('See how it works');
+    expect(getByTestId('welcome-import')).toHaveTextContent('Import your video');
+    expect(queryByText('Try a sample lift')).toBeNull();
+    await press(getByTestId('welcome-demo'));
+    expect(onDemo).toHaveBeenCalledTimes(1);
+    expect(onImport).toHaveBeenCalledTimes(0);
     await press(getByTestId('welcome-import'));
-    await press(getByText('Try a sample lift'));
-    expect(onStart).toHaveBeenCalledTimes(1);
     expect(onImport).toHaveBeenCalledTimes(1);
-    expect(onSample).toHaveBeenCalledTimes(1);
   });
 });
 

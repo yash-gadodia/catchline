@@ -36,7 +36,7 @@ export type LiftsNav = {
   onUnlock: () => void;
   onRecord: () => void;
   onImport: () => void;
-  onSample: () => void;
+  onDemo: () => void;
   onCue: (id: string) => void;
 };
 
@@ -63,19 +63,19 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
         {header}
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.s5 }}>
           <SideOnDiagram />
-          <Text style={[display(32), { color: colors.text, textAlign: 'center' }]}>Film your first lift from the side.</Text>
+          <Text style={[display(32), { color: colors.text, textAlign: 'center' }]}>Add your first lift.</Text>
           <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21, textAlign: 'center' }}>
-            Phone on the floor, whole body and bar in frame. One set.
+            Filmed from the side, whole body and bar in frame. One set.
           </Text>
           <View style={{ alignSelf: 'stretch', gap: space.s3 }}>
-            <Btn onPress={nav.onRecord} testID="empty-record">
+            <Btn onPress={nav.onImport} testID="empty-import">
+              Import a video
+            </Btn>
+            <Btn kind="secondary" onPress={nav.onRecord} testID="empty-record">
               Record
             </Btn>
-            <Btn kind="secondary" onPress={nav.onImport} testID="empty-import">
-              Import
-            </Btn>
-            <Btn kind="text" onPress={nav.onSample} testID="empty-sample" style={{ alignSelf: 'center' }}>
-              See a sample analysis
+            <Btn kind="text" onPress={nav.onDemo} testID="empty-demo" style={{ alignSelf: 'center' }}>
+              See how it works
             </Btn>
           </View>
         </View>

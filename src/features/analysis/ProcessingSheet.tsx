@@ -29,7 +29,7 @@ const PROCESSING_ART = require('../../../assets/art/processing-backdrop.png');
 
 type Props = {
   analysis: Analysis | null;
-  clipUri?: string | null;
+  clipUri?: string | number | null;
   reduceMotion?: boolean;
   meta?: string;
   firstStep?: string;
@@ -134,7 +134,7 @@ function ProgressBackdrop({
   reduce,
   box,
 }: {
-  clipUri?: string | null;
+  clipUri?: string | number | null;
   step: number;
   reduce: boolean;
   box: { width: number; height: number };
@@ -157,7 +157,7 @@ function ProgressBackdrop({
   );
 }
 
-function ClipLayer({ uri, reduce, box }: { uri: string; reduce: boolean; box: { width: number; height: number } }) {
+function ClipLayer({ uri, reduce, box }: { uri: string | number; reduce: boolean; box: { width: number; height: number } }) {
   const player = useVideoPlayer(uri, (p) => {
     p.muted = true;
     p.loop = !reduce;

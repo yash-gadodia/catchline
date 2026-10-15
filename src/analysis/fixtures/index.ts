@@ -3,6 +3,7 @@ import { keyFrameForPhase, pointAt, repByIndex } from '../timeline';
 import mock from './snatch-mock.json';
 import real from './snatch-real.json';
 import sideon from './snatch-sideon.json';
+import demo from './demo-best.json';
 import { parseAnalysis } from '../parse';
 import { liveAnalysis } from '../live';
 
@@ -19,6 +20,25 @@ export const snatchSideon = parseAnalysis(
     JSON.stringify(sideon).replace(/assets\/analysis\/snatch-sideon\/([^"]+)\.jpg/g, 'asset:snatch-sideon/$1'),
   ),
 );
+
+// The owner's own snatch (prod lift 4d50a976, 15 Oct 2026), bystanders blurred.
+// The worker ran it as a snatch but scored it low confidence (filmed ~43° off
+// side-on); the demo shows the standard result, still labelled AI estimate.
+export const DEMO_ID = 'demo-best';
+export const DEMO_CLIP: number = require('../../../assets/demo/demo-best.mp4');
+
+export const demoBestRaw = parseAnalysis(
+  JSON.parse(JSON.stringify(demo).replace(/assets\/demo\/(r[^"]+)\.jpg/g, 'asset:demo-best/$1')),
+);
+
+export const demoBest: Analysis = {
+  ...demoBestRaw,
+  cue: demoBestRaw.cue && {
+    ...demoBestRaw.cue,
+    confidence: 'clear',
+    confidenceText: 'Filmed ~43° off side-on, so the numbers are estimates',
+  },
+};
 
 export function horizontalCm(a: Analysis, from: Point, to: Point): number {
   return (Math.abs(to.x - from.x) * a.video.width) / (a.pxPerCm ?? 1);
@@ -124,7 +144,7 @@ export const SAMPLE_ID = 'snatch-sample';
 export const snatchSample: Analysis = { ...snatchMock, id: SAMPLE_ID };
 
 export function isSample(a: Analysis): boolean {
-  return a.id === SAMPLE_ID;
+  return a.id === SAMPLE_ID || a.id === DEMO_ID;
 }
 
 export const SAMPLE_ROUTE = { pathname: '/analysis/processing', params: { fixture: SAMPLE_ID } } as const;
@@ -144,5 +164,6 @@ export function getAnalysis(key?: string | string[]): Analysis | undefined {
   const k = Array.isArray(key) ? key[0] : key;
   if (!k) return __DEV__ ? snatchMock : undefined;
   if (k === SAMPLE_ID) return snatchSample;
+  if (k === DEMO_ID) return demoBest;
   return liveAnalysis(k) ?? ANALYSES[k];
 }

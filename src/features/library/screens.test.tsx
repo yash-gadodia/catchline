@@ -23,7 +23,7 @@ const liftsNav = () => ({
   onUnlock: jest.fn(),
   onRecord: jest.fn(),
   onImport: jest.fn(),
-  onSample: jest.fn(),
+  onDemo: jest.fn(),
   onCue: jest.fn(),
 });
 
@@ -82,33 +82,39 @@ describe('LiftsScreen', () => {
     expect(queryByText('Bar muscle-up · 5 reps')).toBeNull();
   });
 
-  it('starts day one with the side-on instruction and both ways in', async () => {
+  it('starts day one with the side-on instruction, Import first and Record second', async () => {
     loadLibrary('empty');
     const nav = liftsNav();
-    const { getByText, getByTestId } = await render(<LiftsScreen nav={nav} />);
+    const { getByText, getByTestId, getAllByRole } = await render(<LiftsScreen nav={nav} />);
     expect(getByText('3 free videos')).toBeOnTheScreen();
-    expect(getByText('Film your first lift from the side.')).toBeOnTheScreen();
-    await press(getByTestId('empty-record'));
+    expect(getByText('Add your first lift.')).toBeOnTheScreen();
+    const buttons = getAllByRole('button').map((b) => b.props.testID).filter((id) => /^empty-/.test(id ?? ''));
+    expect(buttons).toEqual(['empty-import', 'empty-record', 'empty-demo']);
+    expect(getByTestId('empty-import')).toHaveTextContent('Import a video');
+    expect(getByTestId('empty-record')).toHaveTextContent('Record');
     await press(getByTestId('empty-import'));
-    await press(getByText('See a sample analysis'));
-    expect(nav.onRecord).toHaveBeenCalledTimes(1);
     expect(nav.onImport).toHaveBeenCalledTimes(1);
-    expect(nav.onSample).toHaveBeenCalledTimes(1);
+    expect(nav.onRecord).toHaveBeenCalledTimes(0);
+    await press(getByTestId('empty-record'));
+    await press(getByText('See how it works'));
+    expect(nav.onRecord).toHaveBeenCalledTimes(1);
+    expect(nav.onDemo).toHaveBeenCalledTimes(1);
   });
 });
 
 describe('TabBar', () => {
-  it('marks the active tab and sends Record to capture', async () => {
+  it('marks the active tab and makes the centre button Import', async () => {
     const onTab = jest.fn();
-    const onRecord = jest.fn();
-    const { getByTestId, getByText } = await render(<TabBar active="cues" onTab={onTab} onRecord={onRecord} />);
+    const onImport = jest.fn();
+    const { getByTestId, getByText } = await render(<TabBar active="cues" onTab={onTab} onImport={onImport} />);
     expect(getByTestId('tab-cues')).toBeSelected();
     expect(getByTestId('tab-index')).not.toBeSelected();
     expect(getByText('You')).toBeOnTheScreen();
     await press(getByTestId('tab-trends'));
     expect(onTab).toHaveBeenCalledWith('trends');
-    await press(getByTestId('tab-record'));
-    expect(onRecord).toHaveBeenCalledTimes(1);
+    expect(getByTestId('tab-import')).toHaveProp('accessibilityLabel', 'Import a video');
+    await press(getByTestId('tab-import'));
+    expect(onImport).toHaveBeenCalledTimes(1);
   });
 });
 

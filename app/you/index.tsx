@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import YouScreen from '../../src/features/you/YouScreen';
 
 export default function YouRoute() {
@@ -6,6 +6,7 @@ export default function YouRoute() {
   return (
     <YouScreen
       nav={{
+        onDemo: () => router.push('/onboarding/demo?from=app' as Href),
         onWhatIsStored: () => router.push('/you/stored'),
         onDeleteAccount: () => router.push('/you/delete'),
         onPlan: () => router.push('/paywall/plans'),
