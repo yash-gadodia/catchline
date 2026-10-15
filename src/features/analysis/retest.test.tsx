@@ -151,7 +151,7 @@ describe('capture for a retest', () => {
     mockParams.current = { still: '1', retest: 'c-stay-over' };
     const screen = await render(<CaptureRoute />);
     expect(useCapture.getState().movement).toBe('snatch');
-    expect(screen.getByTestId('retest-target')).toHaveTextContent('Stay over the bar longer: bar drift at hip under 6 cm');
+    expect(screen.getByTestId('retest-target')).toHaveTextContent('Stay over the bar longer: bar drift at hip under 6\u00a0cm');
   });
 
   it('shows no target on an ordinary capture', async () => {

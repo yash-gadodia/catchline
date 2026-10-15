@@ -159,8 +159,8 @@ describe('cleanStreak', () => {
 
 describe('targetLine', () => {
   it('shows the cue and the number to beat', () => {
-    expect(targetLine(cue, 6)).toBe('Stay over the bar longer: bar drift at hip under 6 cm');
-    expect(targetLine({ ...cue, metricId: 'catch_depth' }, 4)).toBe('Stay over the bar longer: catch depth over 4 cm');
+    expect(targetLine(cue, 6)).toBe('Stay over the bar longer: bar drift at hip under 6\u00a0cm');
+    expect(targetLine({ ...cue, metricId: 'catch_depth' }, 4)).toBe('Stay over the bar longer: catch depth over 4\u00a0cm');
     expect(targetLine(cue, null)).toBe('Stay over the bar longer');
   });
 });

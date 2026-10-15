@@ -11,9 +11,11 @@ import {
   liftTitle,
   measurementReadout,
   movementNote,
+  peakSpeed,
   phaseLabel,
   processingSteps,
   signedCm,
+  speedText,
   syncCaption,
 } from './format';
 import { snatchMock } from './fixtures';
@@ -96,6 +98,27 @@ describe('measurementReadout', () => {
 
   it('explains a follow-on fault', () => {
     expect(measurementReadout(m({ value: 6, best: 2, status: 'follows' }))).toBe('6 cm · follows from above');
+  });
+
+  it('gives bar speed two decimals', () => {
+    expect(measurementReadout(m({ value: 1.8, unit: 'm/s', note: 'peak upward speed in the pull' }))).toBe(
+      '1.80 m/s · peak upward speed in the pull · within normal'
+    );
+  });
+});
+
+describe('bar speed', () => {
+  it('always shows two decimals', () => {
+    expect(speedText(1.8)).toBe('1.80 m/s');
+    expect(speedText(1.836)).toBe('1.84 m/s');
+    expect(speedText(2)).toBe('2.00 m/s');
+  });
+
+  it('reads the clip peak, and nothing when it was not measured or not sent', () => {
+    const a = (measurements: Measurement[]) => ({ measurements }) as Parameters<typeof peakSpeed>[0];
+    expect(peakSpeed(a([m({ id: 'bar_speed', value: 1.82, unit: 'm/s' })]))).toBe('1.82 m/s');
+    expect(peakSpeed(a([m({ id: 'bar_speed', value: 0, unit: 'm/s', status: 'not_seen' })]))).toBeNull();
+    expect(peakSpeed(a([m({ value: 3 })]))).toBeNull();
   });
 });
 

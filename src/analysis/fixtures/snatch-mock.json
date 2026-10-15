@@ -1564,6 +1564,15 @@
    "frame": 439,
    "status": "normal",
    "note": ""
+  },
+  {
+   "id": "bar_speed",
+   "label": "Peak bar speed",
+   "value": 1.82,
+   "unit": "m/s",
+   "frame": 436,
+   "status": "normal",
+   "note": "peak upward speed in the pull"
   }
  ],
  "failure": null

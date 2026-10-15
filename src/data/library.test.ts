@@ -1,6 +1,6 @@
 import type { Lift as LiftRow } from '../types/db';
 import { FAILURE_COPY } from '../features/library/failures';
-import { dayOf, toCue, toLift } from './library';
+import { dayOf, toCue, toLift, toSession } from './library';
 
 const row = (over: Partial<LiftRow>): LiftRow =>
   ({
@@ -126,5 +126,18 @@ describe('toCue for a real cues row', () => {
     expect(cue.endedAt).toBe(dayOf('2026-10-13T02:00:00Z'));
     expect(cue.before.image).toBe('');
     expect(cue.after.image).toBe('');
+  });
+});
+
+describe('toSession', () => {
+  it('leaves out what the clip could not measure, so a trend never plots a 0', () => {
+    const a = {
+      reps: [],
+      measurements: [
+        { id: 'bar_speed', label: 'Peak bar speed', value: 0, unit: 'm/s', frame: 1, status: 'not_seen', note: '' },
+        { id: 'jump_forward', label: 'Jumped forward', value: 6, unit: 'cm', frame: 1, status: 'cue', note: '' },
+      ],
+    } as unknown as Parameters<typeof toSession>[1];
+    expect(toSession(row({ status: 'done' }), a).values).toEqual({ jump_forward: 6 });
   });
 });

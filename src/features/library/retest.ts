@@ -7,7 +7,7 @@ import type { CueRecord, Lift, Session } from './types';
 export const RETESTS_TO_STICK = 2;
 
 // A change smaller than this is measurement noise: "Same."
-export const SAME_WITHIN: Record<Metric['unit'], number> = { cm: 2, s: 0.03, deg: 3 };
+export const SAME_WITHIN: Record<Metric['unit'], number> = { cm: 2, s: 0.03, deg: 3, 'm/s': 0.05 };
 
 export type VerdictKind = 'better' | 'same' | 'worse' | 'not_measured' | 'no_baseline';
 
@@ -91,5 +91,6 @@ export function cleanStreak(
 export function targetLine(cue: CueRecord, previous: number | null): string {
   if (previous == null) return cue.text;
   const m = metricFor(cue.metricId);
-  return `${cue.text}: ${m.label.toLowerCase()} ${m.lowerIsBetter ? 'under' : 'over'} ${metricText(cue.metricId, previous)}`;
+  // The number and its unit never wrap apart.
+  return `${cue.text}: ${m.label.toLowerCase()} ${m.lowerIsBetter ? 'under' : 'over'} ${metricText(cue.metricId, previous).replace(' ', '\u00a0')}`;
 }

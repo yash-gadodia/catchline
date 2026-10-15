@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Analysis, PhaseName } from '../../analysis/types';
-import { confidenceLine, liftTitle, phaseLabel, shortPhase } from '../../analysis/format';
+import { confidenceLine, liftTitle, peakSpeed, phaseLabel, shortPhase } from '../../analysis/format';
 import { toScreen } from '../../analysis/geometry';
 import {
   clampFrame,
@@ -19,6 +19,7 @@ import {
 import Btn from '../../components/Btn';
 import Readout from '../../components/Readout';
 import Segmented from '../../components/Segmented';
+import SmallCaps from '../../components/SmallCaps';
 import TopBar from '../../components/TopBar';
 import { impact } from '../../lib/haptics';
 import { colors, opacity, radius, space } from '../../design/tokens';
@@ -65,6 +66,7 @@ export default function PlayerScreen({
   const [overlays, setOverlays] = useState<Overlays>({ path: true, strobe: false, lines: true });
   const frameRef = useRef(frame);
   const retestable = useRetestable(analysis, retestCueId);
+  const barSpeed = peakSpeed(analysis);
 
   const setFrame = (next: number, tick: 'phase' | 'frame' = 'phase') => {
     const f = clampFrame(rep, next);
@@ -202,6 +204,14 @@ export default function PlayerScreen({
         </View>
       </View>
       <PhaseChips rep={rep} fps={analysis.video.fps} active={phase?.name ?? null} onPick={pickPhase} />
+      {barSpeed ? (
+        <View testID="bar-speed" style={{ flexDirection: 'row', alignItems: 'center', gap: space.s2, paddingHorizontal: space.gutter }}>
+          <SmallCaps size={12}>Peak bar speed</SmallCaps>
+          <Text testID="bar-speed-value" style={{ ...type.readout, color: colors.text, fontVariant: ['tabular-nums'] }}>
+            {barSpeed}
+          </Text>
+        </View>
+      ) : null}
       <View style={{ paddingVertical: 4, paddingHorizontal: space.gutter, flexDirection: 'row', alignItems: 'center' }}>
         <Segmented
           mono

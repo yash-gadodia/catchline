@@ -4,7 +4,7 @@ export type Metric = {
   id: string;
   label: string;
   short: string;
-  unit: 'cm' | 's' | 'deg';
+  unit: 'cm' | 's' | 'deg' | 'm/s';
   lowerIsBetter: boolean;
   caption: string;
   still?: string;
@@ -58,6 +58,7 @@ export const METRICS: Record<string, Metric> = {
   chicken_wing: { id: 'chicken_wing', label: 'Elbow timing gap', short: 'elbows', unit: 's', lowerIsBetter: true, caption: 'Time between the two elbows crossing the bar, seconds.' },
   hspu_banana: { id: 'hspu_banana', label: 'Hips off the body line', short: 'hips', unit: 'cm', lowerIsBetter: true, caption: 'Hip vs shoulder-ankle line at lockout, cm.' },
   hspu_kip_timing: { id: 'hspu_kip_timing', label: 'Tuck before the kick', short: 'tuck', unit: 'cm', lowerIsBetter: true, caption: 'Knees above the hips at the deepest tuck, cm.' },
+  bar_speed: { id: 'bar_speed', label: 'Peak bar speed', short: 'speed', unit: 'm/s', lowerIsBetter: false, caption: 'Peak bar speed in the second pull, m/s.' },
   bar_peak_height: { id: 'bar_peak_height', label: 'Bar peak height', short: 'peak', unit: 'cm', lowerIsBetter: false, caption: 'Bar peak height above lift-off, cm.' },
 };
 
@@ -72,8 +73,8 @@ export function metricFor(id: string): Metric {
 // Preferred chip order per movement: the CV's faults in lift order, then its extras, then the
 // design-era ids the dev fixtures use. Trends shows only the ones a session actually measured.
 export const MOVEMENT_METRICS: Record<Movement, string[]> = {
-  snatch: ['hips_rise_early', 'bar_forward_off_hips', 'jump_forward', 'catch_depth', 'turnover_time', 'bar_peak_height', 'bar_drift_hip', 'pull_time'],
-  clean: ['hips_rise_early', 'early_arm_bend', 'incomplete_extension', 'bar_forward_off_hips', 'jump_forward', 'catch_depth', 'turnover_time', 'bar_peak_height', 'bar_drift_hip', 'pull_time', 'elbow_turn'],
+  snatch: ['hips_rise_early', 'bar_forward_off_hips', 'jump_forward', 'catch_depth', 'turnover_time', 'bar_speed', 'bar_peak_height', 'bar_drift_hip', 'pull_time'],
+  clean: ['hips_rise_early', 'early_arm_bend', 'incomplete_extension', 'bar_forward_off_hips', 'jump_forward', 'catch_depth', 'turnover_time', 'bar_speed', 'bar_peak_height', 'bar_drift_hip', 'pull_time', 'elbow_turn'],
   jerk: ['forward_dip', 'press_out', 'chest_dive', 'bar_forward_overhead', 'dip_depth', 'bar_path_jerk'],
   kipping_pull_up: ['leg_kip', 'early_arm_pull', 'no_push_away', 'kip_height', 'body_line', 'cycle_time'],
   bar_muscle_up: ['bmu_early_pull', 'hips_low_transition', 'chicken_wing', 'kip_height', 'hip_to_bar', 'body_line', 'cycle_time'],

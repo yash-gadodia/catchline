@@ -227,6 +227,18 @@ describe('PlayerScreen', () => {
     expect(getByTestId('stage-layer-asset:snatch/3-hip')).toBeOnTheScreen();
   });
 
+  it('reads the peak bar speed under the phase chips, and hides it when it was not measured', async () => {
+    const { getByTestId } = await render(<PlayerScreen analysis={snatchMock} {...props} />);
+    expect(getByTestId('bar-speed')).toHaveTextContent('Peak bar speed1.82 m/s', { exact: false });
+    expect(getByTestId('bar-speed-value')).toHaveTextContent('1.82 m/s');
+    const hidden = {
+      ...snatchMock,
+      measurements: snatchMock.measurements.map((m) => (m.id === 'bar_speed' ? { ...m, value: 0, status: 'not_seen' as const } : m)),
+    };
+    const view = await render(<PlayerScreen analysis={hidden} {...props} />);
+    expect(view.queryByTestId('bar-speed')).toBeNull();
+  });
+
   it('jumps to a phase keyframe from its chip with a rigid tick', async () => {
     const { getByTestId } = await render(<PlayerScreen analysis={snatchMock} {...props} />);
     await act(async () => {
