@@ -1,7 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import { liveAnalysis } from '../../analysis/live';
 import { snatchMock } from '../../analysis/fixtures';
-import { liftIdFromResponse, requestPermissions, registerPushToken, routeForLift } from './index';
+import { foregroundBehavior, installForegroundHandler, liftIdFromResponse, requestPermissions, registerPushToken, routeForLift } from './index';
 
 jest.mock('expo-notifications');
 const mockProfileEq = jest.fn(() => Promise.resolve({ data: null, error: null }));
@@ -161,5 +161,25 @@ describe('routeForLift', () => {
     mockApi.getLift.mockResolvedValueOnce(lift('processing') as never);
     mockApi.getAnalysis.mockResolvedValueOnce(null);
     await expect(routeForLift('lift-1')).resolves.toBeNull();
+  });
+});
+
+// A push that arrives while Catchline is open was dropped by iOS: no handler was set.
+describe('foreground pushes', () => {
+  it('always show a banner and list entry with sound, never a badge', () => {
+    expect(foregroundBehavior()).toEqual({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: true, shouldSetBadge: false });
+  });
+
+  it('installs the handler that answers every Catchline push the same way', async () => {
+    installForegroundHandler();
+    expect(Notifications.setNotificationHandler).toHaveBeenCalledTimes(1);
+    const handler = (Notifications.setNotificationHandler as jest.Mock).mock.calls[0][0];
+    const push = { request: { content: { data: { liftId: 'lift-1' } } } } as unknown as Notifications.Notification;
+    expect(await handler.handleNotification(push)).toEqual({
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    });
   });
 });
