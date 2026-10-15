@@ -36,11 +36,14 @@ test('pickClip lets the picker download a video stored only in iCloud', async ()
 });
 
 // Upload bug (12-10-2026): a rejected picker left a blank screen forever.
-test('a video that cannot be opened explains why and leaves the import screen', async () => {
+// Import first (15-10-2026): it lands on the empty state (pick again or record), never a blank screen.
+test('a video that cannot be opened explains why and offers another pick or Record instead', async () => {
   launch.mockRejectedValueOnce(new Error('PHPhotosErrorDomain 3164'));
   const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
-  await render(<ImportRoute />);
-  await waitFor(() => expect(mockNav.back).toHaveBeenCalledTimes(1));
+  const view = await render(<ImportRoute />);
+  await waitFor(() => expect(view.getByTestId('import-empty')).toBeOnTheScreen());
+  expect(view.getByTestId('import-pick')).toHaveTextContent('Choose a video');
+  expect(view.getByTestId('import-record')).toHaveTextContent('Record instead');
   expect(alert).toHaveBeenCalledWith("Couldn't open that video", 'Try again, or pick a clip saved on this phone.');
 });
 

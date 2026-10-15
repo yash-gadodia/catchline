@@ -147,3 +147,31 @@ export default function ImportScreen({
     </View>
   );
 }
+
+// The picker was cancelled (or failed): pick again, or record instead.
+export function ImportEmpty({ onPick, onRecord, onCancel }: { onPick: () => void; onRecord: () => void; onCancel: () => void }) {
+  const insets = useSafeAreaInsets();
+  return (
+    <View testID="import-empty" style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }}>
+      <Header
+        left={<Underlined onPress={onCancel} testID="import-cancel">Cancel</Underlined>}
+        center={<Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 17, lineHeight: 22 }}>Import</Text>}
+        right={<View style={{ minWidth: 60 }} />}
+      />
+      <View style={{ flex: 1, justifyContent: 'center', paddingHorizontal: space.gutter, gap: space.s3 }}>
+        <Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 22, lineHeight: 28 }}>No video picked</Text>
+        <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 17, lineHeight: 24 }}>
+          Pick one set filmed from the side, whole body and bar in frame.
+        </Text>
+      </View>
+      <View style={{ paddingHorizontal: space.gutter, paddingBottom: Math.max(insets.bottom, space.s4) + space.s2, gap: space.s3 }}>
+        <Btn onPress={onPick} testID="import-pick">
+          Choose a video
+        </Btn>
+        <Btn kind="secondary" onPress={onRecord} testID="import-record">
+          Record instead
+        </Btn>
+      </View>
+    </View>
+  );
+}

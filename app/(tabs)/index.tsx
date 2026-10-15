@@ -1,5 +1,4 @@
 import { useRouter, type Href } from 'expo-router';
-import { SAMPLE_ROUTE } from '../../src/analysis/fixtures';
 import { liftLink } from '../../src/features/library/derive';
 import LiftsScreen from '../../src/features/library/LiftsScreen';
 import { captureHref } from '../../src/features/paywall/hooks';
@@ -18,8 +17,8 @@ export default function LiftsRoute() {
         onRetake: () => router.push(captureHref('/capture') as Href),
         onUnlock: unlock,
         onRecord: () => router.push(captureHref('/capture') as Href),
-        onImport: () => router.push(captureHref('/capture?source=import') as Href),
-        onSample: () => router.push(SAMPLE_ROUTE),
+        onImport: () => router.push(captureHref('/capture/import') as Href),
+        onDemo: () => router.push('/onboarding/demo?from=app' as Href),
         onCue: (id) => router.push({ pathname: '/cue/[id]', params: { id } }),
       }}
     />
