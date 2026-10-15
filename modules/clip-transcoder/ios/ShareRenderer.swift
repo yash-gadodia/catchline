@@ -1,6 +1,6 @@
 import AVFoundation
+import CoreImage
 import ExpoModulesCore
-import QuartzCore
 import UIKit
 
 struct SharePoint: Record {
@@ -64,16 +64,15 @@ struct ShareSpec: Record {
   @Field var wordmark: ShareWordmark? = nil
 }
 
-final class ShareRenderFailedException: GenericException<String> {
+final class ShareRenderFailedException: GenericException<String>, @unchecked Sendable {
   override var reason: String { "Could not render the share video: \(param)" }
 }
 
-private func color(_ hex: String, _ alpha: CGFloat = 1) -> CGColor {
-  var v: UInt64 = 0
-  Scanner(string: hex.replacingOccurrences(of: "#", with: "")).scanHexInt64(&v)
+private func uiColor(_ hex: String, _ alpha: CGFloat = 1) -> UIColor {
+  let v = UInt64(hex.replacingOccurrences(of: "#", with: ""), radix: 16) ?? 0
   return UIColor(
     red: CGFloat((v >> 16) & 0xFF) / 255, green: CGFloat((v >> 8) & 0xFF) / 255, blue: CGFloat(v & 0xFF) / 255, alpha: alpha
-  ).cgColor
+  )
 }
 
 private func font(_ t: ShareText) -> UIFont {
@@ -87,173 +86,123 @@ private func attributed(_ t: ShareText) -> NSAttributedString {
   NSAttributedString(string: t.upper ? t.text.uppercased() : t.text, attributes: [
     .font: font(t),
     .kern: t.tracking,
-    NSAttributedString.Key(kCTForegroundColorAttributeName as String): color(t.color),
+    .foregroundColor: uiColor(t.color),
   ])
 }
 
-private func textLayer(_ t: ShareText, x: Double, y: Double, width: Double) -> (CATextLayer, CGFloat) {
+private func drawText(_ t: ShareText, in ctx: CGContext, x: Double, bottom: Double, width: Double) -> Double {
   let s = attributed(t)
   let h = ceil(s.boundingRect(with: CGSize(width: width, height: .greatestFiniteMagnitude), options: [.usesLineFragmentOrigin], context: nil).height)
-  let layer = CATextLayer()
-  layer.string = s
-  layer.isWrapped = true
-  layer.contentsScale = 1
-  layer.frame = CGRect(x: x, y: y, width: width, height: Double(h))
-  layer.shadowColor = UIColor.black.cgColor
-  layer.shadowOpacity = 0.45
-  layer.shadowRadius = 10
-  layer.shadowOffset = .zero
-  return (layer, h)
+  ctx.saveGState()
+  ctx.setShadow(offset: .zero, blur: 10, color: UIColor.black.withAlphaComponent(0.45).cgColor)
+  s.draw(with: CGRect(x: x, y: bottom - h, width: width, height: h), options: [.usesLineFragmentOrigin], context: nil)
+  ctx.restoreGState()
+  return Double(h)
 }
 
 // The Catchline monogram (brand/mark.svg, viewBox 160): a bone C with the flare dot on its top tip.
-private func markLayer(size: Double, at origin: CGPoint) -> CALayer {
+private func drawMark(_ ctx: CGContext, size: Double, at o: CGPoint) {
   let k = size / 160
-  let layer = CALayer()
-  layer.frame = CGRect(x: origin.x, y: origin.y, width: size, height: size)
-  let arc = CAShapeLayer()
-  let r = hypot(38.0, 32.0) * k
   let a = atan2(32.0, 38.0)
-  arc.path = UIBezierPath(arcCenter: CGPoint(x: 80 * k, y: 80 * k), radius: r, startAngle: -a, endAngle: a, clockwise: false).cgPath
-  arc.strokeColor = color("#EDE9E1")
-  arc.fillColor = nil
-  arc.lineWidth = 26 * k
-  arc.lineCap = .round
-  layer.addSublayer(arc)
-  let dot = CAShapeLayer()
-  dot.path = UIBezierPath(arcCenter: CGPoint(x: 118 * k, y: 48 * k), radius: 17 * k, startAngle: 0, endAngle: .pi * 2, clockwise: true).cgPath
-  dot.fillColor = color("#FF1F3D")
-  layer.addSublayer(dot)
-  return layer
+  ctx.saveGState()
+  ctx.setStrokeColor(uiColor("#EDE9E1").cgColor)
+  ctx.setLineWidth(26 * k)
+  ctx.setLineCap(.round)
+  ctx.addArc(center: CGPoint(x: o.x + 80 * k, y: o.y + 80 * k), radius: hypot(38.0, 32.0) * k, startAngle: -a, endAngle: a, clockwise: true)
+  ctx.strokePath()
+  ctx.setFillColor(uiColor("#FF1F3D").cgColor)
+  ctx.fillEllipse(in: CGRect(x: o.x + (118 - 17) * k, y: o.y + (48 - 17) * k, width: 34 * k, height: 34 * k))
+  ctx.restoreGState()
 }
 
-private func beginAt(_ t: Double) -> CFTimeInterval {
-  AVCoreAnimationBeginTimeAtZero + max(t, 0)
+private func renderer(_ size: CGSize) -> UIGraphicsImageRenderer {
+  let format = UIGraphicsImageRendererFormat()
+  format.scale = 1
+  format.opaque = false
+  return UIGraphicsImageRenderer(size: size, format: format)
 }
 
-// Overlays live in a flipped container: Core Animation renders into the video
-// with a bottom-left origin, and the spec is in top-left output pixels.
-private func overlayLayer(_ spec: ShareSpec, size: CGSize) -> CALayer {
-  let root = CALayer()
-  root.frame = CGRect(origin: .zero, size: size)
-  root.isGeometryFlipped = true
-  let duration = max(spec.durationS, 0.1)
+// What never moves: the scrim, the label/number/cue stack and the wordmark.
+private func staticOverlay(_ spec: ShareSpec, size: CGSize) -> CIImage? {
+  let image = renderer(size).image { r in
+    let ctx = r.cgContext
+    let colors = [UIColor.black.withAlphaComponent(0).cgColor, UIColor.black.withAlphaComponent(0.78).cgColor] as CFArray
+    if let g = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors, locations: [0, 1]) {
+      ctx.drawLinearGradient(g, start: CGPoint(x: 0, y: spec.scrimFrom), end: CGPoint(x: 0, y: size.height), options: [.drawsAfterEndLocation])
+    }
+    var bottom = spec.stack.bottom
+    for item in spec.stack.items.reversed() {
+      bottom -= drawText(item, in: ctx, x: spec.stack.x, bottom: bottom, width: spec.stack.width) + spec.stack.gap
+    }
+    if let w = spec.wordmark {
+      drawMark(ctx, size: w.size, at: CGPoint(x: w.x, y: w.y))
+      let h = ceil(attributed(w.text).size().height)
+      _ = drawText(w.text, in: ctx, x: w.x + w.size + 12, bottom: w.y + (w.size + h) / 2, width: 600)
+    }
+  }
+  return image.cgImage.map { CIImage(cgImage: $0) }
+}
 
-  let scrim = CAGradientLayer()
-  scrim.frame = CGRect(x: 0, y: spec.scrimFrom, width: size.width, height: size.height - spec.scrimFrom)
-  scrim.colors = [color("#000000", 0), color("#000000", 0.78)]
-  root.addSublayer(scrim)
-
-  if spec.path.count > 1 {
-    let bez = UIBezierPath()
-    var lengths: [Double] = [0]
-    for (i, p) in spec.path.enumerated() {
-      let pt = CGPoint(x: p.x, y: p.y)
-      if i == 0 {
-        bez.move(to: pt)
-      } else {
-        bez.addLine(to: pt)
-        let prev = spec.path[i - 1]
-        lengths.append(lengths[i - 1] + hypot(p.x - prev.x, p.y - prev.y))
+// The path drawn up to output time t, its moving head, and the phase dots reached so far.
+private func pathOverlay(_ spec: ShareSpec, size: CGSize, at t: Double) -> CIImage? {
+  var pts: [CGPoint] = []
+  for (i, p) in spec.path.enumerated() {
+    if p.t <= t {
+      pts.append(CGPoint(x: p.x, y: p.y))
+    } else {
+      if i > 0 {
+        let a = spec.path[i - 1]
+        let f = (t - a.t) / max(p.t - a.t, 0.0001)
+        pts.append(CGPoint(x: a.x + (p.x - a.x) * f, y: a.y + (p.y - a.y) * f))
       }
+      break
     }
-    let total = max(lengths.last ?? 1, 0.001)
-    let line = CAShapeLayer()
-    line.frame = root.bounds
-    line.path = bez.cgPath
-    line.strokeColor = color(spec.pathColor)
-    line.fillColor = nil
-    line.lineWidth = spec.pathWidth
-    line.lineCap = .round
-    line.lineJoin = .round
-    line.strokeEnd = 0
-    line.shadowColor = color(spec.pathColor)
-    line.shadowOpacity = 0.6
-    line.shadowRadius = 12
-    line.shadowOffset = .zero
-
-    var keyTimes: [NSNumber] = [0]
-    var ends: [Double] = [0]
-    var heads: [NSValue] = [NSValue(cgPoint: CGPoint(x: spec.path[0].x, y: spec.path[0].y))]
-    for (i, p) in spec.path.enumerated() {
-      keyTimes.append(NSNumber(value: min(max(p.t / duration, keyTimes.last!.doubleValue), 1)))
-      ends.append(lengths[i] / total)
-      heads.append(NSValue(cgPoint: CGPoint(x: p.x, y: p.y)))
+  }
+  let dots = spec.dots.filter { $0.t <= t }
+  if pts.isEmpty && dots.isEmpty { return nil }
+  let image = renderer(size).image { r in
+    let ctx = r.cgContext
+    let flare = uiColor(spec.pathColor).cgColor
+    if pts.count > 1 {
+      ctx.saveGState()
+      ctx.setShadow(offset: .zero, blur: 14, color: uiColor(spec.pathColor, 0.7).cgColor)
+      ctx.setStrokeColor(flare)
+      ctx.setLineWidth(spec.pathWidth)
+      ctx.setLineCap(.round)
+      ctx.setLineJoin(.round)
+      ctx.addLines(between: pts)
+      ctx.strokePath()
+      ctx.restoreGState()
     }
-    keyTimes.append(1)
-    ends.append(1)
-    heads.append(heads.last!)
-
-    let draw = CAKeyframeAnimation(keyPath: "strokeEnd")
-    draw.values = ends
-    draw.keyTimes = keyTimes
-    draw.calculationMode = .linear
-    draw.beginTime = AVCoreAnimationBeginTimeAtZero
-    draw.duration = duration
-    draw.fillMode = .forwards
-    draw.isRemovedOnCompletion = false
-    line.add(draw, forKey: "draw")
-    root.addSublayer(line)
-
-    let head = CAShapeLayer()
-    let r = spec.pathWidth * 1.3
-    head.frame = CGRect(x: -r, y: -r, width: r * 2, height: r * 2)
-    head.path = UIBezierPath(ovalIn: CGRect(x: 0, y: 0, width: r * 2, height: r * 2)).cgPath
-    head.fillColor = color(spec.pathColor)
-    head.strokeColor = color(spec.dotColor)
-    head.lineWidth = 3
-    head.position = heads[0].cgPointValue
-    let move = CAKeyframeAnimation(keyPath: "position")
-    move.values = heads
-    move.keyTimes = keyTimes
-    move.calculationMode = .linear
-    move.beginTime = AVCoreAnimationBeginTimeAtZero
-    move.duration = duration
-    move.fillMode = .forwards
-    move.isRemovedOnCompletion = false
-    head.add(move, forKey: "move")
-    root.addSublayer(head)
+    ctx.setFillColor(uiColor(spec.dotColor).cgColor)
+    for d in dots {
+      let r = spec.dotRadius
+      ctx.fillEllipse(in: CGRect(x: d.x - r, y: d.y - r, width: r * 2, height: r * 2))
+    }
+    if let head = pts.last {
+      let r = spec.pathWidth * 1.3
+      let rect = CGRect(x: head.x - r, y: head.y - r, width: r * 2, height: r * 2)
+      ctx.setFillColor(flare)
+      ctx.fillEllipse(in: rect)
+      ctx.setStrokeColor(uiColor(spec.dotColor).cgColor)
+      ctx.setLineWidth(3)
+      ctx.strokeEllipse(in: rect)
+    }
   }
+  return image.cgImage.map { CIImage(cgImage: $0) }
+}
 
-  for d in spec.dots {
-    let dot = CAShapeLayer()
-    let r = spec.dotRadius
-    dot.frame = CGRect(x: d.x - r, y: d.y - r, width: r * 2, height: r * 2)
-    dot.path = UIBezierPath(ovalIn: CGRect(x: 0, y: 0, width: r * 2, height: r * 2)).cgPath
-    dot.fillColor = color(spec.dotColor)
-    dot.opacity = 0
-    let show = CABasicAnimation(keyPath: "opacity")
-    show.fromValue = 0
-    show.toValue = 1
-    show.beginTime = beginAt(d.t)
-    show.duration = 0.12
-    show.fillMode = .forwards
-    show.isRemovedOnCompletion = false
-    dot.add(show, forKey: "show")
-    root.addSublayer(dot)
-  }
-
-  var bottom = spec.stack.bottom
-  for item in spec.stack.items.reversed() {
-    let (layer, h) = textLayer(item, x: spec.stack.x, y: 0, width: spec.stack.width)
-    bottom -= Double(h)
-    layer.frame.origin.y = bottom
-    bottom -= spec.stack.gap
-    root.addSublayer(layer)
-  }
-
-  if let w = spec.wordmark {
-    root.addSublayer(markLayer(size: w.size, at: CGPoint(x: w.x, y: w.y)))
-    let (layer, h) = textLayer(w.text, x: w.x + w.size + 12, y: 0, width: 600)
-    layer.frame.origin.y = w.y + (w.size - Double(h)) / 2
-    root.addSublayer(layer)
-  }
-  return root
+private func orientation(_ t: CGAffineTransform) -> CGImagePropertyOrientation {
+  if t.a == 0 && t.b == 1 && t.c == -1 && t.d == 0 { return .right }
+  if t.a == 0 && t.b == -1 && t.c == 1 && t.d == 0 { return .left }
+  if t.a == -1 && t.d == -1 { return .down }
+  return .up
 }
 
 // The lifter's clip, trimmed to the rep (stretches slowed per segment), placed in
 // spec.video on black, with the bar path drawing in sync and the text on top.
-// H.264 MP4, no audio, written to the caches directory.
+// Drawn per frame with Core Image + Core Graphics (Core Animation's offline
+// renderer crashes on the simulator). H.264 MP4, no audio, in the temp directory.
 func renderShareVideo(uri: String, spec: ShareSpec, onProgress: @escaping (Double) -> Void) async throws -> [String: Any] {
   let asset = AVURLAsset(url: fileURL(uri))
   guard let track = try await asset.loadTracks(withMediaType: .video).first else { throw NoVideoTrackException() }
@@ -281,31 +230,36 @@ func renderShareVideo(uri: String, spec: ShareSpec, onProgress: @escaping (Doubl
   if cursor.seconds <= 0 { throw ShareRenderFailedException("the rep is outside the clip") }
 
   let size = CGSize(width: spec.width, height: spec.height)
+  let staticImage = staticOverlay(spec, size: size)
+  let upright = orientation(transform)
+  let black = CIImage(color: .black).cropped(to: CGRect(origin: .zero, size: size))
   let shown = CGRect(origin: .zero, size: natural).applying(transform)
-  let place = transform
-    .concatenating(CGAffineTransform(translationX: -shown.minX, y: -shown.minY))
-    .concatenating(CGAffineTransform(scaleX: spec.video.width / shown.width, y: spec.video.height / shown.height))
-    .concatenating(CGAffineTransform(translationX: spec.video.x, y: spec.video.y))
-  let layerInstruction = AVMutableVideoCompositionLayerInstruction(assetTrack: out)
-  layerInstruction.setTransform(place, at: .zero)
-  let instruction = AVMutableVideoCompositionInstruction()
-  instruction.timeRange = CMTimeRange(start: .zero, duration: cursor)
-  instruction.layerInstructions = [layerInstruction]
-  instruction.backgroundColor = color("#000000")
+  // Core Image's origin is bottom-left; the spec is top-left.
+  let videoY = Double(size.height) - spec.video.y - spec.video.height
 
-  let parent = CALayer()
-  parent.frame = CGRect(origin: .zero, size: size)
-  parent.backgroundColor = color("#000000")
-  let videoLayer = CALayer()
-  videoLayer.frame = parent.frame
-  parent.addSublayer(videoLayer)
-  parent.addSublayer(overlayLayer(spec, size: size))
-
-  let composition = AVMutableVideoComposition()
+  let composition = AVMutableVideoComposition(asset: comp) { request in
+    var frame = request.sourceImage
+    if abs(frame.extent.width - abs(shown.width)) > 1 || abs(frame.extent.height - abs(shown.height)) > 1 {
+      frame = frame.oriented(upright)
+    }
+    frame = frame.transformed(by: CGAffineTransform(translationX: -frame.extent.minX, y: -frame.extent.minY))
+    let sx = spec.video.width / frame.extent.width
+    let sy = spec.video.height / frame.extent.height
+    var img = frame
+      .transformed(by: CGAffineTransform(scaleX: sx, y: sy))
+      .transformed(by: CGAffineTransform(translationX: spec.video.x, y: videoY))
+      .composited(over: black)
+    if let s = staticImage { img = s.composited(over: img) }
+    if let p = pathOverlay(spec, size: size, at: request.compositionTime.seconds) { img = p.composited(over: img) }
+    request.finish(with: img.cropped(to: CGRect(origin: .zero, size: size)), context: nil)
+  }
   composition.renderSize = size
+  // iPhone clips are often HLG HDR: work in SDR Rec.709 so the overlay's white
+  // is not tone-mapped down to grey with the frame.
+  composition.colorPrimaries = AVVideoColorPrimaries_ITU_R_709_2
+  composition.colorTransferFunction = AVVideoTransferFunction_ITU_R_709_2
+  composition.colorYCbCrMatrix = AVVideoYCbCrMatrix_ITU_R_709_2
   composition.frameDuration = CMTime(value: 1, timescale: CMTimeScale(max(spec.fps, 1)))
-  composition.instructions = [instruction]
-  composition.animationTool = AVVideoCompositionCoreAnimationTool(postProcessingAsVideoLayer: videoLayer, in: parent)
 
   let dir = FileManager.default.temporaryDirectory.appendingPathComponent("share-video", isDirectory: true)
   try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
