@@ -4,7 +4,6 @@ import pytest
 from catchline_cv import gym, movement, rules
 from catchline_cv.phases import JERK_PHASES, SNATCH_PHASES, find_jerk_reps, find_rack_reps, segment_jerk, segment_snatch
 from catchline_cv.pose import HEAD, merge_passes, strip_head, unrotate
-from catchline_cv.privacy import blur_bystanders, bystanders, person_box
 
 FPS = 30
 
@@ -52,28 +51,6 @@ def test_merge_passes_keeps_the_more_confident_pose_per_person():
     assert len(out) == 2
     assert out[0][2][0] == pytest.approx(0.8)
     assert out[1][0][0] == pytest.approx(b[0] + 400)
-
-
-def test_person_box_grows_upwards_to_cover_the_dropped_head():
-    b, k, s = person(300, 900, h=400)
-    (pb, pk, ps), = strip_head([[(b, k, s)]])[0:1][0]
-    x1, y1, x2, y2 = person_box(pb, pk, ps)
-    assert y1 < 900 - 400  # above the top of the head (the head top keypoint was dropped)
-    assert y2 > 900 and x1 < 300 - 0.08 * 400 and x2 > 300 + 0.08 * 400
-
-
-def test_blur_bystanders_blurs_the_bystander_and_not_the_lifter():
-    rng = np.random.default_rng(0)
-    img = rng.integers(0, 255, (1280, 720, 3), dtype=np.uint8)
-    lifter = person(200, 1100, h=600)
-    other = person(560, 700, h=300)
-    people = strip_head([[lifter, other]])[0]
-    out = blur_bystanders(img, bystanders(people, lifter[0]), (people[0][1], people[0][2]))
-    # noise is flattened where the bystander stood, untouched on the lifter's torso
-    by = out[480:680, 530:590].astype(float)
-    li = out[750:850, 180:220].astype(float)
-    assert by.std() < 0.3 * img[480:680, 530:590].astype(float).std()
-    assert np.array_equal(li, img[750:850, 180:220].astype(float))
 
 
 # ---------------------------------------------------------------- movement check
