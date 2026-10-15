@@ -1,3 +1,8 @@
+- [ ] (Claude, build 29, Yash 15-10) Compare with a past lift: pick any earlier lift of the same movement, ghost its bar path aligned at lift-off, side by side (compare is dev-only today, fixtures)
+- [ ] (Claude, build 29) Movement picker defaults to "Auto": worker already detects snatch/clean/jerk (cv/detect.py); add gymnastics detection, keep manual override
+- [ ] (Claude, build 30) Long video (10 min, 5 sets): find sets on the phone (Apple Vision body pose at low fps or bar motion), upload each set as its own lift; `detectSets` in src/features/capture/sets.ts is a stub today; Supabase Free caps uploads at 50 MB
+- [ ] (Yash decision) Speed: today upload 3-11 s, analysis 41-66 s idle (262 s when the Mini is busy). Options: pose on fewer/smaller frames (2-3x), GPU worker on Modal (5-10x, parallel), pose on the phone with Apple Vision (seconds, no video upload)
+- Note (15-10): camera angle. Measurements need true side-on (camera at 90 deg to the bar); at 45 deg forward/back bar drift shows ~30% smaller and plates hide the bar. The "~43 deg off side-on" warnings on Yash's cleans were correct (filmed front three-quarter), not an angle-estimator bug.
 # Catchline: first slice
 
 Goal: the Analysis flow running in the iOS simulator on real measurements from one of Yash's own lifts. Branch `catchline`. Parallax is preserved at tag `parallax-final` and branch `archive/parallax`.
