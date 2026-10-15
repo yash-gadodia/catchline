@@ -53,17 +53,20 @@ describe('snatch mock fixture', () => {
   });
 });
 
-describe('demo-best fixture (the owner\'s snatch, prod lift 4d50a976)', () => {
+describe('demo-best fixture (the owner\'s squat snatch, 20 Sep 2026)', () => {
   it('parses the stored analysis with its real cue, one full rep and every keyframe bundled', () => {
     expect(demoBestRaw.id).toBe('demo-best');
     expect(demoBestRaw.movement).toBe('snatch');
     expect(demoBestRaw.movementUsed).toBe('snatch');
     expect(demoBestRaw.cue?.text).toBe("Brush the bar up, don't bump it.");
     expect(demoBestRaw.cue?.confidence).toBe('low');
-    expect(demoBestRaw.cue?.evidence.caption).toBe('hip · 15 cm fwd');
+    expect(demoBestRaw.cue?.evidence.caption).toBe('hip · 13 cm fwd');
+    expect(demoBestRaw.cue?.confidenceText).toBe('Seen on 1 of 1 reps, filmed ~37° off side-on: film from the side to confirm');
+    expect(demoBestRaw.detectedMovement).toEqual({ movement: 'snatch', confidence: 0.9 });
+    expect(demoBestRaw.video.frameCount).toBe(255);
     const rep = demoBestRaw.reps[0];
-    expect([rep.startFrame, rep.endFrame]).toEqual([298, 429]);
-    expect(rep.path).toHaveLength(132);
+    expect([rep.startFrame, rep.endFrame]).toEqual([41, 227]);
+    expect(rep.path).toHaveLength(187);
     expect(rep.keyFrames.map((k) => k.image)).toEqual([
       'asset:demo-best/r1-1-setup',
       'asset:demo-best/r1-2-first_pull',
@@ -81,7 +84,7 @@ describe('demo-best fixture (the owner\'s snatch, prod lift 4d50a976)', () => {
 
   it('shows the standard result in the demo, says why the numbers are estimates, and counts as a sample', () => {
     expect(demoBest.cue?.confidence).toBe('clear');
-    expect(demoBest.cue?.confidenceText).toBe('Filmed ~43° off side-on, so the numbers are estimates');
+    expect(demoBest.cue?.confidenceText).toBe('Filmed ~37° off side-on, so the numbers are estimates');
     expect(demoBest.cue?.text).toBe(demoBestRaw.cue?.text);
     expect(getAnalysis(DEMO_ID)).toBe(demoBest);
     expect(isSample(demoBest)).toBe(true);
