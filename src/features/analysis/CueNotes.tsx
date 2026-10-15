@@ -20,6 +20,16 @@ export default function CueNotes({ notes }: { notes?: Note[] }) {
   );
 }
 
+export const DISCLAIMER = 'AI estimate from one camera angle. Not coaching or medical advice.';
+
+export function Disclaimer() {
+  return (
+    <Text testID="disclaimer" style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 12, lineHeight: 16, paddingTop: space.s2 }}>
+      {DISCLAIMER}
+    </Text>
+  );
+}
+
 function NoteRow({ note }: { note: Note }) {
   const [open, setOpen] = useState(false);
   const long = note.why.length > LONG_WHY;

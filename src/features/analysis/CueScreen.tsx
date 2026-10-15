@@ -12,7 +12,7 @@ import { colors, space } from '../../design/tokens';
 import { display, fontFamily } from '../../design/typography';
 import EvidenceStage from './EvidenceStage';
 import WhyDrawer from './WhyDrawer';
-import CueNotes from './CueNotes';
+import CueNotes, { Disclaimer } from './CueNotes';
 import { isSample } from '../../analysis/fixtures';
 import { baselineSentence } from './baseline';
 import { useLibrary } from '../library/repository';
@@ -56,6 +56,7 @@ function CueBody({ analysis, nav, onWhy }: { analysis: Analysis; nav: Nav; onWhy
         ) : null}
         <StatusRow>{cue.confidenceText}</StatusRow>
         <CueNotes notes={analysis.notes} />
+        <Disclaimer />
       </ScrollView>
       <View style={{ paddingTop: space.s4, paddingHorizontal: space.gutter, paddingBottom: space.s7, gap: space.s2 }}>
         <Btn onPress={nav.onTry} testID="cue-try">
@@ -139,6 +140,7 @@ function LowConfidence({ analysis, nav }: { analysis: Analysis; nav: Nav }) {
         <Text style={[display(32), { color: colors.text }]}>{cue.text}</Text>
         <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>{cue.why}</Text>
         <CueNotes notes={analysis.notes} />
+        <Disclaimer />
       </ScrollView>
       <View style={{ paddingTop: space.s4, paddingHorizontal: space.gutter, paddingBottom: space.s7, gap: space.s2 }}>
         <Btn

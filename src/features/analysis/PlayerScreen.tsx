@@ -28,7 +28,7 @@ import { CurrentDot, FlarePath, KeyDots, OverlaySvg, RefLine } from './overlays'
 import Scrubber from './Scrubber';
 import JogWheel from './JogWheel';
 import PhaseChips from './PhaseChips';
-import CueNotes from './CueNotes';
+import CueNotes, { Disclaimer } from './CueNotes';
 
 export type Speed = '0.25' | '0.5' | '1';
 type Overlays = { path: boolean; strobe: boolean; lines: boolean };
@@ -238,6 +238,7 @@ export default function PlayerScreen({
           </>
         ) : null}
         <CueNotes notes={analysis.notes} />
+        <Disclaimer />
       </ScrollView>
       <View style={{ flexDirection: 'row', gap: space.s2, paddingTop: space.s2, paddingHorizontal: space.gutter, paddingBottom: Math.max(insets.bottom, space.s4) }}>
         {onCompare ? (

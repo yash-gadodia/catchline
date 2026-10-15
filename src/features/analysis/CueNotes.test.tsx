@@ -71,3 +71,22 @@ describe('sub-notes on the result screens', () => {
     expect(low.getByText('Land on the line you started on.')).toBeOnTheScreen();
   });
 });
+
+describe('disclaimer', () => {
+  const text = 'AI estimate from one camera angle. Not coaching or medical advice.';
+
+  it('appears exactly once at the bottom of the cue area on the player and both cue layouts', async () => {
+    const player = await render(<PlayerScreen analysis={{ ...snatchMock, notes }} onBack={() => {}} onShare={() => {}} />);
+    expect(player.getAllByText(text)).toHaveLength(1);
+    expect(player.getByTestId('player-cue-area')).toContainElement(player.getByTestId('disclaimer'));
+    const clear = await render(<CueScreen analysis={snatchMock} nav={nav} />);
+    expect(clear.getAllByText(text)).toHaveLength(1);
+    const low = await render(<CueScreen analysis={snatchMockLow} nav={nav} />);
+    expect(low.getAllByText(text)).toHaveLength(1);
+  });
+
+  it('never claims to diagnose or prevent injury', async () => {
+    const { getByTestId } = await render(<CueScreen analysis={snatchMock} nav={nav} />);
+    expect(getByTestId('disclaimer')).not.toHaveTextContent(/diagnos|prevent injury/i);
+  });
+});
