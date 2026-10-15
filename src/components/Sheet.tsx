@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { View, type StyleProp, type ViewStyle } from 'react-native';
+import { View, type LayoutChangeEvent, type StyleProp, type ViewStyle } from 'react-native';
 import { colors, radius, space } from '../design/tokens';
 
 export default function Sheet({
@@ -7,15 +7,18 @@ export default function Sheet({
   gap = 20,
   style,
   testID,
+  onLayout,
 }: {
   children: ReactNode;
   gap?: number;
   style?: StyleProp<ViewStyle>;
   testID?: string;
+  onLayout?: (e: LayoutChangeEvent) => void;
 }) {
   return (
     <View
       testID={testID}
+      onLayout={onLayout}
       style={[
         {
           position: 'absolute',

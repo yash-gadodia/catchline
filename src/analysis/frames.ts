@@ -15,26 +15,6 @@ const BUNDLED: Record<string, { color: ImageSourcePropType; gray: ImageSourcePro
     color: require('../../assets/frames/snatch/3-hip.jpg'),
     gray: require('../../assets/frames/snatch/gray/3-hip.jpg'),
   },
-  'snatch/ghost/3-hip': {
-    color: require('../../assets/frames/snatch/ghost/3-hip.jpg'),
-    gray: require('../../assets/frames/snatch/ghost/3-hip.jpg'),
-  },
-  'snatch/ghost/4-extension': {
-    color: require('../../assets/frames/snatch/ghost/4-extension.jpg'),
-    gray: require('../../assets/frames/snatch/ghost/4-extension.jpg'),
-  },
-  'snatch/ghost/5-turnover': {
-    color: require('../../assets/frames/snatch/ghost/5-turnover.jpg'),
-    gray: require('../../assets/frames/snatch/ghost/5-turnover.jpg'),
-  },
-  'snatch/ghost/6-catch': {
-    color: require('../../assets/frames/snatch/ghost/6-catch.jpg'),
-    gray: require('../../assets/frames/snatch/ghost/6-catch.jpg'),
-  },
-  'snatch/ghost/7-recovery': {
-    color: require('../../assets/frames/snatch/ghost/7-recovery.jpg'),
-    gray: require('../../assets/frames/snatch/ghost/7-recovery.jpg'),
-  },
   'snatch/4-extension': {
     color: require('../../assets/frames/snatch/4-extension.jpg'),
     gray: require('../../assets/frames/snatch/gray/4-extension.jpg'),

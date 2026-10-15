@@ -1,3 +1,4 @@
+import { StyleSheet } from 'react-native';
 import { act, fireEvent, render } from '@testing-library/react-native';
 import CapSheet from './CapSheet';
 import LastFreeSheet from './LastFreeSheet';
@@ -7,7 +8,7 @@ import PlansScreen from './PlansScreen';
 import QuizScreen from './QuizScreen';
 import TrialPaywall from './TrialPaywall';
 import { getProofCues } from './proofCues';
-import { FreeVideosChip } from './ui';
+import { ART, FreeVideosChip, artFrame } from './ui';
 
 const NOW = new Date(2026, 9, 11);
 const SEATS = { total: 500, remaining: 137 };
@@ -262,6 +263,50 @@ describe('CapSheet', () => {
   it('a founding member gets the same 40 and reset', async () => {
     const { getByText } = await render(<CapSheet tier="founding" now={NOW} onQueue={jest.fn()} />);
     expect(getByText("You've used your 40 this month.")).toBeOnTheScreen();
+  });
+});
+
+describe('Backdrop art', () => {
+  const layout = (y: number) => ({ nativeEvent: { layout: { x: 0, y, width: 402, height: 874 - y } } });
+
+  it('fits the whole figure, centred, between the status bar and a tall sheet', () => {
+    const f = artFrame(ART.catch, { top: 62, bottom: 273 }, 402);
+    expect(f.height).toBe(179);
+    expect(f.width).toBeCloseTo(126.0458, 3);
+    expect(f.left).toBeCloseTo(137.9771, 3);
+    expect(f.top).toBe(78);
+  });
+
+  it('caps a wide pose by width and height above a short sheet', () => {
+    const f = artFrame(ART.setup, { top: 59, bottom: 600 }, 402);
+    expect(f.width).toBeCloseTo(289.44, 3);
+    expect(f.height).toBeCloseTo(263.1273, 3);
+    expect(f.left).toBeCloseTo(56.28, 3);
+    expect(f.top).toBeCloseTo(197.9364, 3);
+  });
+
+  it.each([
+    ['CapSheet', 'setup', () => <CapSheet tier="pull" now={NOW} onQueue={jest.fn()} />],
+    ['LastFreeSheet', 'power', () => <LastFreeSheet onContinue={jest.fn()} onPlans={jest.fn()} />],
+    ['FoundingSheet', 'trail', () => <FoundingSheet seats={SEATS} platform="ios" now={NOW} purchase={jest.fn()} onYearly={jest.fn()} onSeePlans={jest.fn()} onDone={jest.fn()} />],
+    [
+      'PaywallSheet',
+      'catch',
+      () => (
+        <PaywallSheet cues={[]} seats={SEATS} platform="ios" now={NOW} purchase={jest.fn()} onNotNow={jest.fn()} onRestore={jest.fn()} onWatch={jest.fn()} />
+      ),
+    ],
+  ] as const)('%s shows the %s silhouette once the sheet top is known, never the photo cutout', async (_, name, ui) => {
+    const screen = await render(ui());
+    expect(screen.queryByTestId(`paywall-art-${name}`)).toBeNull();
+    await act(async () => {
+      fireEvent(screen.getByTestId('paywall-sheet'), 'layout', layout(500));
+    });
+    const img = screen.getByTestId(`paywall-art-${name}`);
+    expect(img).toHaveProp('source', ART[name].source);
+    expect(img).toHaveStyle({ opacity: 0.4 });
+    const box = StyleSheet.flatten(img.props.style);
+    expect(box.top + box.height).toBeLessThanOrEqual(500);
   });
 });
 
