@@ -20,7 +20,7 @@ export function OverlaySvg({ box, children }: { box: Size; children: ReactNode }
   );
 }
 
-// Flare path: 3px, round caps, black halo.
+// Flare path: 2.5pt, round caps, a thin black outline.
 export function FlarePath({
   points,
   dashed,
@@ -71,9 +71,9 @@ export function GhostPath({ points, testID }: { points: Point[]; testID?: string
 
 export function KeyDots({ points }: { points: Point[] }) {
   return (
-    <G fill={colors.text} stroke="#000" strokeWidth={2}>
+    <G fill={colors.text} stroke="#000" strokeWidth={1}>
       {points.map((p, i) => (
-        <Circle key={i} cx={p.x} cy={p.y} r={4} />
+        <Circle key={i} cx={p.x} cy={p.y} r={2.5} />
       ))}
     </G>
   );
@@ -81,7 +81,7 @@ export function KeyDots({ points }: { points: Point[] }) {
 
 export function CurrentDot({ point }: { point: Point | null }) {
   if (!point) return null;
-  return <Circle cx={point.x} cy={point.y} r={7} fill={colors.flare} stroke="#000" strokeWidth={2} />;
+  return <Circle cx={point.x} cy={point.y} r={4.5} fill={colors.flare} stroke="#000" strokeWidth={1.5} />;
 }
 
 export function RefLine({ x, top, bottom, alpha = opacity.lines }: { x: number; top: number; bottom: number; alpha?: number }) {
