@@ -3,7 +3,7 @@ import pytest
 
 from catchline_cv import rules
 from catchline_cv.geometry import angle, bar_from_wrists, lowpass, normalise, rise_ratio, trunk_angle
-from catchline_cv.phases import SNATCH_PHASES, catch_depth, find_reps, segment_snatch
+from catchline_cv.phases import SNATCH_PHASES, catch_depth, find_reps, plate_liftoff, segment_snatch
 
 
 def test_angle_right_and_straight():
@@ -88,6 +88,58 @@ def test_segment_snatch_synthetic_events():
         assert b["startFrame"] == a["endFrame"] + 1
 
 
+def test_plate_liftoff_is_where_the_plate_starts_its_rise():
+    # IMG_0226 (side-on, 288 px plate): the wrists rose 4-5 cm taking the slack out while the plate sat on the floor
+    # (+-1.5 cm of track noise), then the plate rose ~1.2 cm a frame
+    px = 288.0 / 45.0
+    rise_cm = np.concatenate([[0.7, -0.7, 0.5, 0.8, -1.5, -1.3, -1.4, -1.3, -1.0, -1.4, -1.3, -1.4],
+                              -1.3 + 1.2 * np.arange(1, 13)])
+    y = 1000.0 - rise_cm * px
+    assert plate_liftoff(y, 1, 288.0) == 11
+    assert plate_liftoff(np.where(np.arange(len(y)) == 8, np.nan, y), 1, 288.0) is None
+    assert plate_liftoff(np.full(30, 1000.0), 1, 288.0) is None
+    assert plate_liftoff(y[:14], 1, 288.0) is None  # no rise before the end of the search (the second pull)
+
+
+def test_power_snatch_received_without_a_dip_peaks_where_the_fast_rise_stops():
+    # E0DF8887 (made power snatch, cm above lift-off every 2 frames from f74): the wrists rose fast to 127 cm by f100,
+    # then crept up to 162 cm as the lifter stood; no 3% dip, so the peak fell back to the stand-up at f134
+    h = np.interp(np.arange(0, 116), np.arange(0, 116, 2), [
+        0.0, 5.0, 9.2, 9.6, 15.7, 31.2, 36.4, 42.6, 54.9, 68.1, 84.7, 107.4, 123.2, 127.3, 127.4, 131.0, 131.5,
+        131.7, 133.3, 135.2, 138.7, 144.1, 149.6, 150.8, 155.3, 154.4, 155.3, 157.1, 159.0, 160.4, 161.8, 160.0,
+        160.3, 161.4, 161.0, 160.4, 161.1, 159.7, 158.3, 157.5, 154.7, 148.2, 135.5, 117.2, 97.9, 81.7, 68.1, 62.7,
+        62.0, 62.6, 62.9, 63.1, 64.6, 66.8, 68.4, 69.5, 69.6, 69.6])
+    h = np.concatenate([np.zeros(30), h])
+    knee = np.concatenate([np.full(30, 83.0), np.interp(np.arange(0, 116), [0, 10, 14, 20, 32, 50, 116],
+                                                         [91, 138, 125, 167, 105, 168, 172])])
+    elbow = np.full(len(h), 170.0)
+    _, ev = segment_snatch(h, knee, 30, elbow=elbow)
+    assert ev["liftoff"] == 30
+    assert ev["peak"] == 55
+    assert ev["caught"] == 55
+    assert ev["recovered"] == 86  # f130: the bar back within 10% of its stand-up height
+
+
+def test_a_squat_catch_at_the_top_of_the_bar_still_finds_its_bottom():
+    # 21B27BAF (missed squat snatch): caught at the bar's highest point, rode down 0.9 s, then dumped it. With no
+    # rise after the catch the ride-down is the catch, not a lowering after a stand-up
+    h = np.concatenate([np.zeros(30), np.linspace(0, 127, 30), [127.0, 127.0, 127.0], np.linspace(127, 80, 27),
+                        np.linspace(80, 30, 5), np.zeros(20)])
+    knee = np.concatenate([np.full(30, 80.0), np.linspace(80, 170, 30), np.linspace(170, 60, 30), np.full(25, 60.0)])
+    _, ev = segment_snatch(h, knee, 30, elbow=np.full(len(h), 170.0))
+    assert ev["caught"] == 59
+    assert ev["hold_end"] == 93
+    assert ev["catch_bottom"] == 92
+
+
+def test_segment_snatch_takes_a_given_liftoff():
+    h, knee, elbow = synthetic_snatch()
+    phases, ev = segment_snatch(h, knee, 30, elbow=elbow, liftoff=34)
+    assert ev["liftoff"] == 34
+    assert phases[1]["startFrame"] == 34
+    assert ev["peak"] == 61
+
+
 def test_segment_snatch_without_rebend_uses_knee_pass():
     h, knee, _ = synthetic_snatch()
     knee = np.maximum.accumulate(np.where(np.arange(len(knee)) < 56, knee, 0))  # no re-bend before the peak
@@ -107,18 +159,38 @@ def test_find_reps_floor_to_overhead():
     assert find_reps(wrist, nose, knee, 30) == [(51, 119, 58)]
 
 
+def test_a_jump_behind_a_measured_bar_swing_cues_the_swing_even_under_its_threshold():
+    # IMG_0226 (side-on squat snatch, missed forward): bar 5.2 cm forward off the hips, feet 8.6 cm forward
+    miss = {"hips_rise_early": 7.82, "bar_forward_off_hips": 5.2, "jump_forward": 8.64}
+    assert rules.fired(miss) == {"jump_forward": pytest.approx(1.08), "bar_forward_off_hips": pytest.approx(1.08)}
+    assert rules.choose_cue(miss) == "bar_forward_off_hips"
+    # IMG_8149 (feet landed ~8 cm forward by eye, bar stayed close): the jump is its own fault
+    assert rules.choose_cue({"hips_rise_early": -2.33, "bar_forward_off_hips": 4.56, "jump_forward": 8.56}) == "jump_forward"
+
+
+def test_a_jump_inside_the_foot_noise_is_not_cued():
+    # E0DF8887 (made power snatch, near heel back on its start line by eye) reads 5.3 cm (original) and 6.3 cm (app
+    # transcode) at the landing; the threshold is the lenient 5 cm plus ~3 cm of foot-point noise
+    assert rules.RULES["jump_forward"]["threshold"] == 8.0
+    assert rules.choose_cue({"hips_rise_early": -1.7, "bar_forward_off_hips": 3.6, "jump_forward": 5.3}) is None
+    assert rules.choose_cue({"hips_rise_early": -5.3, "bar_forward_off_hips": 3.7, "jump_forward": 6.3}) is None
+    # prod 14 Oct side-on snatches (bar 5.7 / 5.9 cm, feet 6.5 / 6.1 cm): neither fault is past its threshold
+    assert rules.choose_cue({"hips_rise_early": -1.3, "bar_forward_off_hips": 5.7, "jump_forward": 6.5}) is None
+    assert rules.choose_cue({"hips_rise_early": -5.0, "bar_forward_off_hips": 5.9, "jump_forward": 6.1}) is None
+
+
 def test_rules_gate_the_jump_behind_the_bar_swing_and_cap_confidence_off_side_on():
-    vals = {"hips_rise_early": -3.0, "bar_forward_off_hips": 13.0, "jump_forward": 7.0}
+    vals = {"hips_rise_early": -3.0, "bar_forward_off_hips": 13.0, "jump_forward": 11.2}
     assert rules.fired(vals) == {"bar_forward_off_hips": pytest.approx(1.3), "jump_forward": pytest.approx(1.4)}
     # the jump is more severe, but the swing comes first and causes it (25 section 4 causal gating)
     assert rules.choose_cue(vals) == "bar_forward_off_hips"
-    assert rules.choose_cue({"hips_rise_early": -3.0, "bar_forward_off_hips": 2.0, "jump_forward": 7.0}) == "jump_forward"
+    assert rules.choose_cue({"hips_rise_early": -3.0, "bar_forward_off_hips": 2.0, "jump_forward": 11.0}) == "jump_forward"
     assert rules.confidence("jump_forward", 1.4, 36.0) == "low"
     assert rules.confidence("hips_rise_early", 1.6, 36.0) == "worth_checking"
     assert rules.confidence("jump_forward", 1.6, 5.0) == "clear"
     assert rules.choose_cue({"hips_rise_early": 1.0, "bar_forward_off_hips": None, "jump_forward": 0.0}) is None
     assert len(rules.CUES["jump_forward"].split()) < 8
-    assert rules.why_sentence("jump_forward", vals) == "Your feet landed 7 cm in front of where they started."
+    assert rules.why_sentence("jump_forward", vals) == "Your feet landed 11 cm in front of where they started."
     assert rules.why_sentence("hips_rise_early", {"hips_rise_early": 9.0}, {"trunk_change": 13.4}) == (
         "Your back angle dropped 14 deg between the floor and the knee, which put the bar in front of you.")
     assert rules.why_sentence("early_arm_bend", {"early_arm_bend": 0.137}) == (

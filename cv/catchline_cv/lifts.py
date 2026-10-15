@@ -475,6 +475,9 @@ def run_gym(ctx):
         name = "pull" if movement == "kipping_pull_up" else "muscle-up"
     if not cyc:
         return ctx["fail"]("unsupported_movement", f"No {name} reps found in this clip.")
+    if movement != "kipping_hspu" and any(gym.shoulders_cut_off(k, a, b, H) for a, _, b in cyc):
+        return ctx["fail"]("clip_cut_off", "The bar and the top of the rep are out of the frame. Film with the bar and "
+                                           "some space above it in view.")
     infos = []
     for ri, (a, top, b) in enumerate(cyc):
         last = ri == len(cyc) - 1

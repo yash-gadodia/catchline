@@ -6,7 +6,9 @@
 RULES = {
     "hips_rise_early": {"threshold": 8.0, "unit": "cm", "order": 1, "horizontal": False},
     "bar_forward_off_hips": {"threshold": 10.0, "unit": "cm", "order": 2, "horizontal": True},
-    "jump_forward": {"threshold": 5.0, "unit": "cm", "order": 3, "horizontal": True},
+    # 03's lenient 5 cm plus ~3 cm of foot-point noise: a made power snatch whose heel landed on its start line read
+    # 5.3 cm (original) and 6.3 cm (app transcode), and at 5 cm the jump outranked every other fault
+    "jump_forward": {"threshold": 8.0, "unit": "cm", "order": 3, "horizontal": True},
     # clean: 03 MVP #4 (early arm bend, 160 deg for the clean) and #6 (cut pull); 0.1 s = 3 frames at 30 fps
     "early_arm_bend": {"threshold": 0.1, "unit": "s", "order": 1.5, "horizontal": True},
     "incomplete_extension": {"threshold": 8.0, "unit": "deg", "order": 1.8, "horizontal": True},
@@ -81,6 +83,9 @@ WHY = {
 # causal gating (25 section 4, 03 section 6): when both fire, the cause is cued, not the effect
 GATES = [("bar_forward_off_hips", "jump_forward"), ("hips_rise_early", "early_arm_bend"),
          ("hips_low_transition", "chicken_wing"), ("hspu_banana", "hspu_kip_timing")]
+# a cause measured at half its threshold still explains a fired effect: the jump threshold sits under the 10 cm swing
+# one, so a 6 cm swing that throws the feet 9 cm forward was being cued as the jump
+PRESENT = 0.5
 
 
 def gate(fired_ids):
@@ -95,16 +100,18 @@ def fmt(value, unit):
     return f"{int(round(value))} cm"
 
 
+def severity(fid, v):
+    thr = RULES[fid]["threshold"]
+    return (1.0 + (thr - v) / thr) if RULES[fid].get("below") else v / thr
+
+
 def fired(values):
-    """values: {fault_id: measured value or None}. Returns {fault_id: severity} for faults over threshold."""
-    out = {}
-    for fid, v in values.items():
-        if v is None:
-            continue
-        thr = RULES[fid]["threshold"]
-        sev = (1.0 + (thr - v) / thr) if RULES[fid].get("below") else v / thr
-        if sev >= 1.0:
-            out[fid] = sev
+    """values: {fault_id: measured value or None}. Returns {fault_id: severity} for faults over threshold, plus the
+    cause of a fired effect when the cause measured at least PRESENT of its threshold (at the effect's severity)."""
+    out = {fid: severity(fid, v) for fid, v in values.items() if v is not None and severity(fid, v) >= 1.0}
+    for c, e in GATES:
+        if e in out and c not in out and values.get(c) is not None and severity(c, values[c]) >= PRESENT:
+            out[c] = out[e]
     return out
 
 

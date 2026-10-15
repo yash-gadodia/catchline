@@ -19,6 +19,10 @@
   "failure": {
    "reason": "unsupported_movement",
    "message": "No floor-to-overhead lift found in this clip."
+  },
+  "detectedMovement": {
+   "movement": "unknown",
+   "confidence": 0.0
   }
  },
  "keyframes_md5": {}

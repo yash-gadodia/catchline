@@ -422,7 +422,11 @@
     "note": "\u00b1 1 frame at 30 fps"
    }
   ],
-  "failure": null
+  "failure": null,
+  "detectedMovement": {
+   "movement": "unknown",
+   "confidence": 0.0
+  }
  },
  "keyframes_md5": {
   "r1-1-setup.jpg": "5e6c9bfc07233f499197848dd66df144",
