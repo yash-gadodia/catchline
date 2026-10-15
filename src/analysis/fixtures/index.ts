@@ -21,9 +21,10 @@ export const snatchSideon = parseAnalysis(
   ),
 );
 
-// The owner's own snatch (prod lift 4d50a976, 15 Oct 2026), bystanders blurred.
-// The worker ran it as a snatch but scored it low confidence (filmed ~43° off
-// side-on); the demo shows the standard result, still labelled AI estimate.
+// The owner's own squat snatch (20 Sep 2026, rep 2), run through the CV
+// pipeline; the bystander at the left edge is blurred. It detects a snatch (0.9)
+// but scores the cue low confidence (filmed ~37° off side-on); the demo shows
+// the standard result, still labelled AI estimate.
 export const DEMO_ID = 'demo-best';
 export const DEMO_CLIP: number = require('../../../assets/demo/demo-best.mp4');
 
@@ -36,7 +37,7 @@ export const demoBest: Analysis = {
   cue: demoBestRaw.cue && {
     ...demoBestRaw.cue,
     confidence: 'clear',
-    confidenceText: 'Filmed ~43° off side-on, so the numbers are estimates',
+    confidenceText: 'Filmed ~37° off side-on, so the numbers are estimates',
   },
 };
 

@@ -129,15 +129,17 @@ export function HeroNumber({
   at,
   size = 48,
   box,
+  minTop = 8,
 }: {
   text: string;
   at: Point;
   size?: number;
   box: Size;
+  minTop?: number;
 }) {
   const width = text.length * size * 0.42;
   const left = Math.min(Math.max(8, at.x), box.width - width - 8);
-  const top = Math.max(8, at.y - size - 6);
+  const top = Math.max(minTop, at.y - size - 6);
   return (
     <Text
       testID="hero-number"

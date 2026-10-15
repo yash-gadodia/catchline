@@ -90,15 +90,15 @@ describe('DemoScreen', () => {
     expect(view.getByTestId('demo-cue')).toBeOnTheScreen();
     expect(view.getByTestId('cue-screen')).toBeOnTheScreen();
     expect(view.getByTestId('cue-text')).toHaveTextContent("Brush the bar up, don't bump it.");
-    expect(view.getByTestId('evidence-readout')).toHaveTextContent('frame 358 · hip · 15 cm fwd');
+    expect(view.getByTestId('evidence-readout')).toHaveTextContent('frame 107 · hip · 13 cm fwd');
     expect(view.getByTestId('demo-caption')).toHaveTextContent('One thing to fix');
 
     await advance(4500);
     expect(view.getByTestId('demo-player')).toBeOnTheScreen();
-    expect(view.getByTestId('frame-number')).toHaveTextContent('327');
+    expect(view.getByTestId('frame-number')).toHaveTextContent('70');
     expect(view.getByTestId('demo-caption')).toHaveTextContent('Scrub any frame');
     await advance(Math.ceil(6000 / 7) * 2);
-    expect(view.getByTestId('frame-number')).toHaveTextContent('348');
+    expect(view.getByTestId('frame-number')).toHaveTextContent('90');
 
     await advance(6000);
     expect(view.getByTestId('demo-try-yours')).toBeOnTheScreen();
