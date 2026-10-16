@@ -1,9 +1,9 @@
 {
- "movement": "snatch",
+ "movement": "bar_muscle_up",
  "analysis": {
   "version": 1,
   "id": "golden",
-  "movement": "snatch",
+  "movement": "bar_muscle_up",
   "video": {
    "uri": "assets/analysis/golden",
    "width": 608,
@@ -11,14 +11,14 @@
    "fps": 29.97002997002997,
    "frameCount": 389
   },
-  "traceKind": "bar",
+  "traceKind": "hip",
   "reps": [],
   "bestRepIndex": 0,
   "cue": null,
   "measurements": [],
   "failure": {
    "reason": "unsupported_movement",
-   "message": "No floor-to-overhead lift found in this clip."
+   "message": "This clip looks like a barbell lift, not a bar muscle-up. Pick the movement you filmed and try again."
   },
   "detectedMovement": {
    "movement": "unknown",

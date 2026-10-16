@@ -327,7 +327,7 @@
      {
       "frame": 121,
       "x": 0.5455,
-      "y": 0.6453
+      "y": 0.6452
      },
      {
       "frame": 122,
@@ -795,7 +795,7 @@
    "text": "Glue your feet; swing from the bar.",
    "why": "Your knees bent 68 deg each swing while your shoulders barely moved.",
    "confidence": "low",
-   "confidenceText": "Seen on 1 of 2 reps, filmed ~26\u00b0 off side-on: film from the side to confirm",
+   "confidenceText": "Seen on 1 of 2 reps, filmed ~31\u00b0 off side-on: film from the side to confirm",
    "evidence": {
     "rep": 1,
     "frame": 74,
@@ -836,7 +836,7 @@
     "unit": "deg",
     "frame": 74,
     "status": "cue",
-    "note": "knee range, arch to top; filmed ~26\u00b0 off side-on, so treat as an estimate",
+    "note": "knee range, arch to top; filmed ~31\u00b0 off side-on, so treat as an estimate",
     "best": 49.2
    },
    {
@@ -846,7 +846,7 @@
     "unit": "s",
     "frame": 95,
     "status": "follows",
-    "note": "elbow bend before the hip snap (+ = early); filmed ~26\u00b0 off side-on, so treat as an estimate",
+    "note": "elbow bend before the hip snap (+ = early); filmed ~31\u00b0 off side-on, so treat as an estimate",
     "best": -0.1
    },
    {
@@ -856,7 +856,7 @@
     "unit": "cm",
     "frame": 102,
     "status": "follows",
-    "note": "shoulders back off the bar in 0.4 s; filmed ~26\u00b0 off side-on, so treat as an estimate"
+    "note": "shoulders back off the bar in 0.4 s; filmed ~31\u00b0 off side-on, so treat as an estimate"
    },
    {
     "id": "chin_over_bar",
@@ -870,7 +870,7 @@
    {
     "id": "swing",
     "label": "Swing",
-    "value": 61.8,
+    "value": 64.7,
     "unit": "cm",
     "frame": 102,
     "status": "normal",

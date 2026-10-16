@@ -12,7 +12,7 @@
    "frameCount": 153
   },
   "traceKind": "bar",
-  "pxPerCm": 4.495,
+  "pxPerCm": 3.947,
   "reps": [
    {
     "index": 1,
@@ -661,7 +661,7 @@
   "cue": {
    "faultId": "missed_forward",
    "text": "Film one more rep from the side.",
-   "why": "Missed forward. The bar left you 22 cm in front of mid-foot. I can't tell why from this clip: nothing in the pull was outside its window. Film one more rep, or a lighter make, and I'll compare.",
+   "why": "Missed forward. The bar left you 25 cm in front of mid-foot. I can't tell why from this clip: nothing in the pull was outside its window. Film one more rep, or a lighter make, and I'll compare.",
    "confidence": "low",
    "confidenceText": "One missed rep",
    "evidence": {
@@ -675,9 +675,9 @@
      "x": 0.6223,
      "y": 0.5109
     },
-    "value": 22.2,
+    "value": 25.3,
     "unit": "cm",
-    "caption": "bar 22 cm in front of mid-foot"
+    "caption": "bar 25 cm in front of mid-foot"
    }
   },
   "notes": [],
@@ -685,7 +685,7 @@
    {
     "id": "hips_rise_early",
     "label": "Hips rose early",
-    "value": -10.3,
+    "value": -11.7,
     "unit": "cm",
     "frame": 74,
     "status": "normal",
@@ -694,7 +694,7 @@
    {
     "id": "bar_forward_off_hips",
     "label": "Bar forward off hips",
-    "value": 1.9,
+    "value": 2.2,
     "unit": "cm",
     "frame": 85,
     "status": "normal",
@@ -703,7 +703,7 @@
    {
     "id": "jump_forward",
     "label": "Jumped forward",
-    "value": 1.0,
+    "value": 1.2,
     "unit": "cm",
     "frame": 93,
     "status": "normal",
@@ -712,7 +712,7 @@
    {
     "id": "bar_peak_height",
     "label": "Bar peak height",
-    "value": 122.8,
+    "value": 139.8,
     "unit": "cm",
     "frame": 89,
     "status": "normal",
@@ -721,7 +721,7 @@
    {
     "id": "catch_depth",
     "label": "Catch depth",
-    "value": 12.7,
+    "value": 14.4,
     "unit": "cm",
     "frame": 120,
     "status": "normal",
@@ -737,9 +737,18 @@
     "note": "\u00b1 1 frame at 30 fps"
    },
    {
+    "id": "bar_speed",
+    "label": "Peak bar speed",
+    "value": 0,
+    "unit": "m/s",
+    "frame": 84,
+    "status": "not_seen",
+    "note": "scale too uncertain to time the bar"
+   },
+   {
     "id": "outcome",
     "label": "Missed forward",
-    "value": 22.2,
+    "value": 25.3,
     "unit": "cm",
     "frame": 120,
     "status": "cue",
@@ -753,12 +762,12 @@
   }
  },
  "keyframes_md5": {
-  "r1-1-setup.jpg": "be4e5b4390ec163fe71b348d2c92e273",
-  "r1-2-first_pull.jpg": "d8ded6dcd25f0fded295fcef7e90c832",
-  "r1-3-transition.jpg": "9176d808e92199ae933279e55169a29c",
-  "r1-4-second_pull.jpg": "b0e464f982316273858ed236bca0706b",
-  "r1-5-turnover.jpg": "427ef83135224588a8740643e6a2b964",
-  "r1-6-catch.jpg": "3f509fce926dba313c3ee7af5dd1a08f",
-  "r1-7-recovery.jpg": "6bd53c2aec1469d57d0276fbca710bb3"
+  "r1-1-setup.jpg": "b01b10565099a46374c46907577d4d90",
+  "r1-2-first_pull.jpg": "cb9ea79aeca5d6394e989c18fb1b95d0",
+  "r1-3-transition.jpg": "e44d0fea5ec5df533808a41e13196acc",
+  "r1-4-second_pull.jpg": "87368175bead605be409e3d943c6202a",
+  "r1-5-turnover.jpg": "e4e15c76fcbcfb87da5b86d32e6309d0",
+  "r1-6-catch.jpg": "3b2ae2c58c6c41f66e2b40e82e2cb283",
+  "r1-7-recovery.jpg": "f6390e75eb30cff563063741a0e82f00"
  }
 }

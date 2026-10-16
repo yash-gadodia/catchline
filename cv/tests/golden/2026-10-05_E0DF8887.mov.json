@@ -12,7 +12,7 @@
    "frameCount": 190
   },
   "traceKind": "bar",
-  "pxPerCm": 4.082,
+  "pxPerCm": 4.408,
   "reps": [
    {
     "index": 1,
@@ -539,7 +539,7 @@
    {
     "id": "hips_rise_early",
     "label": "Hips rose early",
-    "value": -1.7,
+    "value": -1.6,
     "unit": "cm",
     "frame": 83,
     "status": "normal",
@@ -548,7 +548,7 @@
    {
     "id": "bar_forward_off_hips",
     "label": "Bar forward off hips",
-    "value": 3.6,
+    "value": 3.3,
     "unit": "cm",
     "frame": 95,
     "status": "normal",
@@ -557,7 +557,7 @@
    {
     "id": "jump_forward",
     "label": "Jumped forward",
-    "value": 5.3,
+    "value": 4.9,
     "unit": "cm",
     "frame": 100,
     "status": "normal",
@@ -566,7 +566,7 @@
    {
     "id": "bar_peak_height",
     "label": "Bar peak height",
-    "value": 126.5,
+    "value": 117.2,
     "unit": "cm",
     "frame": 99,
     "status": "normal",
@@ -575,7 +575,7 @@
    {
     "id": "catch_depth",
     "label": "Catch depth",
-    "value": 22.7,
+    "value": 21.0,
     "unit": "cm",
     "frame": 106,
     "status": "normal",
@@ -589,6 +589,15 @@
     "frame": 94,
     "status": "normal",
     "note": "\u00b1 1 frame at 30 fps"
+   },
+   {
+    "id": "bar_speed",
+    "label": "Peak bar speed",
+    "value": 3.16,
+    "unit": "m/s",
+    "frame": 95,
+    "status": "normal",
+    "note": "peak upward speed in the pull"
    }
   ],
   "failure": null,

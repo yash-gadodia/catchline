@@ -12,7 +12,7 @@
    "frameCount": 190
   },
   "traceKind": "bar",
-  "pxPerCm": 3.705,
+  "pxPerCm": 4.012,
   "reps": [
    {
     "index": 1,
@@ -559,7 +559,7 @@
    {
     "id": "hips_rise_early",
     "label": "Hips rose early",
-    "value": -5.3,
+    "value": -4.9,
     "unit": "cm",
     "frame": 84,
     "status": "normal",
@@ -568,7 +568,7 @@
    {
     "id": "bar_forward_off_hips",
     "label": "Bar forward off hips",
-    "value": 3.7,
+    "value": 3.4,
     "unit": "cm",
     "frame": 95,
     "status": "normal",
@@ -577,7 +577,7 @@
    {
     "id": "jump_forward",
     "label": "Jumped forward",
-    "value": 6.3,
+    "value": 5.8,
     "unit": "cm",
     "frame": 100,
     "status": "normal",
@@ -586,7 +586,7 @@
    {
     "id": "bar_peak_height",
     "label": "Bar peak height",
-    "value": 143.2,
+    "value": 132.2,
     "unit": "cm",
     "frame": 100,
     "status": "normal",
@@ -595,7 +595,7 @@
    {
     "id": "catch_depth",
     "label": "Catch depth",
-    "value": 26.6,
+    "value": 24.6,
     "unit": "cm",
     "frame": 107,
     "status": "normal",
@@ -609,6 +609,15 @@
     "frame": 94,
     "status": "normal",
     "note": "\u00b1 1 frame at 30 fps"
+   },
+   {
+    "id": "bar_speed",
+    "label": "Peak bar speed",
+    "value": 3.34,
+    "unit": "m/s",
+    "frame": 96,
+    "status": "normal",
+    "note": "peak upward speed in the pull"
    }
   ],
   "failure": null,
@@ -618,12 +627,12 @@
   }
  },
  "keyframes_md5": {
-  "r1-1-setup.jpg": "6c8309cbd3a5568e84b0f1f4f65d7242",
-  "r1-2-first_pull.jpg": "29411b7f20f5c668c013647b8a38eb9d",
-  "r1-3-transition.jpg": "d57c951f4509e8068732849873b8cc67",
-  "r1-4-second_pull.jpg": "101a2c171fe2711342d7f507932428a5",
-  "r1-5-turnover.jpg": "a2fed3f4d37c1dd876fb8305889ef4d4",
-  "r1-6-catch.jpg": "2b464265a9c72a47ba756fb106b6c2d5",
-  "r1-7-recovery.jpg": "cbb00e75bb59445d9ab441ad48527398"
+  "r1-1-setup.jpg": "cbeda0537d00471c98983d0cb0e41c54",
+  "r1-2-first_pull.jpg": "d7e8a29291687cb7d037b1fcf8d6b961",
+  "r1-3-transition.jpg": "2f566f0f16df1f73390e601549e251ba",
+  "r1-4-second_pull.jpg": "cbce8a59ccf8d86a30aeeb58dfc78623",
+  "r1-5-turnover.jpg": "4e9a7507a19ad5604ac0c5ec847ec1ce",
+  "r1-6-catch.jpg": "5e701e1ccac088f576e85766e40c0f30",
+  "r1-7-recovery.jpg": "e7d943411c67a4932202c71192d64984"
  }
 }

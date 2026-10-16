@@ -12,7 +12,7 @@
    "frameCount": 153
   },
   "traceKind": "bar",
-  "pxPerCm": 4.52,
+  "pxPerCm": 3.961,
   "reps": [
    {
     "index": 1,
@@ -686,7 +686,7 @@
   "cue": {
    "faultId": "missed_forward",
    "text": "Film one more rep from the side.",
-   "why": "Missed forward. The bar left you 23 cm in front of mid-foot. I can't tell why from this clip: nothing in the pull was outside its window. Film one more rep, or a lighter make, and I'll compare.",
+   "why": "Missed forward. The bar left you 27 cm in front of mid-foot. I can't tell why from this clip: nothing in the pull was outside its window. Film one more rep, or a lighter make, and I'll compare.",
    "confidence": "low",
    "confidenceText": "One missed rep",
    "evidence": {
@@ -700,9 +700,9 @@
      "x": 0.6321,
      "y": 0.5303
     },
-    "value": 23.3,
+    "value": 26.6,
     "unit": "cm",
-    "caption": "bar 23 cm in front of mid-foot"
+    "caption": "bar 27 cm in front of mid-foot"
    }
   },
   "notes": [],
@@ -710,7 +710,7 @@
    {
     "id": "hips_rise_early",
     "label": "Hips rose early",
-    "value": -5.4,
+    "value": -6.1,
     "unit": "cm",
     "frame": 74,
     "status": "normal",
@@ -719,7 +719,7 @@
    {
     "id": "bar_forward_off_hips",
     "label": "Bar forward off hips",
-    "value": 1.8,
+    "value": 2.1,
     "unit": "cm",
     "frame": 85,
     "status": "normal",
@@ -728,7 +728,7 @@
    {
     "id": "jump_forward",
     "label": "Jumped forward",
-    "value": -0.6,
+    "value": -0.7,
     "unit": "cm",
     "frame": 90,
     "status": "normal",
@@ -737,7 +737,7 @@
    {
     "id": "bar_peak_height",
     "label": "Bar peak height",
-    "value": 125.5,
+    "value": 143.2,
     "unit": "cm",
     "frame": 89,
     "status": "normal",
@@ -746,7 +746,7 @@
    {
     "id": "catch_depth",
     "label": "Catch depth",
-    "value": 8.5,
+    "value": 9.6,
     "unit": "cm",
     "frame": 114,
     "status": "normal",
@@ -762,9 +762,18 @@
     "note": "\u00b1 1 frame at 30 fps"
    },
    {
+    "id": "bar_speed",
+    "label": "Peak bar speed",
+    "value": 0,
+    "unit": "m/s",
+    "frame": 84,
+    "status": "not_seen",
+    "note": "scale too uncertain to time the bar"
+   },
+   {
     "id": "outcome",
     "label": "Missed forward",
-    "value": 23.3,
+    "value": 26.6,
     "unit": "cm",
     "frame": 121,
     "status": "cue",
