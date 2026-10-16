@@ -5,7 +5,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import PoseCoreML from '../modules/pose-coreml';
 import { colors, space } from '../src/design/tokens';
-import { fontFamily } from '../src/design/typography';
+import { type } from '../src/design/typography';
 import { poseJson } from '../src/data/onDevicePose';
 import { discardPrepared, prepareClip } from '../src/data/prepare';
 import Transcoder from '../modules/clip-transcoder';
@@ -54,12 +54,12 @@ export default function DevPose() {
           const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['videos'] });
           if (!r.canceled && r.assets[0]) run(r.assets[0].uri);
         }}
-        style={{ paddingVertical: 14 }}
+        style={{ paddingVertical: space.s4 }}
       >
-        <Text style={{ color: colors.text, fontFamily: fontFamily.body, fontSize: 17, lineHeight: 24 }}>Pick a video</Text>
+        <Text style={[type.body, { color: colors.text }]}>Pick a video</Text>
       </Pressable>
       {lines.map((l, i) => (
-        <Text key={i} style={{ color: colors.text, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>
+        <Text key={i} style={[type.readout, { color: colors.text }]}>
           {l}
         </Text>
       ))}
