@@ -5,28 +5,22 @@ import Btn from '../../components/Btn';
 import { colors, space } from '../../design/tokens';
 import { fontFamily } from '../../design/typography';
 import type { LiftGroup } from './lifts';
+import { t } from '../../i18n';
 import { Screen, Title } from './ui';
 
-export const GUIDE: Record<LiftGroup, { lines: string[]; distance: string; caption: string }> = {
-  barbell: {
-    lines: [
-      'Side on. Whole body and the bar in frame.',
-      'Phone still, on the floor or a plate stack.',
-      "One set per clip. We'll find the reps.",
-    ],
-    distance: '3–4 m',
-    caption: 'phone on the floor or a plate, side on',
-  },
-  gymnastics: {
-    lines: [
-      'Side on. The bar, your hands and your feet in frame.',
-      'Phone still, at hip height, far enough to see the whole swing.',
-      "One set per clip. We'll find the reps.",
-    ],
-    distance: '4–5 m',
-    caption: 'phone at hip height, side on to the rig',
-  },
-};
+export function guide(group: LiftGroup): { lines: string[]; distance: string; caption: string } {
+  return group === 'barbell'
+    ? {
+        lines: [t('onboarding.guide.barbell.line1'), t('onboarding.guide.barbell.line2'), t('onboarding.guide.oneSet')],
+        distance: '3–4 m',
+        caption: t('onboarding.guide.barbell.caption'),
+      }
+    : {
+        lines: [t('onboarding.guide.gymnastics.line1'), t('onboarding.guide.gymnastics.line2'), t('onboarding.guide.oneSet')],
+        distance: '4–5 m',
+        caption: t('onboarding.guide.gymnastics.caption'),
+      };
+}
 
 export default function GuideScreen({
   group,
@@ -38,10 +32,10 @@ export default function GuideScreen({
   onHide?: () => void;
 }) {
   const insets = useSafeAreaInsets();
-  const g = GUIDE[group];
+  const g = guide(group);
   return (
     <Screen top={insets.top} bottom={insets.bottom} testID={`guide-${group}`}>
-      <Title>How to film it</Title>
+      <Title>{t('onboarding.guide.title')}</Title>
       <View style={{ height: 300, backgroundColor: colors.surface, overflow: 'hidden' }}>
         <Svg viewBox="0 0 342 300" width="100%" height="100%" fill="none">
           <Line x1={0} y1={250} x2={342} y2={250} stroke={colors.hairline} strokeWidth={1} />
@@ -72,11 +66,11 @@ export default function GuideScreen({
       </View>
       <View style={{ flex: 1 }} />
       <Btn onPress={onDone} testID="guide-done">
-        Got it
+        {t('onboarding.guide.done')}
       </Btn>
       {onHide ? (
         <Btn kind="text" onPress={onHide} testID="guide-hide" style={{ alignSelf: 'center' }}>
-          Don't show again
+          {t('onboarding.guide.hide')}
         </Btn>
       ) : null}
     </Screen>

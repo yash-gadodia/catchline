@@ -5,13 +5,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Btn from '../../components/Btn';
 import { control, radius, space } from '../../design/tokens';
 import { Body, Note, Screen, Title } from './ui';
+import { t } from '../../i18n';
 
-export const ACCOUNT_COPY = {
-  title: 'Keep your lifts',
-  body: 'Keeps your lifts and your plan if you change phones.',
-  skip: 'Continue without an account',
-  failed: "Apple sign-in didn't go through. Try again, or continue without an account.",
-};
+export function accountCopy() {
+  return {
+    title: t('onboarding.account.title'),
+    body: t('onboarding.account.body'),
+    skip: t('onboarding.account.skip'),
+    failed: t('onboarding.account.failed'),
+  };
+}
 
 // onApple resolves true once signed in, false when the lifter backed out of the
 // Apple sheet, and rejects when the sign-in failed.
@@ -19,6 +22,7 @@ export default function AccountScreen({ onApple, onSkip }: { onApple: () => Prom
   const insets = useSafeAreaInsets();
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
+  const copy = accountCopy();
 
   const apple = async () => {
     if (busy) return;
@@ -35,10 +39,10 @@ export default function AccountScreen({ onApple, onSkip }: { onApple: () => Prom
 
   return (
     <Screen top={insets.top} bottom={insets.bottom} testID="account-screen">
-      <Title>{ACCOUNT_COPY.title}</Title>
-      <Body>{ACCOUNT_COPY.body}</Body>
+      <Title>{copy.title}</Title>
+      <Body>{copy.body}</Body>
       <View style={{ flex: 1 }} />
-      {failed ? <Note blocked testID="account-failed">{ACCOUNT_COPY.failed}</Note> : null}
+      {failed ? <Note blocked testID="account-failed">{copy.failed}</Note> : null}
       {Platform.OS === 'ios' ? (
         <AppleAuthentication.AppleAuthenticationButton
           buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
@@ -51,7 +55,7 @@ export default function AccountScreen({ onApple, onSkip }: { onApple: () => Prom
       ) : null}
       <View style={{ alignItems: 'center', paddingTop: space.s2 }}>
         <Btn kind="text" onPress={onSkip} testID="account-skip">
-          {ACCOUNT_COPY.skip}
+          {copy.skip}
         </Btn>
       </View>
     </Screen>

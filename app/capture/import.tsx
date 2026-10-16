@@ -8,6 +8,7 @@ import { useCapture, useCaptureHydrated } from '../../src/features/capture/store
 import { submitClip, toSubmission } from '../../src/features/capture/submit';
 import { hasConsent, useHydrated, useOnboarding } from '../../src/features/onboarding/store';
 import { colors } from '../../src/design/tokens';
+import { t } from '../../src/i18n';
 
 // Dev link: ?demo=1 loads the design's long muscle-up clip without a picker (dev builds only).
 export default function ImportRoute() {
@@ -30,7 +31,7 @@ export default function ImportRoute() {
       setDraft(retest ? { ...clip, retest: { cueId: retest, movement } } : clip);
       setReady(true);
     }, () => {
-      Alert.alert("Couldn't open that video", 'Try again, or pick a clip saved on this phone.');
+      Alert.alert(t('capture.import.failedTitle'), t('capture.import.failedBody'));
       setEmpty(true);
     });
   };

@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
+import { t, type Key } from '../../i18n';
 
 // The first-run demo: the real result screens on the owner's own snatch, played
 // back on a timer. No upload, no lift, no usage counted.
 export type DemoStep = 'processing' | 'reveal' | 'cue' | 'player' | 'end';
 
-export const DEMO_STEPS: { step: Exclude<DemoStep, 'end'>; ms: number; caption: string }[] = [
-  { step: 'processing', ms: 5000, caption: 'Catchline finds the bar' },
-  { step: 'reveal', ms: 4500, caption: 'Catchline finds the bar' },
-  { step: 'cue', ms: 4500, caption: 'One thing to fix' },
-  { step: 'player', ms: 6000, caption: 'Scrub any frame' },
+export const DEMO_STEPS: { step: Exclude<DemoStep, 'end'>; ms: number; caption: Key }[] = [
+  { step: 'processing', ms: 5000, caption: 'onboarding.demo.findsBar' },
+  { step: 'reveal', ms: 4500, caption: 'onboarding.demo.findsBar' },
+  { step: 'cue', ms: 4500, caption: 'onboarding.demo.oneThing' },
+  { step: 'player', ms: 6000, caption: 'onboarding.demo.scrub' },
 ];
 
 // The processing sheet's step list ticks this often, then shows "done".
@@ -20,7 +21,8 @@ export function nextDemoStep(step: DemoStep): DemoStep {
 }
 
 export function demoCaption(step: DemoStep): string | null {
-  return DEMO_STEPS.find((s) => s.step === step)?.caption ?? null;
+  const caption = DEMO_STEPS.find((s) => s.step === step)?.caption;
+  return caption ? t(caption) : null;
 }
 
 export function demoDuration(step: DemoStep): number | null {

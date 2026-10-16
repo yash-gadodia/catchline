@@ -2,6 +2,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { View } from 'react-native';
 import Btn from '../../components/Btn';
 import { Body, Screen, Title } from './ui';
+import { t } from '../../i18n';
 
 export default function CameraScreen({
   denied,
@@ -20,24 +21,24 @@ export default function CameraScreen({
       <View style={{ flex: 1 }} />
       {denied ? (
         <>
-          <Title>Camera is off for Catchline.</Title>
-          <Body>Turn it on in Settings, or import a clip you've already filmed.</Body>
+          <Title>{t('onboarding.camera.deniedTitle')}</Title>
+          <Body>{t('onboarding.camera.deniedBody')}</Body>
           <Btn kind="secondary" onPress={onSettings} testID="camera-settings">
-            Open Settings
+            {t('onboarding.camera.openSettings')}
           </Btn>
           <Btn onPress={onImport} testID="camera-import">
-            Import a clip
+            {t('onboarding.camera.importClip')}
           </Btn>
         </>
       ) : (
         <>
-          <Title>Catchline needs the camera to film your lift.</Title>
-          <Body>Nothing records until you press the button. You can also import a clip instead.</Body>
+          <Title>{t('onboarding.camera.promptTitle')}</Title>
+          <Body>{t('onboarding.camera.promptBody')}</Body>
           <Btn onPress={onAllow} testID="camera-allow">
-            Allow camera
+            {t('onboarding.camera.allow')}
           </Btn>
           <Btn kind="text" onPress={onImport} testID="camera-import" style={{ alignSelf: 'center' }}>
-            Import a clip instead
+            {t('onboarding.camera.importInstead')}
           </Btn>
         </>
       )}

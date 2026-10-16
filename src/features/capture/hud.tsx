@@ -4,7 +4,8 @@ import type { Movement } from '../../analysis/types';
 import { colors, radius, space, stroke } from '../../design/tokens';
 import { fontFamily } from '../../design/typography';
 import { liftById } from '../onboarding/lifts';
-import { CHECK_LABEL, type CheckResult } from './checks';
+import { checkLabel, type CheckResult } from './checks';
+import { t } from '../../i18n';
 
 const HUD_BG = 'rgba(0,0,0,0.6)';
 
@@ -24,7 +25,7 @@ export function LiftChip({
       onPress={onPress}
       testID="lift-chip"
       accessibilityRole="button"
-      accessibilityLabel={`Lift: ${liftById(movement).name}. Change`}
+      accessibilityLabel={t('capture.hud.liftA11y', { name: liftById(movement).name })}
       style={{
         height,
         paddingHorizontal: space.s3,
@@ -108,7 +109,7 @@ export function CheckList({ results }: { results: CheckResult[] }) {
               {r.pass ? '✓' : '✕'}
             </Text>
           )}
-          <Text style={{ color: colors.text, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>{CHECK_LABEL[r.id]}</Text>
+          <Text style={{ color: colors.text, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>{checkLabel(r.id)}</Text>
         </View>
       ))}
     </View>
@@ -131,7 +132,7 @@ export function RecordButton({
       onPress={onPress}
       testID="record-button"
       accessibilityRole="button"
-      accessibilityLabel={recording ? 'Stop recording' : 'Record'}
+      accessibilityLabel={recording ? t('capture.hud.stopRecording') : t('capture.hud.record')}
       style={({ pressed }) => [
         {
           width: 56,

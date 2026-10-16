@@ -1,38 +1,34 @@
 import { useEffect, useState } from 'react';
 import type { Movement } from '../../analysis/types';
+import { t } from '../../i18n';
 
 export type CheckId = 'whole_body' | 'side_on' | 'light';
 
 // pass: null = no real check behind this item yet; it reads as guidance, no tick.
 export type CheckResult = { id: CheckId; pass: boolean | null };
 
-export const CHECK_LABEL: Record<CheckId, string> = {
-  whole_body: 'Whole body in frame',
-  side_on: 'Film from the side',
-  light: 'Good light',
-};
+export function checkLabel(id: CheckId): string {
+  if (id === 'whole_body') return t('capture.checks.label.wholeBody');
+  if (id === 'side_on') return t('capture.checks.label.sideOn');
+  return t('capture.checks.label.light');
+}
 
-export const CHECK_HINT: Record<CheckId, string> = {
-  whole_body: 'Feet are cut off. Move the phone back or tilt it down.',
-  side_on: 'Turn the phone so you film from the side, not the front.',
-  light: "It's too dark to see the bar. Face a light or move closer to one.",
-};
+export function checkHint(id: CheckId): string {
+  if (id === 'whole_body') return t('capture.checks.hint.wholeBody');
+  if (id === 'side_on') return t('capture.checks.hint.sideOn');
+  return t('capture.checks.hint.light');
+}
 
 // What Review says when a check failed at the moment Record was pressed.
-export const CHECK_OVERRIDE: Record<CheckId, { title: string; body: string }> = {
-  whole_body: {
-    title: 'Feet were out of frame',
-    body: 'We can still measure the bar. Foot position and catch depth will be missing.',
-  },
-  side_on: {
-    title: 'Filmed at an angle',
-    body: 'Forward and back distances will read short. The timing is still good.',
-  },
-  light: {
-    title: 'The clip was dark',
-    body: 'We may lose the bar in places. Anything we can’t see we won’t measure.',
-  },
-};
+export function checkOverride(id: CheckId): { title: string; body: string } {
+  if (id === 'whole_body') {
+    return { title: t('capture.checks.override.wholeBody.title'), body: t('capture.checks.override.wholeBody.body') };
+  }
+  if (id === 'side_on') {
+    return { title: t('capture.checks.override.sideOn.title'), body: t('capture.checks.override.sideOn.body') };
+  }
+  return { title: t('capture.checks.override.light.title'), body: t('capture.checks.override.light.body') };
+}
 
 export const CHECK_ORDER: CheckId[] = ['whole_body', 'side_on', 'light'];
 
@@ -77,7 +73,7 @@ export function failing(results: CheckResult[]): CheckId[] {
 
 export function firstHint(results: CheckResult[]): string | null {
   const id = CHECK_ORDER.find((c) => results.some((r) => r.id === c && r.pass === false));
-  return id ? CHECK_HINT[id] : null;
+  return id ? checkHint(id) : null;
 }
 
 export function parseChecks(param?: string): CheckId[] {

@@ -1,6 +1,6 @@
 import { act, fireEvent, render } from '@testing-library/react-native';
 import * as Speech from 'expo-speech';
-import { CHECK_HINT, fixedChecker, stubChecker } from './checks';
+import { checkHint, fixedChecker, stubChecker } from './checks';
 import { demoClip } from './demo';
 import ImportScreen from './ImportScreen';
 import ReviewScreen from './ReviewScreen';
@@ -66,7 +66,7 @@ describe('Viewfinder', () => {
     expect(screen.getByTestId('check-whole_body-fail')).toHaveTextContent('✕Whole body in frame');
     expect(screen.getByTestId('check-side_on-pass')).toHaveTextContent('✓Film from the side');
     expect(screen.getByTestId('check-light-pass')).toHaveTextContent('✓Good light');
-    expect(screen.getByTestId('check-hint')).toHaveTextContent(CHECK_HINT.whole_body);
+    expect(screen.getByTestId('check-hint')).toHaveTextContent(checkHint('whole_body'));
     expect(screen.getByTestId('record-button')).toBeEnabled();
     expect(screen.getByTestId('fps-badge')).toHaveTextContent('30 fps');
     expect(screen.getByTestId('free-count')).toHaveTextContent('0 / 3');
@@ -107,7 +107,7 @@ describe('Viewfinder', () => {
     const screen = await render(ui);
     await press(screen.getByTestId('record-button'));
     expect(screen.getByTestId('countdown')).toHaveTextContent('5');
-    expect(Speech.speak).toHaveBeenLastCalledWith('5');
+    expect(Speech.speak).toHaveBeenLastCalledWith('5', { language: 'en' });
     for (let i = 0; i < 5; i++) await tick(1000);
     expect(Speech.speak).toHaveBeenCalledTimes(5);
     expect(screen.getByTestId('record-timer')).toHaveTextContent('00:00');

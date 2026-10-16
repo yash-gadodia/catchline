@@ -8,17 +8,18 @@ import { fontFamily } from '../../design/typography';
 import { liftById } from '../onboarding/lifts';
 import type { Units } from '../onboarding/store';
 import { GateBtn, Note } from '../onboarding/ui';
-import { CHECK_ORDER, CHECK_OVERRIDE } from './checks';
+import { CHECK_ORDER, checkOverride } from './checks';
 import ClipPlayer from './ClipPlayer';
 import { Header, LiftChip, Meta, Underlined } from './hud';
 import LiftSheet from './LiftSheet';
 import { clock } from './session';
 import type { Clip } from './store';
+import { t } from '../../i18n';
 
 export function clipMeta(clip: Clip): string {
   const parts = [clock(clip.durationS)];
-  if (clip.fps) parts.push(`${clip.fps} fps`);
-  if (clip.repsFound) parts.push(`${clip.repsFound} rep${clip.repsFound === 1 ? '' : 's'} found`);
+  if (clip.fps) parts.push(t('capture.review.fps', { fps: clip.fps }));
+  if (clip.repsFound) parts.push(t('capture.review.repsFound', { count: clip.repsFound }));
   return parts.join(' · ');
 }
 
@@ -56,44 +57,44 @@ export default function ReviewScreen({
       testID="review-screen"
     >
       <Header
-        left={shared ? <Meta>{`from ${clip.from ?? 'another app'}`}</Meta> : <Underlined onPress={onRetake} testID="review-retake">Retake</Underlined>}
+        left={shared ? <Meta>{t('capture.review.from', { app: clip.from ?? t('capture.review.anotherApp') })}</Meta> : <Underlined onPress={onRetake} testID="review-retake">{t('capture.review.retake')}</Underlined>}
         right={<Meta testID="review-meta">{shared || cutOff || override ? clipMeta({ ...clip, repsFound: null }) : clipMeta(clip)}</Meta>}
       />
       <ClipPlayer uri={clip.uri} trim={clip.trim} durationS={clip.durationS} width={width} height={stageH} progress={!cutOff}>
         {cutOff ? (
           <View style={{ position: 'absolute', left: space.gutter, bottom: space.s5 }}>
             <Text testID="cut-off-marker" style={{ color: colors.flare, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>
-              {`clip ends here · frame ${clip.cutOffFrame}`}
+              {t('capture.review.cutOffMarker', { frame: clip.cutOffFrame ?? 0 })}
             </Text>
           </View>
         ) : null}
       </ClipPlayer>
 
       {cutOff ? (
-        <Note blocked title="Clip stopped before the catch" testID="cut-off-note" style={{ marginTop: space.s4, marginHorizontal: space.gutter }}>
-          The lift isn't finished, so there's nothing to compare. Film the whole rep, including a second after the lockout.
+        <Note blocked title={t('capture.review.cutOffTitle')} testID="cut-off-note" style={{ marginTop: space.s4, marginHorizontal: space.gutter }}>
+          {t('capture.review.cutOffBody')}
         </Note>
       ) : override ? (
-        <Note title={CHECK_OVERRIDE[override].title} testID="override-note" style={{ marginTop: space.s4, marginHorizontal: space.gutter }}>
-          {CHECK_OVERRIDE[override].body}
+        <Note title={checkOverride(override).title} testID="override-note" style={{ marginTop: space.s4, marginHorizontal: space.gutter }}>
+          {checkOverride(override).body}
         </Note>
       ) : (
         <View style={{ paddingHorizontal: space.gutter, paddingVertical: space.s4, gap: space.s3 }}>
           {shared && clip.movementGuessed ? (
             <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>
-              {`Looks like ${liftById(clip.movement).spoken}. Right?`}
+              {t('capture.review.looksLike', { lift: liftById(clip.movement).spoken })}
             </Text>
           ) : null}
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.s2 }}>
             <LiftChip movement={clip.movement} onPress={() => setPicking(true)} />
             {shared ? null : <WeightField value={weight} units={units} onChange={onWeight} />}
             <Underlined onPress={onTrim} testID="review-trim">
-              Adjust trim
+              {t('capture.import.adjustTrim')}
             </Underlined>
           </View>
           {clip.fps != null && clip.fps < 60 && shared ? (
             <Text style={{ color: colors.text3, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>
-              {`${clip.fps} fps clip · timing will be rougher than 60`}
+              {t('capture.review.lowFps', { fps: clip.fps })}
             </Text>
           ) : null}
         </View>
@@ -104,24 +105,24 @@ export default function ReviewScreen({
         {cutOff ? (
           <>
             <Btn onPress={onRetake} testID="review-retake-primary">
-              Retake
+              {t('capture.review.retake')}
             </Btn>
             <GateBtn disabled onPress={onAnalyse} testID="review-analyse">
-              Analyse
+              {t('capture.review.analyse')}
             </GateBtn>
           </>
         ) : override ? (
           <>
             <Btn onPress={onAnalyse} testID="review-analyse">
-              Analyse anyway
+              {t('capture.review.analyseAnyway')}
             </Btn>
             <Btn kind="secondary" onPress={onRetake} testID="review-retake-secondary">
-              Retake
+              {t('capture.review.retake')}
             </Btn>
           </>
         ) : (
           <Btn onPress={onAnalyse} testID="review-analyse">
-            Analyse
+            {t('capture.review.analyse')}
           </Btn>
         )}
       </View>
@@ -156,7 +157,7 @@ export function WeightField({ value, units, onChange }: { value: string; units: 
     >
       <TextInput
         testID="weight-input"
-        accessibilityLabel={`Weight in ${units}`}
+        accessibilityLabel={t('capture.review.weightA11y', { units })}
         value={value}
         onChangeText={(t) => onChange(t.replace(/[^0-9.,]/g, ''))}
         keyboardType="decimal-pad"

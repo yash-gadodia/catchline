@@ -7,7 +7,8 @@ import Segmented from '../../components/Segmented';
 import SmallCaps from '../../components/SmallCaps';
 import { colors, control, radius, space, stroke } from '../../design/tokens';
 import { display, fontFamily } from '../../design/typography';
-import { FOCUS, GROUPS, SOON, liftsIn } from './lifts';
+import { FOCUS, focusLabel, groups, liftsIn, soonLifts } from './lifts';
+import { t } from '../../i18n';
 import type { Units } from './store';
 
 export type LiftPick = { lifts: Movement[]; focus: string[]; units: Units };
@@ -31,12 +32,12 @@ export default function LiftPickerScreen({
     <View testID="lift-picker" style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top + space.s5 }}>
       <ScrollView contentContainerStyle={{ paddingHorizontal: space.gutter, gap: space.s4, paddingBottom: space.s4 }}>
         <View style={{ gap: 6 }}>
-          <Text style={[display(36), { color: colors.text }]}>What are you working on?</Text>
+          <Text style={[display(36), { color: colors.text }]}>{t('onboarding.picker.title')}</Text>
           <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>
-            Pick as many as you like. Change it later in You.
+            {t('onboarding.picker.sub')}
           </Text>
         </View>
-        {GROUPS.map((g) => (
+        {groups().map((g) => (
           <View key={g.id} style={{ gap: space.s2 }} testID={`group-${g.id}`}>
             <SmallCaps size={12}>{g.label}</SmallCaps>
             <View style={{ flexDirection: 'row', gap: space.s2 }}>
@@ -77,7 +78,7 @@ export default function LiftPickerScreen({
           </View>
         ))}
         <View style={{ flexDirection: 'row', gap: space.s2 }}>
-          {SOON.map((name) => (
+          {soonLifts().map((name) => (
             <View
               key={name}
               testID="lift-soon"
@@ -98,13 +99,13 @@ export default function LiftPickerScreen({
               <Text numberOfLines={2} style={{ color: colors.text3, fontFamily: fontFamily.bodyBold, fontSize: 15, lineHeight: 18 }}>
                 {name}
               </Text>
-              <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 11, lineHeight: 14 }}>soon</Text>
+              <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 11, lineHeight: 14 }}>{t('onboarding.picker.soon')}</Text>
             </View>
           ))}
         </View>
         <View style={{ gap: space.s2 }}>
           <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>
-            Anything specific? <Text style={{ color: colors.text3 }}>Optional</Text>
+            {t('onboarding.picker.specific')} <Text style={{ color: colors.text3 }}>{t('onboarding.picker.optional')}</Text>
           </Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
             {FOCUS.map((f) => {
@@ -125,14 +126,14 @@ export default function LiftPickerScreen({
                     justifyContent: 'center',
                   }}
                 >
-                  <Text style={{ color: colors.text, fontFamily: fontFamily.body, fontSize: 13, lineHeight: 18 }}>{f}</Text>
+                  <Text style={{ color: colors.text, fontFamily: fontFamily.body, fontSize: 13, lineHeight: 18 }}>{focusLabel(f)}</Text>
                 </Pressable>
               );
             })}
           </View>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>Units</Text>
+          <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>{t('onboarding.picker.units')}</Text>
           <Segmented
             testID="units"
             value={units}
@@ -146,10 +147,10 @@ export default function LiftPickerScreen({
       </ScrollView>
       <View style={{ paddingHorizontal: space.gutter, paddingTop: space.s2, paddingBottom: Math.max(insets.bottom, space.s4) + space.s2, gap: space.s4 }}>
         <Btn onPress={() => onContinue({ lifts, focus, units })} testID="lifts-continue">
-          Continue
+          {t('onboarding.picker.continue')}
         </Btn>
         <Btn kind="text" onPress={onSkip} testID="lifts-skip" style={{ alignSelf: 'center' }}>
-          Skip
+          {t('onboarding.picker.skip')}
         </Btn>
       </View>
     </View>

@@ -8,11 +8,13 @@ import SmallCaps from '../../components/SmallCaps';
 import { colors, radius, space, stroke } from '../../design/tokens';
 import { fontFamily } from '../../design/typography';
 import PlayerScreen from '../analysis/PlayerScreen';
+import { t } from '../../i18n';
 
-export const COACH_MARKS = [
-  'The red line is where the bar went. Tap the video to play it slowly.',
-  'Tap a phase to jump straight to it. The numbers are how long each one took.',
-];
+export function coachMarks(): string[] {
+  return [t('onboarding.sample.coach1'), t('onboarding.sample.coach2')];
+}
+
+const COACH_MARK_COUNT = 2;
 
 const TOP_BAR = 56;
 const CHIPS = 56;
@@ -32,7 +34,7 @@ export default function SampleScreen({
   const insets = useSafeAreaInsets();
   const [mark, setMark] = useState(0);
   const stageBottom = insets.top + TOP_BAR + Math.round(width * 1.25);
-  const title = ['Sample', movementLabel(sample.movement).toLowerCase(), sample.loadKg != null ? `${fmt(sample.loadKg)} kg` : null]
+  const title = [t('onboarding.sample.label'), movementLabel(sample.movement).toLowerCase(), sample.loadKg != null ? `${fmt(sample.loadKg)} kg` : null]
     .filter(Boolean)
     .join(' · ');
 
@@ -55,11 +57,11 @@ export default function SampleScreen({
         }}
       >
         <Pressable onPress={onBack} hitSlop={12} accessibilityRole="button" testID="sample-back">
-          <Text style={{ color: colors.text, fontFamily: fontFamily.bodyMedium, fontSize: 15, lineHeight: 20 }}>‹ Back</Text>
+          <Text style={{ color: colors.text, fontFamily: fontFamily.bodyMedium, fontSize: 15, lineHeight: 20 }}>{t('onboarding.sample.back')}</Text>
         </Pressable>
         <SmallCaps>{title}</SmallCaps>
       </View>
-      {mark < COACH_MARKS.length ? (
+      {mark < COACH_MARK_COUNT ? (
         <CoachMark
           index={mark}
           top={mark === 0 ? stageBottom - 168 : stageBottom + CHIPS + space.s2}
@@ -79,7 +81,7 @@ export default function SampleScreen({
         }}
       >
         <Btn onPress={onFilm} testID="sample-film">
-          Now film yours
+          {t('onboarding.sample.film')}
         </Btn>
       </View>
     </View>
@@ -87,7 +89,7 @@ export default function SampleScreen({
 }
 
 function CoachMark({ index, top, onNext }: { index: number; top: number; onNext: () => void }) {
-  const last = index === COACH_MARKS.length - 1;
+  const last = index === COACH_MARK_COUNT - 1;
   return (
     <Pressable
       onPress={onNext}
@@ -106,13 +108,13 @@ function CoachMark({ index, top, onNext }: { index: number; top: number; onNext:
         gap: space.s2,
       }}
     >
-      <Text style={{ color: colors.text, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>{COACH_MARKS[index]}</Text>
+      <Text style={{ color: colors.text, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>{coachMarks()[index]}</Text>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
         <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 12, lineHeight: 16 }}>
-          {`${index + 1} / ${COACH_MARKS.length}`}
+          {`${index + 1} / ${COACH_MARK_COUNT}`}
         </Text>
         <Text style={{ color: colors.text, fontFamily: fontFamily.bodyMedium, fontSize: 15, lineHeight: 20, textDecorationLine: 'underline' }}>
-          {last ? 'Got it' : 'Next'}
+          {last ? t('onboarding.sample.gotIt') : t('onboarding.sample.next')}
         </Text>
       </View>
     </Pressable>

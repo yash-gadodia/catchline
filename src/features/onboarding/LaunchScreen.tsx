@@ -6,6 +6,7 @@ export default function LaunchScreen() {
   return (
     <View
       testID="launch-screen"
+      // i18n-ok: brand name
       accessibilityLabel="Catchline"
       style={{ flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' }}
     >

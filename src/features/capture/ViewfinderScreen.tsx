@@ -17,6 +17,7 @@ import { CheckList, HudBadge, LiftChip, RecordButton } from './hud';
 import LiftSheet from './LiftSheet';
 import { MAX_RECORD_S, clock, isTooLong, reduce, type RepsMode, type Session } from './session';
 import Silhouette from './Silhouette';
+import { getLocale, t } from '../../i18n';
 
 export type Recorded = { uri: string | null; durationS: number; overridden: CheckId[]; mode: RepsMode };
 
@@ -38,7 +39,7 @@ export default function ViewfinderScreen({
   target,
   camera = true,
   initial = { kind: 'idle' },
-  speak = (t: string) => Speech.speak(t),
+  speak = (text: string) => Speech.speak(text, { language: getLocale() }),
 }: {
   movement: Movement;
   onMovement: (m: Movement) => void;
@@ -140,7 +141,7 @@ export default function ViewfinderScreen({
           >
             <LiftChip movement={movement} onPress={() => setPicking(true)} scrim height={36} />
             <View style={{ flexDirection: 'row', gap: space.s2 }}>
-              <HudBadge testID="fps-badge">{`${fps} fps`}</HudBadge>
+              <HudBadge testID="fps-badge">{t('capture.viewfinder.fps', { fps })}</HudBadge>
               <HudBadge square onPress={onGuide} testID="guide-button">
                 ?
               </HudBadge>
@@ -171,7 +172,7 @@ export default function ViewfinderScreen({
           <HudBadge dot testID="record-timer">
             {clock(session.elapsed)}
           </HudBadge>
-          {isTooLong(session) ? null : <HudBadge>{`${fps} fps`}</HudBadge>}
+          {isTooLong(session) ? null : <HudBadge>{t('capture.viewfinder.fps', { fps })}</HudBadge>}
         </View>
       ) : null}
 
@@ -192,11 +193,11 @@ export default function ViewfinderScreen({
       {isTooLong(session) ? (
         <Note
           scrim
-          title="Over 30 seconds"
+          title={t('capture.viewfinder.tooLongTitle')}
           testID="too-long"
           style={{ position: 'absolute', left: space.gutter, right: space.gutter, bottom: 200 + insets.bottom }}
         >
-          We analyse one set per clip. Stop here and we'll trim to the reps, or keep going and pick the set on the next screen.
+          {t('capture.viewfinder.tooLongBody')}
         </Note>
       ) : null}
 
@@ -222,18 +223,18 @@ export default function ViewfinderScreen({
                 value={mode}
                 onChange={setMode}
                 options={[
-                  { value: 'rep', label: '1 rep' },
-                  { value: 'set', label: 'Set' },
+                  { value: 'rep', label: t('capture.viewfinder.oneRep') },
+                  { value: 'set', label: t('capture.viewfinder.set') },
                 ]}
               />
             ) : null}
-            {session.kind === 'countdown' ? <Text style={[type.label, { color: colors.text2 }]}>Get set</Text> : null}
+            {session.kind === 'countdown' ? <Text style={[type.label, { color: colors.text2 }]}>{t('capture.viewfinder.getSet')}</Text> : null}
             {recording && !isTooLong(session) ? (
               <View style={{ alignItems: 'center', gap: space.s2 }}>
-                <Text style={[display(28), { color: colors.text }]}>Lift when ready</Text>
+                <Text style={[display(28), { color: colors.text }]}>{t('capture.viewfinder.liftWhenReady')}</Text>
                 {/* TODO(on-device pose): auto-stop after the lockout in 1-rep mode. */}
                 <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>
-                  {mode === 'rep' ? 'tap stop a second after the lockout' : 'tap stop after your last rep'}
+                  {mode === 'rep' ? t('capture.viewfinder.stopAfterLockout') : t('capture.viewfinder.stopAfterLast')}
                 </Text>
               </View>
             ) : null}
@@ -253,7 +254,7 @@ export default function ViewfinderScreen({
                     justifyContent: 'center',
                   }}
                 >
-                  <Text style={{ color: colors.text, fontFamily: fontFamily.bodyMedium, fontSize: 11, lineHeight: 14 }}>Import</Text>
+                  <Text style={{ color: colors.text, fontFamily: fontFamily.bodyMedium, fontSize: 11, lineHeight: 14 }}>{t('capture.viewfinder.import')}</Text>
                 </Pressable>
               ) : (
                 <View style={{ width: 44 }} />
@@ -262,7 +263,7 @@ export default function ViewfinderScreen({
               {session.kind === 'idle' ? (
                 <Text
                   testID="free-count"
-                  accessibilityLabel={`${freeUsed} of ${freeTotal} free videos used`}
+                  accessibilityLabel={t('capture.viewfinder.freeA11y', { used: freeUsed, total: freeTotal })}
                   style={{ width: 44, textAlign: 'center', color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}
                 >
                   {`${freeUsed} / ${freeTotal}`}
@@ -277,9 +278,9 @@ export default function ViewfinderScreen({
 
       {session.kind === 'storage' ? (
         <Sheet testID="storage-sheet" gap={space.s4}>
-          <Text style={[type.title, { color: colors.text }]}>Storage is nearly full</Text>
+          <Text style={[type.title, { color: colors.text }]}>{t('capture.viewfinder.storageTitle')}</Text>
           <Text style={[type.body, { color: colors.text2 }]}>
-            {`About ${session.secondsLeft} seconds of ${fps} fps video left. Catchline keeps your analyses; original clips can go.`}
+            {t('capture.viewfinder.storageBody', { seconds: session.secondsLeft, fps })}
           </Text>
           {originals > 0 ? (
             <DestructiveBtn
@@ -289,11 +290,11 @@ export default function ViewfinderScreen({
                 dispatch({ type: 'dismissStorage' });
               }}
             >
-              {`Delete ${originals} original clip${originals === 1 ? '' : 's'}, keep analyses`}
+              {t('capture.viewfinder.deleteOriginals', { count: originals })}
             </DestructiveBtn>
           ) : null}
           <Btn kind="secondary" onPress={() => dispatch({ type: 'recordAnyway' })} testID="record-anyway">
-            Record anyway
+            {t('capture.viewfinder.recordAnyway')}
           </Btn>
         </Sheet>
       ) : null}

@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { CHECK_HINT, failing, firstHint, fixedChecker, parseChecks } from './checks';
+import { checkHint, failing, firstHint, fixedChecker, parseChecks } from './checks';
 import { demoClip } from './demo';
 import { clock, isTooLong, reduce, type Session } from './session';
 import { repOptions, setStrip, DEMO_SETS } from './sets';
@@ -54,7 +54,7 @@ describe('framing checks', () => {
       hint = firstHint(r);
     });
     expect(results).toEqual(['whole_body', 'light']);
-    expect(hint).toBe(CHECK_HINT.whole_body);
+    expect(hint).toBe(checkHint('whole_body'));
   });
 
   it('treats an unknown result (no real check yet) as neither failing nor a hint', () => {
@@ -64,7 +64,7 @@ describe('framing checks', () => {
       { id: 'light' as const, pass: false },
     ];
     expect(failing(results)).toEqual(['light']);
-    expect(firstHint(results)).toBe(CHECK_HINT.light);
+    expect(firstHint(results)).toBe(checkHint('light'));
     expect(failing(results.map((r) => ({ ...r, pass: null })))).toEqual([]);
     expect(firstHint(results.map((r) => ({ ...r, pass: null })))).toBeNull();
   });

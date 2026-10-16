@@ -14,6 +14,7 @@ import PlayerScreen from '../analysis/PlayerScreen';
 import ProcessingSheet from '../analysis/ProcessingSheet';
 import RevealScreen from '../analysis/RevealScreen';
 import { DEMO_STEPS, PROCESSING_TICK_MS, demoCaption, useDemo, type DemoStep } from './demo';
+import { t } from '../../i18n';
 
 const noop = () => {};
 
@@ -62,7 +63,7 @@ export default function DemoScreen({
           ...shape.control,
         }}
       >
-        <Text style={[type.label, { color: colors.text }]}>Skip</Text>
+        <Text style={[type.label, { color: colors.text }]}>{t('onboarding.demo.skip')}</Text>
       </Pressable>
       <View
         pointerEvents="none"
@@ -153,17 +154,17 @@ export function TryYours({ analysis, onImport, onRecord }: { analysis: Analysis;
         </View>
       ) : null}
       <View style={{ gap: space.s3 }}>
-        <Text style={[display(44), { color: colors.text }]}>Now try yours</Text>
+        <Text style={[display(44), { color: colors.text }]}>{t('onboarding.demo.tryTitle')}</Text>
         <Text style={[type.body, { color: colors.text2 }]}>
-          Pick one set filmed from the side, whole body and bar in frame.
+          {t('onboarding.demo.tryBody')}
         </Text>
       </View>
       <View style={{ gap: space.s3 }}>
         <Btn onPress={onImport} testID="demo-import">
-          Import a video
+          {t('onboarding.demo.import')}
         </Btn>
         <Btn kind="secondary" onPress={onRecord} testID="demo-record">
-          Record instead
+          {t('onboarding.demo.record')}
         </Btn>
       </View>
     </View>

@@ -1,13 +1,13 @@
 import { act, fireEvent, render } from '@testing-library/react-native';
 import { Linking } from 'react-native';
 import { snatchMock } from '../../analysis/fixtures';
-import AccountScreen, { ACCOUNT_COPY } from './AccountScreen';
+import AccountScreen, { accountCopy } from './AccountScreen';
 import CameraScreen from './CameraScreen';
-import GuideScreen, { GUIDE } from './GuideScreen';
+import GuideScreen, { guide } from './GuideScreen';
 import LaunchScreen from './LaunchScreen';
 import LiftPickerScreen from './LiftPickerScreen';
 import PrivacyScreen from './PrivacyScreen';
-import SampleScreen, { COACH_MARKS } from './SampleScreen';
+import SampleScreen, { coachMarks } from './SampleScreen';
 import WelcomeScreen from './WelcomeScreen';
 
 const press = async (el: Parameters<typeof fireEvent.press>[0]) => {
@@ -72,9 +72,9 @@ describe('Sample analysis', () => {
     const onFilm = jest.fn();
     const screen = await render(<SampleScreen sample={snatchMock} onBack={jest.fn()} onFilm={onFilm} />);
     expect(screen.getByTestId('player-screen')).toBeOnTheScreen();
-    expect(screen.getByTestId('coach-mark-1')).toHaveTextContent(`${COACH_MARKS[0]}1 / 2Next`);
+    expect(screen.getByTestId('coach-mark-1')).toHaveTextContent(`${coachMarks()[0]}1 / 2Next`);
     await press(screen.getByTestId('coach-mark-1'));
-    expect(screen.getByTestId('coach-mark-2')).toHaveTextContent(`${COACH_MARKS[1]}2 / 2Got it`);
+    expect(screen.getByTestId('coach-mark-2')).toHaveTextContent(`${coachMarks()[1]}2 / 2Got it`);
     await press(screen.getByTestId('coach-mark-2'));
     expect(screen.queryByTestId('coach-mark-1')).toBeNull();
     expect(screen.queryByTestId('coach-mark-2')).toBeNull();
@@ -87,7 +87,7 @@ describe('Filming guide', () => {
   it.each(['barbell', 'gymnastics'] as const)('shows the %s lines and distance', async (group) => {
     const onHide = jest.fn();
     const screen = await render(<GuideScreen group={group} onDone={jest.fn()} onHide={onHide} />);
-    for (const line of GUIDE[group].lines) expect(screen.getByText(line)).toBeOnTheScreen();
+    for (const line of guide(group).lines) expect(screen.getByText(line)).toBeOnTheScreen();
     await press(screen.getByText("Don't show again"));
     expect(onHide).toHaveBeenCalledTimes(1);
   });
@@ -138,7 +138,7 @@ describe('Account', () => {
     const onApple = jest.fn((): Promise<boolean> => Promise.reject(new Error('bad nonce')));
     const screen = await render(<AccountScreen onApple={onApple} onSkip={jest.fn()} />);
     await press(screen.getByTestId('account-apple'));
-    expect(screen.getByTestId('account-failed')).toHaveTextContent(ACCOUNT_COPY.failed);
+    expect(screen.getByTestId('account-failed')).toHaveTextContent(accountCopy().failed);
     onApple.mockImplementation(() => Promise.resolve(false));
     await press(screen.getByTestId('account-apple'));
     expect(screen.queryByTestId('account-failed')).toBeNull();

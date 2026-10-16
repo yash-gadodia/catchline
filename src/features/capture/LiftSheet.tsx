@@ -4,7 +4,8 @@ import Sheet from '../../components/Sheet';
 import SmallCaps from '../../components/SmallCaps';
 import { colors, space } from '../../design/tokens';
 import { fontFamily } from '../../design/typography';
-import { GROUPS, SOON, liftsIn } from '../onboarding/lifts';
+import { groups, liftsIn, soonLifts } from '../onboarding/lifts';
+import { t } from '../../i18n';
 
 export default function LiftSheet({
   value,
@@ -20,11 +21,11 @@ export default function LiftSheet({
       <Pressable
         onPress={onClose}
         testID="lift-sheet-backdrop"
-        accessibilityLabel="Close"
+        accessibilityLabel={t('capture.liftSheet.close')}
         style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: colors.scrim }}
       />
       <Sheet testID="lift-sheet" gap={space.s4}>
-        {GROUPS.map((g) => (
+        {groups().map((g) => (
           <View key={g.id} style={{ gap: space.s1 }}>
             <SmallCaps size={12}>{g.label}</SmallCaps>
             {liftsIn(g.id).map((l) => {
@@ -50,7 +51,7 @@ export default function LiftSheet({
           </View>
         ))}
         <Text style={{ color: colors.text3, fontFamily: fontFamily.mono, fontSize: 12, lineHeight: 16 }}>
-          {`soon · ${SOON.join(' · ').toLowerCase()}`}
+          {t('capture.liftSheet.soon', { lifts: soonLifts().join(' · ').toLowerCase() })}
         </Text>
       </Sheet>
     </View>

@@ -1,26 +1,62 @@
 import type { Movement } from '../../analysis/types';
+import { movementLabel } from '../../analysis/format';
+import { t, type Key } from '../../i18n';
 
 export type LiftGroup = 'barbell' | 'gymnastics';
 
 export type Lift = { id: Movement; name: string; sub: string; group: LiftGroup; spoken: string };
 
+// name, sub and spoken read the current language each time they are used.
+function lift(id: Movement, group: LiftGroup, sub: Key, spoken: Key): Lift {
+  return {
+    id,
+    group,
+    get name() {
+      return movementLabel(id);
+    },
+    get sub() {
+      return t(sub);
+    },
+    get spoken() {
+      return t(spoken);
+    },
+  };
+}
+
 export const LIFTS: Lift[] = [
-  { id: 'snatch', name: 'Snatch', sub: 'bar path', group: 'barbell', spoken: 'a snatch' },
-  { id: 'clean', name: 'Clean', sub: 'bar path', group: 'barbell', spoken: 'a clean' },
-  { id: 'jerk', name: 'Jerk', sub: 'bar path', group: 'barbell', spoken: 'a jerk' },
-  { id: 'kipping_pull_up', name: 'Kipping pull-up', sub: 'hip path', group: 'gymnastics', spoken: 'a kipping pull-up' },
-  { id: 'bar_muscle_up', name: 'Bar muscle-up', sub: 'hip path', group: 'gymnastics', spoken: 'a bar muscle-up' },
-  { id: 'kipping_hspu', name: 'Kipping HSPU', sub: 'head + hip', group: 'gymnastics', spoken: 'a handstand push-up' },
+  lift('snatch', 'barbell', 'onboarding.lifts.sub.barPath', 'onboarding.lifts.spoken.snatch'),
+  lift('clean', 'barbell', 'onboarding.lifts.sub.barPath', 'onboarding.lifts.spoken.clean'),
+  lift('jerk', 'barbell', 'onboarding.lifts.sub.barPath', 'onboarding.lifts.spoken.jerk'),
+  lift('kipping_pull_up', 'gymnastics', 'onboarding.lifts.sub.hipPath', 'onboarding.lifts.spoken.kippingPullUp'),
+  lift('bar_muscle_up', 'gymnastics', 'onboarding.lifts.sub.hipPath', 'onboarding.lifts.spoken.barMuscleUp'),
+  lift('kipping_hspu', 'gymnastics', 'onboarding.lifts.sub.headHip', 'onboarding.lifts.spoken.kippingHspu'),
 ];
 
-export const SOON = ['Toes-to-bar', 'Chest-to-bar', 'Ring muscle-up'];
+export function soonLifts(): string[] {
+  return [t('onboarding.lifts.soon.toesToBar'), t('onboarding.lifts.soon.chestToBar'), t('onboarding.lifts.soon.ringMuscleUp')];
+}
 
-export const GROUPS: { id: LiftGroup; label: string }[] = [
-  { id: 'barbell', label: 'Barbell' },
-  { id: 'gymnastics', label: 'Gymnastics' },
-];
+export function groups(): { id: LiftGroup; label: string }[] {
+  return [
+    { id: 'barbell', label: t('onboarding.lifts.group.barbell') },
+    { id: 'gymnastics', label: t('onboarding.lifts.group.gymnastics') },
+  ];
+}
 
+// The stored values stay English; focusLabel shows them in the current language.
 export const FOCUS = ['Bar swings forward', 'Missing behind', "Can't link reps", 'First muscle-up'];
+
+const FOCUS_KEYS: Record<string, Key> = {
+  'Bar swings forward': 'onboarding.lifts.focus.barSwingsForward',
+  'Missing behind': 'onboarding.lifts.focus.missingBehind',
+  "Can't link reps": 'onboarding.lifts.focus.cantLinkReps',
+  'First muscle-up': 'onboarding.lifts.focus.firstMuscleUp',
+};
+
+export function focusLabel(f: string): string {
+  const key = FOCUS_KEYS[f];
+  return key ? t(key) : f;
+}
 
 export function liftById(id: Movement): Lift {
   return LIFTS.find((l) => l.id === id)!;

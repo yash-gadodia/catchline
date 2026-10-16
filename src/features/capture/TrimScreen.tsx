@@ -8,6 +8,7 @@ import { Header, Underlined } from './hud';
 import { activeTrim, type Clip } from './store';
 import Trimmer from './Trimmer';
 import type { Trim } from './trim';
+import { t } from '../../i18n';
 
 export default function TrimScreen({
   clip,
@@ -22,14 +23,14 @@ export default function TrimScreen({
   const insets = useSafeAreaInsets();
   const [trim, setTrim] = useState<Trim>(activeTrim(clip));
   const [seek, setSeek] = useState<number | undefined>(undefined);
-  const reps = clip.repsFound ? `${clip.repsFound} rep${clip.repsFound === 1 ? '' : 's'}` : '';
+  const reps = clip.repsFound ? t('capture.trim.reps', { count: clip.repsFound }) : '';
 
   return (
     <View testID="trim-screen" style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }}>
       <Header
-        left={<Underlined onPress={onCancel} testID="trim-cancel">Cancel</Underlined>}
-        center={<Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 17, lineHeight: 22 }}>Adjust trim</Text>}
-        right={<Underlined onPress={() => onDone(trim)} testID="trim-done">Done</Underlined>}
+        left={<Underlined onPress={onCancel} testID="trim-cancel">{t('capture.trim.cancel')}</Underlined>}
+        center={<Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 17, lineHeight: 22 }}>{t('capture.trim.title')}</Text>}
+        right={<Underlined onPress={() => onDone(trim)} testID="trim-done">{t('capture.trim.done')}</Underlined>}
       />
       <ClipPlayer
         uri={clip.uri}
@@ -61,7 +62,7 @@ export default function TrimScreen({
           paddingBottom: Math.max(insets.bottom, space.s4) + space.s5,
         }}
       >
-        Keep a second before the first rep and after the last. We'll find the reps inside.
+        {t('capture.trim.help')}
       </Text>
     </View>
   );
