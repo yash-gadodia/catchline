@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Movement } from '../../analysis/types';
 import { movementLabel } from '../../analysis/format';
 import { setHapticsEnabled } from '../../lib/haptics';
+import { setLanguage, type Language } from '../../i18n';
 
 export type Units = 'kg' | 'lb';
 export type FrameRate = 'auto' | '60' | '120' | '240';
@@ -19,6 +20,7 @@ export type Settings = {
   cueReminder: CueReminder;
   autoDelete: AutoDelete;
   improveAccuracy: boolean;
+  language: Language;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -30,6 +32,7 @@ export const DEFAULT_SETTINGS: Settings = {
   cueReminder: { days: [2, 4], time: '17:30' },
   autoDelete: '24h',
   improveAccuracy: false,
+  language: 'system',
 };
 
 export const MOVEMENTS: Movement[] = ['snatch', 'clean', 'jerk', 'kipping_pull_up', 'bar_muscle_up', 'kipping_hspu'];
@@ -75,6 +78,7 @@ export function settingsOf(s: Settings): Settings {
     cueReminder: s.cueReminder,
     autoDelete: s.autoDelete,
     improveAccuracy: s.improveAccuracy,
+    language: s.language,
   };
 }
 
@@ -89,14 +93,21 @@ export const useSettings = create<Store>()(
       ...DEFAULT_SETTINGS,
       set: (key, value) => {
         if (key === 'haptics') setHapticsEnabled(value as boolean);
+        if (key === 'language') setLanguage(value as Language);
         set({ [key]: value } as Partial<Settings>);
       },
-      reset: () => set(DEFAULT_SETTINGS),
+      reset: () => {
+        setLanguage(DEFAULT_SETTINGS.language);
+        set(DEFAULT_SETTINGS);
+      },
     }),
     {
       name: 'catchline-settings',
       storage: createJSONStorage(() => AsyncStorage),
       partialize: settingsOf,
+      onRehydrateStorage: () => (state) => {
+        if (state?.language) setLanguage(state.language);
+      },
     }
   )
 );

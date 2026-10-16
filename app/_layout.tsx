@@ -19,6 +19,7 @@ import { syncLibrary } from '../src/data/library';
 import { installForegroundHandler, liftIdFromResponse, registerPushToken, routeForLift } from '../src/features/notifications';
 import { init as initAnalytics, identify, reset, track, EVENTS } from '../src/lib/analytics';
 import { startAuthUserSync } from '../src/features/auth/authUser';
+import { useLocale } from '../src/i18n';
 
 export const unstable_settings = { initialRouteName: '(tabs)' };
 
@@ -29,6 +30,7 @@ export default function RootLayout() {
   const fontsLoaded = useAppFonts();
   const [launched, setLaunched] = useState(false);
   const router = useRouter();
+  const locale = useLocale((s) => s.locale);
 
   // A tapped "your lift is ready" push lands on that lift (warm, or cold via the
   // last response).
@@ -89,7 +91,7 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <AppErrorBoundary>
             <StatusBar style="light" />
-            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }} />
+            <Stack key={locale} screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }} />
             {launched ? null : (
               <LaunchOverlay onShown={() => SplashScreen.hideAsync().catch(() => undefined)} onDone={() => setLaunched(true)} />
             )}

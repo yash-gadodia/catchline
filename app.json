@@ -23,6 +23,7 @@
       "expo-router",
       "expo-apple-authentication",
       "expo-web-browser",
+      "expo-localization",
       [
         "expo-splash-screen",
         {

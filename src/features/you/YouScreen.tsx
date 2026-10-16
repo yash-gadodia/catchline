@@ -16,6 +16,7 @@ import { Chip, SheetTitle, Toggle } from '../share/ui';
 import { signInWithApple, type AppleSignIn } from '../auth/appleSignIn';
 import { Note } from '../onboarding/ui';
 import { exportMyLifts, shareLiftsCsv } from './liftsCsv';
+import { LANGUAGE_NAMES, LOCALES, t, type Language } from '../../i18n';
 import { accountRepository, signOutOfAccount, useAccountView, type DataExport } from './account';
 import {
   AUTO_DELETE_LABELS,
@@ -31,7 +32,7 @@ import {
 } from './settings';
 
 type Nav = { onDemo: () => void; onWhatIsStored: () => void; onDeleteAccount: () => void; onPlan: () => void; onHelp: () => void };
-type Picker = 'name' | 'units' | 'defaultMovement' | 'frameRate' | 'cueReminder' | 'autoDelete' | null;
+type Picker = 'name' | 'language' | 'units' | 'defaultMovement' | 'frameRate' | 'cueReminder' | 'autoDelete' | null;
 
 function options<T extends string>(labels: Record<T, string>): { value: T; label: string }[] {
   return (Object.keys(labels) as T[]).map((value) => ({ value, label: labels[value] }));
@@ -135,6 +136,12 @@ export default function YouScreen({
           />
         ) : null}
         <Row title="See how it works" right={<Value>›</Value>} onPress={nav.onDemo} testID="row-demo" />
+        <Row
+          title={t('you.language')}
+          right={<Value>{languageLabel(settings.language)}</Value>}
+          onPress={() => setPicker('language')}
+          testID="row-language"
+        />
         <Section>Lifting</Section>
         <Row title="Units" right={<Value>{UNIT_LABELS[units]}</Value>} onPress={() => setPicker('units')} testID="row-units" />
         <Row title="Default lift" right={<Value>{labels.defaultMovement}</Value>} onPress={() => setPicker('defaultMovement')} testID="row-movement" />
@@ -202,6 +209,18 @@ export default function YouScreen({
           onClose={close}
         />
       ) : null}
+      {picker === 'language' ? (
+        <OptionSheet
+          title={t('you.language')}
+          options={languageOptions()}
+          value={settings.language}
+          onPick={(v) => {
+            close();
+            settings.set('language', v);
+          }}
+          onClose={close}
+        />
+      ) : null}
       {picker === 'frameRate' ? (
         <OptionSheet title="Frame rate" options={PICKERS.frameRate} value={settings.frameRate} onPick={(v) => {
             settings.set('frameRate', v);
@@ -222,6 +241,14 @@ export default function YouScreen({
       ) : null}
     </View>
   );
+}
+
+function languageLabel(language: Language): string {
+  return language === 'system' ? t('you.languageSystem') : LANGUAGE_NAMES[language];
+}
+
+function languageOptions(): { value: Language; label: string }[] {
+  return (['system', ...LOCALES] as Language[]).map((value) => ({ value, label: languageLabel(value) }));
 }
 
 function Section({ children }: { children: string }) {
