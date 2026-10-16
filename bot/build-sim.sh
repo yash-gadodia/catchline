@@ -2,6 +2,9 @@
 # Build a Release simulator app of the current checkout (JS bundled, no Metro) and
 # install it on the bot's own simulator. Skips the build when this commit is built.
 set -euo pipefail
+# launchd starts the loop without a locale; CocoaPods then dies with
+# "Unicode Normalization not appropriate for ASCII-8BIT".
+export LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 
 SIM_NAME="Catchline Bot"
 BUILT="$HOME/.catchline-bot/built-sha"
