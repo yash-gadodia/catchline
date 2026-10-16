@@ -71,6 +71,7 @@ const ShareCard = forwardRef<View, Props>(function ShareCard({ analysis, aspect,
       {brand ? (
         <View testID="card-brand" style={{ position: 'absolute', left: inset.left, top: inset.top, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
           <Mark size={16} />
+          {/* i18n-ok: brand name */}
           <Text style={[display(15), { color: colors.text, lineHeight: 16 }]}>Catchline</Text>
         </View>
       ) : null}

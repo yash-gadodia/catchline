@@ -1,10 +1,12 @@
+import { formatDate, getLocale, t } from '../../i18n';
 import {
   FOUNDING_PRICE_CENTS,
+  MONTHLY_CAP,
   PRICE_CENTS,
-  TIER_NAME,
   TRIAL_DAYS,
   annualPerMonthCents,
   formatUsd,
+  tierName,
   type Period,
   type StorePlatform,
 } from './entitlements';
@@ -13,10 +15,12 @@ import type { Plan } from './products';
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export function shortDate(d: Date): string {
+  if (getLocale() !== 'en') return formatDate(d, { day: 'numeric', month: 'short' });
   return `${d.getDate()} ${MONTHS[d.getMonth()]}`;
 }
 
 export function longDate(d: Date): string {
+  if (getLocale() !== 'en') return formatDate(d, { day: 'numeric', month: 'short', year: 'numeric' });
   return `${shortDate(d)} ${d.getFullYear()}`;
 }
 
@@ -35,7 +39,7 @@ export function renewalDate(now: Date, period: Period): Date {
   return addMonths(now, period === 'annual' ? 12 : 1);
 }
 
-const per = (period: Period) => (period === 'annual' ? 'a year' : 'a month');
+const per = (period: Period) => t(period === 'annual' ? 'paywall.perYear' : 'paywall.perMonth');
 
 // `price` is the store's localised string when offerings loaded, else the USD table.
 export function planPrice(plan: Plan): string {
@@ -44,58 +48,56 @@ export function planPrice(plan: Plan): string {
 }
 
 export function continueLabel(plan: Plan, price = planPrice(plan)): string {
-  if (plan.kind === 'founding') return `Take a seat · ${price}`;
-  return `Continue · ${price} ${per(plan.period)}`;
+  if (plan.kind === 'founding') return t('paywall.takeSeat', { price });
+  return t('paywall.continue', { price, per: per(plan.period) });
 }
 
 export function chargeNote(plan: Plan, queued: boolean): string {
-  const tail = queued ? ' This lift is saved and goes first.' : '';
-  if (plan.kind === 'founding') return `Charged once today. No renewal, Pull for life.${tail}`;
-  const renews = plan.period === 'annual' ? 'yearly' : 'monthly';
-  return `Charged today, renews ${renews}, cancel any time.${tail}`;
+  const tail = queued ? ` ${t('paywall.queuedNote')}` : '';
+  if (plan.kind === 'founding') return `${t('paywall.chargeFounding')}${tail}`;
+  return `${t(plan.period === 'annual' ? 'paywall.chargeYearly' : 'paywall.chargeMonthly')}${tail}`;
 }
 
 export function trialNote(period: Period, now: Date, price = formatUsd(PRICE_CENTS.pull[period])): string {
-  return `Today: nothing. ${shortDate(addDays(now, TRIAL_DAYS))}: ${price} unless you cancel. We'll remind you two days before.`;
+  return t('paywall.trialNote', { date: shortDate(addDays(now, TRIAL_DAYS)), price });
 }
 
 export function trialOptionLine(period: Period): string {
-  if (period === 'monthly') return `${formatUsd(PRICE_CENTS.pull.monthly)} a month`;
-  return `${formatUsd(annualPerMonthCents('pull'))} a month, billed ${formatUsd(PRICE_CENTS.pull.annual)}`;
+  if (period === 'monthly') return t('paywall.trialMonthly', { price: formatUsd(PRICE_CENTS.pull.monthly) });
+  return t('paywall.trialAnnual', { perMonth: formatUsd(annualPerMonthCents('pull')), price: formatUsd(PRICE_CENTS.pull.annual) });
 }
 
-export const PULL_SUMMARY = '40 videos a month · ghost of best · did it stick · no watermark';
-
-export function storeName(platform: StorePlatform): string {
-  return platform === 'ios' ? 'the App Store' : 'Google Play';
+export function pullSummary(): string {
+  return t('paywall.pullSummary', { count: MONTHLY_CAP.pull });
 }
 
 export function purchasingTitle(platform: StorePlatform): string {
-  return `Confirming with ${storeName(platform)}`;
+  return t(platform === 'ios' ? 'paywall.purchasingIos' : 'paywall.purchasingAndroid');
 }
 
 export function purchasingLine(plan: Plan, price = planPrice(plan)): string {
-  if (plan.kind === 'founding') return `Founding member · ${price} once`;
-  return `${TIER_NAME[plan.tier]} · ${price} ${per(plan.period)}`;
+  if (plan.kind === 'founding') return t('paywall.purchasingFounding', { price });
+  return t('paywall.purchasingSub', { tier: tierName(plan.tier), price, per: per(plan.period) });
 }
 
 export function failedTitle(platform: StorePlatform): string {
-  const name = storeName(platform);
-  return `${name[0].toUpperCase()}${name.slice(1)} didn't go through`;
+  return t(platform === 'ios' ? 'paywall.failedIos' : 'paywall.failedAndroid');
 }
 
 export function failedBody(queued: boolean): string {
-  return queued ? 'Nothing was charged. Your lift is still queued.' : 'Nothing was charged.';
+  return t(queued ? 'paywall.failedQueued' : 'paywall.failedBody');
 }
 
 export function successBody(plan: Plan, now: Date, queuedMovement?: string): string {
   const head =
     plan.kind === 'founding'
-      ? 'Pull, for life. No renewal.'
+      ? t('paywall.successFounding')
       : plan.trial
-        ? `${TIER_NAME[plan.tier]} trial, first charge ${shortDate(addDays(now, TRIAL_DAYS))}.`
-        : `${TIER_NAME[plan.tier]}, renews ${longDate(renewalDate(now, plan.period))}.`;
-  return queuedMovement ? `${head} Your queued ${queuedMovement} is first in line.` : head;
+        ? t('paywall.successTrial', { tier: tierName(plan.tier), date: shortDate(addDays(now, TRIAL_DAYS)) })
+        : t('paywall.successRenews', { tier: tierName(plan.tier), date: longDate(renewalDate(now, plan.period)) });
+  return queuedMovement ? t('paywall.successQueued', { head, movement: queuedMovement }) : head;
 }
 
-export const OFFLINE_BODY = "Plans need a connection. The clip is saved on your phone and will queue when you're back.";
+export function offlineBody(): string {
+  return t('paywall.offlineBody');
+}

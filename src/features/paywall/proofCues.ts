@@ -1,3 +1,5 @@
+import { t } from '../../i18n';
+
 export type CueStatus = 'stuck' | 'trying' | 'didnt' | 'dropped';
 export type ProofCue = { text: string; status: CueStatus; tries?: number; of?: number };
 
@@ -14,8 +16,10 @@ export function getProofCues(): ProofCue[] {
 }
 
 export function cueStatusLabel(cue: ProofCue): string {
-  if (cue.status === 'stuck') return 'Stuck';
-  if (cue.status === 'didnt') return "Didn't stick";
-  if (cue.status === 'dropped') return 'Dropped';
-  return cue.tries !== undefined && cue.of !== undefined ? `Trying · ${cue.tries} of ${cue.of}` : 'Trying';
+  if (cue.status === 'stuck') return t('paywall.status.stuck');
+  if (cue.status === 'didnt') return t('paywall.status.didnt');
+  if (cue.status === 'dropped') return t('paywall.status.dropped');
+  return cue.tries !== undefined && cue.of !== undefined
+    ? t('paywall.status.tryingOf', { tries: cue.tries, of: cue.of })
+    : t('paywall.status.trying');
 }

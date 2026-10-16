@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Image, Linking, Pressable, Share, Text, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import type { Analysis } from '../../analysis/types';
+import { t } from '../../i18n';
 import { frameSource } from '../../analysis/frames';
 import { keyFrameForPhase, repByIndex } from '../../analysis/timeline';
 import Btn from '../../components/Btn';
@@ -12,7 +13,7 @@ import { LINK_DAYS, coachRepository, type CoachLink, type CoachRepository } from
 import { Body, SheetTitle, ToggleRow } from './ui';
 
 export function coachMessage(url: string): string {
-  return `Can you check this lift? ${url}`;
+  return t('share.coach.message', { url });
 }
 
 type Deps = {
@@ -70,18 +71,18 @@ export default function SendToCoachSheet({
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }} testID="send-to-coach">
       {bg ? <Image source={bg} resizeMode="cover" style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, opacity: 0.2 }} /> : null}
-      <Pressable style={{ flex: 1 }} onPress={onClose} testID="send-to-coach-scrim" accessibilityLabel="Close" />
+      <Pressable style={{ flex: 1 }} onPress={onClose} testID="send-to-coach-scrim" accessibilityLabel={t('share.coach.close')} />
       <Sheet gap={16}>
-        <SheetTitle>Send to my coach</SheetTitle>
+        <SheetTitle>{t('share.coach.title')}</SheetTitle>
         <Body>
-          {`A link to this lift with the overlay, the cue and the numbers. No login for them. Expires in ${LINK_DAYS} days.`}
+          {t('share.coach.body', { days: LINK_DAYS })}
         </Body>
         <View style={{ borderTopWidth: 1, borderTopColor: colors.hairline }}>
-          <ToggleRow label="Include the app's cue" value={includeCue} onChange={setIncludeCue} testID="include-cue" />
-          <ToggleRow label="Include my last 3 lifts" value={includeRecent} onChange={setIncludeRecent} testID="include-recent" />
+          <ToggleRow label={t('share.coach.includeCue')} value={includeCue} onChange={setIncludeCue} testID="include-cue" />
+          <ToggleRow label={t('share.coach.includeRecent')} value={includeRecent} onChange={setIncludeRecent} testID="include-recent" />
         </View>
         <Btn onPress={copy} testID="copy-link">
-          {copied ? 'Link copied' : 'Copy link'}
+          {copied ? t('share.coach.copied') : t('share.coach.copy')}
         </Btn>
         {copied && link ? (
           <Text testID="coach-link-url" style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18, textAlign: 'center' }}>
@@ -90,13 +91,14 @@ export default function SendToCoachSheet({
         ) : null}
         <View style={{ flexDirection: 'row', justifyContent: 'center', gap: space.s5 }}>
           <Btn kind="text" onPress={() => via('whatsapp')} testID="via-whatsapp">
+            {/* i18n-ok: brand name */}
             WhatsApp
           </Btn>
           <Btn kind="text" onPress={() => via('messages')} testID="via-messages">
-            Messages
+            {t('share.coach.messages')}
           </Btn>
           <Btn kind="text" onPress={() => via('more')} testID="via-more">
-            More
+            {t('share.coach.more')}
           </Btn>
         </View>
       </Sheet>

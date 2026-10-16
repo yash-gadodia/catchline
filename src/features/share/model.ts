@@ -1,5 +1,6 @@
 import type { Analysis, Measurement } from '../../analysis/types';
 import { fmt, heroValue, movementLabel } from '../../analysis/format';
+import { cueText } from '../../i18n/cues';
 import type { ShareAspect } from './overlay';
 
 // The still card is laid out at a 390pt base width (the design's frame) and
@@ -43,7 +44,7 @@ export function cardCopy(a: Analysis): CardCopy {
   return {
     hero: a.cue ? heroValue(a.cue) : null,
     label: cueMeasurement(a)?.label ?? null,
-    cue: a.cue?.text ?? null,
+    cue: a.cue ? cueText(a.cue.faultId, a.cue.text) : null,
     meta: parts.join(' · '),
   };
 }

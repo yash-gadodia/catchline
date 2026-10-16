@@ -6,6 +6,7 @@ import SmallCaps from '../../components/SmallCaps';
 import { colors, space } from '../../design/tokens';
 import { display, fontFamily } from '../../design/typography';
 import type { PurchaseStatus } from '../purchases/usePurchases';
+import { t } from '../../i18n';
 import { PRICE_CENTS, TRIAL_DAYS, annualSavingPct, formatUsd, type Period, type StorePlatform } from './entitlements';
 import { trialNote, trialOptionLine } from './copy';
 import type { Plan } from './products';
@@ -60,16 +61,16 @@ export default function TrialPaywall({
         </View>
       ) : (
         <>
-          <SmallCaps>Your first cue is ready</SmallCaps>
+          <SmallCaps>{t('paywall.trial.ready')}</SmallCaps>
           <Text style={[display(34), { color: colors.text, marginTop: space.s3, marginBottom: space.s4 }]}>
-            {`Try Pull free for ${TRIAL_DAYS} days`}
+            {t('paywall.trial.title', { days: TRIAL_DAYS })}
           </Text>
           <View style={{ gap: space.s3 }}>
             {(['annual', 'monthly'] as const).map((p) => (
               <OptionCard key={p} selected={period === p} onPress={() => setPeriod(p)} testID={`trial-${p}`}>
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 15, lineHeight: 20 }}>
-                    {p === 'annual' ? 'Annual' : 'Monthly'}
+                    {p === 'annual' ? t('paywall.annual') : t('paywall.monthly')}
                   </Text>
                   <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 13, lineHeight: 18 }}>
                     {trialOptionLine(p)}
@@ -77,7 +78,7 @@ export default function TrialPaywall({
                 </View>
                 {p === 'annual' ? (
                   <Text style={{ color: colors.text, fontFamily: fontFamily.mono, fontSize: 12, lineHeight: 16 }}>
-                    {`save ${annualSavingPct('pull')}%`}
+                    {t('paywall.save', { pct: annualSavingPct('pull') })}
                   </Text>
                 ) : null}
               </OptionCard>
@@ -88,11 +89,11 @@ export default function TrialPaywall({
           </View>
           <View style={{ flex: 1 }} />
           <Btn onPress={() => flow.run(plan)} testID="start-trial">
-            Start free trial
+            {t('paywall.trial.start')}
           </Btn>
           {webCheckout ? (
             <Btn kind="text" onPress={() => onWeb(period)} testID="pay-web" style={{ alignSelf: 'center', marginTop: space.s3 }}>
-              Pay on the web instead
+              {t('paywall.trial.web')}
             </Btn>
           ) : null}
         </>

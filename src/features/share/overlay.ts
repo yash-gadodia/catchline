@@ -1,6 +1,7 @@
 import type { Analysis, Rep } from '../../analysis/types';
 import { coverFit, type Fit, type Size } from '../../analysis/geometry';
 import { heroValue } from '../../analysis/format';
+import { cueText } from '../../i18n/cues';
 import { keyFrameForPhase, liftPath, pointAt, repByIndex } from '../../analysis/timeline';
 import { colors } from '../../design/tokens';
 import { cueMeasurement } from './model';
@@ -141,7 +142,7 @@ export function buildOverlaySpec(analysis: Analysis, opts: { aspect: ShareAspect
   const items: (OverlayText | null)[] = [
     measurement ? { text: measurement.label, fonts: MONO, size: 30, color: colors.text2, tracking: 2.4, upper: true } : null,
     analysis.cue ? { text: heroValue(analysis.cue), fonts: DISPLAY_BLACK, size: 160, color: colors.text, tracking: -3.2, upper: false } : null,
-    analysis.cue ? { text: analysis.cue.text, fonts: DISPLAY, size: 68, color: colors.text, tracking: -1.4, upper: false } : null,
+    analysis.cue ? { text: cueText(analysis.cue.faultId, analysis.cue.text), fonts: DISPLAY, size: 68, color: colors.text, tracking: -1.4, upper: false } : null,
   ];
 
   return {

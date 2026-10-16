@@ -1,3 +1,5 @@
+import { t } from '../../i18n';
+
 export type Tier = 'free' | 'hook' | 'pull' | 'platform' | 'founding';
 export type PaidTier = Exclude<Tier, 'free'>;
 export type SubTier = 'hook' | 'pull' | 'platform';
@@ -11,6 +13,13 @@ export const TIER_NAME: Record<Tier, string> = {
   platform: 'Platform',
   founding: 'Founding member',
 };
+
+// Hook, Pull and Platform are product names and stay as they are in every language.
+export function tierName(tier: Tier): string {
+  if (tier === 'free') return t('paywall.tier.free');
+  if (tier === 'founding') return t('paywall.tier.founding');
+  return TIER_NAME[tier];
+}
 
 // The organic app gives 3 videos for life; the ad funnel gives one, then the trial paywall.
 export const FREE_VIDEOS: Record<Variant, number> = { organic: 3, ad: 1 };
@@ -140,13 +149,13 @@ export function chipState(tier: Tier, usage: Usage, now: Date, variant: Variant 
   const left = videosRemaining(tier, usage, now, variant);
   if (tier === 'free') {
     const total = FREE_VIDEOS[variant];
-    if (left === 0) return { label: 'Free videos used · Unlock', tone: 'used' };
-    if (left === total) return { label: `${total} free video${total === 1 ? '' : 's'}`, tone: 'normal' };
-    if (left === 1) return { label: 'Last free video', tone: 'last' };
-    return { label: `${left} left`, tone: 'normal' };
+    if (left === 0) return { label: t('paywall.chip.used'), tone: 'used' };
+    if (left === total) return { label: t('paywall.chip.free', { count: total }), tone: 'normal' };
+    if (left === 1) return { label: t('paywall.chip.last'), tone: 'last' };
+    return { label: t('paywall.chip.left', { count: left }), tone: 'normal' };
   }
-  if (left === 0) return { label: `All ${MONTHLY_CAP[tier]} used this month`, tone: 'used' };
-  if (left <= 5) return { label: `${left} left this month`, tone: left === 1 ? 'last' : 'normal' };
+  if (left === 0) return { label: t('paywall.chip.allUsed', { count: MONTHLY_CAP[tier] }), tone: 'used' };
+  if (left <= 5) return { label: t('paywall.chip.leftMonth', { count: left }), tone: left === 1 ? 'last' : 'normal' };
   return null;
 }
 
@@ -164,24 +173,24 @@ export function comparisonRows(): ComparisonRow[] {
   const dot = (f: Feature) => each((t) => (hasFeature(t, f) ? { kind: 'dot' } : { kind: 'none' }));
   return [
     {
-      label: 'Videos',
-      cells: each((t) => ({ kind: 'text', text: t === 'free' ? String(FREE_VIDEOS.organic) : `${MONTHLY_CAP[t]}/mo` })),
+      label: t('paywall.compare.videos'),
+      cells: each((tier) => ({ kind: 'text', text: tier === 'free' ? String(FREE_VIDEOS.organic) : t('paywall.compare.perMonth', { count: MONTHLY_CAP[tier] }) })),
     },
-    { label: 'Cue, player', cells: each(() => ({ kind: 'dot' })) },
+    { label: t('paywall.compare.cuePlayer'), cells: each(() => ({ kind: 'dot' })) },
     {
-      label: 'Cue memory',
-      cells: each((t) => {
-        const d = cueMemoryDays(t);
+      label: t('paywall.compare.cueMemory'),
+      cells: each((tier) => {
+        const d = cueMemoryDays(tier);
         if (d === 0) return { kind: 'none' };
-        return { kind: 'text', text: d === 'all' ? 'all' : `${d} d` };
+        return { kind: 'text', text: d === 'all' ? t('paywall.compare.all') : t('paywall.compare.days', { count: d }) };
       }),
     },
-    { label: 'Ghost of best', cells: dot('ghostCompare') },
-    { label: 'Did it stick', cells: dot('didItStick') },
-    { label: '240 fps', cells: dot('fps240') },
+    { label: t('paywall.compare.ghost'), cells: dot('ghostCompare') },
+    { label: t('paywall.compare.didItStick'), cells: dot('didItStick') },
+    { label: t('paywall.compare.fps'), cells: dot('fps240') },
     {
-      label: 'Watermark',
-      cells: each((t) => ({ kind: 'text', text: hasFeature(t, 'watermarkFreeExport') ? 'no' : 'yes' })),
+      label: t('paywall.compare.watermark'),
+      cells: each((tier) => ({ kind: 'text', text: t(hasFeature(tier, 'watermarkFreeExport') ? 'paywall.compare.no' : 'paywall.compare.yes') })),
     },
   ];
 }

@@ -1,11 +1,11 @@
 import {
-  PULL_SUMMARY,
   addMonths,
   chargeNote,
   continueLabel,
   failedBody,
   failedTitle,
   longDate,
+  pullSummary,
   purchasingLine,
   purchasingTitle,
   renewalDate,
@@ -71,7 +71,7 @@ describe('charge copy', () => {
   });
 
   it('the Pull summary', () => {
-    expect(PULL_SUMMARY).toBe('40 videos a month · ghost of best · did it stick · no watermark');
+    expect(pullSummary()).toBe('40 videos a month · ghost of best · did it stick · no watermark');
   });
 });
 

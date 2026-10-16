@@ -6,6 +6,7 @@ import { colors, space } from '../../src/design/tokens';
 import { display, fontFamily } from '../../src/design/typography';
 import FromCoachCard, { ReplacedCueRow } from '../../src/features/share/FromCoachCard';
 import { useCoachOverride } from '../../src/features/share/coachRepository';
+import { t } from '../../src/i18n';
 
 export default function FromCoachRoute() {
   const { fixture } = useLocalSearchParams<{ fixture?: string }>();
@@ -18,20 +19,20 @@ export default function FromCoachRoute() {
       style={{ flex: 1, backgroundColor: colors.bg }}
       contentContainerStyle={{ paddingTop: insets.top + space.s7, paddingHorizontal: space.gutter, gap: space.s5 }}
     >
-      <Text style={[display(36), { color: colors.text }]}>Cues</Text>
+      <Text style={[display(36), { color: colors.text }]}>{t('share.fromCoach.cues')}</Text>
       {override ? (
         <>
           <FromCoachCard override={override} onTry={back} />
           <View style={{ borderTopWidth: 1, borderTopColor: colors.hairline }}>
             <SmallCaps size={12} style={{ paddingTop: space.s4, paddingBottom: space.s1 }}>
-              Past cues
+              {t('share.fromCoach.past')}
             </SmallCaps>
             <ReplacedCueRow override={override} sessions={3} />
           </View>
         </>
       ) : (
         <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 17, lineHeight: 24 }}>
-          No word from your coach yet.
+          {t('share.fromCoach.none')}
         </Text>
       )}
     </ScrollView>

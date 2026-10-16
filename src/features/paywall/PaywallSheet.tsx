@@ -6,8 +6,9 @@ import Sheet from '../../components/Sheet';
 import { colors, space } from '../../design/tokens';
 import { display, fontFamily } from '../../design/typography';
 import type { PurchaseStatus } from '../purchases/usePurchases';
-import { FREE_VIDEOS, TIER_NAME, annualSavingPct, type Period, type StorePlatform } from './entitlements';
-import { PULL_SUMMARY, chargeNote, continueLabel, planPrice } from './copy';
+import { t } from '../../i18n';
+import { FREE_VIDEOS, annualSavingPct, tierName, type Period, type StorePlatform } from './entitlements';
+import { chargeNote, continueLabel, planPrice, pullSummary } from './copy';
 import { cueStatusLabel, type ProofCue } from './proofCues';
 import type { Plan } from './products';
 import { foundingState, seatsLeftLabel, type FoundingSeats } from './seats';
@@ -81,7 +82,7 @@ export default function PaywallSheet({
           </View>
         ) : (
           <ScrollView style={{ maxHeight: height * 0.88 }} contentContainerStyle={{ gap: space.s3, paddingTop: space.s2 }}>
-            <SheetTitle>{`Your ${FREE_VIDEOS.organic} free videos are done. Keep the cues coming.`}</SheetTitle>
+            <SheetTitle>{t('paywall.sheet.title', { count: FREE_VIDEOS.organic })}</SheetTitle>
             {cues.length > 0 ? (
               <View style={{ borderTopWidth: 1, borderTopColor: colors.hairline }} testID="proof-cues">
                 {cues.slice(0, 3).map((c, i, all) => (
@@ -108,8 +109,8 @@ export default function PaywallSheet({
                 value={period}
                 onChange={setPeriod}
                 options={[
-                  { value: 'monthly', label: 'Monthly' },
-                  { value: 'annual', label: `Annual · save ${savePct}%` },
+                  { value: 'monthly', label: t('paywall.monthly') },
+                  { value: 'annual', label: t('paywall.annualSave', { pct: savePct }) },
                 ]}
               />
             </View>
@@ -117,19 +118,19 @@ export default function PaywallSheet({
               <OptionCard selected={choice === 'pull'} onPress={() => setChoice('pull')} testID="tier-pull">
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 17, lineHeight: 22 }}>
-                    {TIER_NAME.pull}
+                    {tierName('pull')}
                   </Text>
                   <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 13, lineHeight: 18 }}>
-                    {PULL_SUMMARY}
+                    {pullSummary()}
                   </Text>
                 </View>
-                <Price amount={priceFor(planOf('pull', period))} suffix={period === 'annual' ? '/yr' : '/mo'} />
+                <Price amount={priceFor(planOf('pull', period))} suffix={t(period === 'annual' ? 'paywall.perYr' : 'paywall.perMo')} />
               </OptionCard>
               {seats && founding !== 'soldOut' ? (
                 <OptionCard selected={choice === 'founding'} onPress={() => setChoice('founding')} testID="tier-founding">
                   <View style={{ flex: 1 }}>
                     <Text style={{ color: colors.text, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 20 }}>
-                      Founding member · Pull for life
+                      {t('paywall.sheet.founding')}
                     </Text>
                     <Text
                       testID="founding-seats"
@@ -139,7 +140,7 @@ export default function PaywallSheet({
                     </Text>
                   </View>
                   <Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 15, lineHeight: 20 }}>
-                    {`${priceFor({ kind: 'founding' })} once`}
+                    {t('paywall.priceOnce', { price: priceFor({ kind: 'founding' }) })}
                   </Text>
                 </OptionCard>
               ) : null}
@@ -150,10 +151,10 @@ export default function PaywallSheet({
             <Fine center>{chargeNote(plan, !!queuedMovement)}</Fine>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
               <Btn kind="text" onPress={onNotNow} testID="not-now">
-                {queuedMovement ? 'Not now, keep it queued' : 'Not now'}
+                {queuedMovement ? t('paywall.notNowQueued') : t('paywall.notNow')}
               </Btn>
               <Btn kind="text" onPress={onRestore} testID="restore">
-                Restore
+                {t('paywall.restore')}
               </Btn>
             </View>
           </ScrollView>

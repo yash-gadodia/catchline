@@ -5,6 +5,7 @@ import SmallCaps from '../../components/SmallCaps';
 import { colors, space } from '../../design/tokens';
 import { display, fontFamily } from '../../design/typography';
 import type { PurchaseStatus } from '../purchases/usePurchases';
+import { t } from '../../i18n';
 import { FOUNDING_PRICE_CENTS, MONTHLY_CAP, PRICE_CENTS, formatUsd, type StorePlatform } from './entitlements';
 import type { Plan } from './products';
 import { foundingState, seatsFraction, type FoundingSeats } from './seats';
@@ -54,17 +55,17 @@ export default function FoundingSheet({
           />
         ) : state === 'soldOut' ? (
           <>
-            <SmallCaps>Founding member</SmallCaps>
-            <SheetTitle size={34}>{`All ${seats.total} seats are taken.`}</SheetTitle>
-            <Body>{`Thanks to the first ${seats.total}. Pull is ${formatUsd(PRICE_CENTS.pull.annual)} a year, cancel any time.`}</Body>
+            <SmallCaps>{t('paywall.tier.founding')}</SmallCaps>
+            <SheetTitle size={34}>{t('paywall.founding.taken', { total: seats.total })}</SheetTitle>
+            <Body>{t('paywall.founding.thanks', { total: seats.total, price: formatUsd(PRICE_CENTS.pull.annual) })}</Body>
             <Btn kind="secondary" onPress={onSeePlans} testID="see-plans">
-              See plans
+              {t('paywall.seePlans')}
             </Btn>
           </>
         ) : (
           <>
-            <SmallCaps>Founding member</SmallCaps>
-            {state === 'open' ? <SheetTitle size={34}>{`Pull, for life, for ${price} once.`}</SheetTitle> : null}
+            <SmallCaps>{t('paywall.tier.founding')}</SmallCaps>
+            {state === 'open' ? <SheetTitle size={34}>{t('paywall.founding.open', { price })}</SheetTitle> : null}
             <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: space.s3 }}>
               <Text testID="seats-remaining" style={[display(64), { color: colors.flare }]}>
                 {String(seats.remaining)}
@@ -73,8 +74,8 @@ export default function FoundingSheet({
                 style={{ flex: 1, color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 22, marginBottom: 6 }}
               >
                 {state === 'low'
-                  ? `of ${seats.total} left. Under 10%.`
-                  : `of ${seats.total} seats left. Seats are the only limit.`}
+                  ? t('paywall.founding.low', { total: seats.total })
+                  : t('paywall.founding.left', { total: seats.total })}
               </Text>
             </View>
             <View style={{ height: 2, backgroundColor: colors.hairline }}>
@@ -88,15 +89,15 @@ export default function FoundingSheet({
               />
             </View>
             <View style={{ gap: space.s1 }}>
-              <Body>{`Everything in Pull. ${MONTHLY_CAP.founding} videos a month, fair use.`}</Body>
-              <Body>A founding badge on your share cards.</Body>
-              <Body>Price never changes.</Body>
+              <Body>{t('paywall.founding.everything', { count: MONTHLY_CAP.founding })}</Body>
+              <Body>{t('paywall.founding.badge')}</Body>
+              <Body>{t('paywall.founding.price')}</Body>
             </View>
             <Btn onPress={() => flow.run(FOUNDING)} testID="take-seat">
-              {`Take a seat · ${price}`}
+              {t('paywall.takeSeat', { price })}
             </Btn>
             <Btn kind="text" onPress={onYearly} testID="pay-yearly" style={{ alignSelf: 'center' }}>
-              {"I'll pay yearly instead"}
+              {t('paywall.founding.yearly')}
             </Btn>
           </>
         )}

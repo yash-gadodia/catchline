@@ -6,8 +6,9 @@ import { colors, radius, space } from '../../design/tokens';
 import { display, fontFamily } from '../../design/typography';
 import { success as hapticSuccess } from '../../lib/haptics';
 import type { PurchaseStatus } from '../purchases/usePurchases';
+import { t } from '../../i18n';
 import type { ChipState, StorePlatform } from './entitlements';
-import { OFFLINE_BODY, failedBody, failedTitle, purchasingLine, purchasingTitle, successBody } from './copy';
+import { failedBody, offlineBody, failedTitle, purchasingLine, purchasingTitle, successBody } from './copy';
 import type { CueStatus } from './proofCues';
 import type { Plan } from './products';
 
@@ -211,10 +212,10 @@ export function PurchaseStateSheet({
   if (phase === 'success') {
     return (
       <View testID="state-success" style={{ gap: space.s4 }}>
-        <SheetTitle size={34}>{queuedMovement ? 'Unlocked. Analysing your lift.' : 'Unlocked.'}</SheetTitle>
+        <SheetTitle size={34}>{queuedMovement ? t('paywall.state.unlockedQueued') : t('paywall.state.unlocked')}</SheetTitle>
         <Body>{successBody(plan, now, queuedMovement)}</Body>
         <Btn onPress={onWatch} testID="watch-it">
-          {queuedMovement ? 'Watch it' : 'Done'}
+          {queuedMovement ? t('paywall.state.watch') : t('paywall.state.done')}
         </Btn>
       </View>
     );
@@ -228,10 +229,10 @@ export function PurchaseStateSheet({
         <Body>{failedBody(!!queuedMovement)}</Body>
         <View style={{ flexDirection: 'row', gap: space.s2 }}>
           <Btn onPress={onRetry} testID="try-again" style={{ flex: 1 }}>
-            Try again
+            {t('paywall.state.tryAgain')}
           </Btn>
           <Btn kind="secondary" onPress={onNotNow} testID="failed-not-now" style={{ flex: 1 }}>
-            Not now
+            {t('paywall.notNow')}
           </Btn>
         </View>
       </View>
@@ -240,11 +241,11 @@ export function PurchaseStateSheet({
   return (
     <View testID="state-offline" style={{ gap: space.s4 }}>
       <Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 22, lineHeight: 28 }}>
-        {"You're offline"}
+        {t('paywall.state.offline')}
       </Text>
-      <Body>{OFFLINE_BODY}</Body>
+      <Body>{offlineBody()}</Body>
       <Btn kind="secondary" onPress={onNotNow} testID="offline-ok">
-        OK
+        {t('paywall.state.ok')}
       </Btn>
     </View>
   );

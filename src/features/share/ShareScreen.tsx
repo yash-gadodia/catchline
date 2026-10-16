@@ -3,6 +3,7 @@ import { Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import type { Analysis } from '../../analysis/types';
+import { t } from '../../i18n';
 import Btn from '../../components/Btn';
 import Segmented from '../../components/Segmented';
 import TopBar from '../../components/TopBar';
@@ -26,8 +27,6 @@ const DEFAULT_DEPS: ShareDeps = { renderVideo, renderStill, share: shareFile, sa
 
 type Mode = 'video' | 'still';
 type Render = { status: 'rendering'; progress: number } | { status: 'ready'; uri: string } | { status: 'failed' };
-
-const NO_ORIGINAL = "The original video isn't on this phone any more, so this shares a still of the lift.";
 
 export default function ShareScreen({
   analysis,
@@ -96,7 +95,7 @@ export default function ShareScreen({
       const uri = await fileToSend();
       if (uri) await deps.share(uri);
     } catch {
-      setNotice("Couldn't open the share sheet. Try again.");
+      setNotice(t('share.shareFailed'));
     }
   };
 
@@ -106,23 +105,23 @@ export default function ShareScreen({
       const uri = await fileToSend();
       if (!uri) return;
       const r = await deps.save(uri);
-      setNotice(r === 'saved' ? 'Saved to Photos.' : 'Allow Catchline to add to Photos in Settings to save.');
+      setNotice(r === 'saved' ? t('share.saved') : t('share.allowPhotos'));
     } catch {
-      setNotice("Couldn't save to Photos. Try again.");
+      setNotice(t('share.saveFailed'));
     }
   };
 
   const rendering = mode === 'video' && render?.status === 'rendering';
   const failed = mode === 'video' && render?.status === 'failed';
-  const note = !clip ? NO_ORIGINAL : failed ? "Couldn't make the video. Try again, or share the still." : null;
+  const note = !clip ? t('share.noOriginal') : failed ? t('share.videoFailed') : null;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }} testID="share-screen">
       <TopBar
-        back="Back"
+        back={t('share.back')}
         onBack={onBack}
         more={false}
-        center={<Text style={[type.button, { color: colors.text }]}>Share</Text>}
+        center={<Text style={[type.button, { color: colors.text }]}>{t('share.title')}</Text>}
       />
       <View style={{ alignItems: 'center', paddingHorizontal: space.gutter }}>
         <View style={{ width: shown.width, height: shown.height, overflow: 'hidden', borderWidth: 1, borderColor: colors.hairline, backgroundColor: colors.bg }} testID="share-preview">
@@ -150,8 +149,8 @@ export default function ShareScreen({
         {video ? (
           <Segmented
             options={[
-              { value: 'video', label: 'Video' },
-              { value: 'still', label: 'Strobe card' },
+              { value: 'video', label: t('share.video') },
+              { value: 'still', label: t('share.strobeCard') },
             ]}
             value={mode}
             onChange={(m) => {
@@ -172,7 +171,7 @@ export default function ShareScreen({
         {failed ? (
           <View style={{ alignItems: 'center' }}>
             <Btn kind="text" onPress={() => void start(aspect)} testID="share-retry">
-              Try again
+              {t('share.tryAgain')}
             </Btn>
           </View>
         ) : null}
@@ -182,10 +181,10 @@ export default function ShareScreen({
           </Text>
         ) : null}
         <Btn onPress={onShare} testID="share-primary">
-          {mode === 'still' ? 'Share image' : rendering ? `Making your video ${Math.round((render.progress ?? 0) * 100)}%` : 'Share video'}
+          {mode === 'still' ? t('share.shareImage') : rendering ? t('share.making', { pct: Math.round((render.progress ?? 0) * 100) }) : t('share.shareVideo')}
         </Btn>
         <Btn kind="secondary" onPress={onSave} testID="share-save">
-          Save to Photos
+          {t('share.saveToPhotos')}
         </Btn>
       </View>
     </View>
@@ -195,7 +194,7 @@ export default function ShareScreen({
 function Progress({ value }: { value: number }) {
   return (
     <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, top: 0, justifyContent: 'center', alignItems: 'center', gap: space.s3 }} testID="share-rendering">
-      <Text style={[type.label, { color: colors.text }]}>Drawing your bar path</Text>
+      <Text style={[type.label, { color: colors.text }]}>{t('share.drawing')}</Text>
       <View style={{ width: '60%', height: 2, backgroundColor: colors.hairline }}>
         <View testID="render-progress" style={{ height: 2, width: `${Math.round(value * 100)}%`, backgroundColor: colors.flare }} />
       </View>

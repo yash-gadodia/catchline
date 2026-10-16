@@ -6,29 +6,34 @@ import { colors, radius, space } from '../../design/tokens';
 import { fontFamily } from '../../design/typography';
 import {
   FOUNDING_PRICE_CENTS,
+  FREE_VIDEOS,
   PRICE_CENTS,
   TABLE_TIERS,
-  TIER_NAME,
   comparisonRows,
   formatUsd,
+  tierName,
   type Cell,
   type TableTier,
   type Tier,
 } from './entitlements';
 import { longDate } from './copy';
+import { t } from '../../i18n';
 
-const SHORT: Record<TableTier, string> = { free: 'Free', pull: 'Pull', founding: 'Founding' };
+function short(tier: TableTier): string {
+  if (tier === 'free') return tierName('free');
+  return tier === 'founding' ? t('paywall.plans.founding') : tierName('pull');
+}
 
-function priceLines(t: TableTier): [string, string] {
-  if (t === 'free') return ['$0', ''];
-  if (t === 'founding') return [formatUsd(FOUNDING_PRICE_CENTS), 'once'];
-  return [formatUsd(PRICE_CENTS[t].monthly), `${formatUsd(PRICE_CENTS[t].annual)}/yr`];
+function priceLines(tier: TableTier): [string, string] {
+  if (tier === 'free') return ['$0', ''];
+  if (tier === 'founding') return [formatUsd(FOUNDING_PRICE_CENTS), t('paywall.plans.once')];
+  return [formatUsd(PRICE_CENTS[tier].monthly), `${formatUsd(PRICE_CENTS[tier].annual)}${t('paywall.perYr')}`];
 }
 
 export function currentPlanLine(tier: Tier, renews: Date | null): { name: string; meta: string } {
-  if (tier === 'founding') return { name: 'Pull · Founding member', meta: 'for life' };
-  if (tier === 'free') return { name: 'Free', meta: '3 videos for life' };
-  return { name: TIER_NAME[tier], meta: renews ? `renews ${longDate(renews)}` : '' };
+  if (tier === 'founding') return { name: `${tierName('pull')} · ${tierName('founding')}`, meta: t('paywall.plans.forLife') };
+  if (tier === 'free') return { name: tierName('free'), meta: t('paywall.plans.freeMeta', { count: FREE_VIDEOS.organic }) };
+  return { name: tierName(tier), meta: renews ? t('paywall.plans.renews', { date: longDate(renews) }) : '' };
 }
 
 function CellView({ cell }: { cell: Cell }) {
@@ -75,11 +80,11 @@ export default function PlansScreen({
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }} testID="plans">
       <TopBar
-        back="You"
+        back={t('paywall.plans.back')}
         onBack={onBack}
         more={false}
         center={
-          <Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 17, lineHeight: 22 }}>Plans</Text>
+          <Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 17, lineHeight: 22 }}>{t('paywall.plans.title')}</Text>
         }
       />
       <ScrollView contentContainerStyle={{ paddingHorizontal: space.s4, paddingBottom: insets.bottom + space.s6 }}>
@@ -95,7 +100,7 @@ export default function PlansScreen({
                   lineHeight: 16,
                 }}
               >
-                {SHORT[t]}
+                {short(t)}
               </Text>
             </View>
           ))}
@@ -114,7 +119,7 @@ export default function PlansScreen({
         ))}
         <View style={{ flexDirection: 'row', borderTopWidth: 1, borderTopColor: colors.hairline }}>
           <View style={{ flex: 1.5, justifyContent: 'center', paddingVertical: space.s3 }}>
-            <Text style={{ color: colors.text, fontFamily: fontFamily.body, fontSize: 13, lineHeight: 18 }}>Price</Text>
+            <Text style={{ color: colors.text, fontFamily: fontFamily.body, fontSize: 13, lineHeight: 18 }}>{t('paywall.plans.price')}</Text>
           </View>
           {TABLE_TIERS.map((t) => {
             const [a, b] = priceLines(t);
@@ -144,13 +149,13 @@ export default function PlansScreen({
           }}
         >
           <Text style={{ color: colors.text, fontFamily: fontFamily.body, fontSize: 13, lineHeight: 18 }}>
-            {'Current plan: '}
+            {t('paywall.plans.current')}
             <Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold }}>{line.name}</Text>
           </Text>
           <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 12, lineHeight: 16 }}>{line.meta}</Text>
         </View>
         <Btn kind="secondary" onPress={onChangePlan} testID="change-plan" style={{ marginTop: space.s6 }}>
-          {current === 'free' ? 'See plans' : 'Change plan'}
+          {current === 'free' ? t('paywall.seePlans') : t('paywall.plans.change')}
         </Btn>
       </ScrollView>
     </View>

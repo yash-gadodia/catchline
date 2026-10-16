@@ -23,7 +23,9 @@ jest.mock('react-native', () => ({
   },
 }));
 
-jest.mock('../../data/backend', () => ({ backendEnabled: jest.fn(() => false) }));
+// react-native is mocked to a bare Platform, which the i18n module's expo-localization cannot load under.
+jest.mock('../../i18n', () => ({ t: (key: string) => key }));
+jest.mock('../../data/backend',() => ({ backendEnabled: jest.fn(() => false) }));
 jest.mock('../../lib/api', () => ({ ensureSession: jest.fn(), getAllowance: jest.fn(), syncPlan: jest.fn() }));
 jest.mock('../../lib/supabase', () => ({
   supabase: { auth: { getSession: jest.fn(), onAuthStateChange: jest.fn() } },

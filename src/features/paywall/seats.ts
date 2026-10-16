@@ -1,5 +1,6 @@
 import { backendEnabled } from '../../data/backend';
 import { foundingSeats } from '../../lib/api';
+import { t } from '../../i18n';
 import { FOUNDING_SEATS_TOTAL } from './entitlements';
 
 export type FoundingSeats = { total: number; remaining: number };
@@ -39,7 +40,7 @@ export function foundingState(seats: FoundingSeats): FoundingState {
 }
 
 export function seatsLeftLabel(seats: FoundingSeats): string {
-  return `${seats.remaining} of ${seats.total} left`;
+  return t('paywall.seatsLeft', { remaining: seats.remaining, total: seats.total });
 }
 
 export function seatsFraction(seats: FoundingSeats): number {

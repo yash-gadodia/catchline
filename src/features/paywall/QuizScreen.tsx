@@ -6,7 +6,8 @@ import SmallCaps from '../../components/SmallCaps';
 import { colors, space } from '../../design/tokens';
 import { display, fontFamily } from '../../design/typography';
 import { selection } from '../../lib/haptics';
-import { QUIZ_LENGTH, quizQuestion, type QuizAnswers } from './quiz';
+import { t } from '../../i18n';
+import { QUIZ_LENGTH, quizOptionLabel, quizQuestion, type QuizAnswers } from './quiz';
 import { OptionCard } from './ui';
 
 // Ad-traffic funnel step 1: four taps that set up the one free analysis.
@@ -46,18 +47,18 @@ export default function QuizScreen({
         paddingHorizontal: space.gutter,
       }}
     >
-      <SmallCaps>{`${step + 1} of ${QUIZ_LENGTH}`}</SmallCaps>
+      <SmallCaps>{t('paywall.quiz.step', { step: step + 1, total: QUIZ_LENGTH })}</SmallCaps>
       <Text style={[display(34), { color: colors.text, marginTop: space.s3, marginBottom: space.s4 }]}>{q.title}</Text>
       <View style={{ gap: space.s2 }}>
         {q.options.map((o) => (
           <OptionCard key={o} selected={picked === o} onPress={() => pick(o)} testID={`option-${o}`}>
-            <Text style={{ color: colors.text, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 20 }}>{o}</Text>
+            <Text style={{ color: colors.text, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 20 }}>{quizOptionLabel(o)}</Text>
           </OptionCard>
         ))}
       </View>
       <View style={{ flex: 1 }} />
       <Btn onPress={next} testID="quiz-next" style={{ opacity: picked ? 1 : 0.4 }}>
-        Next
+        {t('paywall.quiz.next')}
       </Btn>
     </View>
   );
