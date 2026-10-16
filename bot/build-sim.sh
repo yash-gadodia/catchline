@@ -14,14 +14,13 @@ SHA=$(git rev-parse HEAD)
 # discover any Simulator runtimes" in ~/Library/Logs/CoreSimulator/CoreSimulator.log). A slow simctl
 # makes maestro's launchApp (3 simctl calls) time out and the MCP driver die, so fail fast here.
 simctl_secs() { local T0=$(date +%s); xcrun simctl list runtimes >/dev/null 2>&1 || true; echo $(( $(date +%s) - T0 )); }
-SECS=$(simctl_secs)
-if [ "$SECS" -gt 5 ]; then
-  echo "build-sim: simctl took ${SECS}s, restarting CoreSimulatorService"
-  killall -9 com.apple.CoreSimulator.CoreSimulatorService simdiskimaged 2>/dev/null || true; sleep 5
-  SECS=$(simctl_secs)
-  if [ "$SECS" -gt 5 ]; then echo "build-sim: simctl still ${SECS}s after restart, host unhealthy, aborting run"; exit 2; fi
-  echo "build-sim: simctl ${SECS}s after restart"
-fi
+# Never kill CoreSimulatorService or simdiskimaged here: force-killing simdiskimaged
+# (a root daemon that mounts the runtime disk images) is what wedged runtime
+# discovery for days on 14-16 Oct; only a reboot cleared it. A cold first call can
+# be slow, so take the best of three before calling the host unhealthy.
+BEST=999
+for _ in 1 2 3; do S=$(simctl_secs); [ "$S" -lt "$BEST" ] && BEST=$S; [ "$BEST" -le 5 ] && break; sleep 5; done
+if [ "$BEST" -gt 5 ]; then echo "build-sim: simctl ${BEST}s (best of 3), host unhealthy, aborting run (reboot the Mini)"; exit 2; fi
 
 UDID=$(xcrun simctl list devices available | grep "$SIM_NAME (" | head -1 | grep -oE '[0-9A-F-]{36}' || true)
 if [ -z "$UDID" ]; then
