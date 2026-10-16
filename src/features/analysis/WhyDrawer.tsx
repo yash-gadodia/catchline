@@ -3,7 +3,7 @@ import type { Analysis } from '../../analysis/types';
 import { measurementLabel, measurementReadout } from '../../analysis/format';
 import Btn from '../../components/Btn';
 import Sheet from '../../components/Sheet';
-import { colors } from '../../design/tokens';
+import { colors, shade } from '../../design/tokens';
 import { fontFamily, type } from '../../design/typography';
 import { t } from '../../i18n';
 
@@ -14,7 +14,7 @@ export default function WhyDrawer({ analysis, onClose }: { analysis: Analysis; o
       <Pressable
         onPress={onClose}
         accessibilityLabel={t('analysis.why.close')}
-        style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.75)' }}
+        style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: shade(0.75) }}
       />
       <Sheet gap={16}>
         <Text style={{ color: colors.text, ...type.title }}>

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Pressable, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import Btn from '../../components/Btn';
-import { colors, control, shape, space, stroke } from '../../design/tokens';
+import { colors, control, shade, shape, space, stroke } from '../../design/tokens';
 import { display, fontFamily, type } from '../../design/typography';
 
 export function Title({ children, size = 40 }: { children: string; size?: number }) {
@@ -150,7 +150,7 @@ export function Note({
           paddingHorizontal: space.s4,
           borderLeftWidth: stroke.outline,
           borderLeftColor: blocked ? colors.flare : colors.text,
-          backgroundColor: scrim ? 'rgba(0,0,0,0.75)' : colors.surface,
+          backgroundColor: scrim ? shade(0.75) : colors.surface,
           gap: 2,
         },
         style,

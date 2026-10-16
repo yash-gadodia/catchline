@@ -14,7 +14,7 @@ import { doneTitle, formatWait, processingSteps } from '../../analysis/format';
 import { keyFrameForPhase, repByIndex } from '../../analysis/timeline';
 import Btn from '../../components/Btn';
 import Sheet from '../../components/Sheet';
-import { colors } from '../../design/tokens';
+import { colors, shade } from '../../design/tokens';
 import { fontFamily, type } from '../../design/typography';
 import { impact, success } from '../../lib/haptics';
 import Stage from './Stage';
@@ -146,7 +146,7 @@ function ProgressBackdrop({
       {clipUri ? (
         <>
           <ClipLayer uri={clipUri} reduce={reduce} box={box} />
-          <View testID="processing-scrim" style={[layer, { backgroundColor: 'rgba(0,0,0,0.35)' }]} />
+          <View testID="processing-scrim" style={[layer, { backgroundColor: shade(0.35) }]} />
         </>
       ) : (
         <>

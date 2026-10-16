@@ -7,7 +7,7 @@ import Svg, { Line, Path, Polyline, Rect, Text as SvgText } from 'react-native-s
 import Btn from '../../components/Btn';
 import Readout from '../../components/Readout';
 import SmallCaps from '../../components/SmallCaps';
-import { colors, space } from '../../design/tokens';
+import { colors, shade, space } from '../../design/tokens';
 import { display, fontFamily, type } from '../../design/typography';
 import { FAILURE_COPY, type FailureAction, type FailureReason } from './failures';
 import { Frame, Underlined } from './ui';
@@ -124,10 +124,10 @@ function FailureStage({ reason, width, height }: { reason: FailureReason; width:
           focus={reason === 'clip_cut_off' ? { x: 0.5, y: 0.2 } : reason === 'multiple_lifters' ? { x: 0, y: 0.45 } : { x: 0.5, y: 0.5 }}
         />
       )}
-      {reason === 'too_dark' ? <View style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.78)' }} /> : null}
+      {reason === 'too_dark' ? <View style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, backgroundColor: shade(0.78) }} /> : null}
       {reason === 'clip_cut_off' ? (
         <LinearGradient
-          colors={['rgba(0,0,0,0)', '#000']}
+          colors={[shade(0), colors.halo]}
           locations={[0.55, 0.8]}
           start={{ x: 0, y: 0.5 }}
           end={{ x: 1, y: 0.5 }}

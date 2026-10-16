@@ -1,13 +1,13 @@
 import type { ReactNode } from 'react';
 import { Pressable, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import type { Movement } from '../../analysis/types';
-import { colors, shape, space, stroke } from '../../design/tokens';
+import { colors, shade, shape, space, stroke } from '../../design/tokens';
 import { fontFamily, type } from '../../design/typography';
 import { liftById } from '../onboarding/lifts';
 import { checkLabel, type CheckResult } from './checks';
 import { t } from '../../i18n';
 
-const HUD_BG = 'rgba(0,0,0,0.6)';
+const HUD_BG = shade(0.6);
 
 export function LiftChip({
   movement,

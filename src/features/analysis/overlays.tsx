@@ -39,7 +39,7 @@ export function FlarePath({
   return (
     <G testID={testID} opacity={faint ? 0.35 : 1}>
       {halo && !faint ? (
-        <Path d={d} stroke="#000" strokeWidth={stroke.halo} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        <Path d={d} stroke={colors.halo} strokeWidth={stroke.halo} strokeLinecap="round" strokeLinejoin="round" fill="none" />
       ) : null}
       <Path
         d={d}
@@ -71,7 +71,7 @@ export function GhostPath({ points, testID }: { points: Point[]; testID?: string
 
 export function KeyDots({ points }: { points: Point[] }) {
   return (
-    <G fill={colors.text} stroke="#000" strokeWidth={1}>
+    <G fill={colors.text} stroke={colors.halo} strokeWidth={1}>
       {points.map((p, i) => (
         <Circle key={i} cx={p.x} cy={p.y} r={2.5} />
       ))}
@@ -81,7 +81,7 @@ export function KeyDots({ points }: { points: Point[] }) {
 
 export function CurrentDot({ point }: { point: Point | null }) {
   if (!point) return null;
-  return <Circle cx={point.x} cy={point.y} r={4.5} fill={colors.flare} stroke="#000" strokeWidth={1.5} />;
+  return <Circle cx={point.x} cy={point.y} r={4.5} fill={colors.flare} stroke={colors.halo} strokeWidth={1.5} />;
 }
 
 export function RefLine({ x, top, bottom, alpha = opacity.lines }: { x: number; top: number; bottom: number; alpha?: number }) {
@@ -152,7 +152,7 @@ export function HeroNumber({
         fontSize: size,
         lineHeight: size,
         letterSpacing: size * -0.02,
-        textShadowColor: '#000',
+        textShadowColor: colors.halo,
         textShadowRadius: 6,
         textShadowOffset: { width: 0, height: 0 },
       }}

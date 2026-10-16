@@ -2,7 +2,7 @@ import { Image, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Btn from '../../components/Btn';
-import { colors, space } from '../../design/tokens';
+import { colors, shade, space } from '../../design/tokens';
 import { display } from '../../design/typography';
 import { t } from '../../i18n';
 
@@ -23,7 +23,7 @@ export default function WelcomeScreen({ onDemo, onImport }: { onDemo: () => void
           style={{ position: 'absolute', left: 0, top: insets.top, width: box.width, height: box.height - insets.top }}
         />
         <LinearGradient
-          colors={['rgba(0,0,0,0)', colors.bg]}
+          colors={[shade(0), colors.bg]}
           style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 160 }}
           pointerEvents="none"
         />

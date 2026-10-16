@@ -8,7 +8,7 @@ import { frameSource } from '../../analysis/frames';
 import Btn from '../../components/Btn';
 import Segmented from '../../components/Segmented';
 import Sheet from '../../components/Sheet';
-import { colors, shape, space, stroke } from '../../design/tokens';
+import { colors, shade, shape, space, stroke } from '../../design/tokens';
 import { display, fontFamily, type } from '../../design/typography';
 import { DestructiveBtn, Note } from '../onboarding/ui';
 import { CameraSurface, type CameraHandle } from './camera';
@@ -123,7 +123,7 @@ export default function ViewfinderScreen({
           style={{ position: 'absolute', left: 0, top: 0, width, height }}
         />
       )}
-      {dim ? <View style={{ position: 'absolute', left: 0, top: 0, width, height, backgroundColor: 'rgba(0,0,0,0.55)' }} /> : null}
+      {dim ? <View style={{ position: 'absolute', left: 0, top: 0, width, height, backgroundColor: shade(0.55) }} /> : null}
       {session.kind === 'idle' ? <Silhouette movement={movement} width={width} height={height} /> : null}
 
       {session.kind === 'idle' ? (
@@ -182,7 +182,7 @@ export default function ViewfinderScreen({
             testID="countdown"
             style={[
               display(240, true),
-              { color: colors.text, textShadowColor: '#000', textShadowRadius: 24, textShadowOffset: { width: 0, height: 0 } },
+              { color: colors.text, textShadowColor: colors.halo, textShadowRadius: 24, textShadowOffset: { width: 0, height: 0 } },
             ]}
           >
             {String(session.n)}
@@ -205,7 +205,7 @@ export default function ViewfinderScreen({
         <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
           {session.kind === 'idle' || (recording && !isTooLong(session)) ? (
             <LinearGradient
-              colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.9)', 'rgba(0,0,0,0.9)']}
+              colors={[shade(0), shade(0.9), shade(0.9)]}
               locations={[0, 0.4, 1]}
               style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 200 + insets.bottom }}
               pointerEvents="none"

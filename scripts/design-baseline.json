@@ -1,16 +1,5 @@
 {
-  "check-raw-colors": {
-    "src/features/analysis/DrawnPath.tsx": 1,
-    "src/features/analysis/overlays.tsx": 4,
-    "src/features/analysis/ProcessingSheet.tsx": 1,
-    "src/features/analysis/WhyDrawer.tsx": 1,
-    "src/features/capture/hud.tsx": 1,
-    "src/features/capture/ViewfinderScreen.tsx": 5,
-    "src/features/library/FailureScreen.tsx": 3,
-    "src/features/onboarding/ui.tsx": 1,
-    "src/features/onboarding/WelcomeScreen.tsx": 1,
-    "src/features/share/ShareCard.tsx": 4
-  },
+  "check-raw-colors": {},
   "check-type-tokens": {},
   "check-radius-tokens": {},
   "check-no-pills": {},

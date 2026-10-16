@@ -22,7 +22,7 @@ export default function DrawnPath({
       {halo ? (
         <AnimatedPath
           d={d}
-          stroke="#000"
+          stroke={colors.halo}
           strokeWidth={stroke.halo}
           strokeLinecap="round"
           strokeLinejoin="round"

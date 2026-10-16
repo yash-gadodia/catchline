@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import type { Analysis, KeyFrame } from '../../analysis/types';
 import { toScreen, type Fit } from '../../analysis/geometry';
 import { keyFrameForPhase, liftPath, pointAt, repByIndex } from '../../analysis/timeline';
-import { colors } from '../../design/tokens';
+import { colors, shade } from '../../design/tokens';
 import { display, fontFamily } from '../../design/typography';
 import Mark from '../../components/Mark';
 import Stage, { type StageLayer } from '../analysis/Stage';
@@ -52,8 +52,8 @@ const ShareCard = forwardRef<View, Props>(function ShareCard({ analysis, aspect,
   const src = { width: analysis.video.width, height: analysis.video.height };
   const copy = cardCopy(analysis);
   return (
-    <View ref={ref} collapsable={false} testID={`share-card-${aspect}`} style={{ width: box.width, height: box.height, overflow: 'hidden', backgroundColor: '#000' }}>
-      <Stage src={src} box={box} focus={FOCUS} layers={strobeLayers(analysis)} style={{ position: 'absolute', left: 0, top: 0, backgroundColor: '#000' }}>
+    <View ref={ref} collapsable={false} testID={`share-card-${aspect}`} style={{ width: box.width, height: box.height, overflow: 'hidden', backgroundColor: colors.halo }}>
+      <Stage src={src} box={box} focus={FOCUS} layers={strobeLayers(analysis)} style={{ position: 'absolute', left: 0, top: 0, backgroundColor: colors.halo }}>
         {(fit) => (
           <OverlaySvg box={box}>
             <FlarePath points={liftPath(shareRep(analysis)).map((p) => toScreen(p, fit))} testID="card-path" />
@@ -63,7 +63,7 @@ const ShareCard = forwardRef<View, Props>(function ShareCard({ analysis, aspect,
       </Stage>
       <LinearGradient
         pointerEvents="none"
-        colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.78)']}
+        colors={[shade(0), shade(0.78)]}
         start={{ x: 0.5, y: 0.5 }}
         end={{ x: 0.5, y: 1 }}
         style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 }}
