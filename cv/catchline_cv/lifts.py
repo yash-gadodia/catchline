@@ -17,6 +17,9 @@ from .pose import (L_ANK, L_BIGTOE, L_ELB, L_HEEL, L_HIP, L_KNEE, L_SHO, L_WRI, 
 from .track import foreground_mask, from_ref, stabilise, to_ref
 from .video import frames
 
+# Hanging, the hips sit 0.38 torso lengths apart filmed front-on (IMG_7819, the "First BMU" clip), not 0.5: with 0.5
+# front-on hangs read 51-53 deg and a diagonal one 45 against ~55 by eye (tests/test_camera_angle.py)
+HANG_HIP_W = 0.38
 SEGMENTS_CM = 132.0  # shoulder-hip + hip-knee + knee-ankle joint centres for a ~170 cm adult (+/- ~8% across people)
 
 
@@ -45,14 +48,14 @@ def scale_from_body(k):
     return float(np.nanpercentile(total, 90) / SEGMENTS_CM) if np.isfinite(total).any() else None
 
 
-def off_side_pose(k):
+def off_side_pose(k, hip_w=0.5):
     """Camera angle off side-on from how far apart the left and right shoulders and hips sit in x (they overlap
-    side-on). Joint-centre widths ~0.7 (shoulders) and ~0.5 (hips) of the torso length."""
+    side-on). Joint-centre widths ~0.7 (shoulders) and hip_w (hips) of the torso length."""
     t = mv.torso_px(k)
     if not np.isfinite(t) or t <= 0:
         return None
     ds = np.nanmedian(np.abs(k[:, L_SHO, 0] - k[:, R_SHO, 0])) / (0.7 * t)
-    dh = np.nanmedian(np.abs(k[:, L_HIP, 0] - k[:, R_HIP, 0])) / (0.5 * t)
+    dh = np.nanmedian(np.abs(k[:, L_HIP, 0] - k[:, R_HIP, 0])) / (hip_w * t)
     return float(np.degrees(np.mean([np.arcsin(min(1.0, ds)), np.arcsin(min(1.0, dh))])))
 
 
@@ -507,7 +510,7 @@ def hang_rep(ctx, rep_no, a, top, b, px_per_cm, last):
     bar_x = float(np.median(wri[hanging, 0]))
     bar_h = -bar_y
     fwd = facing(ksm[hanging]) if hanging.any() else 1.0
-    off = off_side_pose(ksm)
+    off = off_side_pose(ksm, hip_w=HANG_HIP_W)
     fs = 1 / np.cos(np.radians(min(off or 0.0, 60.0)))
     cm = lambda px: float(px / px_per_cm)
     legs_fwd = fwd * (knee[:, 0] - hip[:, 0])
