@@ -6,6 +6,7 @@ import { colors, radius, space } from '../../design/tokens';
 import { fontFamily } from '../../design/typography';
 import { Body, DangerBtn, SheetTitle } from '../share/ui';
 import { accountRepository, type AccountRepository } from './account';
+import { t } from '../../i18n';
 
 export const CONFIRM_WORD = 'DELETE';
 
@@ -42,16 +43,15 @@ export default function DeleteAccountSheet({
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }} testID="delete-account">
-      <Pressable style={{ flex: 1 }} onPress={onKeep} accessibilityLabel="Close" />
+      <Pressable style={{ flex: 1 }} onPress={onKeep} accessibilityLabel={t('you.close')} />
       <Sheet gap={16}>
-        <SheetTitle>Delete your account?</SheetTitle>
+        <SheetTitle>{t('you.delete.title')}</SheetTitle>
         <Body>
-          Every lift, cue and still is removed within 24 hours. Your subscription is cancelled through the App Store separately. This can't be
-          undone.
+          {t('you.delete.body')}
         </Body>
         <View style={{ gap: 6 }}>
           <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 13, lineHeight: 18 }}>
-            Type <Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold }}>{CONFIRM_WORD}</Text> to confirm
+            {t('you.delete.typeBefore')} <Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold }}>{CONFIRM_WORD}</Text> {t('you.delete.typeAfter')}
           </Text>
           <TextInput
             value={text}
@@ -73,14 +73,14 @@ export default function DeleteAccountSheet({
         </View>
         {failed ? (
           <Body color={colors.flare} testID="delete-error">
-            Couldn't delete your account. Check your connection and try again.
+            {t('you.delete.error')}
           </Body>
         ) : null}
         <DangerBtn disabled={!ok} onPress={del} testID="delete-everything">
-          {busy ? 'Deleting…' : 'Delete everything'}
+          {busy ? t('you.delete.deleting') : t('you.delete.confirm')}
         </DangerBtn>
         <Btn kind="secondary" onPress={onKeep} testID="keep-account">
-          Keep my account
+          {t('you.delete.keep')}
         </Btn>
       </Sheet>
     </View>

@@ -11,13 +11,13 @@ import { useOnboarding } from '../onboarding/store';
 import {
   FREE_VIDEOS as FREE_BY_VARIANT,
   MONTHLY_CAP,
-  TIER_NAME,
   videosRemaining,
   type Tier as LiveTier,
   type Usage,
   type Variant,
 } from '../paywall/entitlements';
 import { useUsage } from '../paywall/usageStore';
+import { formatDate, t } from '../../i18n';
 import { usePurchases } from '../purchases/usePurchases';
 import type { Settings } from './settings';
 
@@ -44,20 +44,30 @@ export const PRICES: Record<Exclude<Tier, 'free'>, Record<Billing, string>> = {
   platform: { monthly: '$14.99/mo', annual: '$99.99/yr' },
 };
 
-const TIER_NAMES: Record<Tier, string> = { free: 'Free', hook: 'Hook', pull: 'Pull', platform: 'Platform' };
-const SIGN_IN: Record<Account['signIn'], string> = { apple: 'Apple', google: 'Google', email: 'email' };
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+// Hook, Pull and Platform are product names and stay as they are in every language.
+const PRODUCT_NAMES = { hook: 'Hook', pull: 'Pull', platform: 'Platform' } as const;
+
+function tierName(tier: Tier | LiveTier): string {
+  if (tier === 'free') return t('you.plan.free');
+  if (tier === 'founding') return t('you.plan.foundingMember');
+  return PRODUCT_NAMES[tier];
+}
+
+function signInName(s: Account['signIn']): string {
+  return s === 'email' ? t('you.account.email') : s === 'apple' ? 'Apple' : 'Google';
+}
 
 // Founding is a one-off purchase: Pull for life, so there is no renewal date to show.
 export function planLabel(plan: Plan): string {
   if (plan.tier === 'free') {
     const left = Math.max(0, FREE_VIDEOS - plan.videosUsed);
-    return `Free · ${left} of ${FREE_VIDEOS} videos left`;
+    return `${tierName('free')} · ${t('you.plan.videosLeft', { left, total: FREE_VIDEOS })}`;
   }
-  const name = TIER_NAMES[plan.tier];
-  if (plan.founding) return `${name} · Founding member · for life`;
+  const name = tierName(plan.tier);
+  if (plan.founding) return `${name} · ${t('you.plan.foundingMember')} · ${t('you.plan.forLife')}`;
   const d = new Date(plan.renewsOn);
-  return `${name} · ${PRICES[plan.tier][plan.billing]} · renews ${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
+  const renews = t('you.plan.renews', { day: d.getUTCDate(), month: formatDate(d, { month: 'short', timeZone: 'UTC' }) });
+  return `${name} · ${PRICES[plan.tier][plan.billing]} · ${renews}`;
 }
 
 export function isFounding(plan: Plan): boolean {
@@ -65,18 +75,23 @@ export function isFounding(plan: Plan): boolean {
 }
 
 export function accountLine(a: Account): string {
-  return `Signed in with ${SIGN_IN[a.signIn]}${a.synced ? ' · synced' : ''}`;
+  return `${t('you.account.signedInWith', { provider: signInName(a.signIn) })}${a.synced ? ` · ${t('you.account.synced')}` : ''}`;
 }
 
-export const ANONYMOUS_LINE = 'Anonymous on this phone';
-export const APPLE_LINE = 'Signed in with Apple';
+export function anonymousLine(): string {
+  return t('you.account.anonymous');
+}
+
+export function appleLine(): string {
+  return t('you.account.signedInWith', { provider: 'Apple' });
+}
 
 // With a backend the plan is the RevenueCat tier and the allowance is the usage
 // store's count against the tier's cap (the server enforces the real cap).
 export function livePlanLabel(tier: LiveTier, usage: Usage, variant: Variant, now: Date): string {
   const left = videosRemaining(tier, usage, now, variant);
-  if (tier === 'free') return `Free · ${left} of ${FREE_BY_VARIANT[variant]} videos left`;
-  return `${TIER_NAME[tier]} · ${left} of ${MONTHLY_CAP[tier]} videos left this month`;
+  if (tier === 'free') return `${tierName('free')} · ${t('you.plan.videosLeft', { left, total: FREE_BY_VARIANT[variant] })}`;
+  return `${tierName(tier)} · ${t('you.plan.videosLeftMonth', { left, total: MONTHLY_CAP[tier] })}`;
 }
 
 // What the You tab shows. name is null while the account is anonymous, or when
@@ -90,7 +105,7 @@ function fixtureView(a: Account | null): AccountView | null {
 function liveView(auth: AuthUser, tier: LiveTier, usage: Usage, variant: Variant, now: Date): AccountView {
   return {
     name: auth.anonymous ? null : auth.displayName,
-    line: auth.anonymous ? ANONYMOUS_LINE : APPLE_LINE,
+    line: auth.anonymous ? anonymousLine() : appleLine(),
     plan: livePlanLabel(tier, usage, variant, now),
     founding: tier === 'founding',
     anonymous: auth.anonymous,

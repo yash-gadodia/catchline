@@ -19,10 +19,11 @@ import { exportMyLifts, shareLiftsCsv } from './liftsCsv';
 import { LANGUAGE_NAMES, LOCALES, t, type Language } from '../../i18n';
 import { accountRepository, signOutOfAccount, useAccountView, type DataExport } from './account';
 import {
-  AUTO_DELETE_LABELS,
-  DAY_NAMES,
-  FRAME_RATE_LABELS,
+  DAY_IDS,
   MOVEMENTS,
+  autoDeleteLabels,
+  dayName,
+  frameRateLabels,
   REMINDER_TIMES,
   UNIT_LABELS,
   settingLabels,
@@ -38,12 +39,14 @@ function options<T extends string>(labels: Record<T, string>): { value: T; label
   return (Object.keys(labels) as T[]).map((value) => ({ value, label: labels[value] }));
 }
 
-const PICKERS = {
-  units: options(UNIT_LABELS),
-  defaultMovement: MOVEMENTS.map((m) => ({ value: m, label: movementLabel(m) })),
-  frameRate: options(FRAME_RATE_LABELS),
-  autoDelete: options(AUTO_DELETE_LABELS),
-};
+function pickers() {
+  return {
+    units: options(UNIT_LABELS),
+    defaultMovement: MOVEMENTS.map((m) => ({ value: m, label: movementLabel(m) })),
+    frameRate: options(frameRateLabels()),
+    autoDelete: options(autoDeleteLabels()),
+  };
+}
 
 export async function shareExport(bundle: DataExport): Promise<void> {
   await Share.share({ title: 'catchline-export.json', message: JSON.stringify(bundle, null, 2) });
@@ -53,8 +56,6 @@ export async function exportMyData(send: (bundle: DataExport) => Promise<void> =
   const lifts = backendEnabled() ? useLibraryStore.getState().lifts.map((l) => l.id) : Object.keys(ANALYSES);
   await send(await accountRepository.exportAllData(settingsOf(useSettings.getState()), lifts));
 }
-
-export const SIGN_IN_FAILED = "Apple sign-in didn't go through. Try again.";
 
 export default function YouScreen({
   nav,
@@ -76,6 +77,7 @@ export default function YouScreen({
   const settings = useSettings();
   const units = useOnboarding((s) => s.units);
   const labels = settingLabels(settings);
+  const PICKERS = pickers();
   const [picker, setPicker] = useState<Picker>(null);
   const [authBusy, setAuthBusy] = useState(false);
   const [signInFailed, setSignInFailed] = useState(false);
@@ -108,9 +110,9 @@ export default function YouScreen({
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }} testID="you-screen">
       <ScrollView contentContainerStyle={{ paddingTop: insets.top + space.s7, paddingHorizontal: space.gutter, paddingBottom: 120 }}>
-        <Text style={[display(36), { color: colors.text, marginBottom: space.s2 }]}>You</Text>
+        <Text style={[display(36), { color: colors.text, marginBottom: space.s2 }]}>{t('you.title')}</Text>
         {account && live && account.anonymous ? (
-          <Row title={account.line} bold right={<Value>Sign in with Apple</Value>} onPress={doSignIn} testID="row-profile" />
+          <Row title={account.line} bold right={<Value>{t('you.signInWithApple')}</Value>} onPress={doSignIn} testID="row-profile" />
         ) : account && live ? (
           <Row title={account.name ?? account.line} bold sub={account.name ? account.line : undefined} right={null} testID="row-profile" />
         ) : account?.name ? (
@@ -118,63 +120,63 @@ export default function YouScreen({
             title={account.name}
             bold
             sub={account.line}
-            right={<Value>Edit</Value>}
+            right={<Value>{t('you.edit')}</Value>}
             onPress={() => setPicker('name')}
             testID="row-profile"
           />
         ) : account ? (
           <Row title={account.line} bold right={null} testID="row-profile" />
         ) : null}
-        {signInFailed ? <Note blocked testID="sign-in-failed" style={{ marginVertical: space.s2 }}>{SIGN_IN_FAILED}</Note> : null}
+        {signInFailed ? <Note blocked testID="sign-in-failed" style={{ marginVertical: space.s2 }}>{t('you.signInFailed')}</Note> : null}
         {account ? (
           <Row
-            title="Plan"
+            title={t('you.plan')}
             sub={account.plan}
             right={account.founding ? <FoundingBadge /> : <Value>›</Value>}
             onPress={nav.onPlan}
             testID="row-plan"
           />
         ) : null}
-        <Row title="See how it works" right={<Value>›</Value>} onPress={nav.onDemo} testID="row-demo" />
+        <Row title={t('you.seeHowItWorks')} right={<Value>›</Value>} onPress={nav.onDemo} testID="row-demo" />
         <Row
           title={t('you.language')}
           right={<Value>{languageLabel(settings.language)}</Value>}
           onPress={() => setPicker('language')}
           testID="row-language"
         />
-        <Section>Lifting</Section>
-        <Row title="Units" right={<Value>{UNIT_LABELS[units]}</Value>} onPress={() => setPicker('units')} testID="row-units" />
-        <Row title="Default lift" right={<Value>{labels.defaultMovement}</Value>} onPress={() => setPicker('defaultMovement')} testID="row-movement" />
-        <Row title="Frame rate" right={<Value>{labels.frameRate}</Value>} onPress={() => setPicker('frameRate')} testID="row-frame-rate" />
+        <Section>{t('you.section.lifting')}</Section>
+        <Row title={t('you.units')} right={<Value>{UNIT_LABELS[units]}</Value>} onPress={() => setPicker('units')} testID="row-units" />
+        <Row title={t('you.defaultLift')} right={<Value>{labels.defaultMovement}</Value>} onPress={() => setPicker('defaultMovement')} testID="row-movement" />
+        <Row title={t('you.frameRate')} right={<Value>{labels.frameRate}</Value>} onPress={() => setPicker('frameRate')} testID="row-frame-rate" />
         <Row
-          title="Voice countdown"
+          title={t('you.voiceCountdown')}
           right={<Toggle value={settings.voiceCountdown} onChange={(v) => settings.set('voiceCountdown', v)} testID="toggle-voice" />}
         />
-        <Row title="Haptics" right={<Toggle value={settings.haptics} onChange={(v) => settings.set('haptics', v)} testID="toggle-haptics" />} />
+        <Row title={t('you.haptics')} right={<Toggle value={settings.haptics} onChange={(v) => settings.set('haptics', v)} testID="toggle-haptics" />} />
         <Row
-          title="Cue reminder"
+          title={t('you.cueReminder')}
           value={labels.cueReminder}
-          sub="One nudge before your usual session"
+          sub={t('you.cueReminderSub')}
           right={<Value>›</Value>}
           onPress={() => setPicker('cueReminder')}
           testID="row-reminder"
         />
-        <Section>Privacy</Section>
-        <Row title="What is stored" right={<Value>›</Value>} onPress={nav.onWhatIsStored} testID="row-stored" />
-        <Row title="Auto-delete originals" right={<Value>{labels.autoDelete}</Value>} onPress={() => setPicker('autoDelete')} testID="row-auto-delete" />
+        <Section>{t('you.section.privacy')}</Section>
+        <Row title={t('you.whatIsStored')} right={<Value>›</Value>} onPress={nav.onWhatIsStored} testID="row-stored" />
+        <Row title={t('you.autoDelete')} right={<Value>{labels.autoDelete}</Value>} onPress={() => setPicker('autoDelete')} testID="row-auto-delete" />
         <Row
-          title="Export my lifts"
-          sub="A spreadsheet of every lift and measurement"
+          title={t('you.exportLifts')}
+          sub={t('you.exportLiftsSub')}
           right={<Value>›</Value>}
           onPress={() => exportMyLifts(exportLifts)}
           testID="row-export-lifts"
         />
-        <Row title="Export all my data" right={<Value>›</Value>} onPress={doExport} testID="row-export" />
+        <Row title={t('you.exportAll')} right={<Value>›</Value>} onPress={doExport} testID="row-export" />
         {account && live && !account.anonymous ? (
-          <Row title="Sign out" sub="This phone goes back to an anonymous account" right={<Value>›</Value>} onPress={doSignOut} testID="row-sign-out" />
+          <Row title={t('you.signOut')} sub={t('you.signOutSub')} right={<Value>›</Value>} onPress={doSignOut} testID="row-sign-out" />
         ) : null}
-        <Row title="Delete account" right={<Value>›</Value>} onPress={nav.onDeleteAccount} testID="row-delete" />
-        <Row title="Help" muted right={<Value>{`About · ${version}`}</Value>} onPress={nav.onHelp} last testID="row-help" />
+        <Row title={t('you.deleteAccount')} right={<Value>›</Value>} onPress={nav.onDeleteAccount} testID="row-delete" />
+        <Row title={t('you.help')} muted right={<Value>{t('you.about', { version })}</Value>} onPress={nav.onHelp} last testID="row-help" />
       </ScrollView>
 
       {picker === 'name' && account?.name && !live ? (
@@ -191,7 +193,7 @@ export default function YouScreen({
         <ReminderSheet value={settings.cueReminder} onChange={(r) => settings.set('cueReminder', r)} onClose={close} />
       ) : null}
       {picker === 'units' ? (
-        <OptionSheet title="Units" options={PICKERS.units} value={units} onPick={(v) => {
+        <OptionSheet title={t('you.units')} options={PICKERS.units} value={units} onPick={(v) => {
             useOnboarding.getState().setUnits(v);
             settings.set('units', v);
             close();
@@ -199,7 +201,7 @@ export default function YouScreen({
       ) : null}
       {picker === 'defaultMovement' ? (
         <OptionSheet
-          title="Default lift"
+          title={t('you.defaultLift')}
           options={PICKERS.defaultMovement}
           value={settings.defaultMovement}
           onPick={(v) => {
@@ -222,14 +224,14 @@ export default function YouScreen({
         />
       ) : null}
       {picker === 'frameRate' ? (
-        <OptionSheet title="Frame rate" options={PICKERS.frameRate} value={settings.frameRate} onPick={(v) => {
+        <OptionSheet title={t('you.frameRate')} options={PICKERS.frameRate} value={settings.frameRate} onPick={(v) => {
             settings.set('frameRate', v);
             close();
           }} onClose={close} />
       ) : null}
       {picker === 'autoDelete' ? (
         <OptionSheet
-          title="Auto-delete originals"
+          title={t('you.autoDelete')}
           options={PICKERS.autoDelete}
           value={settings.autoDelete}
           onPick={(v) => {
@@ -262,7 +264,7 @@ function Value({ children }: { children: string }) {
 function FoundingBadge() {
   return (
     <View testID="founding-badge" style={{ height: 28, paddingHorizontal: 10, borderWidth: 1, borderColor: colors.flare, borderRadius: radius.control, justifyContent: 'center' }}>
-      <SmallCaps size={11} color={colors.text}>Founding</SmallCaps>
+      <SmallCaps size={11} color={colors.text}>{t('you.founding')}</SmallCaps>
     </View>
   );
 }
@@ -323,7 +325,7 @@ function Row({
 function SheetFrame({ children, onClose, testID }: { children: ReactNode; onClose: () => void; testID?: string }) {
   return (
     <View style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 }} testID={testID}>
-      <Pressable onPress={onClose} style={{ flex: 1, backgroundColor: colors.scrim }} accessibilityLabel="Close" testID="sheet-scrim" />
+      <Pressable onPress={onClose} style={{ flex: 1, backgroundColor: colors.scrim }} accessibilityLabel={t('you.close')} testID="sheet-scrim" />
       <Sheet gap={12}>{children}</Sheet>
     </View>
   );
@@ -379,22 +381,22 @@ function ReminderSheet({
     onChange({ ...value, days: value.days.includes(d) ? value.days.filter((x) => x !== d) : [...value.days, d] });
   return (
     <SheetFrame onClose={onClose} testID="reminder-sheet">
-      <SheetTitle size={20}>Cue reminder</SheetTitle>
+      <SheetTitle size={20}>{t('you.cueReminder')}</SheetTitle>
       <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>
-        One nudge with your current cue, before your usual session.
+        {t('you.reminder.body')}
       </Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-        {DAY_NAMES.map((name, d) => (
-          <Chip key={name} label={name} on={value.days.includes(d)} onPress={() => toggleDay(d)} testID={`day-${name}`} />
+        {DAY_IDS.map((id, d) => (
+          <Chip key={id} label={dayName(d)} on={value.days.includes(d)} onPress={() => toggleDay(d)} testID={`day-${id}`} />
         ))}
       </View>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-        {REMINDER_TIMES.map((t) => (
-          <Chip key={t} label={t} mono on={value.time === t} onPress={() => onChange({ ...value, time: t })} testID={`time-${t}`} />
+        {REMINDER_TIMES.map((time) => (
+          <Chip key={time} label={time} mono on={value.time === time} onPress={() => onChange({ ...value, time })} testID={`time-${time}`} />
         ))}
       </View>
       <Btn onPress={onClose} testID="reminder-done">
-        Done
+        {t('you.done')}
       </Btn>
     </SheetFrame>
   );
@@ -405,7 +407,7 @@ function NameSheet({ initial, onSave, onClose }: { initial: string; onSave: (nam
   const valid = name.trim().length > 0;
   return (
     <SheetFrame onClose={onClose} testID="name-sheet">
-      <SheetTitle size={20}>Your name</SheetTitle>
+      <SheetTitle size={20}>{t('you.yourName')}</SheetTitle>
       <TextInput
         value={name}
         onChangeText={setName}
@@ -423,7 +425,7 @@ function NameSheet({ initial, onSave, onClose }: { initial: string; onSave: (nam
         }}
       />
       <Btn onPress={() => (valid ? onSave(name.trim()) : undefined)} testID="name-save">
-        Save
+        {t('you.save')}
       </Btn>
     </SheetFrame>
   );

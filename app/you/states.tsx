@@ -27,10 +27,12 @@ export default function GlobalStatesRoute() {
     <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }}>
       <OfflineBanner queued={2} />
       <ScrollView contentContainerStyle={{ padding: space.gutter, gap: space.s4, paddingBottom: 320 }}>
+        {/* i18n-ok: dev gallery */}
         <SmallCaps>Permission denied, inline</SmallCaps>
         {PERMISSIONS.map((p) => (
           <PermissionDenied key={p} kind={p} />
         ))}
+        {/* i18n-ok: dev gallery */}
         <SmallCaps>Notification copy</SmallCaps>
         {notes.map((n) => (
           <View key={n} style={{ backgroundColor: colors.surface2, borderRadius: 12, padding: space.s3, gap: 2 }}>
@@ -39,6 +41,7 @@ export default function GlobalStatesRoute() {
           </View>
         ))}
         <Text onPress={() => setStorage(true)} style={{ color: colors.text, fontFamily: fontFamily.bodyMedium, fontSize: 15, lineHeight: 22, textDecorationLine: 'underline' }}>
+          {/* i18n-ok: dev gallery */}
           Show low storage
         </Text>
       </ScrollView>

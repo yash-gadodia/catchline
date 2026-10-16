@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Movement } from '../../analysis/types';
 import { movementLabel } from '../../analysis/format';
 import { setHapticsEnabled } from '../../lib/haptics';
-import { setLanguage, type Language } from '../../i18n';
+import { setLanguage, t, type Language } from '../../i18n';
 
 export type Units = 'kg' | 'lb';
 export type FrameRate = 'auto' | '60' | '120' | '240';
@@ -37,34 +37,43 @@ export const DEFAULT_SETTINGS: Settings = {
 
 export const MOVEMENTS: Movement[] = ['snatch', 'clean', 'jerk', 'kipping_pull_up', 'bar_muscle_up', 'kipping_hspu'];
 export const UNIT_LABELS: Record<Units, string> = { kg: 'kg', lb: 'lb' };
-export const FRAME_RATE_LABELS: Record<FrameRate, string> = {
-  auto: '60 fps, 240 for snatch',
-  '60': '60 fps',
-  '120': '120 fps',
-  '240': '240 fps',
-};
-export const AUTO_DELETE_LABELS: Record<AutoDelete, string> = {
-  '24h': '24 h',
-  '7d': '7 days',
-  '30d': '30 days',
-  never: 'Never',
-};
-export const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+export function frameRateLabels(): Record<FrameRate, string> {
+  return {
+    auto: t('you.frameRate.auto'),
+    '60': '60 fps',
+    '120': '120 fps',
+    '240': '240 fps',
+  };
+}
+export function autoDeleteLabels(): Record<AutoDelete, string> {
+  return {
+    '24h': '24 h',
+    '7d': t('you.autoDelete.days', { count: 7 }),
+    '30d': t('you.autoDelete.days', { count: 30 }),
+    never: t('you.autoDelete.never'),
+  };
+}
+// English short names, used only as stable testIDs; the shown name is dayName(d).
+export const DAY_IDS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const DAY_KEYS = ['you.day.0', 'you.day.1', 'you.day.2', 'you.day.3', 'you.day.4', 'you.day.5', 'you.day.6'] as const;
+export function dayName(d: number): string {
+  return t(DAY_KEYS[d]);
+}
 export const REMINDER_TIMES = ['06:30', '07:30', '12:00', '17:30', '19:00'];
 
 export function reminderLabel(r: CueReminder): string {
-  if (r.days.length === 0) return 'Off';
-  const days = [...new Set(r.days)].sort((a, b) => a - b).map((d) => DAY_NAMES[d]);
-  return `${days.length === DAY_NAMES.length ? 'Every day' : days.join(', ')} · ${r.time}`;
+  if (r.days.length === 0) return t('you.reminder.off');
+  const days = [...new Set(r.days)].sort((a, b) => a - b).map(dayName);
+  return `${days.length === DAY_IDS.length ? t('you.reminder.everyDay') : days.join(', ')} · ${r.time}`;
 }
 
 export function settingLabels(s: Settings) {
   return {
     units: UNIT_LABELS[s.units],
     defaultMovement: movementLabel(s.defaultMovement),
-    frameRate: FRAME_RATE_LABELS[s.frameRate],
+    frameRate: frameRateLabels()[s.frameRate],
     cueReminder: reminderLabel(s.cueReminder),
-    autoDelete: AUTO_DELETE_LABELS[s.autoDelete],
+    autoDelete: autoDeleteLabels()[s.autoDelete],
   };
 }
 

@@ -10,28 +10,16 @@ import { recordConsent } from '../../lib/api';
 import { CONSENT_VERSION, useOnboarding } from '../onboarding/store';
 import { Toggle } from '../share/ui';
 import { useSettings } from './settings';
+import { t } from '../../i18n';
 
-export const STORED: { id: string; title: string; body: string; keep: string }[] = [
-  {
-    id: 'originals',
-    title: 'Your original clips',
-    body: 'On your phone. Sent once for analysis, deleted from our servers within 24 hours.',
-    keep: '24 h',
-  },
-  {
-    id: 'positions',
-    title: 'Positions and bar path',
-    body: 'Numbers, not video. No face points; head keypoints are dropped before storage.',
-    keep: 'kept',
-  },
-  {
-    id: 'frames',
-    title: 'Key frames',
-    body: 'Five stills per lift for the strobe and the evidence crop. Background people blurred.',
-    keep: 'kept',
-  },
-  { id: 'cues', title: 'Cues and whether they stuck', body: 'Text and dates.', keep: 'kept' },
-];
+export function stored(): { id: string; title: string; body: string; keep: string }[] {
+  return [
+    { id: 'originals', title: t('you.stored.originals.title'), body: t('you.stored.originals.body'), keep: '24 h' },
+    { id: 'positions', title: t('you.stored.positions.title'), body: t('you.stored.positions.body'), keep: t('you.stored.kept') },
+    { id: 'frames', title: t('you.stored.frames.title'), body: t('you.stored.frames.body'), keep: t('you.stored.kept') },
+    { id: 'cues', title: t('you.stored.cues.title'), body: t('you.stored.cues.body'), keep: t('you.stored.kept') },
+  ];
+}
 
 export default function WhatIsStoredScreen({ onBack, onExport }: { onBack: () => void; onExport: () => void }) {
   const insets = useSafeAreaInsets();
@@ -47,24 +35,24 @@ export default function WhatIsStoredScreen({ onBack, onExport }: { onBack: () =>
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }} testID="what-is-stored">
       <TopBar
-        back="You"
+        back={t('you.title')}
         onBack={onBack}
         more={false}
-        center={<Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 17, lineHeight: 22 }}>What is stored</Text>}
+        center={<Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 17, lineHeight: 22 }}>{t('you.whatIsStored')}</Text>}
       />
       <ScrollView contentContainerStyle={{ paddingTop: space.s4, paddingHorizontal: space.gutter }}>
-        {STORED.map((r) => (
+        {stored().map((r) => (
           <Item key={r.id} title={r.title} body={r.body} right={<Keep>{r.keep}</Keep>} />
         ))}
         <Item
-          title="Clips used to improve accuracy"
-          body={improve ? 'Only if you turned it on. On right now.' : 'Only if you turned it on. Off right now.'}
+          title={t('you.stored.improve.title')}
+          body={improve ? t('you.stored.improve.on') : t('you.stored.improve.off')}
           right={<Toggle value={improve} onChange={setImprove} testID="toggle-improve" />}
         />
       </ScrollView>
       <View style={{ paddingTop: space.s4, paddingHorizontal: space.gutter, paddingBottom: space.s7 }}>
         <Btn kind="secondary" onPress={onExport} testID="stored-export">
-          Export all my data
+          {t('you.exportAll')}
         </Btn>
       </View>
     </View>

@@ -1,7 +1,7 @@
 import { Platform, Share } from 'react-native';
 import { File, Paths } from 'expo-file-system';
 import { ANALYSES } from '../../analysis/fixtures';
-import { movementLabel } from '../../analysis/format';
+import { translate } from '../../i18n';
 import { liveAnalysis } from '../../analysis/live';
 import type { Analysis } from '../../analysis/types';
 import { useLibraryStore } from '../library/store';
@@ -22,7 +22,7 @@ export function liftsCsv(rows: CsvLift[]): string {
   const lines = [HEADER.join(',')];
   const sorted = [...rows].sort((a, b) => (a.lift.date < b.lift.date ? -1 : a.lift.date > b.lift.date ? 1 : 0));
   for (const { lift, analysis } of sorted) {
-    const head = [lift.date, lift.id, movementLabel(lift.movement), lift.loadKg, lift.status, analysis?.cue?.text];
+    const head = [lift.date, lift.id, translate('en', `format.movement.${lift.movement}`), lift.loadKg, lift.status, analysis?.cue?.text];
     const seen = (analysis?.measurements ?? []).filter((m) => m.status !== 'not_seen');
     const tails = seen.length > 0 ? seen.map((m) => [m.id, m.label, m.value, m.unit]) : [[undefined, undefined, undefined, undefined]];
     for (const tail of tails) lines.push([...head, ...tail, analysis?.analysisVersion].map(cell).join(','));

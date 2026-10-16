@@ -3,6 +3,7 @@ import { File } from 'expo-file-system';
 import type { Analysis, Measurement } from '../../analysis/types';
 import { loadLibrary } from '../library/repository';
 import type { Lift } from '../library/types';
+import { setLanguage } from '../../i18n';
 import { exportMyLifts, liftsCsv, shareLiftsCsv } from './liftsCsv';
 
 jest.mock('expo-file-system', () => {
@@ -61,6 +62,13 @@ describe('liftsCsv', () => {
   it('quotes a line break in a cue', () => {
     const csv = liftsCsv([{ lift: lift({}), analysis: analysis({ cue: { text: 'Push\nthe floor' } as Analysis['cue'] }) }]);
     expect(csv.split('\n').slice(1).join('\n')).toBe('2026-10-12,l1,Snatch,,done,"Push\nthe floor",,,,,cv-2026.10.16\n');
+  });
+
+  it('keeps movement names English whatever the app language', () => {
+    setLanguage('de');
+    const csv = liftsCsv([{ lift: lift({}), analysis: analysis({}) }]);
+    setLanguage('en');
+    expect(csv.split('\n')[1].split(',')[2]).toBe('Snatch');
   });
 });
 
