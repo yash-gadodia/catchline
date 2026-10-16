@@ -6,6 +6,7 @@ import type { Movement } from '../../analysis/types';
 import { ANALYSES } from '../../analysis/fixtures';
 import { liftPath, repByIndex } from '../../analysis/timeline';
 import Btn from '../../components/Btn';
+import Row from '../../components/Row';
 import Segmented from '../../components/Segmented';
 import SmallCaps from '../../components/SmallCaps';
 import { colors, shape, space } from '../../design/tokens';
@@ -203,11 +204,7 @@ function LiftRow({ lift, sessions, cues, newest, nav }: { lift: Lift; sessions: 
       <Frame image={lift.thumb} width={48} height={56} gray opacity={muted ? 0.4 : 1} path={thumbPath(lift)} />
     );
   return (
-    <Pressable
-      onPress={() => nav.onOpen(lift)}
-      testID={`lift-${lift.id}`}
-      style={{ flexDirection: 'row', alignItems: 'center', gap: space.s4, paddingVertical: 10, borderTopWidth: 1, borderTopColor: colors.hairline }}
-    >
+    <Row onPress={() => nav.onOpen(lift)} testID={`lift-${lift.id}`} divider="top" style={{ gap: space.s4, paddingVertical: 10 }}>
       {thumb}
       <View style={{ flex: 1, gap: 2 }}>
         <Text style={{ color: muted ? colors.text2 : colors.text, ...type.button }}>
@@ -234,7 +231,7 @@ function LiftRow({ lift, sessions, cues, newest, nav }: { lift: Lift; sessions: 
       </View>
       {lift.status === 'failed' ? <Underlined onPress={() => nav.onRetake(lift)} testID={`retake-${lift.id}`}>{t('library.lifts.retake')}</Underlined> : null}
       {lift.status === 'queued' ? <Underlined onPress={nav.onUnlock} testID={`unlock-${lift.id}`}>{t('library.lifts.unlock')}</Underlined> : null}
-    </Pressable>
+    </Row>
   );
 }
 

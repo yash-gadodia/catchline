@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Pressable, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import type { Movement } from '../../analysis/types';
+import Btn from '../../components/Btn';
 import { colors, shade, shape, space, stroke } from '../../design/tokens';
 import { fontFamily, type } from '../../design/typography';
 import { liftById } from '../onboarding/lifts';
@@ -128,28 +129,16 @@ export function RecordButton({
   style?: StyleProp<ViewStyle>;
 }) {
   return (
-    <Pressable
+    <Btn
+      square
+      kind={recording ? 'secondary' : 'primary'}
       onPress={onPress}
       testID="record-button"
-      accessibilityRole="button"
       accessibilityLabel={recording ? t('capture.hud.stopRecording') : t('capture.hud.record')}
-      style={({ pressed }) => [
-        {
-          width: 56,
-          height: 56,
-          ...shape.control,
-          backgroundColor: recording ? 'transparent' : colors.flare,
-          borderWidth: recording ? stroke.outline : 0,
-          borderColor: colors.text,
-          alignItems: 'center',
-          justifyContent: 'center',
-          opacity: pressed ? 0.85 : 1,
-        },
-        style,
-      ]}
+      style={style}
     >
       {recording ? <View style={{ width: 22, height: 22, ...shape.control, backgroundColor: colors.flare }} /> : null}
-    </Pressable>
+    </Btn>
   );
 }
 

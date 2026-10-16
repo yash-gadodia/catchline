@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ActivityIndicator, Image, Pressable, RefreshControl, ScrollView, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Row from '../../components/Row';
 import SmallCaps from '../../components/SmallCaps';
 import { colors, space } from '../../design/tokens';
 import { display, fontFamily, type } from '../../design/typography';
@@ -82,20 +83,7 @@ export default function CuesScreen({ onOpen }: { onOpen: (cue: CueRecord) => voi
             <SmallCaps size={12}>{t('library.cues.past')}</SmallCaps>
           </View>
           {past.map((c) => (
-            <Pressable
-              key={c.id}
-              onPress={() => onOpen(c)}
-              testID={`past-${c.id}`}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: space.s3,
-                paddingVertical: 14,
-                borderBottomWidth: 1,
-                borderBottomColor: colors.hairline,
-              }}
-            >
+            <Row key={c.id} onPress={() => onOpen(c)} testID={`past-${c.id}`} style={{ paddingVertical: 14 }}>
               <View style={{ flex: 1, gap: 2 }}>
                 <Text style={{ color: c.status === 'dropped' ? colors.text2 : colors.text, ...type.button }}>
                   {cueText(c.metricId, c.text)}
@@ -110,7 +98,7 @@ export default function CuesScreen({ onOpen }: { onOpen: (cue: CueRecord) => voi
                   {statusLabel(c.status)}
                 </Text>
               </View>
-            </Pressable>
+            </Row>
           ))}
         </View>
       ) : null}

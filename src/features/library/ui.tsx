@@ -5,7 +5,8 @@ import Svg, { Polyline } from 'react-native-svg';
 import { frameSource } from '../../analysis/frames';
 import { coverFit, toScreen } from '../../analysis/geometry';
 import type { Point } from '../../analysis/types';
-import { colors, control, shape, stroke } from '../../design/tokens';
+import Btn from '../../components/Btn';
+import { colors, shape } from '../../design/tokens';
 import { display, fontFamily, type } from '../../design/typography';
 import type { CueStatus } from './types';
 
@@ -158,25 +159,9 @@ export function DestructiveBtn({
   style?: StyleProp<ViewStyle>;
 }) {
   return (
-    <Pressable
-      onPress={onPress}
-      testID={testID}
-      accessibilityRole="button"
-      style={({ pressed }) => [
-        {
-          height: control.height,
-          ...shape.control,
-          borderWidth: stroke.outline,
-          borderColor: colors.flare,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: pressed ? colors.surface2 : 'transparent',
-        },
-        style,
-      ]}
-    >
-      <Text style={{ color: colors.flare, ...type.button }}>{children}</Text>
-    </Pressable>
+    <Btn kind="destructive" onPress={onPress} testID={testID} style={style}>
+      {children}
+    </Btn>
   );
 }
 

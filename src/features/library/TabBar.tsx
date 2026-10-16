@@ -1,6 +1,7 @@
 import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, shape } from '../../design/tokens';
+import Btn from '../../components/Btn';
+import { colors } from '../../design/tokens';
 import { fontFamily, type } from '../../design/typography';
 import { t } from '../../i18n';
 
@@ -57,26 +58,12 @@ export default function TabBar({
     >
       {LEFT.map(tab)}
       <View style={{ flex: 1, alignItems: 'center' }}>
-        <Pressable
-          onPress={onImport}
-          accessibilityRole="button"
-          accessibilityLabel={t('library.lifts.import')}
-          testID="tab-import"
-          style={({ pressed }) => ({
-            width: 56,
-            height: 56,
-            ...shape.control,
-            backgroundColor: colors.flare,
-            alignItems: 'center',
-            justifyContent: 'center',
-            opacity: pressed ? 0.85 : 1,
-          })}
-        >
+        <Btn square onPress={onImport} accessibilityLabel={t('library.lifts.import')} testID="tab-import">
           <View style={{ width: 22, height: 22, alignItems: 'center', justifyContent: 'center' }}>
             <View style={{ position: 'absolute', width: 22, height: 3, backgroundColor: colors.onFlare }} />
             <View style={{ position: 'absolute', width: 3, height: 22, backgroundColor: colors.onFlare }} />
           </View>
-        </Pressable>
+        </Btn>
       </View>
       {RIGHT.map(tab)}
     </View>

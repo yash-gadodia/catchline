@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Btn from '../../src/components/Btn';
 import Mark from '../../src/components/Mark';
 import Readout from '../../src/components/Readout';
+import ListRow from '../../src/components/Row';
 import Segmented from '../../src/components/Segmented';
 import Sheet from '../../src/components/Sheet';
 import SmallCaps from '../../src/components/SmallCaps';
@@ -183,7 +184,25 @@ export default function DesignCatalogue() {
         <Btn kind="secondary" compact>
           Compact secondary
         </Btn>
+        <Btn kind="destructive">Delete lift</Btn>
+        <Btn disabled>Disabled</Btn>
+        <Btn square accessibilityLabel="Square">
+          <View style={{ width: 22, height: 22, ...shape.control, backgroundColor: colors.onFlare }} />
+        </Btn>
         <Btn kind="text">Not for me</Btn>
+      </Section>
+
+      <Section title="Row">
+        <View>
+          <ListRow divider="top" style={{ paddingVertical: space.s3 }}>
+            <Text style={[type.body, { color: colors.text }]}>Units</Text>
+            <Readout>kg</Readout>
+          </ListRow>
+          <ListRow style={{ paddingVertical: space.s3 }}>
+            <Text style={[type.body, { color: colors.text }]}>Frame rate</Text>
+            <Readout>240 fps</Readout>
+          </ListRow>
+        </View>
       </Section>
 
       <Section title="Segmented · Readout · SmallCaps">

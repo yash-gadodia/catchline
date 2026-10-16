@@ -1,8 +1,9 @@
 import { Pressable, Text, View } from 'react-native';
 import type { Movement } from '../../analysis/types';
+import Row from '../../components/Row';
 import Sheet from '../../components/Sheet';
 import SmallCaps from '../../components/SmallCaps';
-import { colors, space } from '../../design/tokens';
+import { colors, control, space } from '../../design/tokens';
 import { fontFamily, type } from '../../design/typography';
 import { groups, liftsIn, soonLifts } from '../onboarding/lifts';
 import { t } from '../../i18n';
@@ -31,13 +32,14 @@ export default function LiftSheet({
             {liftsIn(g.id).map((l) => {
               const on = l.id === value;
               return (
-                <Pressable
+                <Row
                   key={l.id}
                   testID={`pick-${l.id}`}
                   accessibilityRole="radio"
                   accessibilityState={{ selected: on }}
                   onPress={() => onPick(l.id)}
-                  style={{ height: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+                  divider="none"
+                  style={{ height: control.compactHeight }}
                 >
                   <Text style={{ color: colors.text, ...type.body, fontFamily: on ? fontFamily.bodyBold : fontFamily.body }}>
                     {l.name}
@@ -45,7 +47,7 @@ export default function LiftSheet({
                   <Text style={{ color: on ? colors.text : colors.text3, ...type.readout }}>
                     {on ? '✓' : l.sub}
                   </Text>
-                </Pressable>
+                </Row>
               );
             })}
           </View>

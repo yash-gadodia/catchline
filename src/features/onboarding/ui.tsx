@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Pressable, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import Btn from '../../components/Btn';
-import { colors, control, shade, shape, space, stroke } from '../../design/tokens';
+import { colors, shade, shape, space, stroke } from '../../design/tokens';
 import { display, fontFamily, type } from '../../design/typography';
 
 export function Title({ children, size = 40 }: { children: string; size?: number }) {
@@ -16,7 +16,7 @@ export function Body({ children, color = colors.text2, size = 17 }: { children: 
   );
 }
 
-// Btn with a blocked state (the shared atom has none): surface fill, text-3 label.
+// Btn with a blocked state: surface fill, text-3 label.
 export function GateBtn({
   children,
   onPress,
@@ -30,57 +30,21 @@ export function GateBtn({
   testID?: string;
   style?: StyleProp<ViewStyle>;
 }) {
-  if (!disabled) {
-    return (
-      <Btn onPress={onPress} testID={testID} style={style}>
-        {children}
-      </Btn>
-    );
-  }
   return (
-    <Pressable
-      disabled
-      testID={testID}
-      accessibilityRole="button"
-      accessibilityState={{ disabled: true }}
-      style={[
-        {
-          height: control.height,
-          ...shape.control,
-          backgroundColor: colors.surface2,
-          alignItems: 'center',
-          justifyContent: 'center',
-        },
-        style,
-      ]}
-    >
-      <Text style={[type.button, { color: colors.text3 }]}>{children}</Text>
-    </Pressable>
+    <Btn onPress={onPress} disabled={disabled} testID={testID} style={style}>
+      {children}
+    </Btn>
   );
 }
 
 // Destructive action: flare outline, flare text, no fill.
 export function DestructiveBtn({ children, onPress, testID }: { children: string; onPress: () => void; testID?: string }) {
   return (
-    <Pressable
-      onPress={onPress}
-      testID={testID}
-      accessibilityRole="button"
-      style={({ pressed }) => ({
-        height: control.height,
-        ...shape.control,
-        borderWidth: stroke.outline,
-        borderColor: colors.flare,
-        backgroundColor: pressed ? colors.surface2 : 'transparent',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingHorizontal: space.s4,
-      })}
-    >
+    <Btn kind="destructive" onPress={onPress} testID={testID} style={{ paddingHorizontal: space.s4 }}>
       <Text numberOfLines={1} style={[type.button, { color: colors.flare }]}>
         {children}
       </Text>
-    </Pressable>
+    </Btn>
   );
 }
 

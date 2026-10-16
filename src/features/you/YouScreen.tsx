@@ -6,6 +6,7 @@ import { ANALYSES } from '../../analysis/fixtures';
 import { backendEnabled } from '../../data/backend';
 import { movementLabel } from '../../analysis/format';
 import Btn from '../../components/Btn';
+import ListRow from '../../components/Row';
 import Sheet from '../../components/Sheet';
 import SmallCaps from '../../components/SmallCaps';
 import { colors, shape, space } from '../../design/tokens';
@@ -293,22 +294,13 @@ function Row({
   testID?: string;
 }) {
   return (
-    <Pressable
+    <ListRow
       onPress={onPress}
       disabled={!onPress}
       testID={testID}
       accessibilityRole={onPress ? 'button' : undefined}
-      style={({ pressed }) => ({
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        gap: space.s3,
-        minHeight: 48,
-        paddingVertical: space.s2,
-        borderBottomWidth: last ? 0 : 1,
-        borderBottomColor: colors.hairline,
-        opacity: pressed ? 0.7 : 1,
-      })}
+      divider={last ? 'none' : 'bottom'}
+      style={({ pressed }) => ({ minHeight: 48, paddingVertical: space.s2, opacity: pressed ? 0.7 : 1 })}
     >
       <View style={{ flex: 1, gap: 2 }}>
         <Text numberOfLines={1} style={{ color: muted ? colors.text2 : colors.text, ...type.body, fontFamily: bold ? fontFamily.bodyBold : fontFamily.body }}>
@@ -318,7 +310,7 @@ function Row({
         {sub ? <Text style={{ color: colors.text2, ...type.small }}>{sub}</Text> : null}
       </View>
       {right}
-    </Pressable>
+    </ListRow>
   );
 }
 
@@ -349,19 +341,19 @@ function OptionSheet<T extends string>({
       <SheetTitle size={20}>{title}</SheetTitle>
       <View style={{ borderTopWidth: 1, borderTopColor: colors.hairline }}>
         {opts.map((o) => (
-          <Pressable
+          <ListRow
             key={o.value}
             onPress={() => onPick(o.value)}
             testID={`pick-${o.value}`}
             accessibilityRole="button"
             accessibilityState={{ selected: o.value === value }}
-            style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.hairline }}
+            style={{ paddingVertical: 14 }}
           >
             <Text style={{ color: colors.text, ...type.body, fontFamily: o.value === value ? fontFamily.bodyBold : fontFamily.body }}>
               {o.label}
             </Text>
             {o.value === value ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.text }} /> : null}
-          </Pressable>
+          </ListRow>
         ))}
       </View>
     </SheetFrame>
