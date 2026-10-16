@@ -76,7 +76,7 @@ def run(clip, out_json, assets_dir, asset_prefix, debug_dir, cache_dir, analysis
         raise ClipUnreadable("no frames decoded")
     H, W = shape[:2]
     n = len(people)
-    k, ks, boxes = select_lifter(people)
+    k, ks, boxes = select_lifter(people, hanging=mv.FAMILY.get(movement) == "hanging")
 
     def fail(reason, message, frame=None):
         return write(out_json, base(analysis_id, meta, n, movement) | {
@@ -182,8 +182,12 @@ def export_keyframes(ctx, jobs):
     fs = [int(min(max(f, 0), ctx["n"] - 1)) for f, _ in jobs]
     with ThreadPoolExecutor(4) as ex:
         imgs = list(ex.map(lambda f: read_frame(ctx["clip"], f, ctx["fps"]), fs))
+    tracked = np.where(np.isfinite(ctx["boxes"][:, 0]))[0]
     for f, img, (_, path) in zip(fs, imgs, jobs):
-        others = bystanders(ctx["people"][f], ctx["boxes"][f])
+        # a frame the tracker left empty (no detection matched the lifter) still must not blur the lifter: match the
+        # nearest tracked box
+        near = tracked[np.argmin(np.abs(tracked - f))] if len(tracked) else f
+        others = bystanders(ctx["people"][f], ctx["boxes"][near] if abs(near - f) <= 5 else ctx["boxes"][f])
         lifter = (ctx["boxes"][f], ctx["k"][f], ctx["ks"][f]) if np.isfinite(ctx["boxes"][f]).all() else None
         img = blur_bystanders(img, others, lifter, scale=img.shape[0] / ctx["H"])
         cv2.imwrite(path, img, [cv2.IMWRITE_JPEG_QUALITY, 85])
