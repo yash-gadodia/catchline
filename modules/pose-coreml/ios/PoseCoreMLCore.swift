@@ -383,20 +383,27 @@ func analyzePoseCoreML(url: URL, models: PoseModels, progress: (Double) -> Void)
   var people: [[PosePerson]] = []
   var first: Double?
   var sent = -1.0
-  while let sample = output.copyNextSampleBuffer() {
-    guard let pb = CMSampleBufferGetImageBuffer(sample) else { continue }
-    let pts = CMSampleBufferGetPresentationTimeStamp(sample).seconds
-    if first == nil { first = pts }
-    let img = uprightBGR(pb, rotation: rotation, outW: outW, outH: poseInferHeight)
-    var row: [PosePerson] = []
-    for box in try detectPeople(img, models) {
-      let (k, s) = try estimatePose(img, box: box, models)
-      row.append(PosePerson(box: box, kpts: k, scores: s))
+  // One autorelease pool per frame: Core ML outputs and the decoder's buffers are
+  // autoreleased, and this loop never returns to a run loop, so without it a 4K
+  // clip piles up hundreds of frames in memory and iOS kills the app.
+  var reading = true
+  while reading {
+    try autoreleasepool {
+      guard let sample = output.copyNextSampleBuffer() else { reading = false; return }
+      guard let pb = CMSampleBufferGetImageBuffer(sample) else { return }
+      let pts = CMSampleBufferGetPresentationTimeStamp(sample).seconds
+      if first == nil { first = pts }
+      let img = uprightBGR(pb, rotation: rotation, outW: outW, outH: poseInferHeight)
+      var row: [PosePerson] = []
+      for box in try detectPeople(img, models) {
+        let (k, s) = try estimatePose(img, box: box, models)
+        row.append(PosePerson(box: box, kpts: k, scores: s))
+      }
+      times.append(pts - first!)
+      people.append(row)
+      let p = duration > 0 ? min(max((pts - first!) / duration, 0), 1) : 0
+      if p - sent >= 0.02 { sent = p; progress(p) }
     }
-    times.append(pts - first!)
-    people.append(row)
-    let p = duration > 0 ? min(max((pts - first!) / duration, 0), 1) : 0
-    if p - sent >= 0.02 { sent = p; progress(p) }
   }
   if reader.status == .failed { throw PoseCoreMLError.readFailed(reader.error?.localizedDescription ?? "read") }
 

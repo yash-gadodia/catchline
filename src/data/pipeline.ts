@@ -6,7 +6,7 @@ import type { Lift } from '../types/db';
 import type { ClipSubmission } from '../features/capture/submit';
 import { usePurchases } from '../features/purchases/usePurchases';
 import { syncConsent } from './backend';
-import { analyzeClipPose, onDevicePoseEnabled } from './onDevicePose';
+import { analyzeClipPose, shouldRunDevicePose } from './onDevicePose';
 import { ClipTooLongError, discardPrepared, prepareClip } from './prepare';
 import { rememberClip } from '../features/share/localClips';
 
@@ -108,7 +108,7 @@ export async function startLift(sub: ClipSubmission & { uri: string }, read: (ur
   let prepared: string | null = null;
   try {
     await syncConsent();
-    const pose = onDevicePoseEnabled();
+    const pose = await shouldRunDevicePose();
     const clip = await prepareClip(sub.uri, sub.trim, (p) => patch({ prepared: pose ? p / 2 : p }));
     prepared = clip.uri;
     const poseJson = pose ? await analyzeClipPose(clip.uri, (p) => patch({ prepared: 0.5 + p / 2 })) : null;

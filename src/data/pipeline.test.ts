@@ -14,7 +14,7 @@ jest.mock('./prepare', () => ({
   discardPrepared: jest.fn(),
 }));
 jest.mock('./onDevicePose', () => ({
-  onDevicePoseEnabled: jest.fn(() => false),
+  shouldRunDevicePose: jest.fn(async () => false),
   analyzeClipPose: jest.fn(async (_uri: string, onProgress: (p: number) => void) => {
     onProgress(0.5);
     onProgress(1);
@@ -32,7 +32,7 @@ jest.mock('../features/purchases/usePurchases', () => ({
 }));
 
 import { ApiError, createLift, syncPlan } from '../lib/api';
-import { analyzeClipPose, onDevicePoseEnabled } from './onDevicePose';
+import { analyzeClipPose, shouldRunDevicePose } from './onDevicePose';
 
 const mockCreateLift = createLift as jest.Mock;
 const mockSyncPlan = syncPlan as jest.Mock;
@@ -117,7 +117,7 @@ describe('startLift with on-device pose', () => {
   });
 
   it('flag on: pose of the prepared clip goes up with the lift, each step half the bar', async () => {
-    (onDevicePoseEnabled as jest.Mock).mockReturnValueOnce(true);
+    (shouldRunDevicePose as jest.Mock).mockResolvedValueOnce(true);
     mockCreateLift.mockResolvedValueOnce(LIFT);
     await startLift(SUB, read);
     expect((analyzeClipPose as jest.Mock).mock.calls[0][0]).toBe('file:///clip.mov.mp4');
@@ -127,7 +127,7 @@ describe('startLift with on-device pose', () => {
   });
 
   it('flag on but Vision gave nothing: the lift goes up without a pose', async () => {
-    (onDevicePoseEnabled as jest.Mock).mockReturnValueOnce(true);
+    (shouldRunDevicePose as jest.Mock).mockResolvedValueOnce(true);
     (analyzeClipPose as jest.Mock).mockResolvedValueOnce(null);
     mockCreateLift.mockResolvedValueOnce(LIFT);
     await startLift(SUB, read);
