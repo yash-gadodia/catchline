@@ -152,3 +152,9 @@ Build 26: Cues crashed and Trends was empty on a real account. Root cause: the C
 
 - [x] One plan: the paywall offers Pull (Monthly / Annual toggle, annual preselected, "save X%" from the store's own Pull prices) plus the Founding seat. Hook and Platform are gone from the paywall, plans table, cap sheet and dev menu; the upgrade sheet and `/paywall/upgrade` are deleted. A Pull or founding lifter at the cap sees "You've used your 40 this month" and the reset date, no upgrade. Free stays 3 for life; the ad trial is unchanged
 - [ ] (Yash) RevenueCat's `default` offering still holds the `hook_*` and `platform_*` packages. The app now ignores them (it only reads `pull_monthly`, `pull_annual`, `founding`), so nothing breaks; remove them from the offering when convenient. Product ids, entitlements and `tierFromEntitlements` stay so a Hook or Platform receipt (none exist) still resolves
+## Share as an overlay video (15 Oct, worktree branch off catchline)
+- [x] (Claude) Share renders a 9:16 / 4:5 MP4 on the phone from the lifter's own clip (path drawing in sync, phase dots, label + number + cue, wordmark), Share video + Save to Photos, still card fallback when the original is gone. Research: ~/dev/liftcheck-research/35-share-card.md. Needs build 28 (new native code + expo-media-library).
+- [ ] (Yash) Facebook App ID, so Share can open the Instagram Story composer directly (`instagram-stories://share?source_application=<id>` + pasteboard), one tap fewer than the share sheet.
+- [ ] (Claude) Blurred letterbox instead of black bars when the clip is not 9:16 (4:5 feed and landscape clips).
+- [ ] (Claude) Android: renderShareVideo is iOS only; Android shows the still card.
+- Gotchas: `AVVideoCompositionCoreAnimationTool` crashes the iOS 26 simulator (CA::OGL IOSurfaceCreate), so the overlay is drawn per frame with Core Image; iPhone HLG clips need the composition pinned to Rec.709 or the overlay's white exports grey.

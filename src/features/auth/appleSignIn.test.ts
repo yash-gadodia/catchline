@@ -19,6 +19,7 @@ jest.mock('../../lib/supabase', () => ({
   supabase: {
     from: jest.fn(() => mockProfileQuery),
     rpc: jest.fn(),
+    functions: { invoke: jest.fn() },
     auth: {
       getSession: jest.fn(),
       signInWithIdToken: jest.fn(),
@@ -34,6 +35,7 @@ const mockRpc = supabase.rpc as jest.Mock;
 const mockGetSession = supabase.auth.getSession as jest.Mock;
 const mockSignInWithIdToken = supabase.auth.signInWithIdToken as jest.Mock;
 const mockSignOut = supabase.auth.signOut as jest.Mock;
+const mockInvoke = supabase.functions.invoke as jest.Mock;
 const mockSignInAsync = AppleAuthentication.signInAsync as jest.Mock;
 const appleSession = { user: { id: 'apple-1', is_anonymous: false } };
 
@@ -45,6 +47,7 @@ beforeEach(() => {
   mockSignInWithIdToken.mockResolvedValue({ data: { user: { id: 'apple-1' }, session: appleSession }, error: null });
   mockRpc.mockResolvedValue({ data: null, error: null });
   mockSignOut.mockResolvedValue({ error: null });
+  mockInvoke.mockResolvedValue({ data: { stored: true }, error: null });
   mockSignInAsync.mockResolvedValue({ identityToken: 'apple-id-token', fullName: null, email: null });
 });
 
@@ -163,6 +166,26 @@ describe('signInWithApple', () => {
     mockSignInAsync.mockResolvedValue({ identityToken: 'apple-id-token', fullName: null, email: null });
     mockSignInWithIdToken.mockResolvedValue({ data: { user: null, session: null }, error: { message: 'bad nonce' } });
     await expect(signInWithApple()).rejects.toThrow('bad nonce');
+    expect(mockInvoke).not.toHaveBeenCalled();
+  });
+
+  it('sends the authorizationCode to apple-token once, after the Supabase sign-in', async () => {
+    mockSignInAsync.mockResolvedValue({ identityToken: 'apple-id-token', authorizationCode: 'code-1', fullName: null, email: null });
+    await signInWithApple();
+    expect(mockInvoke.mock.calls).toEqual([['apple-token', { body: { authorizationCode: 'code-1' } }]]);
+    expect(mockInvoke.mock.invocationCallOrder[0]).toBeGreaterThan(mockSignInWithIdToken.mock.invocationCallOrder[0]);
+  });
+
+  it('still signs in when apple-token fails, and skips it without a code or on cancel', async () => {
+    mockSignInAsync.mockResolvedValue({ identityToken: 'apple-id-token', authorizationCode: 'code-1', fullName: null, email: null });
+    mockInvoke.mockRejectedValue(new Error('network'));
+    expect(await signInWithApple()).toEqual({ cancelled: false, userId: 'apple-1', transferred: false });
+    mockInvoke.mockClear();
+    mockSignInAsync.mockResolvedValue({ identityToken: 'apple-id-token', authorizationCode: null, fullName: null, email: null });
+    await signInWithApple();
+    mockSignInAsync.mockRejectedValue(Object.assign(new Error('cancelled'), { code: 'ERR_REQUEST_CANCELED' }));
+    await signInWithApple();
+    expect(mockInvoke).not.toHaveBeenCalled();
   });
 });
 

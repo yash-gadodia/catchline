@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Alert, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { demoClip } from '../../src/features/capture/demo';
-import ImportScreen from '../../src/features/capture/ImportScreen';
+import ImportScreen, { ImportEmpty } from '../../src/features/capture/ImportScreen';
 import { pickClip } from '../../src/features/capture/pick';
 import { useCapture, useCaptureHydrated } from '../../src/features/capture/store';
 import { submitClip, toSubmission } from '../../src/features/capture/submit';
@@ -11,7 +11,7 @@ import { colors } from '../../src/design/tokens';
 
 // Dev link: ?demo=1 loads the design's long muscle-up clip without a picker (dev builds only).
 export default function ImportRoute() {
-  const { demo } = useLocalSearchParams<{ demo?: string }>();
+  const { demo, retest } = useLocalSearchParams<{ demo?: string; retest?: string }>();
   const router = useRouter();
   const onboarded = useHydrated();
   const captureReady = useCaptureHydrated();
@@ -20,7 +20,20 @@ export default function ImportRoute() {
   const units = useOnboarding((s) => s.units);
   const { draft, setDraft, updateDraft, movement, setMovement, lastWeight } = useCapture();
   const [ready, setReady] = useState(false);
-  const leave = () => (router.canGoBack() ? router.back() : router.replace('/capture'));
+  // Cancelling the picker lands here, not on the viewfinder: import is the main way in.
+  const [empty, setEmpty] = useState(false);
+  const leave = () => (router.canGoBack() ? router.back() : router.replace('/'));
+  const pick = () => {
+    setEmpty(false);
+    pickClip(movement).then((clip) => {
+      if (!clip) return setEmpty(true);
+      setDraft(retest ? { ...clip, retest: { cueId: retest, movement } } : clip);
+      setReady(true);
+    }, () => {
+      Alert.alert("Couldn't open that video", 'Try again, or pick a clip saved on this phone.');
+      setEmpty(true);
+    });
+  };
 
   useEffect(() => {
     if (!hydrated) return;
@@ -33,16 +46,10 @@ export default function ImportRoute() {
       router.replace('/onboarding/privacy?intent=import');
       return;
     }
-    pickClip(movement).then((clip) => {
-      if (!clip) return leave();
-      setDraft(clip);
-      setReady(true);
-    }, () => {
-      Alert.alert("Couldn't open that video", 'Try again, or pick a clip saved on this phone.');
-      leave();
-    });
+    pick();
   }, [hydrated]);
 
+  if (empty) return <ImportEmpty onPick={pick} onRecord={() => router.replace('/capture')} onCancel={leave} />;
   if (!ready || !draft) return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
   return (
     <ImportScreen

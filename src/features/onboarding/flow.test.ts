@@ -6,7 +6,8 @@ describe('first-run flow', () => {
   it('walks a new lifter through every step in design order', () => {
     expect(nextAfter('launch', fresh)).toEqual({ kind: 'step', step: 'welcome' });
     expect(nextAfter('welcome', fresh)).toEqual({ kind: 'step', step: 'lifts' });
-    expect(nextAfter('lifts', fresh)).toEqual({ kind: 'step', step: 'sample' });
+    expect(nextAfter('demo', fresh)).toEqual({ kind: 'step', step: 'lifts' });
+    expect(nextAfter('lifts', fresh)).toEqual({ kind: 'step', step: 'guide' });
     expect(nextAfter('sample', fresh)).toEqual({ kind: 'step', step: 'guide' });
     expect(nextAfter('guide', fresh)).toEqual({ kind: 'step', step: 'camera' });
     expect(nextAfter('camera', { ...fresh, camera: 'granted' })).toEqual({ kind: 'step', step: 'privacy' });
@@ -29,6 +30,8 @@ describe('first-run flow', () => {
     expect(nextAfter('camera', imp)).toEqual({ kind: 'step', step: 'privacy' });
     expect(nextAfter('privacy', { ...imp, consented: true })).toEqual({ kind: 'import' });
     expect(nextAfter('welcome', { ...imp, consented: true })).toEqual({ kind: 'import' });
+    expect(nextAfter('demo', imp)).toEqual({ kind: 'step', step: 'privacy' });
+    expect(nextAfter('demo', { ...imp, consented: true })).toEqual({ kind: 'import' });
   });
 
   it('offers an account after the camera and before consent, once, on both paths', () => {

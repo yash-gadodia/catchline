@@ -15,6 +15,7 @@ export default function EvidenceStage({
   showPath = false,
   heroSize = 48,
   readoutTop = false,
+  safeTop = 0,
 }: {
   analysis: Analysis;
   cue: Cue;
@@ -23,6 +24,7 @@ export default function EvidenceStage({
   showPath?: boolean;
   heroSize?: number;
   readoutTop?: boolean;
+  safeTop?: number;
 }) {
   const rep = repByIndex(analysis, cue.evidence.rep);
   const key = keyFrameAt(rep, cue.evidence.frame);
@@ -50,7 +52,7 @@ export default function EvidenceStage({
                 {showPath ? <FlarePath points={path} /> : null}
                 <DimensionLine from={from} to={to} testID="dimension-line" />
               </OverlaySvg>
-              <HeroNumber text={heroValue(cue)} at={{ x: Math.min(from.x, to.x) + 14, y: to.y }} size={heroSize} box={box} />
+              <HeroNumber text={heroValue(cue)} at={{ x: Math.min(from.x, to.x) + 14, y: to.y }} size={heroSize} box={box} minTop={safeTop + 8} />
             </>
           );
         }}

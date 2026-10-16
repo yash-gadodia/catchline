@@ -18,12 +18,16 @@ const LONG_WAIT_MARGIN_S = 30;
 const LONG_WAIT_S = EXPECTED_ANALYSIS_S + LONG_WAIT_MARGIN_S;
 const QUEUE_POLL_MS = 10_000;
 
-type Params = { fixture?: string; state?: ProcessingState; step?: string; elapsed?: string; count?: string; live?: string; lift?: string };
+type Params = { fixture?: string; state?: ProcessingState; step?: string; elapsed?: string; count?: string; live?: string; lift?: string; retest?: string };
 
 export default function ProcessingRoute() {
   const params = useLocalSearchParams<Params>();
   if (params.live === '1') return <LiveProcessing lift={params.lift} />;
   return <Processing key={JSON.stringify(params)} params={params} />;
+}
+
+function retestParams(fixture: string, retest: string | undefined): Record<string, string> {
+  return retest ? { fixture, retest } : { fixture };
 }
 
 function recordUsage() {
@@ -74,7 +78,7 @@ function Processing({ params }: { params: Params }) {
         router.back();
       }}
       onKeepWaiting={() => setWaiting(true)}
-      onSee={() => analysis && router.replace({ pathname: '/analysis/reveal', params: { fixture: analysis.id } })}
+      onSee={() => analysis && router.replace({ pathname: '/analysis/reveal', params: retestParams(analysis.id, params.retest) })}
     />
   );
 }
@@ -209,7 +213,7 @@ function LiveProcessing({ lift }: { lift?: string }) {
         home();
       }}
       onKeepWaiting={() => setWaiting(true)}
-      onSee={() => analysis && router.replace({ pathname: '/analysis/reveal', params: { fixture: analysis.id } })}
+      onSee={() => analysis && router.replace({ pathname: '/analysis/reveal', params: retestParams(analysis.id, job?.liftId === liftId ? job?.retestCueId : undefined) })}
       onTrim={() => router.replace('/capture/trim')}
     />
   );

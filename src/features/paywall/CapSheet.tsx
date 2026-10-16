@@ -4,15 +4,16 @@ import Sheet from '../../components/Sheet';
 import { colors, space } from '../../design/tokens';
 import { MONTHLY_CAP, capResetDate, type PaidTier } from './entitlements';
 import { shortDate } from './copy';
-import { Backdrop, Body, SheetTitle } from './ui';
+import { Backdrop, Body, SheetTitle, useSheetTop } from './ui';
 
 // Monthly cap: Pull is the top plan, so the only way on is the reset.
 export default function CapSheet({ tier, now, onQueue }: { tier: PaidTier; now: Date; onQueue: () => void }) {
   const reset = shortDate(capResetDate(now));
+  const sheet = useSheetTop();
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }} testID={`cap-${tier}`}>
-      <Backdrop image="asset:snatch/ghost/3-hip" opacity={0.55} />
-      <Sheet gap={space.s4}>
+      <Backdrop art="setup" sheetTop={sheet.top} />
+      <Sheet gap={space.s4} onLayout={sheet.onLayout} testID="paywall-sheet">
         <SheetTitle size={34}>{`You've used your ${MONTHLY_CAP[tier]} this month.`}</SheetTitle>
         <Body>
           {`Resets on ${reset}. This clip is saved and goes through then. Filming and everything you've already analysed keep working.`}

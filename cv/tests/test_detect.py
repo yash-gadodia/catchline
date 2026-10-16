@@ -81,6 +81,16 @@ def test_a_low_lockout_is_still_a_snatch_but_not_a_confident_one():
     assert detect.detect(snatch_like(LOW_LOCK), FPS) == {"movement": "snatch", "confidence": 0.7}
 
 
+def test_a_bar_sweeping_past_the_shoulders_is_not_a_rack_hold():
+    # IMG_8149 (low camera, squat snatch): the bar crossed the rack band in 9 frames, rising 0.63 torsos, and was
+    # read as a clean. Real racks move 0.12-0.29 torsos in their first 0.3 s.
+    w = np.concatenate([np.full(40, FLOOR), ramp(FLOOR, 580.0, 10), ramp(580.0, 400.0, 12), ramp(400.0, OVERHEAD, 6),
+                        np.full(50, OVERHEAD), ramp(OVERHEAD, FLOOR, 20), np.full(20, FLOOR)])
+    near = np.abs(w - RACK) < 90
+    k = lifter(len(w), w, elb=(np.where(near, 40.0, 0.0), np.where(near, 620.0, (500.0 + w) / 2)))
+    assert detect.detect(k, FPS) == {"movement": "snatch", "confidence": 0.9}
+
+
 def test_clean_is_a_floor_pull_received_at_the_shoulders():
     assert detect.detect(clean_like(), FPS) == {"movement": "clean", "confidence": 0.9}
 

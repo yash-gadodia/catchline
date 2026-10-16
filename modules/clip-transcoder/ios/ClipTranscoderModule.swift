@@ -26,7 +26,7 @@ private let rec709: [String: Any] = [
   AVVideoYCbCrMatrixKey: AVVideoYCbCrMatrix_ITU_R_709_2,
 ]
 
-private func fileURL(_ uri: String) -> URL {
+func fileURL(_ uri: String) -> URL {
   if let url = URL(string: uri), url.scheme != nil { return url }
   return URL(fileURLWithPath: uri)
 }
@@ -48,6 +48,10 @@ public class ClipTranscoderModule: Module {
 
     AsyncFunction("transcode") { (o: TranscodeOptions) async throws -> [String: Any] in
       try await self.transcode(o)
+    }
+
+    AsyncFunction("renderShareVideo") { (uri: String, spec: ShareSpec) async throws -> [String: Any] in
+      try await renderShareVideo(uri: uri, spec: spec) { p in self.sendEvent("onProgress", ["progress": p]) }
     }
   }
 

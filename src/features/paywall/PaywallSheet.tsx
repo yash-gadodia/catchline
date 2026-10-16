@@ -11,7 +11,7 @@ import { PULL_SUMMARY, chargeNote, continueLabel, planPrice } from './copy';
 import { cueStatusLabel, type ProofCue } from './proofCues';
 import type { Plan } from './products';
 import { foundingState, seatsLeftLabel, type FoundingSeats } from './seats';
-import { Backdrop, Fine, OptionCard, PurchaseStateSheet, Row, SheetTitle, StatusDot, usePurchaseFlow, type Phase } from './ui';
+import { Backdrop, Fine, OptionCard, PurchaseStateSheet, Row, SheetTitle, StatusDot, usePurchaseFlow, useSheetTop, type Phase } from './ui';
 
 type Props = {
   cues: ProofCue[];
@@ -19,7 +19,6 @@ type Props = {
   platform: StorePlatform;
   now: Date;
   queuedMovement?: string;
-  backdrop?: string;
   initialPeriod?: Period;
   initialPhase?: Phase;
   priceFor?: (plan: Plan) => string;
@@ -44,7 +43,6 @@ export default function PaywallSheet({
   platform,
   now,
   queuedMovement,
-  backdrop,
   initialPeriod = 'annual',
   initialPhase = 'choose',
   priceFor = planPrice,
@@ -61,11 +59,12 @@ export default function PaywallSheet({
   const plan = planOf(choice, period);
   const founding = seats ? foundingState(seats) : 'soldOut';
   const shownPlan = flow.plan ?? plan;
+  const sheet = useSheetTop();
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }} testID="paywall">
-      <Backdrop image={backdrop} />
-      <Sheet gap={0} style={{ paddingBottom: space.s5 }}>
+      <Backdrop art="catch" sheetTop={sheet.top} />
+      <Sheet gap={0} style={{ paddingBottom: space.s5 }} onLayout={sheet.onLayout} testID="paywall-sheet">
         {flow.phase !== 'choose' ? (
           <View style={{ paddingTop: space.s3 }}>
             <PurchaseStateSheet

@@ -1,6 +1,6 @@
 import { useCallback, useState, type ReactNode } from 'react';
-import { Image, Pressable, Text, View, useWindowDimensions } from 'react-native';
-import { frameSource } from '../../analysis/frames';
+import { Image, Pressable, Text, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Btn from '../../components/Btn';
 import { colors, radius, space } from '../../design/tokens';
 import { display, fontFamily } from '../../design/typography';
@@ -11,20 +11,47 @@ import { OFFLINE_BODY, failedBody, failedTitle, purchasingLine, purchasingTitle,
 import type { CueStatus } from './proofCues';
 import type { Plan } from './products';
 
-export const DEFAULT_BACKDROP = 'asset:snatch/ghost/6-catch';
+export const ART = {
+  catch: { source: require('../../../assets/art/paywall-catch.png'), width: 507, height: 720 },
+  setup: { source: require('../../../assets/art/paywall-setup.png'), width: 792, height: 720 },
+  power: { source: require('../../../assets/art/paywall-power.png'), width: 567, height: 720 },
+  trail: { source: require('../../../assets/art/paywall-trail.png'), width: 497, height: 720 },
+} as const;
+export type ArtName = keyof typeof ART;
 
-// The saved clip, dimmed, behind every sheet: the lift is never lost behind the paywall.
-export function Backdrop({ image = DEFAULT_BACKDROP, opacity = 0.55 }: { image?: string; opacity?: number }) {
+const ART_PAD = 16;
+const ART_MAX_H = 280;
+const ART_MAX_W = 0.72;
+
+// The whole figure, centred in the band between the status bar and the sheet top.
+export function artFrame(art: { width: number; height: number }, band: { top: number; bottom: number }, screenWidth: number) {
+  const maxH = Math.min(ART_MAX_H, band.bottom - band.top - ART_PAD * 2);
+  const k = Math.max(0, Math.min(maxH / art.height, (screenWidth * ART_MAX_W) / art.width));
+  const width = art.width * k;
+  const height = art.height * k;
+  return { left: (screenWidth - width) / 2, top: band.top + (band.bottom - band.top - height) / 2, width, height };
+}
+
+export function useSheetTop() {
+  const [top, setTop] = useState<number | null>(null);
+  const onLayout = useCallback((e: LayoutChangeEvent) => setTop(e.nativeEvent.layout.y), []);
+  return { top, onLayout };
+}
+
+// Flat silhouette art above every sheet, dimmed, never cut by the sheet edge.
+export function Backdrop({ art, sheetTop, opacity = 0.4 }: { art: ArtName; sheetTop: number | null; opacity?: number }) {
   const { width, height } = useWindowDimensions();
-  const source = frameSource(image);
+  const insets = useSafeAreaInsets();
+  const a = ART[art];
+  const frame = sheetTop === null ? null : artFrame(a, { top: insets.top, bottom: sheetTop }, width);
   return (
-    <View style={{ position: 'absolute', left: 0, top: 0, width, height, backgroundColor: colors.bg }}>
-      {source ? (
+    <View pointerEvents="none" style={{ position: 'absolute', left: 0, top: 0, width, height, backgroundColor: colors.bg }}>
+      {frame ? (
         <Image
-          source={source}
-          testID="paywall-backdrop"
-          resizeMode="cover"
-          style={{ width, height, opacity }}
+          source={a.source}
+          testID={`paywall-art-${art}`}
+          resizeMode="contain"
+          style={{ position: 'absolute', ...frame, opacity }}
         />
       ) : null}
     </View>

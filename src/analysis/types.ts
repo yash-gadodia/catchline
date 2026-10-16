@@ -46,7 +46,7 @@ export type Measurement = {
   id: string;
   label: string;
   value: number;
-  unit: 'cm' | 's' | 'deg';
+  unit: 'cm' | 's' | 'deg' | 'm/s';
   best?: number;
   frame: number;
   status: 'cue' | 'follows' | 'normal' | 'not_seen' | 'best';
@@ -78,6 +78,15 @@ export type Cue = {
     unit: 'cm' | 's' | 'deg';
     caption: string;
   };
+};
+
+// Another fault that fired, ranked under the headline cue (most important first, at most 3).
+export type Note = {
+  faultId: string;
+  text: string;
+  why: string;
+  severity: number;
+  reps: number;
 };
 
 export type Failure = {
@@ -120,6 +129,8 @@ export type Analysis = {
   reps: Rep[];
   bestRepIndex: number;
   cue: Cue | null;
+  // Absent on analyses made before sub-notes shipped.
+  notes?: Note[];
   measurements: Measurement[];
   failure: Failure | null;
 };

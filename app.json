@@ -46,7 +46,15 @@
           "barcodeScannerEnabled": false
         }
       ],
-      "expo-video"
+      "expo-video",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Catchline opens the lift videos you pick so it can measure them. Nothing else in your library is read.",
+          "savePhotosPermission": "Catchline saves the lift videos and cards you make to Photos.",
+          "isAccessMediaLocationEnabled": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

@@ -4,19 +4,19 @@ import { colors, radius } from '../../design/tokens';
 
 export const JOG_STEP_PX = 8;
 
-// Drag to step frames (one per 8px); tap a half to jump to the previous or
-// next keyframe.
+// Drag to step frames (one per 8px tick); tap a half to step one frame back or
+// forward.
 export default function JogWheel({
   onStep,
-  onKeyStep,
+  onTap,
 }: {
   onStep: (frames: number) => void;
-  onKeyStep: (dir: 1 | -1) => void;
+  onTap: (dir: 1 | -1) => void;
 }) {
   const [width, setWidth] = useState(0);
   const [offset, setOffset] = useState(0);
-  const handlers = useRef({ onStep, onKeyStep, width });
-  handlers.current = { onStep, onKeyStep, width };
+  const handlers = useRef({ onStep, onTap, width });
+  handlers.current = { onStep, onTap, width };
   const consumed = useRef(0);
 
   const pan = useRef(
@@ -36,7 +36,7 @@ export default function JogWheel({
       },
       onPanResponderRelease: (e, g) => {
         if (Math.abs(g.dx) < 4) {
-          handlers.current.onKeyStep(e.nativeEvent.locationX < handlers.current.width / 2 ? -1 : 1);
+          handlers.current.onTap(e.nativeEvent.locationX < handlers.current.width / 2 ? -1 : 1);
         }
         setOffset(0);
       },

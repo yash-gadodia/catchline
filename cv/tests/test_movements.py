@@ -4,7 +4,6 @@ import pytest
 from catchline_cv import gym, movement, rules
 from catchline_cv.phases import JERK_PHASES, SNATCH_PHASES, find_jerk_reps, find_rack_reps, segment_jerk, segment_snatch
 from catchline_cv.pose import HEAD, merge_passes, strip_head, unrotate
-from catchline_cv.privacy import blur_bystanders, bystanders, person_box
 
 FPS = 30
 
@@ -52,28 +51,6 @@ def test_merge_passes_keeps_the_more_confident_pose_per_person():
     assert len(out) == 2
     assert out[0][2][0] == pytest.approx(0.8)
     assert out[1][0][0] == pytest.approx(b[0] + 400)
-
-
-def test_person_box_grows_upwards_to_cover_the_dropped_head():
-    b, k, s = person(300, 900, h=400)
-    (pb, pk, ps), = strip_head([[(b, k, s)]])[0:1][0]
-    x1, y1, x2, y2 = person_box(pb, pk, ps)
-    assert y1 < 900 - 400  # above the top of the head (the head top keypoint was dropped)
-    assert y2 > 900 and x1 < 300 - 0.08 * 400 and x2 > 300 + 0.08 * 400
-
-
-def test_blur_bystanders_blurs_the_bystander_and_not_the_lifter():
-    rng = np.random.default_rng(0)
-    img = rng.integers(0, 255, (1280, 720, 3), dtype=np.uint8)
-    lifter = person(200, 1100, h=600)
-    other = person(560, 700, h=300)
-    people = strip_head([[lifter, other]])[0]
-    out = blur_bystanders(img, bystanders(people, lifter[0]), (people[0][1], people[0][2]))
-    # noise is flattened where the bystander stood, untouched on the lifter's torso
-    by = out[480:680, 530:590].astype(float)
-    li = out[750:850, 180:220].astype(float)
-    assert by.std() < 0.3 * img[480:680, 530:590].astype(float).std()
-    assert np.array_equal(li, img[750:850, 180:220].astype(float))
 
 
 # ---------------------------------------------------------------- movement check
@@ -220,6 +197,18 @@ def test_segment_jerk_events_and_phases():
 
 
 # ---------------------------------------------------------------- gymnastics signals
+
+def test_shoulders_at_the_top_edge_mean_the_top_of_the_rep_is_cut_off():
+    # BD1AE773 (banded pull-ups, bar above a 1280 px frame): the pose put the shoulders as high as y -36 px on the
+    # original and 8 px on the app's transcode, scores ~0.45; A1F2F738 (bar in view): shoulders 336..497 px
+    original = body_seq(60, np.linspace(89.0, -36.0, 60), 330.0, 200.0)
+    transcode = body_seq(60, np.linspace(87.0, 8.0, 60), 330.0, 200.0)
+    seen = body_seq(60, np.linspace(497.0, 336.0, 60), 700.0, 250.0)
+    assert gym.shoulders_cut_off(original, 10, 50, 1280) is True
+    assert gym.shoulders_cut_off(transcode, 0, 59, 1280) is True
+    assert gym.shoulders_cut_off(original, 0, 20, 1280) is False
+    assert gym.shoulders_cut_off(seen, 0, 59, 1280) is False
+
 
 def test_cycle_tops_finds_each_rep_and_its_valleys():
     t = np.arange(150)

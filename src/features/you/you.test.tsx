@@ -34,7 +34,7 @@ const press = async (el: Parameters<typeof fireEvent.press>[0]) => {
 };
 
 const initialAccount = useAccountStore.getState();
-const nav = { onWhatIsStored: jest.fn(), onDeleteAccount: jest.fn(), onPlan: jest.fn(), onHelp: jest.fn() };
+const nav = { onDemo: jest.fn(), onWhatIsStored: jest.fn(), onDeleteAccount: jest.fn(), onPlan: jest.fn(), onHelp: jest.fn() };
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -104,6 +104,8 @@ describe('YouScreen', () => {
     expect(screen.getByText('About · 1.0.3')).toBeOnTheScreen();
     await press(screen.getByTestId('row-stored'));
     await press(screen.getByTestId('row-delete'));
+    await press(screen.getByText('See how it works'));
+    expect(nav.onDemo).toHaveBeenCalledTimes(1);
     expect(nav.onWhatIsStored).toHaveBeenCalledTimes(1);
     expect(nav.onDeleteAccount).toHaveBeenCalledTimes(1);
   });

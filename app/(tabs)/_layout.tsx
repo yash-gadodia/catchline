@@ -16,7 +16,7 @@ export default function TabsLayout() {
         <TabBar
           active={state.routes[state.index].name as TabName}
           onTab={(name) => navigation.navigate(name)}
-          onRecord={() => router.push(captureHref('/capture') as Href)}
+          onImport={() => router.push(captureHref('/capture/import') as Href)}
         />
       )}
     >

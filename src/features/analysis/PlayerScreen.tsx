@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, Text, View, useWindowDimensions } from 'react-native';
+import { Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Analysis, PhaseName } from '../../analysis/types';
-import { liftTitle, phaseLabel } from '../../analysis/format';
+import { confidenceLine, liftTitle, peakSpeed, phaseLabel, shortPhase } from '../../analysis/format';
 import { toScreen } from '../../analysis/geometry';
 import {
   clampFrame,
@@ -15,20 +15,22 @@ import {
   phaseAt,
   pointAt,
   repByIndex,
-  stepKeyFrame,
 } from '../../analysis/timeline';
 import Btn from '../../components/Btn';
 import Readout from '../../components/Readout';
 import Segmented from '../../components/Segmented';
+import SmallCaps from '../../components/SmallCaps';
 import TopBar from '../../components/TopBar';
 import { impact } from '../../lib/haptics';
 import { colors, opacity, radius, space } from '../../design/tokens';
-import { display, fontFamily } from '../../design/typography';
+import { display, fontFamily, type } from '../../design/typography';
 import Stage, { type StageLayer } from './Stage';
 import { CurrentDot, FlarePath, KeyDots, OverlaySvg, RefLine } from './overlays';
 import Scrubber from './Scrubber';
 import JogWheel from './JogWheel';
 import PhaseChips from './PhaseChips';
+import CueNotes, { Disclaimer } from './CueNotes';
+import { useRetestable } from './RetestVerdict';
 
 export type Speed = '0.25' | '0.5' | '1';
 type Overlays = { path: boolean; strobe: boolean; lines: boolean };
@@ -41,14 +43,20 @@ export default function PlayerScreen({
   onBack,
   onCompare,
   onShare,
+  onMore,
+  retestCueId,
+  onRetest,
 }: {
   analysis: Analysis;
   initialFrame?: number;
   onBack: () => void;
   onCompare?: () => void;
   onShare: () => void;
+  onMore?: () => void;
+  retestCueId?: string;
+  onRetest?: (cueId: string) => void;
 }) {
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const rep = repByIndex(analysis, analysis.cue?.evidence.rep ?? analysis.bestRepIndex);
   const [frame, setFrameState] = useState(clampFrame(rep, initialFrame ?? analysis.cue?.evidence.frame ?? rep.startFrame));
@@ -57,6 +65,8 @@ export default function PlayerScreen({
   const [scrubbing, setScrubbing] = useState(false);
   const [overlays, setOverlays] = useState<Overlays>({ path: true, strobe: false, lines: true });
   const frameRef = useRef(frame);
+  const retestable = useRetestable(analysis, retestCueId);
+  const barSpeed = peakSpeed(analysis);
 
   const setFrame = (next: number, tick: 'phase' | 'frame' = 'phase') => {
     const f = clampFrame(rep, next);
@@ -82,7 +92,8 @@ export default function PlayerScreen({
 
   const phase = phaseAt(rep, frame);
   const key = keyFrameAt(rep, frame);
-  const box = { width, height: Math.round(width * 1.25) };
+  // capped so the cue, its notes and the disclaimer start above the fold on a 6.1" phone
+  const box = { width, height: Math.round(Math.min(width * 1.25, height * 0.45)) };
   const src = { width: analysis.video.width, height: analysis.video.height };
   const focus = { x: 0.5, y: 0.3 };
 
@@ -95,6 +106,11 @@ export default function PlayerScreen({
     });
   }
 
+  const step = (n: number) => {
+    setPlaying(false);
+    setFrame(frameRef.current + n, 'frame');
+  };
+
   const pickPhase = (name: PhaseName) => {
     const k = keyFrameForPhase(rep, name);
     const p = rep.phases.find((q) => q.name === name);
@@ -103,7 +119,7 @@ export default function PlayerScreen({
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }} testID="player-screen">
-      <TopBar title={liftTitle(analysis, rep.index)} onBack={onBack} />
+      <TopBar title={liftTitle(analysis, rep.index)} onBack={onBack} onMore={onMore} />
       <View>
         <Pressable
           onPress={() => {
@@ -188,6 +204,14 @@ export default function PlayerScreen({
         </View>
       </View>
       <PhaseChips rep={rep} fps={analysis.video.fps} active={phase?.name ?? null} onPick={pickPhase} />
+      {barSpeed ? (
+        <View testID="bar-speed" style={{ flexDirection: 'row', alignItems: 'center', gap: space.s2, paddingHorizontal: space.gutter }}>
+          <SmallCaps size={12}>Peak bar speed</SmallCaps>
+          <Text testID="bar-speed-value" style={{ ...type.readout, color: colors.text, fontVariant: ['tabular-nums'] }}>
+            {barSpeed}
+          </Text>
+        </View>
+      ) : null}
       <View style={{ paddingVertical: 4, paddingHorizontal: space.gutter, flexDirection: 'row', alignItems: 'center' }}>
         <Segmented
           mono
@@ -200,29 +224,39 @@ export default function PlayerScreen({
             { value: '1', label: '1×' },
           ]}
         />
-        <JogWheel
-          onStep={(n) => setFrame(frameRef.current + n, 'frame')}
-          onKeyStep={(dir) => setFrame(stepKeyFrame(rep, frameRef.current, dir))}
-        />
-        <Text testID="frame-number" style={{
-            color: colors.text,
-            fontFamily: fontFamily.mono,
-            fontSize: 13,
-            lineHeight: 18,
-            minWidth: 40,
-            textAlign: 'right',
-            fontVariant: ['tabular-nums'],
-          }}>
-          {frame}
-        </Text>
-      </View>
-      <View style={{ flex: 1, paddingTop: space.s2, paddingHorizontal: space.gutter }}>
-        {analysis.cue ? (
-          <Text style={[display(26), { color: colors.text }]} numberOfLines={2}>
-            {analysis.cue.text}
+        <StepButton dir={-1} onPress={() => step(-1)} />
+        <JogWheel onStep={step} onTap={step} />
+        <StepButton dir={1} onPress={() => step(1)} />
+        <View style={{ minWidth: 48, alignItems: 'flex-end' }}>
+          <Text
+            testID="frame-number"
+            style={{ ...type.readout, color: colors.text, fontVariant: ['tabular-nums'] }}
+          >
+            {frame}
           </Text>
-        ) : null}
+          <Text testID="frame-phase" numberOfLines={1} style={{ ...type.caption, color: colors.text2 }}>
+            {phase ? shortPhase(phase.name) : '–'}
+          </Text>
+        </View>
       </View>
+      <ScrollView
+        testID="player-cue-area"
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingTop: space.s2, paddingHorizontal: space.gutter, gap: space.s2 }}
+      >
+        {analysis.cue ? (
+          <>
+            <Text style={[display(26), { color: colors.text }]} numberOfLines={2}>
+              {analysis.cue.text}
+            </Text>
+            <Text testID="player-confidence" style={{ ...type.caption, color: colors.text2 }}>
+              {confidenceLine(analysis.cue)}
+            </Text>
+          </>
+        ) : null}
+        <CueNotes notes={analysis.notes} />
+        <Disclaimer />
+      </ScrollView>
       <View style={{ flexDirection: 'row', gap: space.s2, paddingTop: space.s2, paddingHorizontal: space.gutter, paddingBottom: Math.max(insets.bottom, space.s4) }}>
         {onCompare ? (
           <Btn kind="secondary" compact onPress={onCompare} style={{ flex: 1 }} testID="player-compare">
@@ -232,7 +266,27 @@ export default function PlayerScreen({
         <Btn kind="secondary" compact onPress={onShare} style={{ flex: 1 }} testID="player-share">
           Share
         </Btn>
+        {retestable && onRetest ? (
+          <Btn compact onPress={() => onRetest(retestable.id)} style={{ flex: 2 }} testID="player-retest">
+            Retest this cue
+          </Btn>
+        ) : null}
       </View>
     </View>
+  );
+}
+
+function StepButton({ dir, onPress }: { dir: 1 | -1; onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      testID={dir < 0 ? 'step-back' : 'step-forward'}
+      accessibilityRole="button"
+      accessibilityLabel={dir < 0 ? 'Back one frame' : 'Forward one frame'}
+      hitSlop={4}
+      style={{ width: 36, height: 40, marginLeft: dir < 0 ? space.s2 : 0, alignItems: 'center', justifyContent: 'center' }}
+    >
+      <Text style={{ ...type.title, color: colors.text }}>{dir < 0 ? '‹' : '›'}</Text>
+    </Pressable>
   );
 }

@@ -56,6 +56,24 @@ export type Database = {
         }
         Relationships: []
       }
+      apple_tokens: {
+        Row: {
+          created_at: string
+          refresh_token: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          refresh_token: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          refresh_token?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       analyses: {
         Row: {
           analysis: Json
@@ -287,6 +305,7 @@ export type Database = {
           pose_source: string
           processed_at: string | null
           queued_at: string | null
+          retest_cue_id: string | null
           status: string
           updated_at: string
           user_id: string
@@ -304,6 +323,7 @@ export type Database = {
           pose_source?: string
           processed_at?: string | null
           queued_at?: string | null
+          retest_cue_id?: string | null
           status?: string
           updated_at?: string
           user_id: string
@@ -321,9 +341,34 @@ export type Database = {
           pose_source?: string
           processed_at?: string | null
           queued_at?: string | null
+          retest_cue_id?: string | null
           status?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      ops_alerts: {
+        Row: {
+          closed_at: string | null
+          detail: Json | null
+          id: number
+          kind: string
+          opened_at: string
+        }
+        Insert: {
+          closed_at?: string | null
+          detail?: Json | null
+          id?: never
+          kind: string
+          opened_at: string
+        }
+        Update: {
+          closed_at?: string | null
+          detail?: Json | null
+          id?: never
+          kind?: string
+          opened_at?: string
         }
         Relationships: []
       }
@@ -405,6 +450,24 @@ export type Database = {
         }
         Relationships: []
       }
+      worker_heartbeats: {
+        Row: {
+          seen_at: string
+          version: string | null
+          worker_id: string
+        }
+        Insert: {
+          seen_at?: string
+          version?: string | null
+          worker_id: string
+        }
+        Update: {
+          seen_at?: string
+          version?: string | null
+          worker_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -465,7 +528,7 @@ export type Database = {
         }
       }
       create_lift: {
-        Args: { p_load_kg?: number; p_movement: string }
+        Args: { p_load_kg?: number; p_movement: string; p_retest_cue_id?: string }
         Returns: {
           attempts: number
           charged_to: string | null
@@ -479,6 +542,7 @@ export type Database = {
           pose_source: string
           processed_at: string | null
           queued_at: string | null
+          retest_cue_id: string | null
           status: string
           updated_at: string
           user_id: string
@@ -506,6 +570,7 @@ export type Database = {
           pose_source: string
           processed_at: string | null
           queued_at: string | null
+          retest_cue_id: string | null
           status: string
           updated_at: string
           user_id: string
@@ -531,6 +596,8 @@ export type Database = {
       lift_allowance: { Args: never; Returns: Json }
       lifts_ahead: { Args: { p_lift_id: string }; Returns: number }
       mark_clip_deleted: { Args: { p_lift_id: string }; Returns: undefined }
+      ops_health: { Args: { p_now?: string }; Returns: Json }
+      ops_health_check: { Args: { p_now?: string }; Returns: Json }
       plan_cap: {
         Args: { p_plan: string }
         Returns: {
@@ -545,6 +612,7 @@ export type Database = {
         Returns: boolean
       }
       wake_worker: { Args: never; Returns: undefined }
+      worker_heartbeat: { Args: { p_version: string; p_worker: string }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never

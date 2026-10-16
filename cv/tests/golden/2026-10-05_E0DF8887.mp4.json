@@ -12,13 +12,13 @@
    "frameCount": 190
   },
   "traceKind": "bar",
-  "pxPerCm": 3.485,
+  "pxPerCm": 3.705,
   "reps": [
    {
     "index": 1,
     "startFrame": 42,
-    "endFrame": 187,
-    "made": false,
+    "endFrame": 132,
+    "made": true,
     "phases": [
      {
       "name": "setup",
@@ -28,32 +28,32 @@
      {
       "name": "first_pull",
       "startFrame": 72,
-      "endFrame": 94
+      "endFrame": 85
      },
      {
       "name": "transition",
-      "startFrame": 95,
-      "endFrame": 106
+      "startFrame": 86,
+      "endFrame": 88
      },
      {
       "name": "second_pull",
-      "startFrame": 107,
-      "endFrame": 126
+      "startFrame": 89,
+      "endFrame": 94
      },
      {
       "name": "turnover",
-      "startFrame": 127,
-      "endFrame": 139
+      "startFrame": 95,
+      "endFrame": 100
      },
      {
       "name": "catch",
-      "startFrame": 140,
-      "endFrame": 175
+      "startFrame": 101,
+      "endFrame": 102
      },
      {
       "name": "recovery",
-      "startFrame": 176,
-      "endFrame": 187
+      "startFrame": 103,
+      "endFrame": 132
      }
     ],
     "keyFrames": [
@@ -64,32 +64,32 @@
      },
      {
       "phase": "first_pull",
-      "frame": 94,
+      "frame": 85,
       "image": "kf/r1-2-first_pull.jpg"
      },
      {
       "phase": "transition",
-      "frame": 106,
+      "frame": 88,
       "image": "kf/r1-3-transition.jpg"
      },
      {
       "phase": "second_pull",
-      "frame": 126,
+      "frame": 94,
       "image": "kf/r1-4-second_pull.jpg"
      },
      {
       "phase": "turnover",
-      "frame": 132,
+      "frame": 97,
       "image": "kf/r1-5-turnover.jpg"
      },
      {
       "phase": "catch",
-      "frame": 139,
+      "frame": 100,
       "image": "kf/r1-6-catch.jpg"
      },
      {
       "phase": "recovery",
-      "frame": 187,
+      "frame": 132,
       "image": "kf/r1-7-recovery.jpg"
      }
     ],
@@ -548,292 +548,18 @@
       "frame": 132,
       "x": 0.4163,
       "y": 0.1303
-     },
-     {
-      "frame": 133,
-      "x": 0.4179,
-      "y": 0.1297
-     },
-     {
-      "frame": 134,
-      "x": 0.4187,
-      "y": 0.129
-     },
-     {
-      "frame": 135,
-      "x": 0.419,
-      "y": 0.127
-     },
-     {
-      "frame": 136,
-      "x": 0.419,
-      "y": 0.1247
-     },
-     {
-      "frame": 137,
-      "x": 0.4195,
-      "y": 0.1227
-     },
-     {
-      "frame": 138,
-      "x": 0.4206,
-      "y": 0.1212
-     },
-     {
-      "frame": 139,
-      "x": 0.422,
-      "y": 0.1201
-     },
-     {
-      "frame": 140,
-      "x": 0.4232,
-      "y": 0.1206
-     },
-     {
-      "frame": 141,
-      "x": 0.4238,
-      "y": 0.1229
-     },
-     {
-      "frame": 142,
-      "x": 0.4238,
-      "y": 0.1256
-     },
-     {
-      "frame": 143,
-      "x": 0.4238,
-      "y": 0.1266
-     },
-     {
-      "frame": 144,
-      "x": 0.4249,
-      "y": 0.1258
-     },
-     {
-      "frame": 145,
-      "x": 0.4285,
-      "y": 0.1236
-     },
-     {
-      "frame": 146,
-      "x": 0.4327,
-      "y": 0.1214
-     },
-     {
-      "frame": 147,
-      "x": 0.4349,
-      "y": 0.1213
-     },
-     {
-      "frame": 148,
-      "x": 0.4341,
-      "y": 0.1232
-     },
-     {
-      "frame": 149,
-      "x": 0.4315,
-      "y": 0.1252
-     },
-     {
-      "frame": 150,
-      "x": 0.4286,
-      "y": 0.1266
-     },
-     {
-      "frame": 151,
-      "x": 0.4253,
-      "y": 0.1282
-     },
-     {
-      "frame": 152,
-      "x": 0.422,
-      "y": 0.1315
-     },
-     {
-      "frame": 153,
-      "x": 0.423,
-      "y": 0.1369
-     },
-     {
-      "frame": 154,
-      "x": 0.4323,
-      "y": 0.1435
-     },
-     {
-      "frame": 155,
-      "x": 0.4472,
-      "y": 0.1493
-     },
-     {
-      "frame": 156,
-      "x": 0.4582,
-      "y": 0.1584
-     },
-     {
-      "frame": 157,
-      "x": 0.4558,
-      "y": 0.1776
-     },
-     {
-      "frame": 158,
-      "x": 0.4452,
-      "y": 0.2067
-     },
-     {
-      "frame": 159,
-      "x": 0.4403,
-      "y": 0.2411
-     },
-     {
-      "frame": 160,
-      "x": 0.444,
-      "y": 0.2786
-     },
-     {
-      "frame": 161,
-      "x": 0.4471,
-      "y": 0.3139
-     },
-     {
-      "frame": 162,
-      "x": 0.4498,
-      "y": 0.3432
-     },
-     {
-      "frame": 163,
-      "x": 0.4568,
-      "y": 0.3711
-     },
-     {
-      "frame": 164,
-      "x": 0.4639,
-      "y": 0.4022
-     },
-     {
-      "frame": 165,
-      "x": 0.4627,
-      "y": 0.4342
-     },
-     {
-      "frame": 166,
-      "x": 0.4513,
-      "y": 0.4595
-     },
-     {
-      "frame": 167,
-      "x": 0.4326,
-      "y": 0.4717
-     },
-     {
-      "frame": 168,
-      "x": 0.4125,
-      "y": 0.4737
-     },
-     {
-      "frame": 169,
-      "x": 0.396,
-      "y": 0.4733
-     },
-     {
-      "frame": 170,
-      "x": 0.3825,
-      "y": 0.4734
-     },
-     {
-      "frame": 171,
-      "x": 0.3704,
-      "y": 0.4727
-     },
-     {
-      "frame": 172,
-      "x": 0.3595,
-      "y": 0.4707
-     },
-     {
-      "frame": 173,
-      "x": 0.3507,
-      "y": 0.4687
-     },
-     {
-      "frame": 174,
-      "x": 0.3447,
-      "y": 0.468
-     },
-     {
-      "frame": 175,
-      "x": 0.341,
-      "y": 0.4674
-     },
-     {
-      "frame": 176,
-      "x": 0.339,
-      "y": 0.465
-     },
-     {
-      "frame": 177,
-      "x": 0.3383,
-      "y": 0.4601
-     },
-     {
-      "frame": 178,
-      "x": 0.3389,
-      "y": 0.4534
-     },
-     {
-      "frame": 179,
-      "x": 0.3412,
-      "y": 0.4463
-     },
-     {
-      "frame": 180,
-      "x": 0.3443,
-      "y": 0.4405
-     },
-     {
-      "frame": 181,
-      "x": 0.3483,
-      "y": 0.4365
-     },
-     {
-      "frame": 182,
-      "x": 0.3521,
-      "y": 0.4327
-     },
-     {
-      "frame": 183,
-      "x": 0.3568,
-      "y": 0.4285
-     },
-     {
-      "frame": 184,
-      "x": 0.3591,
-      "y": 0.4245
-     },
-     {
-      "frame": 185,
-      "x": 0.36,
-      "y": 0.422
-     },
-     {
-      "frame": 186,
-      "x": 0.3597,
-      "y": 0.4217
-     },
-     {
-      "frame": 187,
-      "x": 0.3589,
-      "y": 0.4234
      }
     ]
    }
   ],
   "bestRepIndex": 1,
   "cue": null,
+  "notes": [],
   "measurements": [
    {
     "id": "hips_rise_early",
     "label": "Hips rose early",
-    "value": -5.6,
+    "value": -5.3,
     "unit": "cm",
     "frame": 84,
     "status": "normal",
@@ -842,7 +568,7 @@
    {
     "id": "bar_forward_off_hips",
     "label": "Bar forward off hips",
-    "value": 3.9,
+    "value": 3.7,
     "unit": "cm",
     "frame": 95,
     "status": "normal",
@@ -851,49 +577,53 @@
    {
     "id": "jump_forward",
     "label": "Jumped forward",
-    "value": 3.8,
+    "value": 6.3,
     "unit": "cm",
-    "frame": 139,
+    "frame": 100,
     "status": "normal",
     "note": "feet, lift-off to catch"
    },
    {
     "id": "bar_peak_height",
     "label": "Bar peak height",
-    "value": 188.8,
+    "value": 143.2,
     "unit": "cm",
-    "frame": 139,
+    "frame": 100,
     "status": "normal",
     "note": "above lift-off (wrist midpoint)"
    },
    {
     "id": "catch_depth",
     "label": "Catch depth",
-    "value": 38.4,
+    "value": 26.6,
     "unit": "cm",
-    "frame": 187,
+    "frame": 107,
     "status": "normal",
-    "note": "power catch, hip above knee, knee 169\u00b0"
+    "note": "power catch, hip above knee, knee 100\u00b0"
    },
    {
     "id": "turnover_time",
     "label": "Extension to catch",
-    "value": 0.43,
+    "value": 0.2,
     "unit": "s",
-    "frame": 126,
+    "frame": 94,
     "status": "normal",
     "note": "\u00b1 1 frame at 30 fps"
    }
   ],
-  "failure": null
+  "failure": null,
+  "detectedMovement": {
+   "movement": "snatch",
+   "confidence": 0.9
+  }
  },
  "keyframes_md5": {
   "r1-1-setup.jpg": "6c8309cbd3a5568e84b0f1f4f65d7242",
-  "r1-2-first_pull.jpg": "101a2c171fe2711342d7f507932428a5",
-  "r1-3-transition.jpg": "c41112c456a7ebeeaad64ec163b1d48c",
-  "r1-4-second_pull.jpg": "9a5a7f2a147216d47d899f2bfc14e711",
-  "r1-5-turnover.jpg": "cbb00e75bb59445d9ab441ad48527398",
-  "r1-6-catch.jpg": "338977382fd7145aa550c20883839c1c",
-  "r1-7-recovery.jpg": "b43f9dd351426dd2a97d5b73af6dfd29"
+  "r1-2-first_pull.jpg": "29411b7f20f5c668c013647b8a38eb9d",
+  "r1-3-transition.jpg": "d57c951f4509e8068732849873b8cc67",
+  "r1-4-second_pull.jpg": "101a2c171fe2711342d7f507932428a5",
+  "r1-5-turnover.jpg": "a2fed3f4d37c1dd876fb8305889ef4d4",
+  "r1-6-catch.jpg": "2b464265a9c72a47ba756fb106b6c2d5",
+  "r1-7-recovery.jpg": "cbb00e75bb59445d9ab441ad48527398"
  }
 }

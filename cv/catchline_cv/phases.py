@@ -3,13 +3,14 @@ import numpy as np
 SNATCH_PHASES = ["setup", "first_pull", "transition", "second_pull", "turnover", "catch", "recovery"]
 
 
-def segment_snatch(bar_h, knee, fps, knee_pass=None, elbow=None, setup_s=1.0, min_rebend=3.0, catch_mask=None):
+def segment_snatch(bar_h, knee, fps, knee_pass=None, elbow=None, setup_s=1.0, min_rebend=3.0, catch_mask=None, liftoff=None):
     """Segment one snatch rep.
 
     bar_h: bar height per frame, up positive (any unit), smoothed. knee: knee angle per frame (deg), smoothed.
     knee_pass: optional frame where the bar passes knee height (fallback for the first pull end).
     elbow: optional elbow angle per frame (deg); the catch is the first lockout (>= 150; foreshortened off side-on) from the peak.
     catch_mask: optional bool per frame that replaces the elbow lockout as "bar received" (the clean's front rack).
+    liftoff: optional frame the bar left the floor (from the plate), used instead of the wrists' own.
     Returns (phases, events) with frames as indices into the arrays.
     """
     bar_h, knee = np.asarray(bar_h, float), np.asarray(knee, float)
@@ -18,9 +19,10 @@ def segment_snatch(bar_h, knee, fps, knee_pass=None, elbow=None, setup_s=1.0, mi
     floor = float(np.min(bar_h[: top + 1]))
     rng = bar_h[top] - floor
     below = np.where(bar_h[: top + 1] <= floor + 0.03 * rng)[0]
-    liftoff = int(below[-1])
-    while liftoff > 0 and bar_h[liftoff] - bar_h[liftoff - 1] > 0.01 * rng:
-        liftoff -= 1
+    if liftoff is None:
+        liftoff = int(below[-1])
+        while liftoff > 0 and bar_h[liftoff] - bar_h[liftoff - 1] > 0.01 * rng:
+            liftoff -= 1
     # turnover peak = first local max once the bar is past half its rise (a squat snatch stands up higher later)
     v = np.gradient(bar_h)
     peak = top
@@ -32,6 +34,13 @@ def segment_snatch(bar_h, knee, fps, knee_pass=None, elbow=None, setup_s=1.0, mi
             if len(dip) and bar_h[f] - dip.min() >= 0.03 * rng:
                 peak = f
                 break
+    else:
+        # a power snatch received without a dip: the wrists creep up as the lifter stands, so the highest point is
+        # the stand-up. The turnover ends where the fast rise stops (under a fifth of its top speed)
+        fast = liftoff + int(np.argmax(v[liftoff: top + 1]))
+        slow = np.where(v[fast: top + 1] < 0.2 * v[fast])[0]
+        if len(slow):
+            peak = fast + int(slow[0])
 
     from_hang = False
     if catch_mask is not None and np.asarray(catch_mask, bool).any():
@@ -78,8 +87,11 @@ def segment_snatch(bar_h, knee, fps, knee_pass=None, elbow=None, setup_s=1.0, mi
     # to the top of the hold); squat and power ride-downs alike. Without a stand-up (a miss) search the next 4 s.
     hold = bar_h[caught: max(caught + 1, min(hold_end, n))]
     dipped = np.where(hold < hold[0] - 0.03 * rng)[0]
-    if len(dipped):
-        up_again = np.where(hold >= hold[0] + 0.5 * (hold.max() - hold[0]))[0]
+    up_again = np.where(hold >= hold[0] + 0.5 * (hold.max() - hold[0]))[0]
+    # a catch with no ride-down stands up (the bar rises over a tenth of the lift) before any dip; the first dip is
+    # then the bar being lowered after the lift
+    stood_first = hold.max() - hold[0] > 0.1 * rng and len(dipped) and up_again[0] < dipped[0]
+    if len(dipped) and not stood_first:
         up_again = up_again[up_again > dipped[0]]
         stop = int(up_again[0]) if len(up_again) else int(4 * fps)
     else:
@@ -102,6 +114,25 @@ def segment_snatch(bar_h, knee, fps, knee_pass=None, elbow=None, setup_s=1.0, mi
     if catch_mask is not None:
         events["from_hang"] = from_hang
     return phases, events
+
+
+def plate_liftoff(plate_y, start, diameter, rise=0.05):
+    """The last frame the plate sat on the floor: the first frame from `start` where it has risen `rise` plate
+    diameters above where it sat at `start`, walked back to where that rise began. plate_y: image y (down positive)
+    per frame. None when the plate track is lost before it rises."""
+    y = np.asarray(plate_y, float)
+    near = y[max(0, start - 5): start + 1]
+    if not np.isfinite(near).any():
+        return None
+    base = float(np.nanmedian(near))
+    for f in range(start, len(y)):
+        if not np.isfinite(y[f]):
+            return None
+        if base - y[f] > rise * diameter:
+            while f > start and y[f - 1] > y[f]:
+                f -= 1
+            return f
+    return None
 
 
 def key_frames(events):

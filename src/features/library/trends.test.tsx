@@ -71,6 +71,16 @@ describe('Trends tab on a real account', () => {
     expect(getByText('Bar peak height above lift-off, cm. Higher is better. 4 sessions.')).toBeOnTheScreen();
   });
 
+  it('plots peak bar speed in m/s with two decimals', async () => {
+    const speed = [1.74, 1.9, 1.8];
+    load({ sessions: SESSIONS.slice(0, 3).map((s, i) => ({ ...s, values: { ...s.values, bar_speed: speed[i] } })) });
+    const { getByTestId, getByText } = await render(<TrendsScreen />);
+    await press(getByTestId('metric-bar_speed'));
+    expect(getByTestId('trend-hero')).toHaveTextContent('1.80 m/s');
+    expect(getByText('Peak bar speed in the second pull, m/s. Higher is better. 3 sessions.')).toBeOnTheScreen();
+    expect(getByTestId('trend-recap')).toHaveTextContent('Peak bar speed: 1.80 m/s on 13 Oct. Best 1.90 m/s on 12 Oct.');
+  });
+
   it('lists only the movements with lifts and explains one clean is not a trend', async () => {
     load({ sessions: SESSIONS, cues: [cue] });
     const { getByTestId, getByText, queryByTestId } = await render(<TrendsScreen />);

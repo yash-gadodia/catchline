@@ -4,6 +4,7 @@ import logging
 import os
 import time
 
+from .heartbeat import Heartbeat, worker_id, worker_version
 from .jobs import drain, process_one
 from .push import Push
 from .supa import Supabase
@@ -31,7 +32,9 @@ def main() -> None:
         for r in drain(db, analyse, a.workdir, push=push):
             print(json.dumps(r), flush=True)
         return
+    heartbeat = Heartbeat(db, worker_id(), worker_version())
     while True:
+        heartbeat.beat()
         t = time.time()
         r = process_one(db, analyse, a.workdir, push=push)
         if r is not None:

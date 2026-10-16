@@ -705,6 +705,7 @@
     "caption": "bar 23 cm in front of mid-foot"
    }
   },
+  "notes": [],
   "measurements": [
    {
     "id": "hips_rise_early",
@@ -770,15 +771,19 @@
     "note": "bar vs mid-foot when it left you (+ = in front)"
    }
   ],
-  "failure": null
+  "failure": null,
+  "detectedMovement": {
+   "movement": "snatch",
+   "confidence": 0.9
+  }
  },
  "keyframes_md5": {
-  "r1-1-setup.jpg": "38592fe8883fdfd0e49063743aea2209",
-  "r1-2-first_pull.jpg": "d150efa3f40a4327a011c74cbd45c2dd",
-  "r1-3-transition.jpg": "d0838e24d23a6a90eac4e97d1edeb5cb",
-  "r1-4-second_pull.jpg": "90d8849522bcb4f5af83a905119a3a26",
-  "r1-5-turnover.jpg": "55d447e3689751c3b92b32c601a16c3e",
-  "r1-6-catch.jpg": "d7a1a24a8e2322d26f2314b99c2c6435",
-  "r1-7-recovery.jpg": "3dc6e31a53f291800d44333eaa9bffb9"
+  "r1-1-setup.jpg": "505d61d7d9cdc3bffb0fd4942738798f",
+  "r1-2-first_pull.jpg": "29bd53c621e6272124d557772220a998",
+  "r1-3-transition.jpg": "3f3faa443ca8dd61d22990979a47dc20",
+  "r1-4-second_pull.jpg": "59af1df886224a9de8be46f74edf74ce",
+  "r1-5-turnover.jpg": "ab7148c20e0bc4a4c507d4fb0404c66c",
+  "r1-6-catch.jpg": "618a89eb082c061efa1b727dba8bc475",
+  "r1-7-recovery.jpg": "b0b6e3559b3b4eb613e727f40f12bc0c"
  }
 }

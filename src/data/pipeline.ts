@@ -8,6 +8,7 @@ import { usePurchases } from '../features/purchases/usePurchases';
 import { syncConsent } from './backend';
 import { analyzeClipPose, onDevicePoseEnabled } from './onDevicePose';
 import { ClipTooLongError, discardPrepared, prepareClip } from './prepare';
+import { rememberClip } from '../features/share/localClips';
 
 export type JobStatus = 'preparing' | 'uploading' | 'queued' | 'processing' | 'done' | 'failed';
 export type JobError = ApiErrorCode | 'clip_too_long';
@@ -24,6 +25,7 @@ export type Job = {
   error: JobError | null;
   maxS: number | null;
   uri: string | null;
+  retestCueId?: string;
 };
 
 type PipelineState = {
@@ -101,6 +103,7 @@ export async function startLift(sub: ClipSubmission & { uri: string }, read: (ur
     error: null,
     maxS: null,
     uri: sub.uri,
+    retestCueId: sub.retestCueId,
   });
   let prepared: string | null = null;
   try {
@@ -114,12 +117,14 @@ export async function startLift(sub: ClipSubmission & { uri: string }, read: (ur
     const lift = await createLiftSynced({
       movement: sub.movement,
       loadKg: sub.loadKg ?? undefined,
+      retestCueId: sub.retestCueId,
       file,
       pose: poseJson ?? undefined,
       contentType: 'video/mp4',
       onUploadUrl: (uploadUrl) => patch({ uploadUrl }),
       onProgress: (sent, total) => patch({ sent, total }),
     });
+    rememberClip(lift.id, sub.uri, sub.trim.start);
     patch({ liftId: lift.id, status: lift.status as JobStatus });
   } catch (e) {
     if (e instanceof ClipTooLongError) patch({ status: 'failed', error: 'clip_too_long', maxS: e.maxS });

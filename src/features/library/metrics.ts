@@ -4,7 +4,7 @@ export type Metric = {
   id: string;
   label: string;
   short: string;
-  unit: 'cm' | 's' | 'deg';
+  unit: 'cm' | 's' | 'deg' | 'm/s';
   lowerIsBetter: boolean;
   caption: string;
   still?: string;
@@ -58,6 +58,7 @@ export const METRICS: Record<string, Metric> = {
   chicken_wing: { id: 'chicken_wing', label: 'Elbow timing gap', short: 'elbows', unit: 's', lowerIsBetter: true, caption: 'Time between the two elbows crossing the bar, seconds.' },
   hspu_banana: { id: 'hspu_banana', label: 'Hips off the body line', short: 'hips', unit: 'cm', lowerIsBetter: true, caption: 'Hip vs shoulder-ankle line at lockout, cm.' },
   hspu_kip_timing: { id: 'hspu_kip_timing', label: 'Tuck before the kick', short: 'tuck', unit: 'cm', lowerIsBetter: true, caption: 'Knees above the hips at the deepest tuck, cm.' },
+  bar_speed: { id: 'bar_speed', label: 'Peak bar speed', short: 'speed', unit: 'm/s', lowerIsBetter: false, caption: 'Peak bar speed in the second pull, m/s.' },
   bar_peak_height: { id: 'bar_peak_height', label: 'Bar peak height', short: 'peak', unit: 'cm', lowerIsBetter: false, caption: 'Bar peak height above lift-off, cm.' },
 };
 

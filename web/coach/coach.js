@@ -134,7 +134,7 @@
 
   function measurementRows(a) {
     return a.measurements
-      .filter(function (m) { return m.status !== 'not_seen'; })
+      .filter(function (m) { return m.status !== 'not_seen' && m.id !== 'bar_speed'; })
       .map(function (m) {
         var v = fmt(m.value) + ' ' + m.unit;
         if (m.best != null) v += ' · best ' + fmt(m.best);

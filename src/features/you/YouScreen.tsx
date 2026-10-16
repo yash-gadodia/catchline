@@ -29,7 +29,7 @@ import {
   type Settings,
 } from './settings';
 
-type Nav = { onWhatIsStored: () => void; onDeleteAccount: () => void; onPlan: () => void; onHelp: () => void };
+type Nav = { onDemo: () => void; onWhatIsStored: () => void; onDeleteAccount: () => void; onPlan: () => void; onHelp: () => void };
 type Picker = 'name' | 'units' | 'defaultMovement' | 'frameRate' | 'cueReminder' | 'autoDelete' | null;
 
 function options<T extends string>(labels: Record<T, string>): { value: T; label: string }[] {
@@ -131,6 +131,7 @@ export default function YouScreen({
             testID="row-plan"
           />
         ) : null}
+        <Row title="See how it works" right={<Value>›</Value>} onPress={nav.onDemo} testID="row-demo" />
         <Section>Lifting</Section>
         <Row title="Units" right={<Value>{UNIT_LABELS[units]}</Value>} onPress={() => setPicker('units')} testID="row-units" />
         <Row title="Default lift" right={<Value>{labels.defaultMovement}</Value>} onPress={() => setPicker('defaultMovement')} testID="row-movement" />

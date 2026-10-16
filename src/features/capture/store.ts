@@ -26,6 +26,8 @@ export type Clip = {
   sets: ClipSet[];
   setIndex: number;
   rep: number | 'all';
+  // Filmed to test this cue (its movement is the clip's movement when it was started).
+  retest?: { cueId: string; movement: Movement };
 };
 
 export function newClip(fields: Pick<Clip, 'uri' | 'durationS' | 'fps' | 'source' | 'movement'> & Partial<Clip>): Clip {

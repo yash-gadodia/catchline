@@ -17,11 +17,11 @@ const RIGHT: { name: TabName; label: string }[] = [
 export default function TabBar({
   active,
   onTab,
-  onRecord,
+  onImport,
 }: {
   active: TabName;
   onTab: (name: TabName) => void;
-  onRecord: () => void;
+  onImport: () => void;
 }) {
   const insets = useSafeAreaInsets();
   const tab = (t: { name: TabName; label: string }) => {
@@ -57,10 +57,10 @@ export default function TabBar({
       {LEFT.map(tab)}
       <View style={{ flex: 1, alignItems: 'center' }}>
         <Pressable
-          onPress={onRecord}
+          onPress={onImport}
           accessibilityRole="button"
-          accessibilityLabel="Record"
-          testID="tab-record"
+          accessibilityLabel="Import a video"
+          testID="tab-import"
           style={({ pressed }) => ({
             width: 56,
             height: 56,
@@ -71,7 +71,10 @@ export default function TabBar({
             opacity: pressed ? 0.85 : 1,
           })}
         >
-          <View style={{ width: 20, height: 20, borderRadius: 10, borderWidth: 3, borderColor: colors.onFlare }} />
+          <View style={{ width: 22, height: 22, alignItems: 'center', justifyContent: 'center' }}>
+            <View style={{ position: 'absolute', width: 22, height: 3, backgroundColor: colors.onFlare }} />
+            <View style={{ position: 'absolute', width: 3, height: 22, backgroundColor: colors.onFlare }} />
+          </View>
         </Pressable>
       </View>
       {RIGHT.map(tab)}

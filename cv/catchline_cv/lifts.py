@@ -9,6 +9,7 @@ import numpy as np
 from . import gym
 from . import movement as mv
 from . import rules
+from . import speed
 from .geometry import angle, bar_from_wrists, lowpass, normalise, trunk_angle
 from .phases import find_jerk_reps, find_rack_reps, jerk_key_frames, segment_jerk
 from .pose import (L_ANK, L_BIGTOE, L_ELB, L_HEEL, L_HIP, L_KNEE, L_SHO, L_WRI, R_ANK, R_BIGTOE, R_ELB, R_HEEL, R_HIP,
@@ -123,10 +124,12 @@ def write_out(ctx, rep_info, extra_fields=None):
                          "phases": r["phases"], "keyFrames": kfs, "path": r["path"]})
     export_keyframes(ctx, jobs)
     analysis = base(ctx["analysis_id"], ctx["meta"], ctx["n"], movement) | {
-        "reps": out_reps, "bestRepIndex": best["index"], "cue": cue, "measurements": measurements, "failure": None}
+        "reps": out_reps, "bestRepIndex": best["index"], "cue": cue, "notes": rules.notes(movement, rep_info, cue),
+        "measurements": measurements, "failure": None}
     if cue_rep["px_per_cm"]:
         analysis = {**analysis, "pxPerCm": round(cue_rep["px_per_cm"] * KEYFRAME_H / ctx["H"], 3)}
-        order = ["version", "id", "movement", "video", "traceKind", "pxPerCm", "reps", "bestRepIndex", "cue", "measurements", "failure"]
+        order = ["version", "id", "movement", "video", "traceKind", "pxPerCm", "reps", "bestRepIndex", "cue", "notes",
+                 "measurements", "failure"]
         analysis = {kk: analysis[kk] for kk in order if kk in analysis}
     write(ctx["out_json"], analysis)
     timing = {"pose_s": round(ctx["t_pose"], 1), "total_s": round(time.time() - ctx["t0"], 1)}
@@ -352,6 +355,7 @@ def clean_info(ctx, r):
          "note": f"{r['catch_kind']} clean, hip {'below' if r['catch_depth'] > 0 else 'above'} knee, knee {r['catch_knee_min']:.0f}°"},
         {"id": "turnover_time", "label": "Extension to rack", "value": round(r["turnover_s"], 2), "unit": "s",
          "frame": ev["second_ext"], "status": "normal", "note": "± 1 frame at 30 fps"},
+        speed.measurement(r),
     ]
     return r
 
@@ -473,6 +477,9 @@ def run_gym(ctx):
         name = "pull" if movement == "kipping_pull_up" else "muscle-up"
     if not cyc:
         return ctx["fail"]("unsupported_movement", f"No {name} reps found in this clip.")
+    if movement != "kipping_hspu" and any(gym.shoulders_cut_off(k, a, b, H) for a, _, b in cyc):
+        return ctx["fail"]("clip_cut_off", "The bar and the top of the rep are out of the frame. Film with the bar and "
+                                           "some space above it in view.")
     infos = []
     for ri, (a, top, b) in enumerate(cyc):
         last = ri == len(cyc) - 1

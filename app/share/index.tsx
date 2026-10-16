@@ -1,38 +1,32 @@
+import { Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAnalysis } from '../../src/analysis/useAnalysis';
 import AnalysisPlaceholder from '../../src/features/analysis/AnalysisPlaceholder';
 import { usePurchases } from '../../src/features/purchases/usePurchases';
 import { hasFeature } from '../../src/features/paywall/entitlements';
 import ShareScreen from '../../src/features/share/ShareScreen';
-import { STUCK_FIXTURE } from '../../src/features/share/stuck';
-import { ASPECTS, SHARE_TYPES, type ExportState } from '../../src/features/share/model';
-
-const STATES: ExportState[] = ['idle', 'rendering', 'saved', 'failed'];
-
-function pick<T extends string>(value: string | undefined, allowed: readonly T[], fallback: T): T {
-  return allowed.find((a) => a === value) ?? fallback;
-}
+import { localClipFor } from '../../src/features/share/localClips';
+import { SHARE_ASPECTS } from '../../src/features/share/overlay';
 
 export default function ShareRoute() {
-  const p = useLocalSearchParams<{ fixture?: string; type?: string; aspect?: string; state?: string; tier?: string }>();
+  // Dev links: &clip=<file uri>&start=<s> stand in for the lifter's own clip (simulator QA).
+  const p = useLocalSearchParams<{ fixture?: string; aspect?: string; tier?: string; clip?: string; start?: string }>();
   const router = useRouter();
   const isPro = usePurchases((s) => hasFeature(s.tier, 'watermarkFreeExport'));
   const load = useAnalysis(p.fixture);
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
   if (load.status !== 'ready') return <AnalysisPlaceholder status={load.status} onBack={back} />;
   const analysis = load.analysis;
+  const clip = __DEV__ && p.clip ? { uri: p.clip, startS: Number(p.start ?? 0) } : localClipFor(analysis.id);
   return (
     <ShareScreen
-      key={`${analysis.id}-${p.type ?? ''}-${p.aspect ?? ''}-${p.state ?? ''}-${p.tier ?? ''}`}
+      key={`${analysis.id}-${p.aspect ?? ''}-${p.tier ?? ''}`}
       analysis={analysis}
       pro={p.tier ? p.tier === 'pro' : isPro}
-      stuck={STUCK_FIXTURE}
-      initialType={pick(p.type, SHARE_TYPES.map((t) => t.value), 'strobe_card')}
-      initialAspect={pick(p.aspect, ASPECTS, '9:16')}
-      initialState={pick(p.state, STATES, 'idle')}
-      initialFailure={p.type === 'overlay_video' ? 'not_available' : 'render_error'}
+      clip={clip}
+      canRenderVideo={Platform.OS === 'ios'}
+      initialAspect={SHARE_ASPECTS.find((a) => a === p.aspect) ?? '9:16'}
       onBack={back}
-      onSendToCoach={() => router.push({ pathname: '/share/coach', params: { fixture: analysis.id } })}
     />
   );
 }

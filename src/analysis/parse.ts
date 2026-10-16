@@ -28,6 +28,7 @@ export function parseAnalysis(json: unknown): Analysis {
     if (rep.path.some((p) => !inUnit(p.x) || !inUnit(p.y))) fail(`rep ${rep.index} path not normalised`);
     if (rep.keyFrames.length === 0) fail(`rep ${rep.index} has no keyFrames`);
   }
+  if (a.notes != null && !Array.isArray(a.notes)) fail('notes');
   if (a.cue && !CONFIDENCE.includes(a.cue.confidence)) fail(`confidence ${a.cue.confidence}`);
   return a;
 }

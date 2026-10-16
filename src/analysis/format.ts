@@ -59,6 +59,22 @@ export function fmt(n: number): string {
   return String(Number(n.toFixed(2)));
 }
 
+// Bar speed always shows two decimals: 1.80 m/s, like a VBT readout.
+export function speedText(v: number): string {
+  return `${v.toFixed(2)} m/s`;
+}
+
+// Off until the reading is checked against a bar-speed sensor: on the reference clips a snatch read
+// 3.40 m/s (real peaks are ~1.7-2.2) and two others had no trustworthy scale (15-10-2026).
+export const SHOW_BAR_SPEED = false;
+
+// The clip's peak bar speed, or null when it was not measured (gymnastics, jerk, or a scale too uncertain).
+export function peakSpeed(a: Analysis, show: boolean = SHOW_BAR_SPEED): string | null {
+  if (!show) return null;
+  const m = a.measurements.find((x) => x.id === 'bar_speed');
+  return m && m.status !== 'not_seen' ? speedText(m.value) : null;
+}
+
 export function seconds(s: number): string {
   return s.toFixed(2);
 }
@@ -92,7 +108,7 @@ const STATUS_TEXT: Partial<Record<Measurement['status'], string>> = {
 
 export function measurementReadout(m: Measurement): string {
   if (m.status === 'not_seen') return 'not seen';
-  const parts = [`${fmt(m.value)} ${m.unit}`];
+  const parts = [m.unit === 'm/s' ? speedText(m.value) : `${fmt(m.value)} ${m.unit}`];
   if (m.note) parts.push(m.note);
   const showBest = m.status === 'normal' && m.best != null;
   if (showBest) parts.push(`best ${fmt(m.best!)}`);
@@ -190,4 +206,29 @@ export function syncCaption(p: PhaseName, today: number, other: number): string 
 export function signedCm(cm: number): string {
   const r = Math.round(cm);
   return `${r > 0 ? '+' : ''}${r} cm`;
+}
+
+export const CONFIDENCE_BAND: Record<Cue['confidence'], 'high' | 'medium' | 'low'> = {
+  clear: 'high',
+  worth_checking: 'medium',
+  low: 'low',
+};
+
+export function filmedAtAngle(cue: Cue): boolean {
+  return /off side-on/.test(cue.confidenceText);
+}
+
+// "Confidence: high", or the band plus why it is not high (read from the CV's confidenceText).
+export function confidenceLine(cue: Cue): string {
+  const band = CONFIDENCE_BAND[cue.confidence];
+  if (band === 'high') return 'Confidence: high';
+  const t = cue.confidenceText;
+  const seen = /Seen on (\d+) of (\d+) reps/.exec(t);
+  const reasons = new Set<string>();
+  if (filmedAtAngle(cue)) reasons.add('filmed at an angle');
+  if (/behind a plate|hidden/.test(t)) reasons.add('bar partly hidden');
+  if (seen && seen[2] === '1') reasons.add('one rep only');
+  else if (seen && seen[1] !== seen[2]) reasons.add(`seen on ${seen[1]} of ${seen[2]} reps`);
+  if (/One missed rep/.test(t)) reasons.add('one rep only');
+  return `Confidence: ${band}${reasons.size ? ` · ${[...reasons].join(', ')}` : ''}`;
 }

@@ -15,26 +15,6 @@ const BUNDLED: Record<string, { color: ImageSourcePropType; gray: ImageSourcePro
     color: require('../../assets/frames/snatch/3-hip.jpg'),
     gray: require('../../assets/frames/snatch/gray/3-hip.jpg'),
   },
-  'snatch/ghost/3-hip': {
-    color: require('../../assets/frames/snatch/ghost/3-hip.jpg'),
-    gray: require('../../assets/frames/snatch/ghost/3-hip.jpg'),
-  },
-  'snatch/ghost/4-extension': {
-    color: require('../../assets/frames/snatch/ghost/4-extension.jpg'),
-    gray: require('../../assets/frames/snatch/ghost/4-extension.jpg'),
-  },
-  'snatch/ghost/5-turnover': {
-    color: require('../../assets/frames/snatch/ghost/5-turnover.jpg'),
-    gray: require('../../assets/frames/snatch/ghost/5-turnover.jpg'),
-  },
-  'snatch/ghost/6-catch': {
-    color: require('../../assets/frames/snatch/ghost/6-catch.jpg'),
-    gray: require('../../assets/frames/snatch/ghost/6-catch.jpg'),
-  },
-  'snatch/ghost/7-recovery': {
-    color: require('../../assets/frames/snatch/ghost/7-recovery.jpg'),
-    gray: require('../../assets/frames/snatch/ghost/7-recovery.jpg'),
-  },
   'snatch/4-extension': {
     color: require('../../assets/frames/snatch/4-extension.jpg'),
     gray: require('../../assets/frames/snatch/gray/4-extension.jpg'),
@@ -134,6 +114,34 @@ const BUNDLED: Record<string, { color: ImageSourcePropType; gray: ImageSourcePro
   'snatch-sideon/r1-7-recovery': {
     color: require('../../assets/analysis/snatch-sideon/r1-7-recovery.jpg'),
     gray: require('../../assets/analysis/snatch-sideon/gray/r1-7-recovery.jpg'),
+  },
+  'demo-best/r1-1-setup': {
+    color: require('../../assets/demo/r1-1-setup.jpg'),
+    gray: require('../../assets/demo/gray/r1-1-setup.jpg'),
+  },
+  'demo-best/r1-2-first_pull': {
+    color: require('../../assets/demo/r1-2-first_pull.jpg'),
+    gray: require('../../assets/demo/gray/r1-2-first_pull.jpg'),
+  },
+  'demo-best/r1-3-transition': {
+    color: require('../../assets/demo/r1-3-transition.jpg'),
+    gray: require('../../assets/demo/gray/r1-3-transition.jpg'),
+  },
+  'demo-best/r1-4-second_pull': {
+    color: require('../../assets/demo/r1-4-second_pull.jpg'),
+    gray: require('../../assets/demo/gray/r1-4-second_pull.jpg'),
+  },
+  'demo-best/r1-5-turnover': {
+    color: require('../../assets/demo/r1-5-turnover.jpg'),
+    gray: require('../../assets/demo/gray/r1-5-turnover.jpg'),
+  },
+  'demo-best/r1-6-catch': {
+    color: require('../../assets/demo/r1-6-catch.jpg'),
+    gray: require('../../assets/demo/gray/r1-6-catch.jpg'),
+  },
+  'demo-best/r1-7-recovery': {
+    color: require('../../assets/demo/r1-7-recovery.jpg'),
+    gray: require('../../assets/demo/gray/r1-7-recovery.jpg'),
   },
 };
 

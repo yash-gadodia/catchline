@@ -13,9 +13,10 @@ from . import external_pose
 from . import movement as mv
 from . import outcome
 from . import rules
+from . import speed
 from .geometry import angle, bar_from_wrists, lowpass, normalise, rise_ratio, trunk_angle
 from .lifter import select_lifter
-from .phases import SNATCH_PHASES, catch_depth, find_reps, key_frames, segment_snatch
+from .phases import SNATCH_PHASES, catch_depth, find_reps, key_frames, plate_liftoff, segment_snatch
 from .pose import (L_ANK, L_BIGTOE, L_ELB, L_HEEL, R_ELB, L_HIP, L_KNEE, L_SHO, L_WRI, R_ANK, R_BIGTOE, R_HEEL,
                    R_HIP, R_KNEE, R_SHO, R_WRI, run_pose, strip_head)
 from .privacy import blur_bystanders, bystanders
@@ -141,6 +142,7 @@ def run_snatch(ctx):
         "reps": out_reps,
         "bestRepIndex": best["index"],
         "cue": cue,
+        "notes": rules.notes("snatch", rep_info, cue),
         "measurements": measurements,
         "failure": None,
     }
@@ -175,14 +177,14 @@ def read_frame(clip, f, fps, height=KEYFRAME_H):
 
 
 def export_keyframes(ctx, jobs):
-    """Keyframe JPEGs, one per (frame, path), with every person but the lifter blurred (box from their body
-    keypoints, padded). The frames are seeked and decoded in parallel: each is its own ffmpeg process."""
+    """Keyframe JPEGs, one per (frame, path), with every person but the lifter blurred (privacy.blur_bystanders).
+    The frames are seeked and decoded in parallel: each is its own ffmpeg process."""
     fs = [int(min(max(f, 0), ctx["n"] - 1)) for f, _ in jobs]
     with ThreadPoolExecutor(4) as ex:
         imgs = list(ex.map(lambda f: read_frame(ctx["clip"], f, ctx["fps"]), fs))
     for f, img, (_, path) in zip(fs, imgs, jobs):
         others = bystanders(ctx["people"][f], ctx["boxes"][f])
-        lifter = (ctx["k"][f], ctx["ks"][f]) if np.isfinite(ctx["boxes"][f]).all() else None
+        lifter = (ctx["boxes"][f], ctx["k"][f], ctx["ks"][f]) if np.isfinite(ctx["boxes"][f]).all() else None
         img = blur_bystanders(img, others, lifter, scale=img.shape[0] / ctx["H"])
         cv2.imwrite(path, img, [cv2.IMWRITE_JPEG_QUALITY, 85])
 
@@ -263,6 +265,15 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
     foreshort = 1 / np.cos(np.radians(off_side))
     plate_raw, plate_score = track_plate(fr, seed, near)
     plate_ref = to_ref(plate_raw, Ms)
+    # the wrists rise a few cm while the lifter takes the slack out of the bar; the bar leaves the floor with the plate
+    plate_lo = plate_liftoff(plate_ref[: ev["second_ext"], 1], lo, near["axes"][0])
+    if plate_lo is not None and plate_lo > lo:
+        phases, ev = segment_snatch(up(bar[:, 1]), knee_ang, fps, elbow=elbow, catch_mask=rack, liftoff=plate_lo)
+        lo = ev["liftoff"]
+        knee_pass = next((f for f in range(lo, ev["peak"]) if bar[f, 1] <= knee[f, 1]), None)
+        if knee_pass is not None and not ev["double_knee_bend"]:
+            phases, ev = segment_snatch(up(bar[:, 1]), knee_ang, fps, knee_pass=knee_pass, elbow=elbow, catch_mask=rack,
+                                        liftoff=plate_lo)
     depth_ratio = None
     if far is None:
         # side-on, only the near plate is visible and it sits ~75 cm closer to the camera than the lifter.
@@ -363,6 +374,7 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
     path = [{"frame": g(f)} | normalise(raw(bar[f], f), W, H) for f in range(phases[0]["startFrame"], len(fr))
             if f <= ev["recovered"]]
 
+    sp = speed.peak_up_speed(bar[:, 1], fps, px_per_cm, ev["liftoff"], ev["caught"])
     info = {
         "rep_no": rep_no, "start": g(phases[0]["startFrame"]), "end": g(ev["recovered"]), "made": made,
         "phases": [p | {"startFrame": g(p["startFrame"]), "endFrame": g(p["endFrame"])} for p in phases],
@@ -374,6 +386,7 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
         "catch_knee_min": float(np.min(knee_ang[ev["caught"]: max(ev["caught"], depth_end) + 1])), "plate_tracked": int(np.isfinite(plate_raw[:, 0]).sum()),
         "plate_lost_at": g(int(np.where(np.isfinite(plate_raw[:, 0]))[0].max())), "plate_wrist_corr": agree,
         "peak_h": peak_h, "drop": drop, "turnover_s": turnover_s, "standing_h": standing_h,
+        "bar_speed": (sp[0], g(sp[1])) if sp else None,
         "hands_overlap": bool(hands_overlap), "stab_inliers_min": int(min(inliers)) if inliers else 0, "fwd": fwd,
         "severity": max(rules.fired(vals).values(), default=0.0), "outcome": outcome_kind, "miss": miss,
         "_ref": {"s0": s0, "Ms": Ms, "ksm": ksm, "bar": bar, "plate_ref": plate_ref, "knee_ang": knee_ang,
@@ -422,6 +435,7 @@ def build_cue(r, reps, best_rep, W, H):
          "note": f"{r['catch_kind']} catch, hip {'below' if r['catch_depth'] > 0 else 'above'} knee, knee {r['catch_knee_min']:.0f}°"},
         {"id": "turnover_time", "label": "Extension to catch", "value": round(r["turnover_s"], 2), "unit": "s",
          "frame": r["events"]["second_ext"], "status": "normal", "note": "± 1 frame at 30 fps"},
+        speed.measurement(r),
     ]
     if r["outcome"] == "missed_behind":
         return miss_behind_card(r, meas, W, H)

@@ -17,6 +17,7 @@ export type ClipSubmission = {
   source: ClipSource;
   fps: number | null;
   overridden: CheckId[];
+  retestCueId?: string;
 };
 
 const LB_TO_KG = 0.45359237;
@@ -37,6 +38,8 @@ export function toSubmission(clip: Clip, weight: string, units: Units): ClipSubm
     source: clip.source,
     fps: clip.fps,
     overridden: clip.overridden,
+    // A clip moved to another movement is no longer a test of that cue.
+    retestCueId: clip.retest?.movement === clip.movement ? clip.retest.cueId : undefined,
   };
 }
 
@@ -53,7 +56,7 @@ export async function submitClip(clip: ClipSubmission, opts: { replace?: boolean
   if (gate === 'trial') return go('/paywall/funnel/trial');
   if (!clip.uri && !__DEV__) return go('/capture');
   if (!backendEnabled() || !clip.uri) {
-    go({ pathname: '/analysis/processing', params: { fixture: 'snatch-mock', count: '1' } });
+    go({ pathname: '/analysis/processing', params: { fixture: 'snatch-mock', count: '1', ...(clip.retestCueId ? { retest: clip.retestCueId } : {}) } });
     return;
   }
   startLift({ ...clip, uri: clip.uri });

@@ -8,7 +8,7 @@ import type { PurchaseStatus } from '../purchases/usePurchases';
 import { FOUNDING_PRICE_CENTS, MONTHLY_CAP, PRICE_CENTS, formatUsd, type StorePlatform } from './entitlements';
 import type { Plan } from './products';
 import { foundingState, seatsFraction, type FoundingSeats } from './seats';
-import { Backdrop, Body, PurchaseStateSheet, SheetTitle, usePurchaseFlow, type Phase } from './ui';
+import { Backdrop, Body, PurchaseStateSheet, SheetTitle, usePurchaseFlow, useSheetTop, type Phase } from './ui';
 
 const FOUNDING: Plan = { kind: 'founding' };
 
@@ -35,11 +35,12 @@ export default function FoundingSheet({
   const state = foundingState(seats);
   const flow = usePurchaseFlow(purchase, initialPhase);
   const price = formatUsd(FOUNDING_PRICE_CENTS);
+  const sheet = useSheetTop();
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }} testID={`founding-${state}`}>
-      <Backdrop />
-      <Sheet gap={space.s4}>
+      <Backdrop art="trail" sheetTop={sheet.top} />
+      <Sheet gap={space.s4} onLayout={sheet.onLayout} testID="paywall-sheet">
         {flow.phase !== 'choose' ? (
           <PurchaseStateSheet
             phase={flow.phase}
