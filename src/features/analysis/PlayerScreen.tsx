@@ -29,6 +29,7 @@ import { CurrentDot, FlarePath, KeyDots, OverlaySvg, RefLine } from './overlays'
 import Scrubber from './Scrubber';
 import JogWheel from './JogWheel';
 import PhaseChips from './PhaseChips';
+import DrillCard from '../drills/DrillCard';
 import CueNotes, { Disclaimer } from './CueNotes';
 import { useRetestable } from './RetestVerdict';
 
@@ -252,6 +253,7 @@ export default function PlayerScreen({
             <Text testID="player-confidence" style={{ ...type.caption, color: colors.text2 }}>
               {confidenceLine(analysis.cue)}
             </Text>
+            <DrillCard faultId={analysis.cue.faultId} />
           </>
         ) : null}
         <CueNotes notes={analysis.notes} />

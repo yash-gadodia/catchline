@@ -13,6 +13,7 @@ import { display, fontFamily } from '../../design/typography';
 import EvidenceStage from './EvidenceStage';
 import WhyDrawer from './WhyDrawer';
 import CueNotes, { Disclaimer } from './CueNotes';
+import DrillCard from '../drills/DrillCard';
 import { isSample } from '../../analysis/fixtures';
 import { baselineSentence } from './baseline';
 import { useLibrary } from '../library/repository';
@@ -82,6 +83,7 @@ function CueBody({ analysis, nav, onWhy, retest, retestable }: { analysis: Analy
           </Text>
         ) : null}
         <StatusRow>{cue.confidenceText}</StatusRow>
+        <DrillCard faultId={cue.faultId} />
         <CueNotes notes={analysis.notes} />
         <Disclaimer />
       </ScrollView>

@@ -9,6 +9,7 @@ import { liveAnalysis } from '../../analysis/live';
 import type { Analysis } from '../../analysis/types';
 import Btn from '../../components/Btn';
 import WhyDrawer from '../analysis/WhyDrawer';
+import DrillCard from '../drills/DrillCard';
 import Readout from '../../components/Readout';
 import SmallCaps from '../../components/SmallCaps';
 import TopBar from '../../components/TopBar';
@@ -102,6 +103,7 @@ export default function CueDetailScreen({ cue, nav }: { cue: CueRecord; nav: Cue
             Why this?
           </Underlined>
         ) : null}
+        <DrillCard faultId={cue.metricId} />
       </View>
       <View style={{ flexDirection: 'row', gap: 2 }} testID="before-after">
         <Frame image={cue.before.image} width={half} height={220} gray zoom={1.25} focus={{ x: 0.52, y: 0.32 }}>
