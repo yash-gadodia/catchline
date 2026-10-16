@@ -39,9 +39,9 @@ def test_the_track_stays_on_the_athlete_when_the_coach_steps_in(hanging):
 def test_a_bar_movement_keeps_the_hands_on_the_bar_while_the_coach_holds_the_hips():
     # EDF10BB7 (= IMG_7998) frames 40-91: the coach stands under the athlete with his hands on her hips. The old tracker
     # followed him for 13 frames (hands at y up to 931; the bar is at y ~330). Frames where no detection has the
-    # athlete's hands on the bar are left empty (8 of 52) rather than given to the coach.
+    # athlete's hands on the bar are left empty (6 of 52) rather than given to the coach.
     first, people = load("kip_coach_at_hips")
     k, _, boxes = select_lifter(people, hanging=True)
-    assert np.isfinite(boxes[:, 0]).sum() == 44
+    assert np.isfinite(boxes[:, 0]).sum() == 46
     assert (top_wrist_y(k) > 420).sum() == 1
     assert np.nanmax(top_wrist_y(k)[59 - first: 81 - first]) < 360

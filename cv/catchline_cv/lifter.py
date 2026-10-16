@@ -73,7 +73,7 @@ def select_lifter(people, hanging=False):
             cands = []
             for b, k, s in people[f]:
                 o, sh = iou(pb, b), shift(pk, k, h)
-                if o < 0.1 or sh > MAX_SHIFT * g or (o < 0.3 and sh > MAX_SHIFT / 3):
+                if o < 0.3 or sh > MAX_SHIFT * g:
                     continue
                 hp = np.linalg.norm((k[L_HIP] + k[R_HIP]) / 2 - (pk[L_HIP] + pk[R_HIP]) / 2) / h
                 if hp > HIP_SHIFT * g:

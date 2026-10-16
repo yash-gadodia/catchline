@@ -258,7 +258,7 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
                                                   if len(s) == len(plates) and s[i]["side"] == pl["side"]], body_scale)
         pl["axes"] = axes or pl["axes"]
         pl["diameter_px"] = diameter or max(pl["axes"])
-        scale_ok = scale_ok and refined
+        scale_ok = scale_ok and (refined or i > 0)  # the far plate only refines the scale; a coarse one was always used
     near = plates[0]
     scale_near = near["diameter_px"] / PLATE_CM
     far = plates[1] if len(plates) > 1 else None
@@ -441,11 +441,10 @@ def near_bar_scale(scale_near, depth_ratio, body_scale):
 
 
 def check_scale(px_per_cm, method, plate_ok, scale_near, body_scale):
-    """The lifter's size is the cross-check: a plate scale far from the body's (a floor patch fitted as the plate) is
-    not used. The body's scale is, and the cue is marked low confidence: (px per cm, method, ok)."""
+    """(px per cm, method, ok). The lifter's size is the cross-check: a plate scale far from the body's (a floor patch
+    fitted as the plate) is not used, the body's is. Either that or a plate no refined fit held marks the cue low
+    confidence; a plausible coarse plate is still a better scale than the body, which a cut-off lifter shrinks."""
     if body_scale and not SCALE_VS_BODY[0] <= scale_near / body_scale <= SCALE_VS_BODY[1]:
-        plate_ok = False
-    if not plate_ok and body_scale:
         return body_scale, "body segments (plate fit unreliable)", False
     return px_per_cm, method, plate_ok
 

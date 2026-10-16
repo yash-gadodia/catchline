@@ -85,8 +85,9 @@ def test_a_plate_scale_in_line_with_the_body_is_kept():
         (4.857, "near plate x parallax depth ratio 0.83", True)
 
 
-def test_no_plate_fit_held_falls_back_to_the_body():
-    assert check_scale(5.1, "x", False, 5.1, 4.66) == (4.66, "body segments (plate fit unreliable)", False)
+def test_a_plausible_coarse_plate_is_kept_with_low_confidence():
+    # IMG_0074 rep 4: no refined fit, coarse plate 351 px, the lifter half out of frame (body 9.56 px/cm)
+    assert check_scale(7.8, "x", False, 351 / PLATE_CM, 9.56) == (7.8, "x", False)
 
 
 @pytest.mark.parametrize("method", ["body segments (plate fit unreliable)",
