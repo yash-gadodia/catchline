@@ -43,3 +43,13 @@ def test_real_clip_still_probes(tmp_path):
     src = ["-f", "lavfi", "-i", "color=c=black:s=64x48:r=30", "-frames:v", "3"]
     subprocess.run(["ffmpeg", "-v", "error", "-y", *src, "-f", "mp4", clip], check=True)
     assert probe(clip) == {"width": 64, "height": 48, "fps": 30.0, "frameCount": 3, "rotation": 0}
+
+
+def test_a_keyframe_on_the_last_frame_still_decodes(tmp_path):
+    # golden EDF10BB7 (variable frame rate): frame 388 at 29.97 fps is 12.946 s, but the last frame is stamped
+    # 12.938 s, so the seek returned no picture and the keyframe export crashed
+    from catchline_cv.pipeline import read_frame
+    clip = str(tmp_path / "clip.mp4")
+    src = ["-f", "lavfi", "-i", "testsrc=size=64x96:rate=30", "-frames:v", "30", "-pix_fmt", "yuv420p"]
+    subprocess.run(["ffmpeg", "-v", "error", "-y", *src, clip], check=True)
+    assert read_frame(clip, 29, 29.97, 96).shape == (96, 64, 3)

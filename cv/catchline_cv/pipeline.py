@@ -176,6 +176,9 @@ def write(path, obj):
 def read_frame(clip, f, fps, height=KEYFRAME_H):
     raw = subprocess.run(["ffmpeg", "-v", "error", "-ss", f"{f / fps:.4f}", "-i", clip, "-frames:v", "1",
                           "-vf", f"scale=-2:{height}", "-f", "image2pipe", "-c:v", "png", "-"], check=True, capture_output=True).stdout
+    if not raw and f > 0:
+        # variable frame rate: the last frame can be stamped before f / fps, so the seek lands past the end
+        return read_frame(clip, f - 1, fps, height)
     return cv2.imdecode(np.frombuffer(raw, np.uint8), cv2.IMREAD_COLOR)
 
 
