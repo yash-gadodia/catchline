@@ -14,6 +14,13 @@ MEMORY="$HOME_DIR/memory"
 USAGE="$HOME_DIR/usage.log"
 export PATH="/opt/homebrew/opt/openjdk@17/bin:$HOME/.maestro/bin:$HOME/.local/bin:$HOME/.bun/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 export JAVA_HOME=/opt/homebrew/opt/openjdk@17
+# launchd jobs cannot use the interactive OAuth login (it expires and is not refreshed
+# outside a login session). A long-lived token from `claude setup-token` lives in a
+# 600 file and is exported for every run.
+if [ -f "$HOME/.catchline-bot/claude-token" ]; then
+  CLAUDE_CODE_OAUTH_TOKEN="$(cat "$HOME/.catchline-bot/claude-token")"
+  export CLAUDE_CODE_OAUTH_TOKEN
+fi
 export MAESTRO_CLI_NO_ANALYTICS=1
 mkdir -p "$HOME_DIR/security" "$MEMORY" "$LOGS"
 touch "$MEMORY/tester.md" "$MEMORY/fixer.md" "$USAGE"
