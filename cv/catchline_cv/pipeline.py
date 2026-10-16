@@ -250,14 +250,15 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
     if not plates:
         return None
     samples = [plates_at(f) for f in range(max(0, lo - 24), lo, 3)]
+    from .lifts import scale_from_body
+    body_scale = scale_from_body(kw)
     scale_ok = True
     for i, pl in enumerate(plates):
-        axes, pl["diameter_px"] = plate_diameter([s[i] for s in [plates] + samples if len(s) == len(plates) and s[i]["side"] == pl["side"]])
-        if axes is None:
-            pl["diameter_px"] = max(pl["axes"])
-            scale_ok = False
-        else:
-            pl["axes"] = axes
+        axes, diameter, refined = plate_diameter([s[i] for s in [plates] + samples
+                                                  if len(s) == len(plates) and s[i]["side"] == pl["side"]], body_scale)
+        pl["axes"] = axes or pl["axes"]
+        pl["diameter_px"] = diameter or max(pl["axes"])
+        scale_ok = scale_ok and refined
     near = plates[0]
     scale_near = near["diameter_px"] / PLATE_CM
     far = plates[1] if len(plates) > 1 else None
@@ -286,8 +287,6 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
         if knee_pass is not None and not ev["double_knee_bend"]:
             phases, ev = segment_snatch(up(bar[:, 1]), knee_ang, fps, knee_pass=knee_pass, elbow=elbow, catch_mask=rack,
                                         liftoff=plate_lo)
-    from .lifts import scale_from_body
-    body_scale = scale_from_body(kw)
     depth_ratio = None
     if far is None:
         # side-on, only the near plate is visible and it sits ~75 cm closer to the camera than the lifter.
@@ -406,19 +405,26 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
     return info
 
 
-def plate_diameter(fits):
-    """(axes, diameter px) of one plate from its fits over the setup frames, or (None, None) when no fit held.
-    Single-frame ellipse fits wander ~7% on static frames, and on a dark plate that merges with its shadow some fail
-    outright (the coarse search behind them then returns a patch of floor): only refined fits count, as the median
-    after dropping any more than PLATE_FIT_SPREAD off it. The diameter is the larger axis: a fit only loses extent
-    (to the floor or a shadow cut away), so on a side-on plate the shorter axis is the damaged one."""
-    fits = [q for q in fits if "fit_inliers" in q]
+def plate_diameter(fits, body_scale=None):
+    """(axes, diameter px, refined) of one plate from its fits over the setup frames; (None, None, False) when none
+    is plausible. A 45 cm plate is SCALE_VS_BODY times the lifter's own scale, so a fit outside that band (the coarse
+    search returning a patch of floor ~2.5x the plate when refining failed) is dropped first.
+    The axes (for the camera angle) are the median of the rest, as single-frame fits wander ~7% on static frames.
+    The diameter (the scale) comes from the refined fits only, whose outline held: on a camo or speckled plate the
+    coarse disc search reads 25-40% large. Their median, after dropping any more than PLATE_FIT_SPREAD off it, of the
+    larger axis: a refined fit loses extent to the floor or a shadow, so the shorter axis is the damaged one."""
+    if body_scale:
+        lo, hi = (PLATE_CM * body_scale * x for x in SCALE_VS_BODY)
+        fits = [q for q in fits if lo <= max(q["axes"]) <= hi]
     if not fits:
-        return None, None
-    d = np.array([max(q["axes"]) for q in fits])
+        return None, None, False
+    axes = tuple(float(v) for v in np.median([q["axes"] for q in fits], axis=0))
+    refined = [q for q in fits if "fit_inliers" in q]
+    if not refined:
+        return axes, max(axes), False
+    d = np.array([max(q["axes"]) for q in refined])
     keep = np.abs(d / np.median(d) - 1) <= PLATE_FIT_SPREAD
-    axes = tuple(float(v) for v in np.median([q["axes"] for q, ok in zip(fits, keep) if ok], axis=0))
-    return axes, float(np.median(d[keep]))
+    return axes, float(np.median(d[keep])), True
 
 
 def near_bar_scale(scale_near, depth_ratio, body_scale):

@@ -21,22 +21,38 @@ RTMPOSE = [fit(213, 266, .41), fit(127, 142, .44), fit(170, 232, .58), fit(197, 
            fit(578, 312), fit(537, 376), fit(233, 263, .43), fit(213, 266, .41)]
 
 
-def test_the_plate_diameter_only_counts_fits_whose_outline_held():
-    assert plate_diameter(PHONE_POSE) == ((234.0, 263.0), 263.0)
+# 3866908355418040243.mp4 (owner's snatch, both plates in view ~33 deg off side-on; by eye the near plate is 193 px
+# tall and 162 wide): the coarse search reads it 241-270 tall, the refined fits 134-171 tall and 187-224 wide
+SPECKLED = [fit(270, 173), fit(270, 183), fit(241, 183), fit(139, 197, .40), fit(136, 187, .48), fit(171, 107, .53),
+            fit(267, 171), fit(134, 224, .48), fit(270, 173)]
 
 
-def test_failed_fits_far_from_the_median_are_dropped():
-    # 266 232 263 266 kept; 142 197 433 dropped
-    assert plate_diameter(RTMPOSE) == ((213.0, 264.5), 264.5)
+def test_fits_implausible_for_the_lifters_size_are_dropped_and_the_scale_uses_refined_fits():
+    # body 4.66 px/cm: a plate is 157-367 px; the 585-627 px floor patches go
+    assert plate_diameter(PHONE_POSE, 4.66) == ((234.0, 263.0), 263.0, True)
+
+
+def test_refined_fits_far_from_their_median_are_dropped():
+    # in band (158-369 px): 266 232 197 263 266; then 197 is >15% off the median
+    assert plate_diameter(RTMPOSE, 4.68) == ((213.0, 263.0), 264.5, True)
 
 
 def test_both_pose_sources_now_agree_on_the_plate():
-    a, b = plate_diameter(PHONE_POSE)[1], plate_diameter(RTMPOSE)[1]
+    a, b = plate_diameter(PHONE_POSE, 4.66)[1], plate_diameter(RTMPOSE, 4.68)[1]
     assert abs(a / b - 1) < 0.01
 
 
-def test_no_refined_fit_means_no_plate_diameter():
-    assert plate_diameter([fit(578, 312), fit(537, 376)]) == (None, None)
+def test_a_speckled_plate_keeps_its_angle_from_every_fit_and_its_size_from_the_refined_ones():
+    axes, diameter, refined = plate_diameter(SPECKLED, 3.75)
+    assert (axes, diameter, refined) == ((241.0, 183.0), 187.0, True)  # angle arccos(183/241) = 41 deg; old median 27
+
+
+def test_no_plausible_refined_fit_keeps_the_coarse_size_but_says_so():
+    assert plate_diameter([fit(270, 173), fit(241, 183)], 3.75) == ((255.5, 178.0), 255.5, False)
+
+
+def test_no_plausible_fit_at_all():
+    assert plate_diameter([fit(578, 312), fit(537, 376)], 4.68) == (None, None, False)
 
 
 def test_without_parallax_the_bar_sits_at_the_body_depth():
