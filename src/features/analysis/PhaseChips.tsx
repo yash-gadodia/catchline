@@ -7,14 +7,16 @@ import { phaseSeconds } from '../../analysis/timeline';
 import SmallCaps from '../../components/SmallCaps';
 import { colors, control, radius, space } from '../../design/tokens';
 import { fontFamily } from '../../design/typography';
+import { t, type Key } from '../../i18n';
 
 const UNTIMED: PhaseName[] = ['setup', 'recovery'];
 
 // Short enough that the active chip and its neighbours fit on a phone.
-const CHIP: Partial<Record<PhaseName, string>> = { transition: 'Hip', turnover: 'Turn', recovery: 'Rec' };
+const CHIP: Partial<Record<PhaseName, Key>> = { transition: 'analysis.chip.transition', turnover: 'analysis.chip.turnover', recovery: 'analysis.chip.recovery' };
 
 export function chipLabel(p: PhaseName): string {
-  return CHIP[p] ?? phaseLabel(p);
+  const key = CHIP[p];
+  return key ? t(key) : phaseLabel(p);
 }
 
 export default function PhaseChips({

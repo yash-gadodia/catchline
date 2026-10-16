@@ -5,6 +5,8 @@
 // ~/dev/liftcheck-research/40-drills-draft.md. Keyed by the CV fault id
 // (cv/catchline_cv/rules.py RULES).
 
+import { isKey, t } from '../../i18n';
+
 export type Drill = {
   faultId: string;
   name: string;
@@ -219,6 +221,19 @@ export const DRILLS: Record<string, Drill> = {
   },
 };
 
+// The drill in the lifter's language (src/i18n/<lang>/drills.ts), English where a line has no key.
 export function drillFor(faultId: string | undefined): Drill | undefined {
-  return faultId ? DRILLS[faultId] : undefined;
+  const d = faultId ? DRILLS[faultId] : undefined;
+  if (!d) return undefined;
+  const tr = (field: string, english: string) => {
+    const key = `drills.${d.faultId}.${field}`;
+    return isKey(key) ? t(key) : english;
+  };
+  return {
+    ...d,
+    name: tr('name', d.name),
+    steps: d.steps.map((s, i) => tr(`step${i + 1}`, s)),
+    dose: tr('dose', d.dose),
+    why: tr('why', d.why),
+  };
 }

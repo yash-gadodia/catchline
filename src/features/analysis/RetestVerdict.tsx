@@ -10,6 +10,8 @@ import { useLibrary } from '../library/repository';
 import { cleanStreak, liftOfAnalysis, previousValue, retestVerdict, RETESTS_TO_STICK, type Verdict } from '../library/retest';
 import type { CueRecord } from '../library/types';
 import { Underlined } from '../library/ui';
+import { t } from '../../i18n';
+import { cueText } from '../../i18n/cues';
 
 export type Retest = { cue: CueRecord; verdict: Verdict; streak: number };
 
@@ -43,18 +45,18 @@ export default function RetestVerdict({ retest, onStuck }: { retest: Retest; onS
   const stuck = streak >= RETESTS_TO_STICK && cue.status === 'trying';
   return (
     <View testID="retest-verdict" style={{ gap: space.s2, paddingBottom: space.s4, borderBottomWidth: 1, borderBottomColor: colors.hairline }}>
-      <SmallCaps>{`Retest · ${cue.text}`}</SmallCaps>
+      <SmallCaps>{t('analysis.retest.label', { cue: cueText(cue.metricId, cue.text) })}</SmallCaps>
       <Text testID="retest-verdict-text" style={{ ...type.title, color: colors.text }}>
         {verdict.text}
       </Text>
       {stuck ? (
         <>
           <Text testID="retest-streak" style={{ ...type.callout, color: colors.text2 }}>
-            {`${metricFor(cue.metricId).label} didn't come up on your last ${streak} retests.`}
+            {t('analysis.retest.streak', { metric: metricFor(cue.metricId).label, count: streak })}
           </Text>
           {onStuck ? (
             <Underlined onPress={() => onStuck(cue.id)} testID="retest-stuck">
-              It stuck
+              {t('analysis.retest.itStuck')}
             </Underlined>
           ) : null}
         </>

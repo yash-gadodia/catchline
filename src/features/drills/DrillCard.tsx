@@ -5,6 +5,7 @@ import { colors, opacity, space, stroke } from '../../design/tokens';
 import { type } from '../../design/typography';
 import { drillFor } from './drills';
 import { drillVisible, useDrillsFlag } from './flag';
+import { t } from '../../i18n';
 
 // "Try this drill" under the headline cue: name and dose, tap for the steps and why.
 // Nothing when the fault has no drill, or the drill is a draft and the gate is closed.
@@ -19,7 +20,7 @@ export default function DrillCard({ faultId }: { faultId?: string }) {
       onPress={() => setOpen((o) => !o)}
       accessibilityRole="button"
       accessibilityState={{ expanded: open }}
-      accessibilityHint={open ? 'Hides the steps' : 'Shows the steps'}
+      accessibilityHint={open ? t('drills.card.hidesSteps') : t('drills.card.showsSteps')}
       style={({ pressed }) => ({
         borderTopWidth: stroke.hairline,
         borderTopColor: colors.hairline,
@@ -29,8 +30,8 @@ export default function DrillCard({ faultId }: { faultId?: string }) {
       })}
     >
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <SmallCaps>Try this drill</SmallCaps>
-        <Text style={{ ...type.caption, color: colors.text2 }}>{open ? 'Hide' : 'Steps'}</Text>
+        <SmallCaps>{t('drills.card.title')}</SmallCaps>
+        <Text style={{ ...type.caption, color: colors.text2 }}>{open ? t('drills.card.hide') : t('drills.card.steps')}</Text>
       </View>
       <Text testID="drill-name" style={{ ...type.label, color: colors.text }}>
         {drill.name}

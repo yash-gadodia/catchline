@@ -21,6 +21,8 @@ import Stage from './Stage';
 import { FlarePath, OverlaySvg } from './overlays';
 import RetestVerdict, { useRetest, useRetestable, type Retest } from './RetestVerdict';
 import type { CueRecord } from '../library/types';
+import { t } from '../../i18n';
+import { cueText, cueWhy } from '../../i18n/cues';
 
 type Nav = {
   onTry: () => void;
@@ -72,11 +74,11 @@ function CueBody({ analysis, nav, onWhy, retest, retestable }: { analysis: Analy
       <EvidenceStage analysis={analysis} cue={cue} box={{ width, height: width }} safeTop={insets.top} />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: space.s5, paddingHorizontal: space.gutter, gap: space.s3 }}>
         {retest ? <RetestVerdict retest={retest} onStuck={nav.onStuck} /> : null}
-        <SmallCaps>{sample ? 'Sample lift · AI estimate' : 'One thing to fix · AI estimate'}</SmallCaps>
+        <SmallCaps>{sample ? t('analysis.cue.sampleLabel') : t('analysis.cue.oneThingLabel')}</SmallCaps>
         <Text style={[display(40), { color: colors.text }]} testID="cue-text">
-          {cue.text}
+          {cueText(cue.faultId, cue.text)}
         </Text>
-        <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 17, lineHeight: 24 }}>{cue.why}</Text>
+        <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 17, lineHeight: 24 }}>{cueWhy(cue.faultId, cue.why)}</Text>
         {baseline ? (
           <Text testID="cue-baseline" style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 17, lineHeight: 24 }}>
             {baseline}
@@ -89,15 +91,15 @@ function CueBody({ analysis, nav, onWhy, retest, retestable }: { analysis: Analy
       </ScrollView>
       <View style={{ paddingTop: space.s4, paddingHorizontal: space.gutter, paddingBottom: space.s7, gap: space.s2 }}>
         <Btn onPress={nav.onTry} testID="cue-try">
-          Try this next session
+          {t('analysis.cue.try')}
         </Btn>
         <RetestButton cue={retestable} nav={nav} />
         <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
           <TextAction onPress={nav.onNotForMe} testID="cue-not-for-me">
-            Not for me
+            {t('analysis.cue.notForMe')}
           </TextAction>
           <TextAction onPress={onWhy} testID="cue-why">
-            Why this?
+            {t('analysis.cue.whyThis')}
           </TextAction>
         </View>
       </View>
@@ -109,7 +111,7 @@ function RetestButton({ cue, nav }: { cue?: CueRecord; nav: Nav }) {
   if (!cue || !nav.onRetest) return null;
   return (
     <Btn kind="secondary" onPress={() => nav.onRetest?.(cue.id)} testID="cue-retest">
-      Retest this cue
+      {t('analysis.cue.retest')}
     </Btn>
   );
 }
@@ -158,12 +160,12 @@ function LowConfidence({ analysis, nav, retest, retestable }: { analysis: Analys
         }}
       >
         <Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 15, lineHeight: 21 }}>
-          {cue.confidence === 'low' ? 'Low confidence' : 'Worth checking, not certain'}
+          {cue.confidence === 'low' ? t('analysis.cue.lowConfidence') : t('analysis.cue.worthChecking')}
         </Text>
         <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>
           {cue.confidenceText}
         </Text>
-        <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>dashed path = lower confidence</Text>
+        <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>{t('analysis.cue.dashedPath')}</Text>
       </View>
       <View>
         <Stage src={src} box={box} focus={{ x: 0.5, y: 0.45 }} layers={[{ image: key.image }]}>
@@ -176,9 +178,9 @@ function LowConfidence({ analysis, nav, retest, retestable }: { analysis: Analys
       </View>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: space.s4, paddingHorizontal: space.gutter, gap: space.s2 }}>
         {retest ? <RetestVerdict retest={retest} onStuck={nav.onStuck} /> : null}
-        <SmallCaps>Possible</SmallCaps>
-        <Text style={[display(32), { color: colors.text }]}>{cue.text}</Text>
-        <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>{cue.why}</Text>
+        <SmallCaps>{t('analysis.cue.possible')}</SmallCaps>
+        <Text style={[display(32), { color: colors.text }]}>{cueText(cue.faultId, cue.text)}</Text>
+        <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>{cueWhy(cue.faultId, cue.why)}</Text>
         <CueNotes notes={analysis.notes} />
         <Disclaimer />
       </ScrollView>
@@ -190,13 +192,13 @@ function LowConfidence({ analysis, nav, retest, retestable }: { analysis: Analys
           }}
           testID="see-breakdown"
         >
-          See the breakdown
+          {t('analysis.cue.seeBreakdown')}
         </Btn>
         <RetestButton cue={retestable} nav={nav} />
         {filmedAtAngle(cue) ? (
           <View style={{ alignItems: 'center' }}>
             <TextAction onPress={nav.onFilmAgain} testID="film-again">
-              Film again from the side
+              {t('analysis.cue.filmAgain')}
             </TextAction>
           </View>
         ) : null}
@@ -213,16 +215,16 @@ function NoCue({ analysis, nav, retest, retestable }: { analysis: Analysis; nav:
       <View style={{ flex: 1, padding: space.gutter, gap: space.s2 }}>
         {retest ? <RetestVerdict retest={retest} onStuck={nav.onStuck} /> : null}
         <Text style={[display(32), { color: colors.text }]}>
-          {analysis.failure ? "We couldn't read this one" : 'Nothing to fix on this set'}
+          {analysis.failure ? t('analysis.cue.couldNotRead') : t('analysis.cue.nothingToFix')}
         </Text>
         <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 17, lineHeight: 24 }}>
-          {analysis.failure?.message ?? 'Every rep matched your best. Keep filming.'}
+          {analysis.failure?.message ?? t('analysis.cue.everyRepMatched')}
         </Text>
       </View>
       {retestable && nav.onRetest ? (
         <View style={{ paddingHorizontal: space.gutter, paddingBottom: Math.max(insets.bottom, space.s7) }}>
           <Btn onPress={() => nav.onRetest?.(retestable.id)} testID="cue-retest">
-            Retest this cue
+            {t('analysis.cue.retest')}
           </Btn>
         </View>
       ) : null}

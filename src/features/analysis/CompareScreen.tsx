@@ -13,6 +13,7 @@ import { colors, radius, space } from '../../design/tokens';
 import { fontFamily } from '../../design/typography';
 import Stage from './Stage';
 import { FlarePath, GhostPath, HeroNumber, OverlaySvg } from './overlays';
+import { t } from '../../i18n';
 
 export type CompareMode = 'ghost' | 'side';
 
@@ -60,7 +61,7 @@ export default function CompareScreen({
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }} testID={`compare-${mode}`}>
       <TopBar
-        back="Back"
+        back={t('analysis.compare.back')}
         onBack={onBack}
         center={
           <Segmented
@@ -68,8 +69,8 @@ export default function CompareScreen({
             value={mode}
             onChange={onMode}
             options={[
-              { value: 'ghost', label: 'Ghost' },
-              { value: 'side', label: 'Side by side' },
+              { value: 'ghost', label: t('analysis.compare.ghost') },
+              { value: 'side', label: t('analysis.compare.sideBySide') },
             ]}
           />
         }
@@ -89,13 +90,13 @@ export default function CompareScreen({
           }}
         >
           <Text style={{ color: colors.text, fontFamily: fontFamily.bodyMedium, fontSize: 15, lineHeight: 20 }}>
-            {`vs ${target.label} · ${fmt(other.loadKg ?? 0)} kg · ${target.dateLabel}`}
+            {t('analysis.compare.target', { target: t(target.kind === 'best' ? 'analysis.compare.yourBest' : 'analysis.compare.lastSession'), load: fmt(other.loadKg ?? 0), date: target.dateLabel })}
           </Text>
           <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 13, lineHeight: 18 }}>▾</Text>
         </Pressable>
       </View>
       {mode === 'ghost' ? (
-        <Ghost analysis={analysis} other={other} sync={sync} box={{ width, height }} label={target.kind === 'best' ? 'best' : target.dateLabel} />
+        <Ghost analysis={analysis} other={other} sync={sync} box={{ width, height }} label={target.kind === 'best' ? t('analysis.compare.best') : target.dateLabel} />
       ) : (
         <SideBySide analysis={analysis} other={other} sync={sync} width={width} height={height} dateLabel={target.dateLabel} />
       )}
@@ -157,7 +158,7 @@ function Ghost({ analysis, other, sync, box, label }: { analysis: Analysis; othe
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           <View style={{ width: 14, height: 3, backgroundColor: colors.flare }} />
-          <Text style={{ color: colors.text, fontFamily: fontFamily.mono, fontSize: 12, lineHeight: 16 }}>today</Text>
+          <Text style={{ color: colors.text, fontFamily: fontFamily.mono, fontSize: 12, lineHeight: 16 }}>{t('analysis.compare.today')}</Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           <View style={{ flexDirection: 'row', gap: 2 }}>
@@ -203,7 +204,7 @@ function SideBySide({
             )}
           </Stage>
           <Readout size={12} style={{ position: 'absolute', left: 12, top: 12 }}>
-            today
+            {t('analysis.compare.today')}
           </Readout>
         </View>
         <View>

@@ -8,6 +8,8 @@ import TopBar from '../../components/TopBar';
 import { colors, space } from '../../design/tokens';
 import { display, fontFamily } from '../../design/typography';
 import EvidenceStage from './EvidenceStage';
+import { t } from '../../i18n';
+import { cueText, cueWhy } from '../../i18n/cues';
 
 export default function MissScreen({
   analysis,
@@ -36,16 +38,16 @@ export default function MissScreen({
             readoutTop
           />
           <View style={{ flex: 1, paddingTop: space.s5, paddingHorizontal: space.gutter, gap: 10 }}>
-            <SmallCaps>You missed because</SmallCaps>
-            <Text style={[display(36), { color: colors.text }]}>{cue.text}</Text>
+            <SmallCaps>{t('analysis.miss.because')}</SmallCaps>
+            <Text style={[display(36), { color: colors.text }]}>{cueText(cue.faultId, cue.text)}</Text>
             <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>
-              {cue.why}
+              {cueWhy(cue.faultId, cue.why)}
             </Text>
           </View>
           {onCompare ? (
             <View style={{ paddingTop: space.s4, paddingHorizontal: space.gutter, paddingBottom: space.s7 }}>
               <Btn onPress={onCompare} testID="miss-compare">
-                Compare with your make
+                {t('analysis.miss.compare')}
               </Btn>
             </View>
           ) : null}

@@ -34,6 +34,8 @@ import CueNotes, { Disclaimer } from './CueNotes';
 import { useRetestable } from './RetestVerdict';
 import DrawLayer from './DrawLayer';
 import { isComplete, type Shape } from './drawGeometry';
+import { t } from '../../i18n';
+import { cueText } from '../../i18n/cues';
 
 export type Speed = '0.25' | '0.5' | '1';
 type Overlays = { path: boolean; strobe: boolean; lines: boolean };
@@ -138,7 +140,7 @@ export default function PlayerScreen({
             setPlaying((p) => !p);
           }}
           disabled={drawing}
-          accessibilityLabel={playing ? 'Pause' : 'Play'}
+          accessibilityLabel={playing ? t('analysis.player.pause') : t('analysis.player.play')}
           testID="stage-press"
         >
           <Stage src={src} box={box} focus={focus} layers={layers} testID="player-stage">
@@ -182,11 +184,11 @@ export default function PlayerScreen({
         </Pressable>
         <View testID="overlay-toggles" style={{ position: 'absolute', left: space.gutter, bottom: 64, flexDirection: 'row', gap: 6 }}>
           {(['path', 'strobe', 'lines'] as const).map((k) => (
-            <OverlayChip key={k} label={k} on={overlays[k]} onPress={() => setOverlays((o) => ({ ...o, [k]: !o[k] }))} />
+            <OverlayChip key={k} kind={k} on={overlays[k]} onPress={() => setOverlays((o) => ({ ...o, [k]: !o[k] }))} />
           ))}
           {playing ? null : (
             <OverlayChip
-              label="draw"
+              kind="draw"
               on={drawing}
               onPress={() => {
                 if (drawing) exitDraw();
@@ -196,7 +198,7 @@ export default function PlayerScreen({
           )}
           {shapes.length > 0 ? (
             <OverlayChip
-              label="clear"
+              kind="clear"
               on={false}
               onPress={() => {
                 setShapes([]);
@@ -211,7 +213,7 @@ export default function PlayerScreen({
           <Scrubber
             rep={rep}
             frame={frame}
-            label={`${phase ? phaseLabel(phase.name).toLowerCase() : 'frame'} · ${frame}`}
+            label={`${phase ? phaseLabel(phase.name).toLowerCase() : t('analysis.player.frame')} · ${frame}`}
             onFrame={(f) => setFrame(f)}
             onScrubbing={(on) => {
               setScrubbing(on);
@@ -227,7 +229,7 @@ export default function PlayerScreen({
       <PhaseChips rep={rep} fps={analysis.video.fps} active={phase?.name ?? null} onPick={pickPhase} />
       {barSpeed ? (
         <View testID="bar-speed" style={{ flexDirection: 'row', alignItems: 'center', gap: space.s2, paddingHorizontal: space.gutter }}>
-          <SmallCaps size={12}>Peak bar speed</SmallCaps>
+          <SmallCaps size={12}>{t('format.measurement.peakBarSpeed')}</SmallCaps>
           <Text testID="bar-speed-value" style={{ ...type.readout, color: colors.text, fontVariant: ['tabular-nums'] }}>
             {barSpeed}
           </Text>
@@ -268,7 +270,7 @@ export default function PlayerScreen({
         {analysis.cue ? (
           <>
             <Text style={[display(26), { color: colors.text }]} numberOfLines={2}>
-              {analysis.cue.text}
+              {cueText(analysis.cue.faultId, analysis.cue.text)}
             </Text>
             <Text testID="player-confidence" style={{ ...type.caption, color: colors.text2 }}>
               {confidenceLine(analysis.cue)}
@@ -282,15 +284,15 @@ export default function PlayerScreen({
       <View style={{ flexDirection: 'row', gap: space.s2, paddingTop: space.s2, paddingHorizontal: space.gutter, paddingBottom: Math.max(insets.bottom, space.s4) }}>
         {onCompare ? (
           <Btn kind="secondary" compact onPress={onCompare} style={{ flex: 1 }} testID="player-compare">
-            Compare
+            {t('analysis.player.compare')}
           </Btn>
         ) : null}
         <Btn kind="secondary" compact onPress={onShare} style={{ flex: 1 }} testID="player-share">
-          Share
+          {t('analysis.player.share')}
         </Btn>
         {retestable && onRetest ? (
           <Btn compact onPress={() => onRetest(retestable.id)} style={{ flex: 2 }} testID="player-retest">
-            Retest this cue
+            {t('analysis.cue.retest')}
           </Btn>
         ) : null}
       </View>
@@ -304,7 +306,7 @@ function StepButton({ dir, onPress }: { dir: 1 | -1; onPress: () => void }) {
       onPress={onPress}
       testID={dir < 0 ? 'step-back' : 'step-forward'}
       accessibilityRole="button"
-      accessibilityLabel={dir < 0 ? 'Back one frame' : 'Forward one frame'}
+      accessibilityLabel={dir < 0 ? t('analysis.player.backFrame') : t('analysis.player.forwardFrame')}
       hitSlop={4}
       style={{ width: 36, height: 40, marginLeft: dir < 0 ? space.s2 : 0, alignItems: 'center', justifyContent: 'center' }}
     >
@@ -313,14 +315,14 @@ function StepButton({ dir, onPress }: { dir: 1 | -1; onPress: () => void }) {
   );
 }
 
-function OverlayChip({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) {
-  const toggle = label !== 'clear';
+function OverlayChip({ kind, on, onPress }: { kind: 'path' | 'strobe' | 'lines' | 'draw' | 'clear'; on: boolean; onPress: () => void }) {
+  const toggle = kind !== 'clear';
   return (
     <Pressable
-      testID={`toggle-${label}`}
+      testID={`toggle-${kind}`}
       accessibilityRole={toggle ? 'switch' : 'button'}
       accessibilityState={toggle ? { checked: on } : undefined}
-      accessibilityLabel={toggle ? undefined : 'Clear drawings'}
+      accessibilityLabel={toggle ? undefined : t('analysis.player.clearDrawings')}
       onPress={onPress}
       style={{
         height: 44,
@@ -331,7 +333,7 @@ function OverlayChip({ label, on, onPress }: { label: string; on: boolean; onPre
         borderRadius: radius.control,
       }}
     >
-      <Text style={{ ...type.caption, color: on || !toggle ? colors.text : colors.text3 }}>{label}</Text>
+      <Text style={{ ...type.caption, color: on || !toggle ? colors.text : colors.text3 }}>{t(`analysis.player.overlay.${kind}`)}</Text>
     </Pressable>
   );
 }

@@ -7,6 +7,7 @@ import type { Point } from '../../analysis/types';
 import { colors, space, stroke } from '../../design/tokens';
 import { type } from '../../design/typography';
 import { selection } from '../../lib/haptics';
+import { formatNumber, t } from '../../i18n';
 import { addAnglePoint, addLine, angleAt, canDraw, fromScreen, lineLengthCm, type Shape } from './drawGeometry';
 
 // A touch that travels less than this is a tap (an angle point), more is a line.
@@ -52,7 +53,7 @@ export default function DrawLayer({ box, fit, video, pxPerCm, shapes, onShapes, 
       if (cm === null) return;
       const a = s(shape.points[0]);
       const b = s(shape.points[1]);
-      labels.push({ text: `${cm.toFixed(1)} cm`, at: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, testID: `draw-label-${i}` });
+      labels.push({ text: `${formatNumber(cm, undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} cm`, at: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, testID: `draw-label-${i}` });
     } else if (shape.points.length === 3) {
       const [a, v, c] = shape.points;
       labels.push({ text: `${Math.round(angleAt(a, v, c, video))}°`, at: s(v), testID: `draw-label-${i}` });
@@ -88,7 +89,7 @@ export default function DrawLayer({ box, fit, video, pxPerCm, shapes, onShapes, 
       {drawing ? (
         <View
           testID="draw-surface"
-          accessibilityLabel="Drawing surface: drag for a line, tap three points for an angle"
+          accessibilityLabel={t('analysis.player.drawSurface')}
           style={{ position: 'absolute', left: 0, top: 0, width: box.width, height: box.height }}
           onStartShouldSetResponder={() => true}
           onMoveShouldSetResponder={() => true}

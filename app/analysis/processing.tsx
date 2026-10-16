@@ -10,7 +10,8 @@ import { useUsage } from '../../src/features/paywall/usageStore';
 import { usePurchases } from '../../src/features/purchases/usePurchases';
 import { liftsAhead, subscribeToLift } from '../../src/lib/api';
 import { syncLibrary } from '../../src/data/library';
-import { uploadStep, usePipeline, type JobStatus } from '../../src/data/pipeline';
+import { usePipeline, type Job, type JobStatus } from '../../src/data/pipeline';
+import { t } from '../../src/i18n';
 
 const STEP_MS = 1100;
 const CRAWL_MS = 4000;
@@ -24,6 +25,13 @@ export default function ProcessingRoute() {
   const params = useLocalSearchParams<Params>();
   if (params.live === '1') return <LiveProcessing lift={params.lift} />;
   return <Processing key={JSON.stringify(params)} params={params} />;
+}
+
+// src/data/pipeline uploadStep's meta, in the lifter's language.
+function uploadMeta(job: Job | null): string | null {
+  if (job?.status === 'preparing') return t('analysis.processing.preparingPct', { pct: Math.round(job.prepared * 100) });
+  if (job?.status === 'uploading' && job.total > 0) return t('analysis.processing.uploadingPct', { pct: Math.round((job.sent / job.total) * 100) });
+  return null;
 }
 
 function retestParams(fixture: string, retest: string | undefined): Record<string, string> {
@@ -191,7 +199,6 @@ function LiveProcessing({ lift }: { lift?: string }) {
   const step = analysis ? 5 : STEP_FOR[current] + (current === 'processing' ? crawl : 0);
   const tooLong = job?.error === 'clip_too_long';
   const state: ProcessingState = tooLong ? 'too_long' : analysis ? 'done' : serverElapsed > LONG_WAIT_S && !waiting ? 'long' : 'progress';
-  const first = uploadStep(job);
   // The clip is still on the phone only for the lift this session sent.
   const clipUri = job && (!lift || lift === job.liftId) ? job.uri : null;
 
@@ -199,8 +206,8 @@ function LiveProcessing({ lift }: { lift?: string }) {
     <ProcessingSheet
       analysis={analysis}
       clipUri={clipUri}
-      meta={first.meta ?? `${elapsed} s`}
-      firstStep={first.label}
+      meta={uploadMeta(job) ?? `${elapsed} s`}
+      firstStep={job?.status === 'preparing' ? t('analysis.processing.preparingClip') : t('analysis.processing.uploadingClip')}
       maxS={job?.maxS ?? undefined}
       state={state}
       step={step}

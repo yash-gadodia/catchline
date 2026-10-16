@@ -1,67 +1,83 @@
 import type { Analysis, Cue, Measurement, Movement, PhaseName } from './types';
+import { formatNumber, t, type Key } from '../i18n';
 
-const MOVEMENT: Record<Movement, string> = {
-  snatch: 'Snatch',
-  clean: 'Clean',
-  jerk: 'Jerk',
-  kipping_pull_up: 'Kipping pull-up',
-  bar_muscle_up: 'Bar muscle-up',
-  kipping_hspu: 'Kipping HSPU',
+// English measurement labels the worker sends, matched to a translation; anything new stays as sent.
+const MEASUREMENT: Record<string, Key> = {
+  'Hips rose early': 'format.measurement.hipsRoseEarly',
+  'Bar forward off hips': 'format.measurement.barForwardOffHips',
+  'Jumped forward': 'format.measurement.jumpedForward',
+  'Jump forward': 'format.measurement.jumpForward',
+  'Early arm bend': 'format.measurement.earlyArmBend',
+  'Extension short': 'format.measurement.extensionShort',
+  'Bar forward in dip': 'format.measurement.barForwardInDip',
+  'Press-out': 'format.measurement.pressOut',
+  'Chest forward in catch': 'format.measurement.chestForwardInCatch',
+  'Bar forward overhead': 'format.measurement.barForwardOverhead',
+  'Knee bend in the swing': 'format.measurement.kneeBendInSwing',
+  'Arms before hips': 'format.measurement.armsBeforeHips',
+  'Push-away at the top': 'format.measurement.pushAwayAtTop',
+  'Hips under bar at the pull': 'format.measurement.hipsUnderBarAtPull',
+  'Hips under bar at transition': 'format.measurement.hipsUnderBarAtTransition',
+  'Elbow timing gap': 'format.measurement.elbowTimingGap',
+  'Hips off the body line': 'format.measurement.hipsOffBodyLine',
+  'Tuck before the kick': 'format.measurement.tuckBeforeKick',
+  'Bar peak height': 'format.measurement.barPeakHeight',
+  'Catch depth': 'format.measurement.catchDepth',
+  'Extension to rack': 'format.measurement.extensionToRack',
+  'Extension to catch': 'format.measurement.extensionToCatch',
+  'Dip depth': 'format.measurement.dipDepth',
+  'Foot split': 'format.measurement.footSplit',
+  'Lockout elbow': 'format.measurement.lockoutElbow',
+  'Knee bend in the dip': 'format.measurement.kneeBendInDip',
+  'Chin over bar (est.)': 'format.measurement.chinOverBar',
+  Swing: 'format.measurement.swing',
+  'Lockout in support': 'format.measurement.lockoutInSupport',
+  'Shoulders over bar': 'format.measurement.shouldersOverBar',
+  Tuck: 'format.measurement.tuck',
+  'Drive to press': 'format.measurement.driveToPress',
+  'Shoulders above hands at bottom': 'format.measurement.shouldersAboveHands',
+  'Missed forward': 'format.measurement.missedForward',
+  'Missed behind': 'format.measurement.missedBehind',
+  'Peak bar speed': 'format.measurement.peakBarSpeed',
+  'Bar drift at hip': 'format.measurement.barDriftAtHip',
+  'Pull time': 'format.measurement.pullTime',
+  'Turnover time': 'format.measurement.turnoverTime',
 };
 
-const PHASE: Record<PhaseName, string> = {
-  setup: 'Setup',
-  first_pull: '1st pull',
-  transition: 'Transition',
-  second_pull: '2nd pull',
-  turnover: 'Turnover',
-  catch: 'Catch',
-  recovery: 'Recovery',
-  hang: 'Hang',
-  arch: 'Arch',
-  hollow: 'Hollow',
-  hip_drive: 'Hip drive',
-  support: 'Support',
-  lockout: 'Lockout',
-  tuck: 'Tuck',
-  drive: 'Drive',
-  press: 'Press',
-};
-
-const SPOKEN: Record<Movement, string> = {
-  snatch: 'a snatch',
-  clean: 'a clean',
-  jerk: 'a jerk',
-  kipping_pull_up: 'a kipping pull-up',
-  bar_muscle_up: 'a bar muscle-up',
-  kipping_hspu: 'a kipping HSPU',
-};
+export function measurementLabel(m: { label: string }): string {
+  const key = MEASUREMENT[m.label];
+  return key ? t(key) : m.label;
+}
 
 export function movementLabel(m: Movement): string {
-  return MOVEMENT[m];
+  return t(`format.movement.${m}`);
+}
+
+function spoken(m: Movement): string {
+  return t(`format.spoken.${m}`);
 }
 
 // One line for when the clip did not look like the lift the lifter chose.
 export function movementNote(a: Analysis): string | null {
   const d = a.detectedMovement;
   if (!d || d.movement === 'unknown' || d.movement === a.movement) return null;
-  const looks = `Looks like ${SPOKEN[d.movement]}, not ${SPOKEN[a.movement]}.`;
-  if ((a.movementUsed ?? a.movement) === d.movement) return `${looks} Analysed as ${SPOKEN[d.movement]}.`;
-  return `${looks} Keep as ${SPOKEN[a.movement].replace(/^an? /, '')}?`;
+  const looks = t('format.note.looksLike', { detected: spoken(d.movement), chosen: spoken(a.movement) });
+  if ((a.movementUsed ?? a.movement) === d.movement) return t('format.note.analysedAs', { looks, movement: spoken(d.movement) });
+  return t('format.note.keepAs', { looks, movement: t(`format.bare.${a.movement}`) });
 }
 
 export function phaseLabel(p: PhaseName): string {
-  return PHASE[p];
+  return t(`format.phase.${p}`);
 }
 
 export function fmt(n: number): string {
-  if (Number.isInteger(n)) return String(n);
-  return String(Number(n.toFixed(2)));
+  const v = Number(n.toFixed(2));
+  return formatNumber(v === 0 ? 0 : v);
 }
 
 // Bar speed always shows two decimals: 1.80 m/s, like a VBT readout.
 export function speedText(v: number): string {
-  return `${v.toFixed(2)} m/s`;
+  return `${formatNumber(v, undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m/s`;
 }
 
 // Off until the reading is checked against a bar-speed sensor: on the reference clips a snatch read
@@ -76,7 +92,7 @@ export function peakSpeed(a: Analysis, show: boolean = SHOW_BAR_SPEED): string |
 }
 
 export function seconds(s: number): string {
-  return s.toFixed(2);
+  return formatNumber(s, undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 export function plural(n: number, word: string): string {
@@ -86,8 +102,8 @@ export function plural(n: number, word: string): string {
 export function liftTitle(a: Analysis, rep?: number | 'miss'): string {
   const parts = [movementLabel(a.movement)];
   if (a.loadKg != null) parts.push(`${fmt(a.loadKg)} kg`);
-  if (rep === 'miss') parts.push('miss');
-  else if (rep != null) parts.push(`rep ${rep}`);
+  if (rep === 'miss') parts.push(t('format.title.miss'));
+  else if (rep != null) parts.push(t('format.title.rep', { rep }));
   return parts.join(' · ');
 }
 
@@ -96,24 +112,24 @@ export function heroValue(cue: Cue): string {
 }
 
 export function evidenceReadout(cue: Cue): string {
-  return `frame ${cue.evidence.frame} · ${cue.evidence.caption}`;
+  return `${t('format.frame', { frame: cue.evidence.frame })} · ${cue.evidence.caption}`;
 }
 
-const STATUS_TEXT: Partial<Record<Measurement['status'], string>> = {
-  cue: 'the cue',
-  follows: 'follows from above',
-  normal: 'within normal',
-  best: 'best',
+const STATUS_TEXT: Partial<Record<Measurement['status'], Key>> = {
+  cue: 'format.status.cue',
+  follows: 'format.status.follows',
+  normal: 'format.status.normal',
+  best: 'format.status.best',
 };
 
 export function measurementReadout(m: Measurement): string {
-  if (m.status === 'not_seen') return 'not seen';
+  if (m.status === 'not_seen') return t('format.status.notSeen');
   const parts = [m.unit === 'm/s' ? speedText(m.value) : `${fmt(m.value)} ${m.unit}`];
   if (m.note) parts.push(m.note);
   const showBest = m.status === 'normal' && m.best != null;
-  if (showBest) parts.push(`best ${fmt(m.best!)}`);
+  if (showBest) parts.push(t('format.status.bestValue', { value: fmt(m.best!) }));
   const status = STATUS_TEXT[m.status];
-  if (status && !showBest) parts.push(status);
+  if (status && !showBest) parts.push(t(status));
   return parts.join(' · ');
 }
 
@@ -143,9 +159,9 @@ export function compareRows(
     const same = Math.abs(diff) <= Math.max(Math.abs(b.value), 1e-9) * 0.05;
     rows.push({
       id,
-      label: a.label,
+      label: measurementLabel(a),
       value: `${fmt(a.value)} ${a.unit}`,
-      delta: same ? `same as ${word}` : `${signed(diff)} vs ${word}`,
+      delta: same ? t(word === 'best' ? 'format.compare.sameAsBest' : 'format.compare.sameAsLast') : t(word === 'best' ? 'format.compare.vsBest' : 'format.compare.vsLast', { delta: signed(diff) }),
     });
   }
   return rows;
@@ -155,16 +171,16 @@ export type StepState = 'done' | 'active' | 'todo';
 
 // With no analysis yet (a live lift) the first step is the upload and the rep
 // count is still unknown.
-export function processingSteps(a: Analysis | null, step: number, firstLabel = 'Uploading your clip'): { label: string; state: StepState }[] {
+export function processingSteps(a: Analysis | null, step: number, firstLabel = t('format.steps.uploading')): { label: string; state: StepState }[] {
   const labels = a
     ? [
-        a.traceKind === 'bar' ? 'Found the bar' : 'Found your hips',
-        plural(a.reps.length, 'rep'),
-        'Finding your phases',
-        'Comparing to your best',
-        'Choosing one cue',
+        a.traceKind === 'bar' ? t('format.steps.foundBar') : t('format.steps.foundHips'),
+        t('format.reps', { count: a.reps.length }),
+        t('format.steps.findingPhases'),
+        t('format.steps.comparing'),
+        t('format.steps.choosingCue'),
       ]
-    : [firstLabel, 'Finding the bar', 'Counting your reps', 'Finding your phases', 'Choosing one cue'];
+    : [firstLabel, t('format.steps.findingBar'), t('format.steps.countingReps'), t('format.steps.findingPhases'), t('format.steps.choosingCue')];
   return labels.map((label, i) => ({
     label,
     state: i < step ? 'done' : i === step ? 'active' : 'todo',
@@ -172,35 +188,37 @@ export function processingSteps(a: Analysis | null, step: number, firstLabel = '
 }
 
 export function formatWait(seconds: number): string {
-  return seconds >= 60 ? `about ${Math.floor(seconds / 60)} min` : `about ${seconds} s`;
+  return seconds >= 60 ? t('format.wait.minutes', { n: Math.floor(seconds / 60) }) : t('format.wait.seconds', { n: seconds });
 }
 
 export function doneTitle(a: Analysis): string {
-  const reps = plural(a.reps.length, 'rep');
-  return a.cue ? `Done. ${reps}, one cue.` : `Done. ${reps}.`;
+  const reps = t('format.reps', { count: a.reps.length });
+  return a.cue ? t('format.done.withCue', { reps }) : t('format.done.noCue', { reps });
 }
 
-const SHORT: Partial<Record<PhaseName, string>> = {
-  transition: 'hip',
-  second_pull: '2nd',
-  turnover: 'turn',
-  recovery: 'rec',
+const SHORT: Partial<Record<PhaseName, Key>> = {
+  transition: 'format.short.transition',
+  second_pull: 'format.short.second_pull',
+  turnover: 'format.short.turnover',
+  recovery: 'format.short.recovery',
 };
 
 export function shortPhase(p: PhaseName): string {
-  return SHORT[p] ?? phaseLabel(p).toLowerCase();
+  const key = SHORT[p];
+  return key ? t(key) : phaseLabel(p).toLowerCase();
 }
 
-const SYNC: Partial<Record<PhaseName, string>> = {
-  first_pull: 'the knee',
-  transition: 'the hip',
-  second_pull: 'extension',
-  turnover: 'the turnover',
-  catch: 'the catch',
+const SYNC: Partial<Record<PhaseName, Key>> = {
+  first_pull: 'format.sync.first_pull',
+  transition: 'format.sync.transition',
+  second_pull: 'format.sync.second_pull',
+  turnover: 'format.sync.turnover',
+  catch: 'format.sync.catch',
 };
 
 export function syncCaption(p: PhaseName, today: number, other: number): string {
-  return `synced at ${SYNC[p] ?? phaseLabel(p).toLowerCase()} · frame ${today} vs ${other}`;
+  const key = SYNC[p];
+  return t('format.syncCaption', { at: key ? t(key) : phaseLabel(p).toLowerCase(), today, other });
 }
 
 export function signedCm(cm: number): string {
@@ -221,14 +239,15 @@ export function filmedAtAngle(cue: Cue): boolean {
 // "Confidence: high", or the band plus why it is not high (read from the CV's confidenceText).
 export function confidenceLine(cue: Cue): string {
   const band = CONFIDENCE_BAND[cue.confidence];
-  if (band === 'high') return 'Confidence: high';
-  const t = cue.confidenceText;
-  const seen = /Seen on (\d+) of (\d+) reps/.exec(t);
+  if (band === 'high') return t('format.confidence.line', { band: t('format.confidence.high') });
+  const text = cue.confidenceText;
+  const seen = /Seen on (\d+) of (\d+) reps/.exec(text);
   const reasons = new Set<string>();
-  if (filmedAtAngle(cue)) reasons.add('filmed at an angle');
-  if (/behind a plate|hidden/.test(t)) reasons.add('bar partly hidden');
-  if (seen && seen[2] === '1') reasons.add('one rep only');
-  else if (seen && seen[1] !== seen[2]) reasons.add(`seen on ${seen[1]} of ${seen[2]} reps`);
-  if (/One missed rep/.test(t)) reasons.add('one rep only');
-  return `Confidence: ${band}${reasons.size ? ` · ${[...reasons].join(', ')}` : ''}`;
+  if (filmedAtAngle(cue)) reasons.add(t('format.confidence.angle'));
+  if (/behind a plate|hidden/.test(text)) reasons.add(t('format.confidence.hidden'));
+  if (seen && seen[2] === '1') reasons.add(t('format.confidence.oneRep'));
+  else if (seen && seen[1] !== seen[2]) reasons.add(t('format.confidence.seenOn', { seen: Number(seen[1]), count: Number(seen[2]) }));
+  if (/One missed rep/.test(text)) reasons.add(t('format.confidence.oneRep'));
+  const line = t('format.confidence.line', { band: t(`format.confidence.${band}`) });
+  return reasons.size ? `${line} · ${[...reasons].join(', ')}` : line;
 }

@@ -19,6 +19,7 @@ import { fontFamily } from '../../design/typography';
 import { impact, success } from '../../lib/haptics';
 import Stage from './Stage';
 import ProcessingPath from './ProcessingPath';
+import { t } from '../../i18n';
 
 export type ProcessingState = 'progress' | 'long' | 'done' | 'too_long';
 
@@ -76,32 +77,32 @@ export default function ProcessingSheet({ analysis, clipUri, reduceMotion, meta,
       ) : null}
       {state === 'too_long' ? (
         <Sheet testID="sheet-too-long">
-          <Header title="Too long to send" meta={maxS ? `max ${maxS} s` : ''} strong />
+          <Header title={t('analysis.processing.tooLongTitle')} meta={maxS ? t('analysis.processing.maxSeconds', { max: maxS }) : ''} strong />
           <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 17, lineHeight: 24 }}>
-            Trim it to just the lift{maxS ? `, under ${maxS} s,` : ''} and send it again. The original stays on your phone.
+            {maxS ? t('analysis.processing.tooLongBodyMax', { max: maxS }) : t('analysis.processing.tooLongBody')}
           </Text>
           <Btn onPress={on.onTrim ?? on.onHide} testID="trim-clip">
-            Trim the clip
+            {t('analysis.processing.trim')}
           </Btn>
           <Btn kind="secondary" onPress={on.onHide} testID="cancel-send">
-            Cancel
+            {t('analysis.processing.cancel')}
           </Btn>
         </Sheet>
       ) : null}
       {state === 'long' ? (
         <Sheet testID="sheet-long">
-          <Header title="Taking longer than usual" meta={`${Math.round(elapsed)} s`} strong />
+          <Header title={t('analysis.processing.longTitle')} meta={`${Math.round(elapsed)} s`} strong />
           <View style={{ marginTop: -8 }}>
             <Queue etaSeconds={etaSeconds} ahead={ahead} />
           </View>
           <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 17, lineHeight: 24 }}>
-            Busy right now. Your lift is in the queue and nothing is lost. We'll ping you when the cue is ready.
+            {t('analysis.processing.longBody')}
           </Text>
           <Btn onPress={on.onNotify} testID="notify-me">
-            Notify me
+            {t('analysis.processing.notifyMe')}
           </Btn>
           <TextLink onPress={on.onKeepWaiting} testID="keep-waiting">
-            Keep waiting
+            {t('analysis.processing.keepWaiting')}
           </TextLink>
         </Sheet>
       ) : null}
@@ -117,7 +118,7 @@ export default function ProcessingSheet({ analysis, clipUri, reduceMotion, meta,
             }}
             testID="see-it"
           >
-            See it
+            {t('analysis.processing.seeIt')}
           </Btn>
         </Sheet>
       ) : null}
@@ -209,8 +210,8 @@ function Queue({ etaSeconds, ahead }: { etaSeconds: number; ahead?: number }) {
   const mono = { color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 } as const;
   return (
     <View style={{ gap: 2 }}>
-      <Text style={mono}>{`usually ${formatWait(etaSeconds)}`}</Text>
-      {ahead ? <Text style={mono}>{`${ahead} ahead of you`}</Text> : null}
+      <Text style={mono}>{t('analysis.processing.usually', { wait: formatWait(etaSeconds) })}</Text>
+      {ahead ? <Text style={mono}>{t('analysis.processing.ahead', { count: ahead })}</Text> : null}
     </View>
   );
 }
@@ -232,7 +233,7 @@ function InProgress({
 }) {
   return (
     <Sheet testID="sheet-progress">
-      <Header title="Watching your reps" meta={meta} />
+      <Header title={t('analysis.processing.watching')} meta={meta} />
       {note ? <View style={{ marginTop: -8 }}>{note}</View> : null}
       <View style={{ gap: 12 }}>
         {processingSteps(analysis, step, firstStep).map((s) => (
@@ -257,10 +258,10 @@ function InProgress({
       </View>
       <View style={{ alignItems: 'center', gap: 2 }}>
         <TextLink onPress={onHide} testID="hide">
-          Hide
+          {t('analysis.processing.hide')}
         </TextLink>
         <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 13, lineHeight: 18, textAlign: 'center' }}>
-          Keeps working in the background.
+          {t('analysis.processing.background')}
         </Text>
       </View>
     </Sheet>

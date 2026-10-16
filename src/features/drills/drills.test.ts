@@ -2,6 +2,8 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { DRILLS, drillFor } from './drills';
 import FAULT_IDS from './fault-ids.json';
+import { en } from '../../i18n/en';
+import { setLanguage } from '../../i18n';
 
 describe('drill content', () => {
   it('the fixture matches the CV RULES dict, so a new fault cannot ship without a drill', () => {
@@ -41,5 +43,23 @@ describe('drill content', () => {
     expect(drillFor('jump_forward')?.name).toBe('No-foot snatch or clean');
     expect(drillFor('bar_drift_knee')).toBeUndefined();
     expect(drillFor(undefined)).toBeUndefined();
+  });
+
+  it('keeps the English catalogue word for word with DRILLS, so every language translates the reviewed copy', () => {
+    for (const d of Object.values(DRILLS)) {
+      const id = d.faultId;
+      const fields: [string, string][] = [['name', d.name], ['dose', d.dose], ['why', d.why], ...d.steps.map((s, i): [string, string] => [`step${i + 1}`, s])];
+      for (const [field, text] of fields) expect(`${id}.${field}: ${en[`drills.${id}.${field}` as keyof typeof en]}`).toBe(`${id}.${field}: ${text}`);
+    }
+  });
+
+  it('serves the drill in the app language', () => {
+    setLanguage('es');
+    try {
+      expect(drillFor('jump_forward')?.name).toBe('Arranque o cargada sin mover los pies');
+      expect(drillFor('jump_forward')?.steps).toHaveLength(3);
+    } finally {
+      setLanguage('en');
+    }
   });
 });

@@ -3,6 +3,7 @@ import Constants from 'expo-constants';
 import * as Linking from 'expo-linking';
 import type { Analysis } from '../../analysis/types';
 import { movementLabel } from '../../analysis/format';
+import { t } from '../../i18n';
 
 export const REPORT_EMAIL = 'pirsquare.yash+catchline@gmail.com';
 
@@ -22,16 +23,16 @@ export function reportUrl(analysis: Analysis): string {
 // There is no single-lift delete in src/lib/api, so there is no delete item.
 export function openLiftActions(analysis: Analysis, on: { onShare: () => void; onFilmAnother: () => void }) {
   const actions = [
-    { label: 'Share', run: on.onShare },
-    { label: 'Film another set', run: on.onFilmAnother },
-    { label: 'Report a wrong result', run: () => void Linking.openURL(reportUrl(analysis)) },
+    { label: t('analysis.actions.share'), run: on.onShare },
+    { label: t('analysis.actions.filmAnother'), run: on.onFilmAnother },
+    { label: t('analysis.actions.report'), run: () => void Linking.openURL(reportUrl(analysis)) },
   ];
   if (Platform.OS === 'ios') {
     ActionSheetIOS.showActionSheetWithOptions(
-      { options: [...actions.map((a) => a.label), 'Cancel'], cancelButtonIndex: actions.length },
+      { options: [...actions.map((a) => a.label), t('analysis.actions.cancel')], cancelButtonIndex: actions.length },
       (i) => actions[i]?.run()
     );
     return;
   }
-  Alert.alert('This lift', undefined, actions.map((a) => ({ text: a.label, onPress: a.run })), { cancelable: true });
+  Alert.alert(t('analysis.actions.title'), undefined, actions.map((a) => ({ text: a.label, onPress: a.run })), { cancelable: true });
 }

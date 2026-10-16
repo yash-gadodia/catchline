@@ -21,6 +21,8 @@ import { colors, space } from '../../design/tokens';
 import { display, fontFamily } from '../../design/typography';
 import DrawnPath from './DrawnPath';
 import { DimensionLine, HeroNumber, OverlaySvg, RefLine } from './overlays';
+import { t } from '../../i18n';
+import { cueText } from '../../i18n/cues';
 
 // Storyboard (2.3 s): setup + knee pop (0, 180 ms, Heavy each); hip pops (360,
 // Soft) and the path draws floor to lockout (easeOutCubic 700 ms) until catch
@@ -60,6 +62,7 @@ export default function RevealScreen({
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const cue = analysis.cue!;
+  const cueLine = cueText(cue.faultId, cue.text);
   const rep = repByIndex(analysis, cue.evidence.rep);
   const box: Size = { width, height: Math.round(width * 1.25) };
   const src = { width: analysis.video.width, height: analysis.video.height };
@@ -81,9 +84,9 @@ export default function RevealScreen({
   const typerRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
   // Wrapped-style tap zones: a tap mid-typewriter finishes the cue, the next one continues.
   const onTap = () => {
-    if (typed > 0 && typed < cue.text.length) {
+    if (typed > 0 && typed < cueLine.length) {
       clearInterval(typerRef.current);
-      setTyped(cue.text.length);
+      setTyped(cueLine.length);
       impact('rigid');
       return;
     }
@@ -93,7 +96,7 @@ export default function RevealScreen({
   useEffect(() => {
     const timers: ReturnType<typeof setTimeout>[] = [];
     const at = (ms: number, fn: () => void) => timers.push(setTimeout(fn, ms));
-    const text = cue.text;
+    const text = cueLine;
     let typer: ReturnType<typeof setInterval> | undefined;
 
     if (reduce) {
@@ -198,10 +201,10 @@ export default function RevealScreen({
         ) : null}
         {typed > 0 ? (
           <>
-            <SmallCaps size={13}>One thing to fix</SmallCaps>
+            <SmallCaps size={13}>{t('analysis.reveal.oneThing')}</SmallCaps>
             <Text style={[display(34), { color: colors.text }]} testID="reveal-cue">
-              {cue.text.slice(0, typed)}
-              {typed < cue.text.length ? <Text style={{ color: colors.flare }}>|</Text> : null}
+              {cueLine.slice(0, typed)}
+              {typed < cueLine.length ? <Text style={{ color: colors.flare }}>|</Text> : null}
             </Text>
           </>
         ) : null}
