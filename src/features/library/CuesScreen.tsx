@@ -6,8 +6,10 @@ import { colors, space } from '../../design/tokens';
 import { display, fontFamily } from '../../design/typography';
 import { backendEnabled } from '../../data/backend';
 import { syncLibrary } from '../../data/library';
-import { agoLabel, bestOf, cueWindow, pastCueSummary, seriesFor, sessionsCounter, shortDate, STATUS_LABEL, trendDirection } from './derive';
-import { metricFor, SINGULAR_MOVEMENT } from './metrics';
+import { agoLabel, bestOf, cueWindow, pastCueSummary, seriesFor, sessionsCounter, shortDate, statusLabel, trendDirection } from './derive';
+import { metricFor, singularMovement } from './metrics';
+import { t } from '../../i18n';
+import { cueText } from '../../i18n/cues';
 import { useLibrary } from './repository';
 import TrendChart from './TrendChart';
 import type { CueRecord, Day, Session } from './types';
@@ -45,16 +47,16 @@ export default function CuesScreen({ onOpen }: { onOpen: (cue: CueRecord) => voi
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.text2} testID="cues-refresh" />}
         testID={loading ? 'cues-loading' : 'cues-empty'}
       >
-        <Title>Cues</Title>
+        <Title>{t('library.tabs.cues')}</Title>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.s4 }}>
           {loading ? (
             <ActivityIndicator color={colors.text2} />
           ) : (
             <>
               <Image testID="cues-empty-art" source={EMPTY_CUES_ART} style={{ width: 160, height: 160, tintColor: colors.text2 }} />
-              <Text style={[display(32), { color: colors.text, textAlign: 'center' }]}>Your first cue lands here.</Text>
+              <Text style={[display(32), { color: colors.text, textAlign: 'center' }]}>{t('library.cues.emptyTitle')}</Text>
               <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21, textAlign: 'center' }}>
-                After you film a lift, the one thing to fix lives on this tab until it sticks.
+                {t('library.cues.emptyBody')}
               </Text>
             </>
           )}
@@ -70,14 +72,14 @@ export default function CuesScreen({ onOpen }: { onOpen: (cue: CueRecord) => voi
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.text2} testID="cues-refresh" />}
       testID="cues"
     >
-      <Title>Cues</Title>
+      <Title>{t('library.tabs.cues')}</Title>
       {trying.map((c) => (
         <ActiveCue key={c.id} cue={c} sessions={sessions} today={today} onOpen={() => onOpen(c)} />
       ))}
       {past.length > 0 ? (
         <View style={{ borderTopWidth: 1, borderTopColor: colors.hairline }}>
           <View style={{ paddingTop: space.s4, paddingBottom: space.s1 }}>
-            <SmallCaps size={12}>Past cues</SmallCaps>
+            <SmallCaps size={12}>{t('library.cues.past')}</SmallCaps>
           </View>
           {past.map((c) => (
             <Pressable
@@ -96,16 +98,16 @@ export default function CuesScreen({ onOpen }: { onOpen: (cue: CueRecord) => voi
             >
               <View style={{ flex: 1, gap: 2 }}>
                 <Text style={{ color: c.status === 'dropped' ? colors.text2 : colors.text, fontFamily: fontFamily.bodyBold, fontSize: 17, lineHeight: 22 }}>
-                  {c.text}
+                  {cueText(c.metricId, c.text)}
                 </Text>
                 <Text style={{ color: c.status === 'dropped' ? colors.text3 : colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>
-                  {`${SINGULAR_MOVEMENT[c.movement]} · ${pastCueSummary(c, sessions)} · ${agoLabel(c.endedAt ?? c.givenAt, today)}`}
+                  {`${singularMovement(c.movement)} · ${pastCueSummary(c, sessions)} · ${agoLabel(c.endedAt ?? c.givenAt, today)}`}
                 </Text>
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <StatusDot status={c.status} />
                 <Text style={{ color: c.status === 'dropped' ? colors.text2 : colors.text, fontFamily: fontFamily.bodyMedium, fontSize: 13, lineHeight: 18 }}>
-                  {STATUS_LABEL[c.status]}
+                  {statusLabel(c.status)}
                 </Text>
               </View>
             </Pressable>
@@ -125,13 +127,13 @@ function ActiveCue({ cue, sessions, today, onOpen }: { cue: CueRecord; sessions:
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s2 }}>
           <StatusDot status="trying" />
-          <SmallCaps size={12} color={colors.text}>{`Trying · ${SINGULAR_MOVEMENT[cue.movement]}`}</SmallCaps>
+          <SmallCaps size={12} color={colors.text}>{t('library.cues.tryingKicker', { movement: singularMovement(cue.movement) })}</SmallCaps>
         </View>
         <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>
-          {`${sessionsCounter(cue, sessions)} sessions · ${agoLabel(cue.givenAt, today)}`}
+          {t('library.cues.sessionsAgo', { counter: sessionsCounter(cue, sessions), ago: agoLabel(cue.givenAt, today) })}
         </Text>
       </View>
-      <Text style={[display(32), { color: colors.text }]}>{cue.text}</Text>
+      <Text style={[display(32), { color: colors.text }]}>{cueText(cue.metricId, cue.text)}</Text>
       {series.length > 1 ? (
         <TrendChart
           testID="cue-sparkline"
@@ -140,7 +142,7 @@ function ActiveCue({ cue, sessions, today, onOpen }: { cue: CueRecord; sessions:
           height={80}
           best={best?.value}
           markerIndex={markerIndex}
-          markerLabel={`cue · ${shortDate(cue.givenAt).toLowerCase()}`}
+          markerLabel={t('library.trends.cueMarker', { date: shortDate(cue.givenAt).toLowerCase() })}
         />
       ) : null}
       <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>

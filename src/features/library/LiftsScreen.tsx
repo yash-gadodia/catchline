@@ -19,12 +19,15 @@ import {
   latestCue,
   liftDetail,
   newestDone,
-  STATUS_LABEL,
+  statusLabel,
+  lower,
   liftTitle,
   sessionsCounter,
   type Group,
 } from './derive';
-import { SHORT_MOVEMENT } from './metrics';
+import { shortMovement } from './metrics';
+import { t } from '../../i18n';
+import { cueText } from '../../i18n/cues';
 import { useLibrary } from './repository';
 import type { Lift, Session, CueRecord } from './types';
 import { Chip, Frame, Pulse, StatusDot, Title, Underlined } from './ui';
@@ -48,7 +51,7 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
   const chip = freeVideosLabel(lib);
   const header = (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-      <Title>Lifts</Title>
+      <Title>{t('library.tabs.lifts')}</Title>
       {chip ? (
         <Pressable onPress={nav.onUnlock} testID="free-chip" hitSlop={8} style={{ height: 44, justifyContent: 'center' }}>
           <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>{chip}</Text>
@@ -63,19 +66,19 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
         {header}
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.s5 }}>
           <SideOnDiagram />
-          <Text style={[display(32), { color: colors.text, textAlign: 'center' }]}>Add your first lift.</Text>
+          <Text style={[display(32), { color: colors.text, textAlign: 'center' }]}>{t('library.lifts.emptyTitle')}</Text>
           <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21, textAlign: 'center' }}>
-            Filmed from the side, whole body and bar in frame. One set.
+            {t('library.lifts.emptyBody')}
           </Text>
           <View style={{ alignSelf: 'stretch', gap: space.s3 }}>
             <Btn onPress={nav.onImport} testID="empty-import">
-              Import a video
+              {t('library.lifts.import')}
             </Btn>
             <Btn kind="secondary" onPress={nav.onRecord} testID="empty-record">
-              Record
+              {t('library.lifts.record')}
             </Btn>
             <Btn kind="text" onPress={nav.onDemo} testID="empty-demo" style={{ alignSelf: 'center' }}>
-              See how it works
+              {t('library.lifts.demo')}
             </Btn>
           </View>
         </View>
@@ -114,13 +117,13 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
             <View style={{ flex: 1, gap: 2 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <StatusDot status="trying" />
-                <SmallCaps size={12}>Trying</SmallCaps>
+                <SmallCaps size={12}>{t('library.status.trying')}</SmallCaps>
               </View>
               <Text numberOfLines={2} style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 17, lineHeight: 22 }}>
-                {cue.text}
+                {cueText(cue.metricId, cue.text)}
               </Text>
               <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>
-                {`${sessionsCounter(cue, lib.sessions)} sessions`}
+                {t('library.lifts.sessions', { counter: sessionsCounter(cue, lib.sessions) })}
               </Text>
             </View>
           </Pressable>
@@ -135,9 +138,9 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
                 setMovement(null);
               }}
               options={[
-                { value: 'all', label: 'All' },
-                { value: 'barbell', label: 'Barbell' },
-                { value: 'gymnastics', label: 'Gymnastics' },
+                { value: 'all', label: t('library.lifts.all') },
+                { value: 'barbell', label: t('library.lifts.barbell') },
+                { value: 'gymnastics', label: t('library.lifts.gymnastics') },
               ]}
             />
           </View>
@@ -146,7 +149,7 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
             {groupMovements(group).map((m) => (
               <Chip
                 key={m}
-                label={SHORT_MOVEMENT[m]}
+                label={shortMovement(m)}
                 selected={movement === m}
                 onPress={() => setMovement(movement === m ? null : m)}
                 testID={`movement-${m}`}
@@ -159,7 +162,7 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
       <View style={{ paddingTop: space.s2 }}>
         {days.length === 0 ? (
           <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21, paddingTop: space.s5 }}>
-            Nothing filmed here yet.
+            {t('library.lifts.nothing')}
           </Text>
         ) : null}
         {days.map((d) => (
@@ -224,13 +227,13 @@ function LiftRow({ lift, sessions, cues, newest, nav }: { lift: Lift; sessions: 
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <StatusDot status={cue.status} testID={`dot-${lift.id}-${cue.status}`} />
             <Text numberOfLines={1} style={{ flex: 1, color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>
-              {`${STATUS_LABEL[cue.status]} · ${cue.text.toLowerCase()}`}
+              {t('library.lifts.cueLine', { status: statusLabel(cue.status), cue: lower(cueText(cue.metricId, cue.text)) })}
             </Text>
           </View>
         ) : null}
       </View>
-      {lift.status === 'failed' ? <Underlined onPress={() => nav.onRetake(lift)} testID={`retake-${lift.id}`}>Retake</Underlined> : null}
-      {lift.status === 'queued' ? <Underlined onPress={nav.onUnlock} testID={`unlock-${lift.id}`}>Unlock</Underlined> : null}
+      {lift.status === 'failed' ? <Underlined onPress={() => nav.onRetake(lift)} testID={`retake-${lift.id}`}>{t('library.lifts.retake')}</Underlined> : null}
+      {lift.status === 'queued' ? <Underlined onPress={nav.onUnlock} testID={`unlock-${lift.id}`}>{t('library.lifts.unlock')}</Underlined> : null}
     </Pressable>
   );
 }

@@ -11,6 +11,8 @@ import CueDetailScreen, { DidntStickScreen, StuckScreen } from '../../src/featur
 import { dropCue, keepTrying, markDidntStick, markStuck, tryNewCue, useCue } from '../../src/features/library/repository';
 import { useLibraryStore } from '../../src/features/library/store';
 import { captureHref } from '../../src/features/paywall/hooks';
+import { t } from '../../src/i18n';
+import { cueText } from '../../src/i18n/cues';
 
 // One route per cue; the screen follows its status, so marking it stuck turns
 // this screen into the "It stuck" moment in place. A cue the store does not
@@ -38,12 +40,12 @@ export default function CueRoute() {
           <ActivityIndicator color={colors.text2} />
         ) : (
           <>
-            <Text style={[display(32), { color: colors.text, textAlign: 'center' }]}>This cue is gone.</Text>
+            <Text style={[display(32), { color: colors.text, textAlign: 'center' }]}>{t('library.cueRoute.goneTitle')}</Text>
             <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21, textAlign: 'center' }}>
-              It is no longer on your account.
+              {t('library.cueRoute.goneBody')}
             </Text>
             <Btn kind="secondary" onPress={back} testID="cue-missing-back">
-              Back to cues
+              {t('library.cueRoute.back')}
             </Btn>
           </>
         )}
@@ -56,7 +58,7 @@ export default function CueRoute() {
         cue={cue}
         nav={{
           onNext: () => router.replace('/cues'),
-          onShare: () => Share.share({ message: `Stuck: ${cue.text}. Catchline` }),
+          onShare: () => Share.share({ message: t('library.cueRoute.shareStuck', { cue: cueText(cue.metricId, cue.text) }) }),
         }}
       />
     );
@@ -72,7 +74,7 @@ export default function CueRoute() {
             if (next) router.replace({ pathname: '/cue/[id]', params: { id: next } });
           },
           onKeepTrying: () => keepTrying(cue.id),
-          onSendToCoach: () => Share.share({ message: `My cue "${cue.text}" didn't stick after six sessions. Can you take a look?` }),
+          onSendToCoach: () => Share.share({ message: t('library.cueRoute.shareCoach', { cue: cueText(cue.metricId, cue.text) }) }),
         }}
       />
     );

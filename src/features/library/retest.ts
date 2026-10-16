@@ -1,5 +1,7 @@
 import type { Analysis } from '../../analysis/types';
-import { metricText } from './derive';
+import { t } from '../../i18n';
+import { cueText } from '../../i18n/cues';
+import { lower, metricText } from './derive';
 import { metricFor, type Metric } from './metrics';
 import type { CueRecord, Lift, Session } from './types';
 
@@ -12,8 +14,6 @@ export const SAME_WITHIN: Record<Metric['unit'], number> = { cm: 2, s: 0.03, deg
 export type VerdictKind = 'better' | 'same' | 'worse' | 'not_measured' | 'no_baseline';
 
 export type Verdict = { kind: VerdictKind; from: number | null; to: number | null; fires: boolean; text: string };
-
-const WORD: Record<'better' | 'same' | 'worse', string> = { better: 'Better.', same: 'Same.', worse: 'Worse.' };
 
 export function faultFires(a: Analysis, faultId: string): boolean {
   if (a.cue?.faultId === faultId) return true;
@@ -34,14 +34,15 @@ export function retestVerdict(metricId: string, from: number | null, a: Analysis
   const fires = faultFires(a, metricId);
   const now = a.measurements.find((x) => x.id === metricId);
   if (!now || now.status === 'not_seen') {
-    return { kind: 'not_measured', from, to: null, fires, text: `Couldn't measure ${label.toLowerCase()} in this clip.` };
+    return { kind: 'not_measured', from, to: null, fires, text: t('library.retest.notMeasured', { label: lower(label) }) };
   }
   const to = now.value;
   if (from == null) {
-    return { kind: 'no_baseline', from: null, to, fires, text: `${label} ${metricText(metricId, to)}. Nothing earlier to compare.` };
+    return { kind: 'no_baseline', from: null, to, fires, text: t('library.retest.noBaseline', { label, value: metricText(metricId, to) }) };
   }
   const kind = compareValues(metricId, from, to);
-  return { kind, from, to, fires, text: `${label} ${metricText(metricId, from)} → ${metricText(metricId, to)}. ${WORD[kind]}` };
+  const word = t(`library.retest.${kind}` as const);
+  return { kind, from, to, fires, text: t('library.retest.compare', { label, from: metricText(metricId, from), to: metricText(metricId, to), word }) };
 }
 
 // Newest first: by day, then by the library's own order (lifts are listed newest first).
@@ -89,8 +90,10 @@ export function cleanStreak(
 
 // The one line over the shutter: the cue and the number to beat.
 export function targetLine(cue: CueRecord, previous: number | null): string {
-  if (previous == null) return cue.text;
+  const text = cueText(cue.metricId, cue.text);
+  if (previous == null) return text;
   const m = metricFor(cue.metricId);
   // The number and its unit never wrap apart.
-  return `${cue.text}: ${m.label.toLowerCase()} ${m.lowerIsBetter ? 'under' : 'over'} ${metricText(cue.metricId, previous).replace(' ', '\u00a0')}`;
+  const value = metricText(cue.metricId, previous).replace(' ', '\u00a0');
+  return t(m.lowerIsBetter ? 'library.target.under' : 'library.target.over', { cue: text, label: lower(m.label), value });
 }

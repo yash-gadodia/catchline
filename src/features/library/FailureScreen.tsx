@@ -11,6 +11,7 @@ import { colors, space } from '../../design/tokens';
 import { display, fontFamily } from '../../design/typography';
 import { FAILURE_COPY, type FailureAction, type FailureReason } from './failures';
 import { Frame, Underlined } from './ui';
+import { t } from '../../i18n';
 
 // Anything outside the closed set (a raw worker string, an older build's code) shows the generic copy.
 const known = (reason: string): FailureReason => (reason in FAILURE_COPY ? (reason as FailureReason) : 'unknown');
@@ -222,7 +223,7 @@ function RefCode({ code }: { code: string }) {
     <Pressable
       testID="failure-ref"
       accessibilityRole="button"
-      accessibilityHint="Copies the reference"
+      accessibilityHint={t('library.failure.copyHint')}
       hitSlop={8}
       onPress={() => {
         Clipboard.setStringAsync(code).catch(() => undefined);
@@ -230,7 +231,7 @@ function RefCode({ code }: { code: string }) {
         setTimeout(() => setCopied(false), 2000);
       }}
     >
-      <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>{copied ? 'Copied ref' : `ref ${code}`}</Text>
+      <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>{copied ? t('library.failure.copied') : t('library.failure.ref', { code })}</Text>
     </Pressable>
   );
 }

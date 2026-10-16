@@ -29,9 +29,11 @@ import {
   seriesFor,
   sessionsCounter,
   shortDate,
-  STATUS_LABEL,
+  statusLabel,
 } from './derive';
-import { metricFor, SINGULAR_MOVEMENT } from './metrics';
+import { metricFor, singularMovement } from './metrics';
+import { t } from '../../i18n';
+import { cueText, cueWhy } from '../../i18n/cues';
 import { cleanStreak, RETESTS_TO_STICK } from './retest';
 import { useLibrary } from './repository';
 import TrendChart from './TrendChart';
@@ -39,7 +41,7 @@ import type { CueRecord, Day, Lift, Session } from './types';
 import { Frame, StatusDot, Underlined } from './ui';
 
 function pointLabel(day: Day, today: Day, metricId: string, value: number) {
-  return `${day === today ? 'today' : shortDate(day).toLowerCase()} · ${metricText(metricId, value)}`;
+  return `${day === today ? t('library.ago.today') : shortDate(day).toLowerCase()} · ${metricText(metricId, value)}`;
 }
 
 export type CueDetailNav = { onBack: () => void; onStuck: () => void; onDidntStick: () => void; onDrop: () => void; onRetest?: () => void };
@@ -52,7 +54,7 @@ function analysisForLift(id: string | undefined): Analysis | undefined {
 function cueLiftDetail(l: Lift, cue: CueRecord, sessions: Session[]): string {
   if (l.status === 'done') {
     const value = sessions.find((s) => s.liftId === l.id)?.values[cue.metricId];
-    return value == null ? 'analysed' : `${metricFor(cue.metricId).short} ${metricText(cue.metricId, value)}`;
+    return value == null ? t('library.detail.analysed') : `${metricFor(cue.metricId).short} ${metricText(cue.metricId, value)}`;
   }
   return liftDetail(l, sessions);
 }
@@ -71,14 +73,14 @@ export default function CueDetailScreen({ cue, nav }: { cue: CueRecord; nav: Cue
   const fed = cueLifts(cue, lifts);
   const analysis = analysisForLift(cue.lastLiftId) ?? analysisForLift(cue.firstLiftId);
   const half = (width - 2) / 2;
-  const status = cue.status === 'trying' ? `Trying · ${sessionsCounter(cue, sessions)}` : STATUS_LABEL[cue.status];
+  const status = cue.status === 'trying' ? t('library.cueDetail.trying', { counter: sessionsCounter(cue, sessions) }) : statusLabel(cue.status);
   const streak = cleanStreak(cue, lifts, (id) => analysisForLift(id));
   // Clean on the last retests: "It stuck" leads. Until then the next retest does.
   const stuckFirst = streak >= RETESTS_TO_STICK || !nav.onRetest;
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }} testID="cue-detail">
       <TopBar
-        back="Cues"
+        back={t('library.tabs.cues')}
         onBack={nav.onBack}
         center={
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s2 }}>
@@ -89,18 +91,18 @@ export default function CueDetailScreen({ cue, nav }: { cue: CueRecord; nav: Cue
       />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: space.s4 }}>
       <View style={{ paddingTop: space.s2, paddingBottom: space.s4, paddingHorizontal: space.gutter, gap: space.s3 }}>
-        <Text style={[display(36), { color: colors.text }]}>{cue.text}</Text>
+        <Text style={[display(36), { color: colors.text }]}>{cueText(cue.metricId, cue.text)}</Text>
         {cue.why ? (
           <View style={{ gap: space.s1 }}>
-            <SmallCaps size={11}>AI estimate</SmallCaps>
+            <SmallCaps size={11}>{t('library.aiEstimate')}</SmallCaps>
             <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }} testID="cue-why">
-              {cue.why}
+              {cueWhy(cue.metricId, cue.why)}
             </Text>
           </View>
         ) : null}
         {analysis ? (
           <Underlined onPress={() => setWhy(true)} testID="cue-why-open">
-            Why this?
+            {t('library.cueDetail.whyThis')}
           </Underlined>
         ) : null}
         <DrillCard faultId={cue.metricId} />
@@ -125,7 +127,7 @@ export default function CueDetailScreen({ cue, nav }: { cue: CueRecord; nav: Cue
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
           <Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 17, lineHeight: 22 }}>{metric.label}</Text>
           <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>
-            {`${metric.unit} · ${chart.length} sessions measured`}
+            {t('library.cueDetail.measured', { unit: metric.unit, count: chart.length })}
           </Text>
         </View>
         {chart.length > 1 ? (
@@ -136,14 +138,14 @@ export default function CueDetailScreen({ cue, nav }: { cue: CueRecord; nav: Cue
             height={110}
             best={best?.value}
             markerIndex={markerIndex}
-            markerLabel="cue given"
+            markerLabel={t('library.cueDetail.cueGiven')}
           />
         ) : null}
       </View>
       {fed.length > 0 ? (
         <View style={{ paddingTop: space.s5, paddingHorizontal: space.gutter }} testID="cue-lifts">
           <View style={{ paddingBottom: space.s1 }}>
-            <SmallCaps size={12}>Lifts on this cue</SmallCaps>
+            <SmallCaps size={12}>{t('library.cueDetail.lifts')}</SmallCaps>
           </View>
           {fed.map((l) => (
             <View
@@ -167,23 +169,23 @@ export default function CueDetailScreen({ cue, nav }: { cue: CueRecord; nav: Cue
         <View style={{ paddingTop: space.s4, paddingHorizontal: space.gutter, paddingBottom: Math.max(insets.bottom, space.s7), gap: space.s3 }}>
           {streak >= RETESTS_TO_STICK ? (
             <Text testID="cue-streak" style={{ ...type.callout, color: colors.text2 }}>
-              {`${metric.label} didn't come up on your last ${streak} retests.`}
+              {t('library.cueDetail.streak', { label: metric.label, count: streak })}
             </Text>
           ) : null}
           <Btn onPress={stuckFirst ? nav.onStuck : nav.onRetest} testID={stuckFirst ? 'mark-stuck' : 'cue-retest'}>
-            {stuckFirst ? 'It stuck' : 'Retest this cue'}
+            {stuckFirst ? t('library.cueDetail.itStuck') : t('library.cueDetail.retest')}
           </Btn>
           {nav.onRetest ? (
             <Btn kind="secondary" onPress={stuckFirst ? nav.onRetest : nav.onStuck} testID={stuckFirst ? 'cue-retest' : 'mark-stuck'}>
-              {stuckFirst ? 'Retest this cue' : 'It stuck'}
+              {stuckFirst ? t('library.cueDetail.retest') : t('library.cueDetail.itStuck')}
             </Btn>
           ) : null}
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
             <Underlined onPress={nav.onDidntStick} testID="didnt-stick">
-              Didn't stick
+              {t('library.cueDetail.didntStick')}
             </Underlined>
             <Underlined onPress={nav.onDrop} color={colors.text2} testID="drop-cue">
-              Drop this cue
+              {t('library.cueDetail.drop')}
             </Underlined>
           </View>
         </View>
@@ -252,16 +254,16 @@ export function StuckScreen({ cue, nav }: { cue: CueRecord; nav: StuckNav }) {
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }} testID="stuck">
       <View style={{ flexDirection: 'row', gap: 2 }}>
-        {panel(cue.before.image, first?.value, first ? `${shortDate(first.date).toLowerCase()} · ${metricText(cue.metricId, first.value)}` : 'before', false, pops[0])}
-        {panel(cue.after.image, last?.value, last ? `today · ${metricText(cue.metricId, last.value)}` : 'now', true, pops[1])}
+        {panel(cue.before.image, first?.value, first ? `${shortDate(first.date).toLowerCase()} · ${metricText(cue.metricId, first.value)}` : t('library.stuck.before'), false, pops[0])}
+        {panel(cue.after.image, last?.value, last ? `${t('library.ago.today')} · ${metricText(cue.metricId, last.value)}` : t('library.stuck.now'), true, pops[1])}
       </View>
       <View style={{ flex: 1, paddingTop: space.s5, paddingHorizontal: space.gutter, gap: space.s3 }}>
         <Animated.View style={[{ flexDirection: 'row', alignItems: 'center', gap: space.s2 }, pops[2]]}>
           <StatusDot status="stuck" />
-          <SmallCaps color={colors.text}>{`Stuck · ${SINGULAR_MOVEMENT[cue.movement]}`}</SmallCaps>
+          <SmallCaps color={colors.text}>{t('library.stuck.kicker', { movement: singularMovement(cue.movement) })}</SmallCaps>
         </Animated.View>
         <Animated.View style={pops[2]}>
-          <Text style={[display(64, true), { color: colors.text }]}>Stuck.</Text>
+          <Text style={[display(64, true), { color: colors.text }]}>{t('library.stuck.title')}</Text>
         </Animated.View>
         <Animated.View style={pops[3]}>
           <Text style={{ color: colors.text, fontFamily: fontFamily.body, fontSize: 17, lineHeight: 24 }} testID="stuck-summary">
@@ -271,20 +273,20 @@ export function StuckScreen({ cue, nav }: { cue: CueRecord; nav: StuckNav }) {
                 <Text style={{ color: colors.text, fontFamily: fontFamily.mono, fontSize: 15, lineHeight: 24 }}>
                   {`${fmt(change.from)} → ${metricText(cue.metricId, change.to)}`}
                 </Text>
-                {` over ${change.weeks === 1 ? 'a week' : `${change.weeks} weeks`}. It's yours now.`}
+                {t('library.stuck.over', { count: change.weeks })}
               </>
             ) : (
-              "You called it. It's yours now."
+              t('library.stuck.calledIt')
             )}
           </Text>
         </Animated.View>
       </View>
       <View style={{ paddingTop: space.s4, paddingHorizontal: space.gutter, paddingBottom: Math.max(insets.bottom, space.s7), gap: space.s3 }}>
         <Btn onPress={nav.onNext} testID="next-cue">
-          Next cue
+          {t('library.stuck.next')}
         </Btn>
         <Btn kind="secondary" onPress={nav.onShare} testID="share-stuck">
-          Share
+          {t('library.stuck.share')}
         </Btn>
       </View>
     </View>
@@ -301,33 +303,33 @@ export function DidntStickScreen({ cue, nav }: { cue: CueRecord; nav: DidntStick
     <View style={{ flex: 1, backgroundColor: colors.bg }} testID="didnt-stick">
       <Frame image={cue.after.image} width={width} height={Math.round(Math.min(380, height * 0.42))} gray opacity={0.7} focus={{ x: 0.5, y: 0.35 }}>
         <View style={{ position: 'absolute', top: insets.top, left: 0, right: 0 }}>
-          <TopBar back="Cues" onBack={nav.onBack} more={false} />
+          <TopBar back={t('library.tabs.cues')} onBack={nav.onBack} more={false} />
         </View>
       </Frame>
       <View style={{ flex: 1, paddingTop: space.s5, paddingHorizontal: space.gutter, gap: space.s3 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s2 }}>
           <StatusDot status="didnt_stick" />
-          <SmallCaps color={colors.text}>{`Didn't stick · ${SINGULAR_MOVEMENT[cue.movement]}`}</SmallCaps>
+          <SmallCaps color={colors.text}>{t('library.didntStick.kicker', { movement: singularMovement(cue.movement) })}</SmallCaps>
         </View>
         <Text style={[display(36), { color: colors.text }]} testID="didnt-stick-headline">
           {didntStickHeadline(cue, sessions)}
         </Text>
         <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>
-          {cue.suggestion?.why ?? "That usually means the cue was aimed at the wrong thing. Film another set and I'll look for what's underneath it."}
+          {cue.suggestion?.why ?? t('library.didntStick.why')}
         </Text>
       </View>
       <View style={{ paddingTop: space.s4, paddingHorizontal: space.gutter, paddingBottom: Math.max(insets.bottom, space.s7), gap: space.s3 }}>
         {cue.suggestion ? (
           <Btn onPress={nav.onTryNew} testID="try-new-cue">
-            Try the new cue
+            {t('library.didntStick.tryNew')}
           </Btn>
         ) : null}
         <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
           <Underlined onPress={nav.onKeepTrying} testID="keep-trying">
-            Keep trying this one
+            {t('library.didntStick.keepTrying')}
           </Underlined>
           <Underlined onPress={nav.onSendToCoach} testID="send-to-coach">
-            Send to my coach
+            {t('library.didntStick.sendToCoach')}
           </Underlined>
         </View>
       </View>

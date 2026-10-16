@@ -1,12 +1,17 @@
 import type { Movement } from '../../analysis/types';
 import { ANALYSES } from '../../analysis/fixtures';
 import { liveAnalysis } from '../../analysis/live';
-import { fmt, movementLabel, plural, speedText } from '../../analysis/format';
+import { fmt, movementLabel, speedText } from '../../analysis/format';
+import { formatDate, getLocale, t } from '../../i18n';
+import { cueText } from '../../i18n/cues';
+import { failureMessage } from './failures';
 import { BARBELL, GYMNASTICS, metricFor, PRIMARY_METRIC } from './metrics';
 import { FREE_VIDEOS, type CueRecord, type CueStatus, type Day, type LibraryState, type Lift, type Session } from './types';
 
-const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+// German capitalises nouns, so a label mid-sentence keeps its case there.
+export function lower(s: string): string {
+  return getLocale() === 'de' ? s : s.toLowerCase();
+}
 
 function utc(day: Day): Date {
   return new Date(`${day}T00:00:00Z`);
@@ -18,21 +23,21 @@ export function daysBetween(a: Day, b: Day): number {
 
 export function shortDate(day: Day): string {
   const d = utc(day);
-  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
+  return t('library.date.dayMonth', { day: d.getUTCDate(), month: formatDate(d, { month: 'short', timeZone: 'UTC' }) });
 }
 
 export function dayLabel(day: Day, today: Day): string {
   const d = utc(day);
-  const label = `${WEEKDAYS[d.getUTCDay()]} ${shortDate(day)}`;
-  return day === today ? `Today · ${label}` : label;
+  const label = t('library.date.weekday', { weekday: formatDate(d, { weekday: 'short', timeZone: 'UTC' }), date: shortDate(day) });
+  return day === today ? t('library.date.today', { label }) : label;
 }
 
 export function freeVideosLabel(s: Pick<LibraryState, 'plan' | 'freeVideosUsed'>): string | null {
   if (s.plan !== 'free') return null;
   const left = Math.max(0, FREE_VIDEOS - s.freeVideosUsed);
-  if (left === FREE_VIDEOS) return `${FREE_VIDEOS} free videos`;
-  if (left === 0) return 'Free videos used';
-  return `${plural(left, 'free video')} left`;
+  if (left === FREE_VIDEOS) return t('library.free.all', { count: FREE_VIDEOS });
+  if (left === 0) return t('library.free.used');
+  return t('library.free.left', { count: left });
 }
 
 export type Group = 'all' | 'barbell' | 'gymnastics';
@@ -61,7 +66,7 @@ export function groupByDay(lifts: Lift[], today: Day): { day: Day; label: string
 
 export function liftTitle(l: Lift): string {
   const parts = [movementLabel(l.movement)];
-  if (l.reps != null) parts.push(plural(l.reps, 'rep'));
+  if (l.reps != null) parts.push(t('library.reps', { count: l.reps }));
   if (l.loadKg != null) parts.push(`${fmt(l.loadKg)} kg`);
   return parts.join(' · ');
 }
@@ -99,26 +104,27 @@ export function versionBoundary(sessions: Session[], movement: Movement): { sinc
 }
 
 export function versionNote(since: Day): string {
-  return `Analysis improved on ${shortDate(since)}; earlier lifts were measured by the older version.`;
+  return t('library.versionNote', { date: shortDate(since) });
 }
 
 // cueShown: the row already carries the cue status line ("Trying · …"), so the
 // low-confidence "possible · …" qualifier would repeat the cue on the same row.
 export function liftDetail(l: Lift, sessions: Session[], opts: { cueShown?: boolean } = {}): string {
-  if (l.status === 'processing') return 'analysing · about 20 s';
-  if (l.status === 'queued') return 'Queued · free videos used';
-  if (l.status === 'failed') return l.failure?.message ?? "Couldn't analyse";
+  if (l.status === 'processing') return t('library.detail.processing');
+  if (l.status === 'queued') return t('library.detail.queued');
+  if (l.status === 'failed') return l.failure ? failureMessage(l.failure) : t('library.detail.failed');
   const analysis = l.analysisId ? (liveAnalysis(l.analysisId) ?? ANALYSES[l.analysisId]) : undefined;
-  if (analysis?.cue && analysis.reps.every((r) => !r.made)) return `miss · ${analysis.cue.text.toLowerCase()}`;
-  if (analysis?.cue && analysis.cue.confidence !== 'clear' && !opts.cueShown) return `possible · ${analysis.cue.text.toLowerCase()}`;
+  const cue = analysis?.cue ? lower(cueText(analysis.cue.faultId, analysis.cue.text)) : '';
+  if (analysis?.cue && analysis.reps.every((r) => !r.made)) return t('library.detail.miss', { cue });
+  if (analysis?.cue && analysis.cue.confidence !== 'clear' && !opts.cueShown) return t('library.detail.possible', { cue });
   const session = sessions.find((s) => s.liftId === l.id);
   const metricId = PRIMARY_METRIC[l.movement];
   const value = session?.values[metricId];
   // The headline number first, so a row reads without opening it.
-  if (value == null) return analysis?.cue ? analysis.cue.evidence.caption : (l.headline ?? 'analysed');
+  if (value == null) return analysis?.cue ? analysis.cue.evidence.caption : (l.headline ?? t('library.detail.analysed'));
   const best = bestOf(seriesFor(sessions, l.movement, metricId), metricId);
   const head = `${metricFor(metricId).short} ${metricText(metricId, value)}`;
-  return best ? `${head} · best ${metricText(metricId, best.value)}` : head;
+  return best ? t('library.detail.best', { head, value: metricText(metricId, best.value) }) : head;
 }
 
 export type LiftLink =
@@ -186,15 +192,15 @@ export function sessionsDone(cue: CueRecord, sessions: Session[]): number {
 }
 
 export function sessionsCounter(cue: CueRecord, sessions: Session[]): string {
-  return `${sessionsDone(cue, sessions)} of ${cue.sessionsTarget}`;
+  return t('library.counter', { done: sessionsDone(cue, sessions), target: cue.sessionsTarget });
 }
 
 export function agoLabel(day: Day, today: Day): string {
   const n = daysBetween(day, today);
-  if (n <= 0) return 'today';
-  if (n === 1) return 'yesterday';
-  if (n < 14) return `${n} days ago`;
-  return `${Math.round(n / 7)} wks ago`;
+  if (n <= 0) return t('library.ago.today');
+  if (n === 1) return t('library.ago.yesterday');
+  if (n < 14) return t('library.ago.days', { count: n });
+  return t('library.ago.weeks', { count: Math.round(n / 7) });
 }
 
 // The metric's series around the cue: the session it was given on, then
@@ -214,20 +220,17 @@ export function cueChange(cue: CueRecord, sessions: Session[]): { from: number; 
 
 export function pastCueSummary(cue: CueRecord, sessions: Session[]): string {
   const n = sessionsDone(cue, sessions);
-  if (cue.status === 'dropped') return `dropped after ${plural(Math.max(1, n), 'session')}`;
+  if (cue.status === 'dropped') return t('library.summary.dropped', { count: Math.max(1, n) });
   const change = cueChange(cue, sessions);
   const m = metricFor(cue.metricId);
-  if (!change) return m.label.toLowerCase();
-  const span = `${m.label.toLowerCase()} ${fmt(change.from)} → ${fmt(change.to)} ${m.unit === 'deg' ? '°' : m.unit}`;
-  return cue.status === 'stuck' ? `${span} · ${plural(change.weeks, 'wk')}` : span;
+  if (!change) return lower(m.label);
+  const span = `${lower(m.label)} ${fmt(change.from)} → ${fmt(change.to)} ${m.unit === 'deg' ? '°' : m.unit}`;
+  return cue.status === 'stuck' ? `${span} · ${t('library.weeks', { count: change.weeks })}` : span;
 }
 
-export const STATUS_LABEL: Record<CueStatus, string> = {
-  trying: 'Trying',
-  stuck: 'Stuck',
-  didnt_stick: "Didn't stick",
-  dropped: 'Dropped',
-};
+export function statusLabel(status: CueStatus): string {
+  return t(status === 'didnt_stick' ? 'library.status.didntStick' : `library.status.${status}`);
+}
 
 export type Range = 7 | 30 | 90;
 
@@ -251,26 +254,25 @@ export function cueWindow(
   };
 }
 
-const NUMBER_WORDS = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten'];
-
 export function didntStickHeadline(cue: CueRecord, sessions: Session[]): string {
   const n = sessionsDone(cue, sessions);
-  const count = `${NUMBER_WORDS[n] ?? String(n)} ${n === 1 ? 'session' : 'sessions'}`;
+  const word = t('library.numberWords').split(',')[n] ?? String(n);
+  const count = `${word} ${t('library.sessionWord', { count: n })}`;
   const series = cueSeries(cue, sessions);
-  if (series.length === 0) return `${count} and it hasn't moved yet.`;
+  if (series.length === 0) return t('library.didntStick.noMove', { sessions: count });
   const m = metricFor(cue.metricId);
   const v = metricText(cue.metricId, series[series.length - 1].value);
-  const still = m.still ? m.still.replace('{v}', v) : `${m.label.toLowerCase()} is still ${v}`;
-  return `${count} and ${still}.`;
+  const still = m.still ? m.still.replace('{v}', v) : t('library.didntStick.stillDefault', { label: lower(m.label), value: v });
+  return t('library.didntStick.still', { sessions: count, still });
 }
 
 export function trendDirection(series: { value: number }[], metricId: string): string {
   if (series.length < 2) return '';
   const first = series[0].value;
   const last = series[series.length - 1].value;
-  if (first === last) return 'Holding steady.';
+  if (first === last) return t('library.trend.steady');
   const better = metricFor(metricId).lowerIsBetter ? last < first : last > first;
-  return better ? 'Heading the right way.' : 'Not moving yet.';
+  return better ? t('library.trend.better') : t('library.trend.notYet');
 }
 
 // Trends opens with the sentence people actually read, then the chart:
@@ -284,11 +286,13 @@ export function trendRecap(
 ): string | null {
   const latest = series[series.length - 1];
   if (!latest) return null;
-  const when = latest.date === today ? 'today' : `on ${shortDate(latest.date)}`;
-  const parts = [`${metricFor(metricId).label}: ${metricText(metricId, latest.value)} ${when}.`];
+  const when = latest.date === today ? t('library.recap.today') : t('library.recap.on', { date: shortDate(latest.date) });
+  const parts = [t('library.recap.latest', { label: metricFor(metricId).label, value: metricText(metricId, latest.value), when })];
   const best = bestOf(series, metricId);
-  if (best && best.value !== latest.value) parts.push(`Best ${metricText(metricId, best.value)} on ${shortDate(best.date)}.`);
-  else parts.push('Your best yet.');
-  if (cue?.status === 'trying' && cue.metricId === metricId) parts.push(`Trying “${cue.text}”: ${sessionsCounter(cue, sessions)} sessions.`);
+  if (best && best.value !== latest.value) parts.push(t('library.recap.best', { value: metricText(metricId, best.value), date: shortDate(best.date) }));
+  else parts.push(t('library.recap.bestYet'));
+  if (cue?.status === 'trying' && cue.metricId === metricId) {
+    parts.push(t('library.recap.trying', { cue: cueText(cue.metricId, cue.text), counter: sessionsCounter(cue, sessions) }));
+  }
   return parts.join(' ');
 }

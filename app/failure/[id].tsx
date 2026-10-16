@@ -4,6 +4,7 @@ import FailureScreen from '../../src/features/library/FailureScreen';
 import { FAILURE_COPY, type FailureAction, type FailureReason } from '../../src/features/library/failures';
 import { useLift } from '../../src/features/library/repository';
 import { submitDraft } from '../../src/features/capture/submit';
+import { t } from '../../src/i18n';
 
 // A failed lift by id; `?reason=` previews any failure variant (dev entry). The
 // design header for an unknown lift is a dev preview only.
@@ -14,7 +15,7 @@ export default function FailureRoute() {
   const r = (reason && reason in FAILURE_COPY ? reason : lift?.failure?.reason ?? 'unknown') as FailureReason;
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
   const header = lift
-    ? [movementLabel(lift.movement), lift.loadKg != null ? `${fmt(lift.loadKg)} kg` : null, lift.failure?.frame != null ? `frame ${lift.failure.frame}` : null]
+    ? [movementLabel(lift.movement), lift.loadKg != null ? `${fmt(lift.loadKg)} kg` : null, lift.failure?.frame != null ? t('library.failure.frame', { frame: lift.failure.frame }) : null]
         .filter(Boolean)
         .join(' · ')
     : __DEV__

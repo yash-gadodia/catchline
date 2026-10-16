@@ -3,13 +3,14 @@ import { ActivityIndicator, Image, Pressable, RefreshControl, ScrollView, Text, 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Line } from 'react-native-svg';
 import type { Movement } from '../../analysis/types';
-import { fmt, movementLabel, plural } from '../../analysis/format';
+import { fmt, movementLabel } from '../../analysis/format';
+import { t } from '../../i18n';
 import Segmented from '../../components/Segmented';
 import SmallCaps from '../../components/SmallCaps';
 import { backendEnabled } from '../../data/backend';
 import { colors, radius, space } from '../../design/tokens';
 import { display, fontFamily, type } from '../../design/typography';
-import { defaultMovement, measuredMetrics, measuredMovements, metricFor, PLURAL_MOVEMENT, PRIMARY_METRIC, SINGULAR_MOVEMENT } from './metrics';
+import { defaultMovement, measuredMetrics, measuredMovements, metricFor, PRIMARY_METRIC } from './metrics';
 import { bestOf, inRange, latestCue, metricText, seriesFor, shortDate, trendRecap, versionBoundary, versionNote, type Range } from './derive';
 import { useLibrary } from './repository';
 import { useRefresh } from './CuesScreen';
@@ -72,7 +73,7 @@ export default function TrendsScreen({ initialMovement }: { initialMovement?: Mo
   // One marker per cue started on this measurement, at the session it was given.
   const markers = cues
     .filter((c) => c.movement === movement && c.metricId === metric.id)
-    .map((c) => ({ index: visible.reduce((idx, p, i) => (p.date <= c.givenAt ? i : idx), -1), label: `cue · ${shortDate(c.givenAt).toLowerCase()}` }))
+    .map((c) => ({ index: visible.reduce((idx, p, i) => (p.date <= c.givenAt ? i : idx), -1), label: t('library.trends.cueMarker', { date: shortDate(c.givenAt).toLowerCase() }) }))
     .filter((m) => m.index >= 0);
   const versions = versionBoundary(sessions, movement);
   const recap = trendRecap(metric.id, all, today, cueFor, sessions);
@@ -101,7 +102,7 @@ export default function TrendsScreen({ initialMovement }: { initialMovement?: Mo
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top + space.s3 }} testID="trends">
       <View style={{ paddingHorizontal: space.gutter, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', zIndex: 2 }}>
-        <Title>Trends</Title>
+        <Title>{t('library.tabs.trends')}</Title>
         {switcher}
       </View>
       {menu ? (
@@ -134,11 +135,11 @@ export default function TrendsScreen({ initialMovement }: { initialMovement?: Mo
           <ActivityIndicator color={colors.text2} />
         </View>
       ) : movements.length === 0 && !initialMovement ? (
-        sparse('Film a lift and the trend starts here.', 'Trends need two lifts of the same movement.', 'trends-empty', true)
+        sparse(t('library.trends.emptyTitle'), t('library.trends.emptyBody'), 'trends-empty', true)
       ) : count < 2 ? (
         sparse(
-          count === 1 ? `One ${SINGULAR_MOVEMENT[movement]} so far.` : `No ${PLURAL_MOVEMENT[movement]} yet.`,
-          count === 1 ? 'Trends need two lifts of the same movement. Film the next one and this fills in.' : 'Film one and it starts here. Trends need two lifts of the same movement.',
+          count === 1 ? t(`library.trends.one.${movement}` as const) : t(`library.trends.none.${movement}` as const),
+          count === 1 ? t('library.trends.oneBody') : t('library.trends.noneBody'),
           'trends-sparse'
         )
       ) : (
@@ -151,7 +152,7 @@ export default function TrendsScreen({ initialMovement }: { initialMovement?: Mo
               >
                 <Frame image={pinned.session.thumb} width={48} height={60} gray />
                 <View style={{ flex: 1, gap: 2 }}>
-                  <SmallCaps size={12}>Best rep · pinned</SmallCaps>
+                  <SmallCaps size={12}>{t('library.trends.pinned')}</SmallCaps>
                   <Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 17, lineHeight: 22 }}>
                     {[
                       pinned.session.loadKg != null ? `${fmt(pinned.session.loadKg)} kg` : null,
@@ -188,9 +189,9 @@ export default function TrendsScreen({ initialMovement }: { initialMovement?: Mo
                 value={String(range) as '7' | '30' | '90'}
                 onChange={(v) => setRange(Number(v) as Range)}
                 options={[
-                  { value: '7', label: '7d' },
-                  { value: '30', label: '30d' },
-                  { value: '90', label: '90d' },
+                  { value: '7', label: t('library.trends.days', { count: 7 }) },
+                  { value: '30', label: t('library.trends.days', { count: 30 }) },
+                  { value: '90', label: t('library.trends.days', { count: 90 }) },
                 ]}
               />
             </View>
@@ -207,11 +208,11 @@ export default function TrendsScreen({ initialMovement }: { initialMovement?: Mo
               />
             ) : (
               <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }} testID="range-sparse">
-                {`${visible.length === 1 ? 'One session' : 'No sessions'} in the last ${range} days. Try a longer range.`}
+                {t(visible.length === 1 ? 'library.trends.rangeOne' : 'library.trends.rangeNone', { count: range })}
               </Text>
             )}
             <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>
-              {`${metric.caption} ${metric.lowerIsBetter ? 'Lower' : 'Higher'} is better. ${plural(visible.length, 'session')}.`}
+              {`${metric.caption} ${t(metric.lowerIsBetter ? 'library.trends.lower' : 'library.trends.higher')} ${t('library.sessions', { count: visible.length })}.`}
             </Text>
             {versions ? (
               <Text testID="version-note" style={[type.small, { color: colors.text2 }]}>

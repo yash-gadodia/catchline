@@ -2,16 +2,17 @@ import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radius } from '../../design/tokens';
 import { fontFamily } from '../../design/typography';
+import { t } from '../../i18n';
 
 export type TabName = 'index' | 'cues' | 'trends' | 'me';
 
-const LEFT: { name: TabName; label: string }[] = [
-  { name: 'index', label: 'Lifts' },
-  { name: 'cues', label: 'Cues' },
+const LEFT: { name: TabName; label: () => string }[] = [
+  { name: 'index', label: () => t('library.tabs.lifts') },
+  { name: 'cues', label: () => t('library.tabs.cues') },
 ];
-const RIGHT: { name: TabName; label: string }[] = [
-  { name: 'trends', label: 'Trends' },
-  { name: 'me', label: 'You' },
+const RIGHT: { name: TabName; label: () => string }[] = [
+  { name: 'trends', label: () => t('library.tabs.trends') },
+  { name: 'me', label: () => t('library.tabs.you') },
 ];
 
 export default function TabBar({
@@ -24,7 +25,7 @@ export default function TabBar({
   onImport: () => void;
 }) {
   const insets = useSafeAreaInsets();
-  const tab = (t: { name: TabName; label: string }) => {
+  const tab = (t: { name: TabName; label: () => string }) => {
     const on = t.name === active;
     return (
       <Pressable
@@ -36,7 +37,7 @@ export default function TabBar({
         style={{ flex: 1, height: 56, alignItems: 'center', justifyContent: 'center' }}
       >
         <Text style={{ color: on ? colors.text : colors.text2, fontFamily: fontFamily.bodyMedium, fontSize: 12, lineHeight: 16 }}>
-          {t.label}
+          {t.label()}
         </Text>
       </Pressable>
     );
@@ -59,7 +60,7 @@ export default function TabBar({
         <Pressable
           onPress={onImport}
           accessibilityRole="button"
-          accessibilityLabel="Import a video"
+          accessibilityLabel={t('library.lifts.import')}
           testID="tab-import"
           style={({ pressed }) => ({
             width: 56,

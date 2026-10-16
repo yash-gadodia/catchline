@@ -4,6 +4,7 @@ import { fmt } from '../../analysis/format';
 import { colors } from '../../design/tokens';
 import { fontFamily } from '../../design/typography';
 import { shortDate } from './derive';
+import { t } from '../../i18n';
 
 export type ChartPoint = { date: string; value: number };
 
@@ -61,7 +62,7 @@ export default function TrendChart({
           <G>
             <Line x1={0} y1={bestY} x2={width} y2={bestY} stroke={colors.text} strokeDasharray="4 6" opacity={0.35} />
             <SvgText x={width} y={bestY + 14} textAnchor="end" fill={colors.text2} {...text}>
-              {`best ${fmt(best!)}`}
+              {t('library.chart.best', { value: fmt(best!) })}
             </SvgText>
           </G>
         ) : null}

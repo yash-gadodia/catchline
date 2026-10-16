@@ -1,4 +1,5 @@
 import type { Movement } from '../../analysis/types';
+import { isKey, t } from '../../i18n';
 
 export type Metric = {
   id: string;
@@ -10,64 +11,58 @@ export type Metric = {
   still?: string;
 };
 
-export const METRICS: Record<string, Metric> = {
-  bar_drift_hip: {
-    id: 'bar_drift_hip',
-    label: 'Bar drift at hip',
-    short: 'drift',
-    unit: 'cm',
-    lowerIsBetter: true,
-    caption: 'Bar drift at hip, cm forward.',
-    still: 'the bar still drifts {v} at the hip',
-  },
-  pull_time: { id: 'pull_time', label: 'Pull timing', short: 'pull', unit: 's', lowerIsBetter: true, caption: 'Pull time, seconds.' },
-  catch_depth: { id: 'catch_depth', label: 'Catch depth', short: 'depth', unit: 'cm', lowerIsBetter: false, caption: 'Catch depth below parallel, cm.' },
-  turnover_time: { id: 'turnover_time', label: 'Turnover time', short: 'turnover', unit: 's', lowerIsBetter: true, caption: 'Turnover time, seconds.' },
-  bar_height: { id: 'bar_height', label: 'Bar height', short: 'height', unit: 'cm', lowerIsBetter: false, caption: 'Peak bar height, cm.' },
-  elbow_turn: { id: 'elbow_turn', label: 'Elbow turnover', short: 'elbows', unit: 's', lowerIsBetter: true, caption: 'Elbow turnover time, seconds.' },
-  kip_height: { id: 'kip_height', label: 'Kip height', short: 'kip', unit: 'cm', lowerIsBetter: false, caption: 'Kip height, cm.' },
-  hip_to_bar: {
-    id: 'hip_to_bar',
-    label: 'Hip to bar',
-    short: 'hip to bar',
-    unit: 'cm',
-    lowerIsBetter: true,
-    caption: 'Hip to bar at transition, cm.',
-    still: 'the hips are still {v} off the bar',
-  },
-  body_line: { id: 'body_line', label: 'Body-line angle', short: 'body line', unit: 'deg', lowerIsBetter: false, caption: 'Body-line angle at the drive, degrees.' },
-  cycle_time: { id: 'cycle_time', label: 'Cycle time', short: 'cycle', unit: 's', lowerIsBetter: true, caption: 'Time per rep, seconds.' },
-  dip_depth: { id: 'dip_depth', label: 'Dip depth', short: 'dip', unit: 'cm', lowerIsBetter: false, caption: 'Dip depth, cm.' },
-  bar_path_jerk: { id: 'bar_path_jerk', label: 'Bar drift overhead', short: 'drift', unit: 'cm', lowerIsBetter: true, caption: 'Bar drift overhead, cm.' },
+export type MetricSpec = Pick<Metric, 'id' | 'unit' | 'lowerIsBetter'>;
+
+export const METRICS: Record<string, MetricSpec> = {
+  bar_drift_hip: { id: 'bar_drift_hip', unit: 'cm', lowerIsBetter: true },
+  pull_time: { id: 'pull_time', unit: 's', lowerIsBetter: true },
+  catch_depth: { id: 'catch_depth', unit: 'cm', lowerIsBetter: false },
+  turnover_time: { id: 'turnover_time', unit: 's', lowerIsBetter: true },
+  bar_height: { id: 'bar_height', unit: 'cm', lowerIsBetter: false },
+  elbow_turn: { id: 'elbow_turn', unit: 's', lowerIsBetter: true },
+  kip_height: { id: 'kip_height', unit: 'cm', lowerIsBetter: false },
+  hip_to_bar: { id: 'hip_to_bar', unit: 'cm', lowerIsBetter: true },
+  body_line: { id: 'body_line', unit: 'deg', lowerIsBetter: false },
+  cycle_time: { id: 'cycle_time', unit: 's', lowerIsBetter: true },
+  dip_depth: { id: 'dip_depth', unit: 'cm', lowerIsBetter: false },
+  bar_path_jerk: { id: 'bar_path_jerk', unit: 'cm', lowerIsBetter: true },
   // The CV's own measurement ids (cv/catchline_cv/rules.py FAULTS + lifts.py LABELS). A cue's
   // metricId is its fault_id, so every fault the worker can cue needs an entry here.
-  hips_rise_early: { id: 'hips_rise_early', label: 'Hips rose early', short: 'hips', unit: 'cm', lowerIsBetter: true, caption: 'Hips vs shoulders, floor to knee, cm.', still: 'the hips still rise {v} early' },
-  bar_forward_off_hips: { id: 'bar_forward_off_hips', label: 'Bar forward off hips', short: 'bar fwd', unit: 'cm', lowerIsBetter: true, caption: 'Bar forward after hip contact, cm.', still: 'the bar still goes {v} forward off the hips' },
-  jump_forward: { id: 'jump_forward', label: 'Jumped forward', short: 'jump', unit: 'cm', lowerIsBetter: true, caption: 'Feet forward, lift-off to catch, cm.', still: 'the feet still land {v} forward' },
-  early_arm_bend: { id: 'early_arm_bend', label: 'Early arm bend', short: 'arm bend', unit: 's', lowerIsBetter: true, caption: 'Elbows bent before the hips finished, seconds.' },
-  incomplete_extension: { id: 'incomplete_extension', label: 'Extension short', short: 'extension', unit: 'deg', lowerIsBetter: true, caption: 'Hip angle short of 170° at the top of the pull.' },
-  forward_dip: { id: 'forward_dip', label: 'Bar forward in dip', short: 'dip fwd', unit: 'cm', lowerIsBetter: true, caption: 'Bar forward, dip start to dip bottom, cm.' },
-  press_out: { id: 'press_out', label: 'Press-out', short: 'press-out', unit: 'deg', lowerIsBetter: true, caption: 'Elbow short of locked at the bar peak, degrees.' },
-  chest_dive: { id: 'chest_dive', label: 'Chest forward in catch', short: 'chest', unit: 'deg', lowerIsBetter: true, caption: 'Trunk lean from vertical when landing, degrees.' },
-  bar_forward_overhead: { id: 'bar_forward_overhead', label: 'Bar forward overhead', short: 'overhead', unit: 'cm', lowerIsBetter: true, caption: 'Bar vs shoulders at lockout, cm.' },
-  leg_kip: { id: 'leg_kip', label: 'Knee bend in the swing', short: 'knees', unit: 'deg', lowerIsBetter: true, caption: 'Knee range, arch to top, degrees.' },
-  early_arm_pull: { id: 'early_arm_pull', label: 'Arms before hips', short: 'arms', unit: 's', lowerIsBetter: true, caption: 'Elbow bend before the hip snap, seconds.' },
-  no_push_away: { id: 'no_push_away', label: 'Push-away at the top', short: 'push-away', unit: 'cm', lowerIsBetter: false, caption: 'Shoulders back off the bar in 0.4 s, cm.' },
-  bmu_early_pull: { id: 'bmu_early_pull', label: 'Hips under bar at the pull', short: 'hips', unit: 'cm', lowerIsBetter: true, caption: 'Hips below the bar when the elbows start to bend, cm.' },
-  hips_low_transition: { id: 'hips_low_transition', label: 'Hips under bar at transition', short: 'hips', unit: 'cm', lowerIsBetter: true, caption: 'Hips below the bar before the elbows go over, cm.', still: 'the hips are still {v} under the bar' },
-  chicken_wing: { id: 'chicken_wing', label: 'Elbow timing gap', short: 'elbows', unit: 's', lowerIsBetter: true, caption: 'Time between the two elbows crossing the bar, seconds.' },
-  hspu_banana: { id: 'hspu_banana', label: 'Hips off the body line', short: 'hips', unit: 'cm', lowerIsBetter: true, caption: 'Hip vs shoulder-ankle line at lockout, cm.' },
-  hspu_kip_timing: { id: 'hspu_kip_timing', label: 'Tuck before the kick', short: 'tuck', unit: 'cm', lowerIsBetter: true, caption: 'Knees above the hips at the deepest tuck, cm.' },
-  bar_speed: { id: 'bar_speed', label: 'Peak bar speed', short: 'speed', unit: 'm/s', lowerIsBetter: false, caption: 'Peak bar speed in the second pull, m/s.' },
-  bar_peak_height: { id: 'bar_peak_height', label: 'Bar peak height', short: 'peak', unit: 'cm', lowerIsBetter: false, caption: 'Bar peak height above lift-off, cm.' },
+  hips_rise_early: { id: 'hips_rise_early', unit: 'cm', lowerIsBetter: true },
+  bar_forward_off_hips: { id: 'bar_forward_off_hips', unit: 'cm', lowerIsBetter: true },
+  jump_forward: { id: 'jump_forward', unit: 'cm', lowerIsBetter: true },
+  early_arm_bend: { id: 'early_arm_bend', unit: 's', lowerIsBetter: true },
+  incomplete_extension: { id: 'incomplete_extension', unit: 'deg', lowerIsBetter: true },
+  forward_dip: { id: 'forward_dip', unit: 'cm', lowerIsBetter: true },
+  press_out: { id: 'press_out', unit: 'deg', lowerIsBetter: true },
+  chest_dive: { id: 'chest_dive', unit: 'deg', lowerIsBetter: true },
+  bar_forward_overhead: { id: 'bar_forward_overhead', unit: 'cm', lowerIsBetter: true },
+  leg_kip: { id: 'leg_kip', unit: 'deg', lowerIsBetter: true },
+  early_arm_pull: { id: 'early_arm_pull', unit: 's', lowerIsBetter: true },
+  no_push_away: { id: 'no_push_away', unit: 'cm', lowerIsBetter: false },
+  bmu_early_pull: { id: 'bmu_early_pull', unit: 'cm', lowerIsBetter: true },
+  hips_low_transition: { id: 'hips_low_transition', unit: 'cm', lowerIsBetter: true },
+  chicken_wing: { id: 'chicken_wing', unit: 's', lowerIsBetter: true },
+  hspu_banana: { id: 'hspu_banana', unit: 'cm', lowerIsBetter: true },
+  hspu_kip_timing: { id: 'hspu_kip_timing', unit: 'cm', lowerIsBetter: true },
+  bar_speed: { id: 'bar_speed', unit: 'm/s', lowerIsBetter: false },
+  bar_peak_height: { id: 'bar_peak_height', unit: 'cm', lowerIsBetter: false },
 };
+
+function text(id: string, field: 'label' | 'short' | 'caption' | 'still'): string | undefined {
+  const key = `library.metric.${id}.${field}`;
+  return isKey(key) ? t(key) : undefined;
+}
 
 // Any id the CV sends that has no entry still renders (label from the id, cm, lower is better).
 export function metricFor(id: string): Metric {
   const known = METRICS[id];
-  if (known) return known;
+  if (known) {
+    const still = text(id, 'still');
+    return { ...known, label: text(id, 'label') ?? id, short: text(id, 'short') ?? id, caption: text(id, 'caption') ?? '', ...(still ? { still } : {}) };
+  }
   const label = id.replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase());
-  return { id, label, short: label.toLowerCase(), unit: 'cm', lowerIsBetter: true, caption: `${label}, cm.` };
+  return { id, label, short: label.toLowerCase(), unit: 'cm', lowerIsBetter: true, caption: t('library.metric.unknownCaption', { label }) };
 }
 
 // Preferred chip order per movement: the CV's faults in lift order, then its extras, then the
@@ -119,29 +114,10 @@ export const PRIMARY_METRIC: Record<Movement, string> = {
 export const BARBELL: Movement[] = ['snatch', 'clean', 'jerk'];
 export const GYMNASTICS: Movement[] = ['kipping_pull_up', 'bar_muscle_up', 'kipping_hspu'];
 
-export const SHORT_MOVEMENT: Record<Movement, string> = {
-  snatch: 'Snatch',
-  clean: 'Clean',
-  jerk: 'Jerk',
-  kipping_pull_up: 'Pull-up',
-  bar_muscle_up: 'Bar MU',
-  kipping_hspu: 'HSPU',
-};
+export function shortMovement(m: Movement): string {
+  return t(`library.movement.short.${m}` as const);
+}
 
-export const PLURAL_MOVEMENT: Record<Movement, string> = {
-  snatch: 'snatches',
-  clean: 'cleans',
-  jerk: 'jerks',
-  kipping_pull_up: 'kipping pull-ups',
-  bar_muscle_up: 'bar muscle-ups',
-  kipping_hspu: 'kipping HSPUs',
-};
-
-export const SINGULAR_MOVEMENT: Record<Movement, string> = {
-  snatch: 'snatch',
-  clean: 'clean',
-  jerk: 'jerk',
-  kipping_pull_up: 'kipping pull-up',
-  bar_muscle_up: 'bar muscle-up',
-  kipping_hspu: 'kipping HSPU',
-};
+export function singularMovement(m: Movement): string {
+  return t(`library.movement.singular.${m}` as const);
+}

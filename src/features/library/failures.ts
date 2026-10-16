@@ -1,4 +1,6 @@
 import type { Failure } from '../../analysis/types';
+import { en } from '../../i18n/en';
+import { isKey, t } from '../../i18n';
 
 export type FailureReason = Failure['reason'];
 
@@ -17,140 +19,120 @@ export type FailureCopy = {
 
 // One layout for every failure so the lifter learns it once: the frame where it
 // failed with the problem marked, one-line cause, one fix, and the clip is kept.
-export const FAILURE_COPY: Record<FailureReason, FailureCopy> = {
-  bar_out_of_frame: {
-    kicker: "Couldn't analyse",
-    title: 'The bar went out the top of the frame',
-    body: "I lost it above your head, so I can't see the catch. Tilt the phone up a touch or step back a metre.",
-    primary: { label: 'Retake', action: 'retake' },
-    links: [
-      { label: 'Try a different clip', action: 'import' },
-      { label: 'Keep the clip anyway', action: 'keep' },
-    ],
-    readout: 'bar leaves the frame here',
-    image: 'asset:snatch/4-extension',
-  },
-  not_side_on: {
-    kicker: "Couldn't analyse",
-    title: 'The camera is in front of you, not beside',
-    body: "From here the bar looks like it drifts when it doesn't. Put the phone level with the bar, square to your side.",
-    primary: { label: 'Retake', action: 'retake' },
-    links: [
-      { label: 'Try a different clip', action: 'import' },
-      { label: 'Keep the clip anyway', action: 'keep' },
-    ],
-    readout: 'bar should be a flat line',
-    image: 'asset:snatch/1-setup',
-  },
-  too_dark: {
-    kicker: "Couldn't analyse",
-    title: 'Too dark to track the bar',
-    body: 'The plates and the floor are the same shade. Face a light, or film with the window behind the phone, not behind you.',
-    primary: { label: 'Retake', action: 'retake' },
-    links: [
-      { label: 'Try a different clip', action: 'import' },
-      { label: 'Keep the clip anyway', action: 'keep' },
-    ],
-    readout: "can't separate you from the floor",
-    image: 'asset:snatch/2-knee',
-  },
-  too_far: {
-    kicker: "Couldn't analyse",
-    title: 'Too far away to measure',
-    body: 'A centimetre of bar drift is less than a pixel from here. Three to four metres is the sweet spot.',
-    primary: { label: 'Retake', action: 'retake' },
-    links: [
-      { label: 'Try a different clip', action: 'import' },
-      { label: 'Keep the clip anyway', action: 'keep' },
-    ],
-    readout: 'you are 90 px tall · need 300+',
-    image: 'asset:snatch/1-setup',
-  },
-  too_shaky: {
-    kicker: "Couldn't analyse",
-    title: 'The phone was moving',
-    body: "Handheld shake looks exactly like bar drift. Lean it on a plate or a water bottle and it'll be fine.",
-    primary: { label: 'Retake', action: 'retake' },
-    links: [
-      { label: 'Try a different clip', action: 'import' },
-      { label: 'Keep the clip anyway', action: 'keep' },
-    ],
-    readout: 'the wall moved 14 px during the lift',
-    image: 'asset:snatch/3-hip',
-  },
-  multiple_lifters: {
-    kicker: 'One more thing',
-    title: 'Two people lifting. Which one is you?',
-    body: "I'll track the one you pick and blur the other.",
-    primary: { label: 'A, in white', action: 'pickA' },
-    alt: { label: 'B, in black', action: 'pickB' },
-    links: [
-      { label: 'Retake alone', action: 'retake' },
-      { label: 'Try a different clip', action: 'import' },
-    ],
-    readout: 'A',
-    image: 'asset:snatch/1-setup',
-  },
-  clip_cut_off: {
-    kicker: "Couldn't analyse",
-    title: 'The clip stops before the catch',
-    body: 'I can see the pull but not where the bar ended up, and the catch is where most cues live. Let it run a second past the lockout.',
-    primary: { label: 'Retake', action: 'retake' },
-    links: [
-      { label: 'Try a different clip', action: 'import' },
-      { label: 'Analyse the pull only', action: 'partial' },
-    ],
-    readout: 'clip ends\nhere',
-    image: 'asset:snatch/5-turnover',
-  },
-  unsupported_movement: {
-    kicker: 'Not yet',
-    title: "I don't know this movement yet",
-    body: "Right now: snatch, clean, jerk, kipping pull-up, bar muscle-up, kipping handstand push-up. Ring muscle-up isn't supported yet. Tell me what this is and it goes on the list. The clip stays in your library.",
-    primary: { label: "It's a wall walk", action: 'label', outline: true },
-    links: [
-      { label: "It's one of the supported lifts", action: 'reanalyse' },
-      { label: 'Keep the clip', action: 'keep' },
-    ],
-    readout: 'looks like: wall walk · not yet supported',
-    image: 'library:hs-2',
-  },
-  low_frame_rate: {
-    kicker: "Couldn't analyse timing",
-    title: '24 frames a second is too slow for a snatch',
-    body: "The second pull is a tenth of a second; at 24 fps that's two frames. I can still draw the path, but not time the phases. Film in Catchline or set your camera to 60.",
-    primary: { label: 'Retake at 60 fps', action: 'retake' },
-    links: [
-      { label: 'Try a different clip', action: 'import' },
-      { label: 'Path only, no timing', action: 'partial' },
-    ],
-    readout: 'frame 61 → 62 · the whole second pull happened in between',
-    image: 'asset:snatch/3-hip',
-  },
-  clip_unreadable: {
-    kicker: "Couldn't analyse",
-    title: "Couldn't read that video",
-    body: "The file isn't a video I can decode. It was probably cut off while saving or exporting. Import it again from your camera roll, or film it in Catchline. This didn't use one of your videos.",
-    primary: { label: 'Import it again', action: 'import' },
-    links: [
-      { label: 'Retake', action: 'retake' },
-      { label: 'Not now', action: 'later' },
-    ],
-    readout: 'no frames in this file',
-    image: 'asset:snatch/1-setup',
-  },
-  unknown: {
-    kicker: "That one's on us",
-    title: 'Something broke on our side',
-    body: "Your clip is fine and it's saved. Try again now, or leave it and we'll retry in the background. This didn't use one of your videos.",
-    primary: { label: 'Try again', action: 'reanalyse' },
-    links: [
-      { label: 'Retry later', action: 'later' },
-      { label: 'ref', action: 'later' },
-    ],
-    readout: '',
-    image: 'asset:snatch/6-catch',
-  },
+// Built on read (getters), so the copy follows the current language.
+function copyFor(reason: FailureReason): FailureCopy {
+  const couldnt = t('library.failure.couldntAnalyse');
+  const retake = { label: t('library.failure.retake'), action: 'retake' as const };
+  const different = { label: t('library.failure.differentClip'), action: 'import' as const };
+  const keep = { label: t('library.failure.keepAnyway'), action: 'keep' as const };
+  switch (reason) {
+    case 'bar_out_of_frame':
+    case 'not_side_on':
+    case 'too_dark':
+    case 'too_far':
+    case 'too_shaky':
+      return {
+        kicker: couldnt,
+        title: t(`library.failure.${reason}.title` as const),
+        body: t(`library.failure.${reason}.body` as const),
+        primary: retake,
+        links: [different, keep],
+        readout: t(`library.failure.${reason}.readout` as const),
+        image: IMAGE[reason],
+      };
+    case 'multiple_lifters':
+      return {
+        kicker: t('library.failure.multiple_lifters.kicker'),
+        title: t('library.failure.multiple_lifters.title'),
+        body: t('library.failure.multiple_lifters.body'),
+        primary: { label: t('library.failure.multiple_lifters.primary'), action: 'pickA' },
+        alt: { label: t('library.failure.multiple_lifters.alt'), action: 'pickB' },
+        links: [{ label: t('library.failure.multiple_lifters.link0'), action: 'retake' }, different],
+        readout: 'A',
+        image: IMAGE[reason],
+      };
+    case 'clip_cut_off':
+      return {
+        kicker: couldnt,
+        title: t('library.failure.clip_cut_off.title'),
+        body: t('library.failure.clip_cut_off.body'),
+        primary: retake,
+        links: [different, { label: t('library.failure.clip_cut_off.link1'), action: 'partial' }],
+        readout: t('library.failure.clip_cut_off.readout'),
+        image: IMAGE[reason],
+      };
+    case 'unsupported_movement':
+      return {
+        kicker: t('library.failure.unsupported_movement.kicker'),
+        title: t('library.failure.unsupported_movement.title'),
+        body: t('library.failure.unsupported_movement.body'),
+        primary: { label: t('library.failure.unsupported_movement.primary'), action: 'label', outline: true },
+        links: [
+          { label: t('library.failure.unsupported_movement.link0'), action: 'reanalyse' },
+          { label: t('library.failure.unsupported_movement.link1'), action: 'keep' },
+        ],
+        readout: t('library.failure.unsupported_movement.readout'),
+        image: IMAGE[reason],
+      };
+    case 'low_frame_rate':
+      return {
+        kicker: t('library.failure.low_frame_rate.kicker'),
+        title: t('library.failure.low_frame_rate.title'),
+        body: t('library.failure.low_frame_rate.body'),
+        primary: { label: t('library.failure.low_frame_rate.primary'), action: 'retake' },
+        links: [different, { label: t('library.failure.low_frame_rate.link1'), action: 'partial' }],
+        readout: t('library.failure.low_frame_rate.readout'),
+        image: IMAGE[reason],
+      };
+    case 'clip_unreadable':
+      return {
+        kicker: couldnt,
+        title: t('library.failure.clip_unreadable.title'),
+        body: t('library.failure.clip_unreadable.body'),
+        primary: { label: t('library.failure.clip_unreadable.primary'), action: 'import' },
+        links: [retake, { label: t('library.failure.clip_unreadable.link1'), action: 'later' }],
+        readout: t('library.failure.clip_unreadable.readout'),
+        image: IMAGE[reason],
+      };
+    case 'unknown':
+      return {
+        kicker: t('library.failure.unknown.kicker'),
+        title: t('library.failure.unknown.title'),
+        body: t('library.failure.unknown.body'),
+        primary: { label: t('library.failure.unknown.primary'), action: 'reanalyse' },
+        links: [
+          { label: t('library.failure.unknown.link0'), action: 'later' },
+          { label: 'ref', action: 'later' },
+        ],
+        readout: '',
+        image: IMAGE[reason],
+      };
+  }
+}
+
+const IMAGE: Record<FailureReason, string> = {
+  bar_out_of_frame: 'asset:snatch/4-extension',
+  not_side_on: 'asset:snatch/1-setup',
+  too_dark: 'asset:snatch/2-knee',
+  too_far: 'asset:snatch/1-setup',
+  too_shaky: 'asset:snatch/3-hip',
+  multiple_lifters: 'asset:snatch/1-setup',
+  clip_cut_off: 'asset:snatch/5-turnover',
+  unsupported_movement: 'library:hs-2',
+  low_frame_rate: 'asset:snatch/3-hip',
+  clip_unreadable: 'asset:snatch/1-setup',
+  unknown: 'asset:snatch/6-catch',
 };
 
-export const FAILURE_REASONS = Object.keys(FAILURE_COPY) as FailureReason[];
+export const FAILURE_REASONS = Object.keys(IMAGE) as FailureReason[];
+
+export const FAILURE_COPY = Object.defineProperties(
+  {} as Record<FailureReason, FailureCopy>,
+  Object.fromEntries(FAILURE_REASONS.map((r) => [r, { get: () => copyFor(r), enumerable: true }]))
+);
+
+// A stored failure line in the lifter's language when it is one of ours (the title for its reason).
+export function failureMessage(f: Failure): string {
+  const key = `library.failure.${f.reason}.title`;
+  return isKey(key) && en[key] === f.message ? t(key) : f.message;
+}
