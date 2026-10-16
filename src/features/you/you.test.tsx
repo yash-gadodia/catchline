@@ -289,6 +289,15 @@ describe('YouScreen with the backend on', () => {
     });
   });
 
+  it('exports my lifts as a CSV for everyone, free plan included', async () => {
+    const send = jest.fn<Promise<void>, [string]>(() => Promise.resolve());
+    const screen = await render(<YouScreen nav={nav} version="1.0.3" exportLifts={send} />);
+    expect(screen.getByText('A spreadsheet of every lift and measurement')).toBeOnTheScreen();
+    await press(screen.getByTestId('row-export-lifts'));
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(send.mock.calls[0][0].split('\n')[0]).toBe('date,lift_id,movement,load_kg,status,cue,measurement_id,measurement,value,unit,analysis_version');
+  });
+
   it('what is stored reads the real consent and records a change', async () => {
     useOnboarding.getState().acceptConsent(false, now);
     const screen = await render(<WhatIsStoredScreen onBack={jest.fn()} onExport={jest.fn()} />);

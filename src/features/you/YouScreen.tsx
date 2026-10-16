@@ -15,6 +15,7 @@ import { useOnboarding } from '../onboarding/store';
 import { Chip, SheetTitle, Toggle } from '../share/ui';
 import { signInWithApple, type AppleSignIn } from '../auth/appleSignIn';
 import { Note } from '../onboarding/ui';
+import { exportMyLifts, shareLiftsCsv } from './liftsCsv';
 import { accountRepository, signOutOfAccount, useAccountView, type DataExport } from './account';
 import {
   AUTO_DELETE_LABELS,
@@ -58,12 +59,14 @@ export default function YouScreen({
   nav,
   version = Constants.expoConfig?.version ?? '1.0.0',
   exportData = shareExport,
+  exportLifts = shareLiftsCsv,
   signIn = signInWithApple,
   signOut = signOutOfAccount,
 }: {
   nav: Nav;
   version?: string;
   exportData?: (bundle: DataExport) => Promise<void>;
+  exportLifts?: (csv: string) => Promise<void>;
   signIn?: () => Promise<AppleSignIn>;
   signOut?: () => Promise<void>;
 }) {
@@ -152,6 +155,13 @@ export default function YouScreen({
         <Section>Privacy</Section>
         <Row title="What is stored" right={<Value>›</Value>} onPress={nav.onWhatIsStored} testID="row-stored" />
         <Row title="Auto-delete originals" right={<Value>{labels.autoDelete}</Value>} onPress={() => setPicker('autoDelete')} testID="row-auto-delete" />
+        <Row
+          title="Export my lifts"
+          sub="A spreadsheet of every lift and measurement"
+          right={<Value>›</Value>}
+          onPress={() => exportMyLifts(exportLifts)}
+          testID="row-export-lifts"
+        />
         <Row title="Export all my data" right={<Value>›</Value>} onPress={doExport} testID="row-export" />
         {account && live && !account.anonymous ? (
           <Row title="Sign out" sub="This phone goes back to an anonymous account" right={<Value>›</Value>} onPress={doSignOut} testID="row-sign-out" />
