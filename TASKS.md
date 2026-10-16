@@ -168,3 +168,9 @@ Build 26: Cues crashed and Trends was empty on a real account. Root cause: the C
 - Export step (before any iOS build; models are gitignored, `.easignore` lets EAS upload them): `cd cv && uv run --with coremltools --with onnx2torch --with torch --with onnx python scripts/export_coreml.py` -> `modules/pose-coreml/ios/models/{YoloxHuman,RTMPoseHalpe26}.mlmodelc`. Without them the build still works and every lift uses server pose
 - Deploy order: `supabase db push --include-all` (0010 lands after 0011), then the worker, then the build
 - Gotchas: FP16 RTMPose moves the lifter's keypoints ~13 px p95 and flipped a made call; 8-bit linear/k-means weights 23-61 px. YOLOX's ONNX carries TopK/NMS (cut before it, per-class NMS in Swift). onnx2torch chokes on Clip nodes with an empty optional input (drop it). ffmpeg 8.1's yuv420p -> bgr24 sits ~2 levels below an exact BT.709 conversion; VideoToolbox BGRA scaling differs by 2 levels mean and moved boxes 20 px p95
+
+## Line and angle tool (16 Oct, issue #9, worktree branch off catchline)
+- [x] (Claude) Player: "draw" chip when paused. Drag = straight line (cm from `pxPerCm`, no label without a scale), three taps = angle (degrees at the vertex), up to 3 shapes, "clear". Marks are stored in normalised video coordinates (`src/features/analysis/drawGeometry.ts`, `DrawLayer.tsx`); scrubbing, stepping, a phase chip or play exits draw mode and keeps the marks
+- [ ] (Claude) Save marks to the lift and include them in the shared still (issue #9 asks for both; drawing is local only today)
+- [ ] (Claude) Move or delete a single mark (today only "clear" removes them)
+- Gotcha: the 15 Oct debug client is missing `ExpoMediaLibraryNext` (share video, build 28), so the dev client shows a red box on launch; dismiss it and the player still renders. Rebuild the debug client to get rid of it

@@ -32,6 +32,8 @@ import PhaseChips from './PhaseChips';
 import DrillCard from '../drills/DrillCard';
 import CueNotes, { Disclaimer } from './CueNotes';
 import { useRetestable } from './RetestVerdict';
+import DrawLayer from './DrawLayer';
+import { isComplete, type Shape } from './drawGeometry';
 
 export type Speed = '0.25' | '0.5' | '1';
 type Overlays = { path: boolean; strobe: boolean; lines: boolean };
@@ -65,14 +67,22 @@ export default function PlayerScreen({
   const [playing, setPlaying] = useState(false);
   const [scrubbing, setScrubbing] = useState(false);
   const [overlays, setOverlays] = useState<Overlays>({ path: true, strobe: false, lines: true });
+  const [drawing, setDrawing] = useState(false);
+  const [shapes, setShapes] = useState<Shape[]>([]);
   const frameRef = useRef(frame);
   const retestable = useRetestable(analysis, retestCueId);
   const barSpeed = peakSpeed(analysis);
+
+  const exitDraw = () => {
+    setDrawing(false);
+    setShapes((all) => (all.every(isComplete) ? all : all.filter(isComplete)));
+  };
 
   const setFrame = (next: number, tick: 'phase' | 'frame' = 'phase') => {
     const f = clampFrame(rep, next);
     const prev = frameRef.current;
     if (f === prev) return;
+    exitDraw();
     if (crossesPhase(rep, prev, f)) impact('rigid');
     else if (tick === 'frame') impact('light');
     frameRef.current = f;
@@ -127,6 +137,7 @@ export default function PlayerScreen({
             impact('light');
             setPlaying((p) => !p);
           }}
+          disabled={drawing}
           accessibilityLabel={playing ? 'Pause' : 'Play'}
           testID="stage-press"
         >
@@ -135,58 +146,64 @@ export default function PlayerScreen({
               const s = (p: { x: number; y: number }) => toScreen(p, fit);
               const current = pointAt(rep.path, frame);
               return (
-                <OverlaySvg box={box}>
-                  {overlays.lines ? (
-                    <RefLine x={s(rep.path[0]).x} top={box.height * 0.08} bottom={box.height * 0.94} alpha={0.4} />
-                  ) : null}
-                  {overlays.path ? (
-                    <>
-                      <FlarePath points={pathFrom(liftPath(rep), frame).map(s)} faint testID="path-future" />
-                      <FlarePath points={pathUpTo(rep.path, frame).map(s)} testID="path-done" />
-                      <KeyDots
-                        points={rep.keyFrames
-                          .filter((k) => k.frame !== frame)
-                          .map((k) => pointAt(rep.path, k.frame))
-                          .filter((p): p is { x: number; y: number } => p !== null)
-                          .map(s)}
-                      />
-                      <CurrentDot point={current ? s(current) : null} />
-                    </>
-                  ) : null}
-                </OverlaySvg>
+                <>
+                  <OverlaySvg box={box}>
+                    {overlays.lines ? (
+                      <RefLine x={s(rep.path[0]).x} top={box.height * 0.08} bottom={box.height * 0.94} alpha={0.4} />
+                    ) : null}
+                    {overlays.path ? (
+                      <>
+                        <FlarePath points={pathFrom(liftPath(rep), frame).map(s)} faint testID="path-future" />
+                        <FlarePath points={pathUpTo(rep.path, frame).map(s)} testID="path-done" />
+                        <KeyDots
+                          points={rep.keyFrames
+                            .filter((k) => k.frame !== frame)
+                            .map((k) => pointAt(rep.path, k.frame))
+                            .filter((p): p is { x: number; y: number } => p !== null)
+                            .map(s)}
+                        />
+                        <CurrentDot point={current ? s(current) : null} />
+                      </>
+                    ) : null}
+                  </OverlaySvg>
+                  <DrawLayer
+                    box={box}
+                    fit={fit}
+                    video={src}
+                    pxPerCm={analysis.pxPerCm}
+                    shapes={shapes}
+                    onShapes={setShapes}
+                    drawing={drawing}
+                  />
+                </>
               );
             }}
           </Stage>
         </Pressable>
         <View testID="overlay-toggles" style={{ position: 'absolute', left: space.gutter, bottom: 64, flexDirection: 'row', gap: 6 }}>
           {(['path', 'strobe', 'lines'] as const).map((k) => (
-            <Pressable
-              key={k}
-              testID={`toggle-${k}`}
-              accessibilityRole="switch"
-              accessibilityState={{ checked: overlays[k] }}
-              onPress={() => setOverlays((o) => ({ ...o, [k]: !o[k] }))}
-              style={{
-                height: 44,
-                paddingHorizontal: 12,
-                justifyContent: 'center',
-                alignItems: 'center',
-                backgroundColor: colors.scrim,
-                borderRadius: radius.control,
-              }}
-            >
-              <Text
-                style={{
-                  color: overlays[k] ? colors.text : colors.text3,
-                  fontFamily: fontFamily.mono,
-                  fontSize: 12,
-                  lineHeight: 16,
-                }}
-              >
-                {k}
-              </Text>
-            </Pressable>
+            <OverlayChip key={k} label={k} on={overlays[k]} onPress={() => setOverlays((o) => ({ ...o, [k]: !o[k] }))} />
           ))}
+          {playing ? null : (
+            <OverlayChip
+              label="draw"
+              on={drawing}
+              onPress={() => {
+                if (drawing) exitDraw();
+                else setDrawing(true);
+              }}
+            />
+          )}
+          {shapes.length > 0 ? (
+            <OverlayChip
+              label="clear"
+              on={false}
+              onPress={() => {
+                setShapes([]);
+                impact('light');
+              }}
+            />
+          ) : null}
         </View>
         <View
           style={{ position: 'absolute', left: space.gutter, right: space.gutter, bottom: 16, flexDirection: 'row', alignItems: 'center', gap: 12 }}
@@ -198,7 +215,10 @@ export default function PlayerScreen({
             onFrame={(f) => setFrame(f)}
             onScrubbing={(on) => {
               setScrubbing(on);
-              if (on) setPlaying(false);
+              if (on) {
+                setPlaying(false);
+                exitDraw();
+              }
             }}
           />
           {scrubbing ? null : <Readout testID="speed-readout">{`${speed}×`}</Readout>}
@@ -289,6 +309,29 @@ function StepButton({ dir, onPress }: { dir: 1 | -1; onPress: () => void }) {
       style={{ width: 36, height: 40, marginLeft: dir < 0 ? space.s2 : 0, alignItems: 'center', justifyContent: 'center' }}
     >
       <Text style={{ ...type.title, color: colors.text }}>{dir < 0 ? '‹' : '›'}</Text>
+    </Pressable>
+  );
+}
+
+function OverlayChip({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) {
+  const toggle = label !== 'clear';
+  return (
+    <Pressable
+      testID={`toggle-${label}`}
+      accessibilityRole={toggle ? 'switch' : 'button'}
+      accessibilityState={toggle ? { checked: on } : undefined}
+      accessibilityLabel={toggle ? undefined : 'Clear drawings'}
+      onPress={onPress}
+      style={{
+        height: 44,
+        paddingHorizontal: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: colors.scrim,
+        borderRadius: radius.control,
+      }}
+    >
+      <Text style={{ ...type.caption, color: on || !toggle ? colors.text : colors.text3 }}>{label}</Text>
     </Pressable>
   );
 }

@@ -22,7 +22,6 @@
     "src/features/analysis/CueScreen.tsx": 18,
     "src/features/analysis/MissScreen.tsx": 2,
     "src/features/analysis/PhaseChips.tsx": 2,
-    "src/features/analysis/PlayerScreen.tsx": 4,
     "src/features/analysis/ProcessingSheet.tsx": 18,
     "src/features/analysis/RevealScreen.tsx": 2,
     "src/features/analysis/Scrubber.tsx": 2,
