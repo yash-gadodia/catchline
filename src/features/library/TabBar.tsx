@@ -1,7 +1,7 @@
 import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radius } from '../../design/tokens';
-import { fontFamily } from '../../design/typography';
+import { fontFamily, type } from '../../design/typography';
 import { t } from '../../i18n';
 
 export type TabName = 'index' | 'cues' | 'trends' | 'me';
@@ -36,7 +36,7 @@ export default function TabBar({
         testID={`tab-${t.name}`}
         style={{ flex: 1, height: 56, alignItems: 'center', justifyContent: 'center' }}
       >
-        <Text style={{ color: on ? colors.text : colors.text2, fontFamily: fontFamily.bodyMedium, fontSize: 12, lineHeight: 16 }}>
+        <Text style={{ color: on ? colors.text : colors.text2, ...type.caption, fontFamily: fontFamily.bodyMedium }}>
           {t.label()}
         </Text>
       </Pressable>

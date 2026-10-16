@@ -6,7 +6,7 @@ import { frameSource } from '../../analysis/frames';
 import { coverFit, toScreen } from '../../analysis/geometry';
 import type { Point } from '../../analysis/types';
 import { colors, control, radius, stroke } from '../../design/tokens';
-import { fontFamily } from '../../design/typography';
+import { display, fontFamily, type } from '../../design/typography';
 import type { CueStatus } from './types';
 
 const LIBRARY: Record<string, { color: ImageSourcePropType; gray?: ImageSourcePropType }> = {
@@ -135,9 +135,8 @@ export function Chip({
       <Text
         style={{
           color: colors.text,
+          ...type.readout,
           fontFamily: selected ? fontFamily.bodyMedium : fontFamily.body,
-          fontSize: 13,
-          lineHeight: 18,
         }}
       >
         {label}
@@ -176,7 +175,7 @@ export function DestructiveBtn({
         style,
       ]}
     >
-      <Text style={{ color: colors.flare, fontFamily: fontFamily.bodyBold, fontSize: 17, lineHeight: 22 }}>{children}</Text>
+      <Text style={{ color: colors.flare, ...type.button }}>{children}</Text>
     </Pressable>
   );
 }
@@ -184,7 +183,7 @@ export function DestructiveBtn({
 export function Underlined({ children, onPress, color = colors.text, testID }: { children: string; onPress?: () => void; color?: string; testID?: string }) {
   return (
     <Pressable onPress={onPress} hitSlop={8} accessibilityRole="button" testID={testID}>
-      <Text style={{ color, fontFamily: fontFamily.bodyMedium, fontSize: 15, lineHeight: 22, textDecorationLine: 'underline' }}>
+      <Text style={{ color, ...type.callout, fontFamily: fontFamily.bodyMedium, textDecorationLine: 'underline' }}>
         {children}
       </Text>
     </Pressable>
@@ -193,7 +192,7 @@ export function Underlined({ children, onPress, color = colors.text, testID }: {
 
 export function Title({ children }: { children: string }) {
   return (
-    <Text style={{ color: colors.text, fontFamily: fontFamily.display, fontSize: 36, lineHeight: 36, letterSpacing: -0.72 }}>
+    <Text style={[display(36), { color: colors.text }]}>
       {children}
     </Text>
   );

@@ -9,7 +9,7 @@ import Segmented from '../../components/Segmented';
 import SmallCaps from '../../components/SmallCaps';
 import { backendEnabled } from '../../data/backend';
 import { colors, radius, space } from '../../design/tokens';
-import { display, fontFamily, type } from '../../design/typography';
+import { display, type } from '../../design/typography';
 import { defaultMovement, measuredMetrics, measuredMovements, metricFor, PRIMARY_METRIC } from './metrics';
 import { bestOf, inRange, latestCue, metricText, seriesFor, shortDate, trendRecap, versionBoundary, versionNote, type Range } from './derive';
 import { useLibrary } from './repository';
@@ -60,8 +60,8 @@ export default function TrendsScreen({ initialMovement }: { initialMovement?: Mo
           borderRadius: radius.control,
         }}
       >
-        <Text style={{ color: colors.text, fontFamily: fontFamily.bodyMedium, fontSize: 15, lineHeight: 20 }}>{movementLabel(movement)}</Text>
-        <Text style={{ color: colors.text2, fontFamily: fontFamily.bodyMedium, fontSize: 15, lineHeight: 20 }}>⌄</Text>
+        <Text style={{ color: colors.text, ...type.label }}>{movementLabel(movement)}</Text>
+        <Text style={{ color: colors.text2, ...type.label }}>⌄</Text>
       </Pressable>
     ) : null;
 
@@ -94,7 +94,7 @@ export default function TrendsScreen({ initialMovement }: { initialMovement?: Mo
           </Svg>
         )}
         <Text style={[display(32), { color: colors.text, textAlign: 'center' }]}>{headline}</Text>
-        <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21, textAlign: 'center' }}>{body}</Text>
+        <Text style={{ color: colors.text2, ...type.callout, textAlign: 'center' }}>{body}</Text>
       </View>
     </ScrollView>
   );
@@ -123,7 +123,7 @@ export default function TrendsScreen({ initialMovement }: { initialMovement?: Mo
         >
           {movements.map((m) => (
             <Pressable key={m} onPress={() => pick(m)} testID={`pick-${m}`} style={{ paddingVertical: 10, paddingHorizontal: space.s4 }}>
-              <Text style={{ color: m === movement ? colors.text : colors.text2, fontFamily: fontFamily.bodyMedium, fontSize: 15, lineHeight: 20 }}>
+              <Text style={{ color: m === movement ? colors.text : colors.text2, ...type.label }}>
                 {movementLabel(m)}
               </Text>
             </Pressable>
@@ -153,7 +153,7 @@ export default function TrendsScreen({ initialMovement }: { initialMovement?: Mo
                 <Frame image={pinned.session.thumb} width={48} height={60} gray />
                 <View style={{ flex: 1, gap: 2 }}>
                   <SmallCaps size={12}>{t('library.trends.pinned')}</SmallCaps>
-                  <Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 17, lineHeight: 22 }}>
+                  <Text style={{ color: colors.text, ...type.button }}>
                     {[
                       pinned.session.loadKg != null ? `${fmt(pinned.session.loadKg)} kg` : null,
                       shortDate(pinned.date),
@@ -175,7 +175,7 @@ export default function TrendsScreen({ initialMovement }: { initialMovement?: Mo
           </View>
           <View style={{ paddingTop: space.s5, gap: space.s3 }}>
             {recap ? (
-              <Text testID="trend-recap" style={{ color: colors.text, fontFamily: fontFamily.body, fontSize: 17, lineHeight: 24 }}>
+              <Text testID="trend-recap" style={{ color: colors.text, ...type.body }}>
                 {recap}
               </Text>
             ) : null}
@@ -207,11 +207,11 @@ export default function TrendsScreen({ initialMovement }: { initialMovement?: Mo
                 showDates
               />
             ) : (
-              <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }} testID="range-sparse">
+              <Text style={{ color: colors.text2, ...type.callout }} testID="range-sparse">
                 {t(visible.length === 1 ? 'library.trends.rangeOne' : 'library.trends.rangeNone', { count: range })}
               </Text>
             )}
-            <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>
+            <Text style={{ color: colors.text2, ...type.callout }}>
               {`${metric.caption} ${t(metric.lowerIsBetter ? 'library.trends.lower' : 'library.trends.higher')} ${t('library.sessions', { count: visible.length })}.`}
             </Text>
             {versions ? (

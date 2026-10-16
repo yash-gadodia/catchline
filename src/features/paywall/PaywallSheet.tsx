@@ -4,7 +4,7 @@ import Btn from '../../components/Btn';
 import Segmented from '../../components/Segmented';
 import Sheet from '../../components/Sheet';
 import { colors, space } from '../../design/tokens';
-import { display, fontFamily } from '../../design/typography';
+import { display, fontFamily, type } from '../../design/typography';
 import type { PurchaseStatus } from '../purchases/usePurchases';
 import { t } from '../../i18n';
 import { FREE_VIDEOS, annualSavingPct, tierName, type Period, type StorePlatform } from './entitlements';
@@ -89,13 +89,13 @@ export default function PaywallSheet({
                   <Row key={c.text} last={i === all.length - 1}>
                     <Text
                       numberOfLines={1}
-                      style={{ flex: 1, color: colors.text, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 20 }}
+                      style={{ flex: 1, color: colors.text, ...type.label, fontFamily: fontFamily.body }}
                     >
                       {c.text}
                     </Text>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                       <StatusDot status={c.status} />
-                      <Text style={{ color: colors.text, fontFamily: fontFamily.bodyMedium, fontSize: 13, lineHeight: 18 }}>
+                      <Text style={{ color: colors.text, ...type.readout, fontFamily: fontFamily.bodyMedium }}>
                         {cueStatusLabel(c)}
                       </Text>
                     </View>
@@ -117,10 +117,10 @@ export default function PaywallSheet({
             <View style={{ gap: space.s2 }}>
               <OptionCard selected={choice === 'pull'} onPress={() => setChoice('pull')} testID="tier-pull">
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 17, lineHeight: 22 }}>
+                  <Text style={{ color: colors.text, ...type.button }}>
                     {tierName('pull')}
                   </Text>
-                  <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 13, lineHeight: 18 }}>
+                  <Text style={{ color: colors.text2, ...type.small }}>
                     {pullSummary()}
                   </Text>
                 </View>
@@ -129,17 +129,17 @@ export default function PaywallSheet({
               {seats && founding !== 'soldOut' ? (
                 <OptionCard selected={choice === 'founding'} onPress={() => setChoice('founding')} testID="tier-founding">
                   <View style={{ flex: 1 }}>
-                    <Text style={{ color: colors.text, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 20 }}>
+                    <Text style={{ color: colors.text, ...type.label, fontFamily: fontFamily.body }}>
                       {t('paywall.sheet.founding')}
                     </Text>
                     <Text
                       testID="founding-seats"
-                      style={{ color: colors.text, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}
+                      style={{ color: colors.text, ...type.readout }}
                     >
                       {seatsLeftLabel(seats)}
                     </Text>
                   </View>
-                  <Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 15, lineHeight: 20 }}>
+                  <Text style={{ color: colors.text, ...type.label, fontFamily: fontFamily.bodyBold }}>
                     {t('paywall.priceOnce', { price: priceFor({ kind: 'founding' }) })}
                   </Text>
                 </OptionCard>
@@ -168,6 +168,7 @@ export function Price({ amount, suffix }: { amount: string; suffix: string }) {
   return (
     <Text style={[display(24), { color: colors.text }]}>
       {amount}
+      {/* design-ok: mono suffix nested in display(24); the parent sets the line */}
       <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, letterSpacing: 0 }}>{suffix}</Text>
     </Text>
   );

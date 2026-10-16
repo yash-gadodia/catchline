@@ -9,7 +9,7 @@ import Btn from '../../components/Btn';
 import SmallCaps from '../../components/SmallCaps';
 import TopBar from '../../components/TopBar';
 import { colors, space } from '../../design/tokens';
-import { display, fontFamily } from '../../design/typography';
+import { display, fontFamily, type } from '../../design/typography';
 import EvidenceStage from './EvidenceStage';
 import WhyDrawer from './WhyDrawer';
 import CueNotes, { Disclaimer } from './CueNotes';
@@ -78,9 +78,9 @@ function CueBody({ analysis, nav, onWhy, retest, retestable }: { analysis: Analy
         <Text style={[display(40), { color: colors.text }]} testID="cue-text">
           {cueText(cue.faultId, cue.text)}
         </Text>
-        <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 17, lineHeight: 24 }}>{cueWhy(cue.faultId, cue.why)}</Text>
+        <Text style={{ color: colors.text2, ...type.body }}>{cueWhy(cue.faultId, cue.why)}</Text>
         {baseline ? (
-          <Text testID="cue-baseline" style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 17, lineHeight: 24 }}>
+          <Text testID="cue-baseline" style={{ color: colors.text2, ...type.body }}>
             {baseline}
           </Text>
         ) : null}
@@ -121,7 +121,7 @@ function StatusRow({ children }: { children: string }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s2 }} testID="confidence-row">
       <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.text }} />
-      <Text style={{ color: colors.text, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>{children}</Text>
+      <Text style={{ color: colors.text, ...type.readout }}>{children}</Text>
     </View>
   );
 }
@@ -130,7 +130,7 @@ function StatusRow({ children }: { children: string }) {
 function TextAction({ children, onPress, testID }: { children: string; onPress?: () => void; testID?: string }) {
   return (
     <Pressable onPress={onPress} testID={testID} accessibilityRole="button" style={{ height: 44, justifyContent: 'center' }}>
-      <Text style={{ color: colors.text, fontFamily: fontFamily.bodyMedium, fontSize: 15, lineHeight: 20 }}>{children}</Text>
+      <Text style={{ color: colors.text, ...type.label }}>{children}</Text>
     </Pressable>
   );
 }
@@ -159,13 +159,13 @@ function LowConfidence({ analysis, nav, retest, retestable }: { analysis: Analys
           gap: 2,
         }}
       >
-        <Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 15, lineHeight: 21 }}>
+        <Text style={{ color: colors.text, ...type.callout, fontFamily: fontFamily.bodyBold }}>
           {cue.confidence === 'low' ? t('analysis.cue.lowConfidence') : t('analysis.cue.worthChecking')}
         </Text>
-        <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>
+        <Text style={{ color: colors.text2, ...type.callout }}>
           {cue.confidenceText}
         </Text>
-        <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>{t('analysis.cue.dashedPath')}</Text>
+        <Text style={{ color: colors.text2, ...type.readout }}>{t('analysis.cue.dashedPath')}</Text>
       </View>
       <View>
         <Stage src={src} box={box} focus={{ x: 0.5, y: 0.45 }} layers={[{ image: key.image }]}>
@@ -180,7 +180,7 @@ function LowConfidence({ analysis, nav, retest, retestable }: { analysis: Analys
         {retest ? <RetestVerdict retest={retest} onStuck={nav.onStuck} /> : null}
         <SmallCaps>{t('analysis.cue.possible')}</SmallCaps>
         <Text style={[display(32), { color: colors.text }]}>{cueText(cue.faultId, cue.text)}</Text>
-        <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>{cueWhy(cue.faultId, cue.why)}</Text>
+        <Text style={{ color: colors.text2, ...type.callout }}>{cueWhy(cue.faultId, cue.why)}</Text>
         <CueNotes notes={analysis.notes} />
         <Disclaimer />
       </ScrollView>
@@ -217,7 +217,7 @@ function NoCue({ analysis, nav, retest, retestable }: { analysis: Analysis; nav:
         <Text style={[display(32), { color: colors.text }]}>
           {analysis.failure ? t('analysis.cue.couldNotRead') : t('analysis.cue.nothingToFix')}
         </Text>
-        <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 17, lineHeight: 24 }}>
+        <Text style={{ color: colors.text2, ...type.body }}>
           {analysis.failure?.message ?? t('analysis.cue.everyRepMatched')}
         </Text>
       </View>

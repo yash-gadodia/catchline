@@ -115,6 +115,7 @@ export function Checkbox({
         }}
       >
         {checked ? (
+          // design-ok: the check glyph is sized to its box, not a text style
           <Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 18, lineHeight: 22 }}>✓</Text>
         ) : null}
       </View>
@@ -156,10 +157,10 @@ export function Note({
       ]}
     >
       {title ? (
-        <Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 15, lineHeight: 21 }}>{title}</Text>
+        <Text style={{ color: colors.text, ...type.callout, fontFamily: fontFamily.bodyBold }}>{title}</Text>
       ) : null}
       <Text
-        style={{ color: title ? colors.text2 : colors.text, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}
+        style={{ color: title ? colors.text2 : colors.text, ...type.callout }}
       >
         {children}
       </Text>

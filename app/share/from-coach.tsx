@@ -3,7 +3,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SmallCaps from '../../src/components/SmallCaps';
 import { colors, space } from '../../src/design/tokens';
-import { display, fontFamily } from '../../src/design/typography';
+import { display, type } from '../../src/design/typography';
 import FromCoachCard, { ReplacedCueRow } from '../../src/features/share/FromCoachCard';
 import { useCoachOverride } from '../../src/features/share/coachRepository';
 import { t } from '../../src/i18n';
@@ -31,7 +31,7 @@ export default function FromCoachRoute() {
           </View>
         </>
       ) : (
-        <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 17, lineHeight: 24 }}>
+        <Text style={{ color: colors.text2, ...type.body }}>
           {t('share.fromCoach.none')}
         </Text>
       )}

@@ -3,7 +3,7 @@ import { Pressable, Text, TextInput, View } from 'react-native';
 import Btn from '../../components/Btn';
 import Sheet from '../../components/Sheet';
 import { colors, radius, space } from '../../design/tokens';
-import { fontFamily } from '../../design/typography';
+import { fontFamily, type } from '../../design/typography';
 import { Body, DangerBtn, SheetTitle } from '../share/ui';
 import { accountRepository, type AccountRepository } from './account';
 import { t } from '../../i18n';
@@ -50,7 +50,7 @@ export default function DeleteAccountSheet({
           {t('you.delete.body')}
         </Body>
         <View style={{ gap: 6 }}>
-          <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 13, lineHeight: 18 }}>
+          <Text style={{ color: colors.text2, ...type.small }}>
             {t('you.delete.typeBefore')} <Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold }}>{CONFIRM_WORD}</Text> {t('you.delete.typeAfter')}
           </Text>
           <TextInput
@@ -67,6 +67,7 @@ export default function DeleteAccountSheet({
               paddingHorizontal: space.s3,
               color: colors.text,
               fontFamily: fontFamily.mono,
+              // design-ok: TextInput, a lineHeight shifts the caret and text on iOS
               fontSize: 17,
             }}
           />

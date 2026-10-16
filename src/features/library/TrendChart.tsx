@@ -54,6 +54,7 @@ export default function TrendChart({
   const all = [...(markerIndex != null ? [{ index: markerIndex, label: markerLabel }] : []), ...markers]
     .map((m) => ({ point: points[m.index], label: m.label }))
     .filter((m) => m.point);
+  // design-ok: react-native-svg <Text> attributes, not a RN text style
   const text = { fontFamily: fontFamily.mono, fontSize: 11 };
   return (
     <View testID={testID} style={{ width, height }}>

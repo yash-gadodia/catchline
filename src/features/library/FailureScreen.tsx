@@ -8,7 +8,7 @@ import Btn from '../../components/Btn';
 import Readout from '../../components/Readout';
 import SmallCaps from '../../components/SmallCaps';
 import { colors, space } from '../../design/tokens';
-import { display, fontFamily } from '../../design/typography';
+import { display, fontFamily, type } from '../../design/typography';
 import { FAILURE_COPY, type FailureAction, type FailureReason } from './failures';
 import { Frame, Underlined } from './ui';
 import { t } from '../../i18n';
@@ -35,7 +35,7 @@ export default function FailureScreen({
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }} testID={`failure-${reason}`}>
       <View style={{ height: 56, justifyContent: 'center', paddingHorizontal: space.gutter }}>
-        <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }} testID="failure-header">
+        <Text style={{ color: colors.text2, ...type.readout }} testID="failure-header">
           {header}
         </Text>
       </View>
@@ -43,7 +43,7 @@ export default function FailureScreen({
       <View style={{ flex: 1, paddingTop: space.s5, paddingHorizontal: space.gutter, gap: 10 }}>
         <SmallCaps>{copy.kicker}</SmallCaps>
         <Text style={[display(36), { color: colors.text }]}>{copy.title}</Text>
-        <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>{copy.body}</Text>
+        <Text style={{ color: colors.text2, ...type.callout }}>{copy.body}</Text>
       </View>
       <View style={{ paddingTop: space.s4, paddingHorizontal: space.gutter, paddingBottom: Math.max(insets.bottom, space.s7), gap: space.s3 }}>
         {copy.alt ? (
@@ -174,7 +174,7 @@ function FailureStage({ reason, width, height }: { reason: FailureReason; width:
             </>
           )}
           <Text
-            style={{ position: 'absolute', left: (width * 120) / 390, top: (height * 328) / 420, color: colors.flare, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}
+            style={{ position: 'absolute', left: (width * 120) / 390, top: (height * 328) / 420, color: colors.flare, ...type.readout }}
             testID="failure-readout"
           >
             {copy.readout}
@@ -206,7 +206,7 @@ function FailureStage({ reason, width, height }: { reason: FailureReason; width:
       {reason === 'clip_cut_off' ? (
         <Text
           testID="failure-readout"
-          style={{ position: 'absolute', right: 24, top: height / 2 - 18, textAlign: 'right', color: colors.flare, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}
+          style={{ position: 'absolute', right: 24, top: height / 2 - 18, textAlign: 'right', color: colors.flare, ...type.readout }}
         >
           {copy.readout}
         </Text>
@@ -231,7 +231,7 @@ function RefCode({ code }: { code: string }) {
         setTimeout(() => setCopied(false), 2000);
       }}
     >
-      <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>{copied ? t('library.failure.copied') : t('library.failure.ref', { code })}</Text>
+      <Text style={{ color: colors.text2, ...type.readout }}>{copied ? t('library.failure.copied') : t('library.failure.ref', { code })}</Text>
     </Pressable>
   );
 }

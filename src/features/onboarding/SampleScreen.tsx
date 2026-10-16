@@ -6,7 +6,7 @@ import { fmt, movementLabel } from '../../analysis/format';
 import Btn from '../../components/Btn';
 import SmallCaps from '../../components/SmallCaps';
 import { colors, radius, space, stroke } from '../../design/tokens';
-import { fontFamily } from '../../design/typography';
+import { type } from '../../design/typography';
 import PlayerScreen from '../analysis/PlayerScreen';
 import { t } from '../../i18n';
 
@@ -57,7 +57,7 @@ export default function SampleScreen({
         }}
       >
         <Pressable onPress={onBack} hitSlop={12} accessibilityRole="button" testID="sample-back">
-          <Text style={{ color: colors.text, fontFamily: fontFamily.bodyMedium, fontSize: 15, lineHeight: 20 }}>{t('onboarding.sample.back')}</Text>
+          <Text style={{ color: colors.text, ...type.label }}>{t('onboarding.sample.back')}</Text>
         </Pressable>
         <SmallCaps>{title}</SmallCaps>
       </View>
@@ -108,12 +108,12 @@ function CoachMark({ index, top, onNext }: { index: number; top: number; onNext:
         gap: space.s2,
       }}
     >
-      <Text style={{ color: colors.text, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>{coachMarks()[index]}</Text>
+      <Text style={{ color: colors.text, ...type.callout }}>{coachMarks()[index]}</Text>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-        <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 12, lineHeight: 16 }}>
+        <Text style={{ color: colors.text2, ...type.caption }}>
           {`${index + 1} / ${COACH_MARK_COUNT}`}
         </Text>
-        <Text style={{ color: colors.text, fontFamily: fontFamily.bodyMedium, fontSize: 15, lineHeight: 20, textDecorationLine: 'underline' }}>
+        <Text style={{ color: colors.text, ...type.label, textDecorationLine: 'underline' }}>
           {last ? t('onboarding.sample.gotIt') : t('onboarding.sample.next')}
         </Text>
       </View>

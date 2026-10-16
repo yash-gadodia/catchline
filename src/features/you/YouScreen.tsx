@@ -9,7 +9,7 @@ import Btn from '../../components/Btn';
 import Sheet from '../../components/Sheet';
 import SmallCaps from '../../components/SmallCaps';
 import { colors, radius, space } from '../../design/tokens';
-import { display, fontFamily } from '../../design/typography';
+import { display, fontFamily, type } from '../../design/typography';
 import { useLibraryStore } from '../library/store';
 import { useOnboarding } from '../onboarding/store';
 import { Chip, SheetTitle, Toggle } from '../share/ui';
@@ -258,7 +258,7 @@ function Section({ children }: { children: string }) {
 }
 
 function Value({ children }: { children: string }) {
-  return <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 17, lineHeight: 24 }}>{children}</Text>;
+  return <Text style={{ color: colors.text2, ...type.body }}>{children}</Text>;
 }
 
 function FoundingBadge() {
@@ -311,11 +311,11 @@ function Row({
       })}
     >
       <View style={{ flex: 1, gap: 2 }}>
-        <Text numberOfLines={1} style={{ color: muted ? colors.text2 : colors.text, fontFamily: bold ? fontFamily.bodyBold : fontFamily.body, fontSize: 17, lineHeight: 24 }}>
+        <Text numberOfLines={1} style={{ color: muted ? colors.text2 : colors.text, ...type.body, fontFamily: bold ? fontFamily.bodyBold : fontFamily.body }}>
           {title}
         </Text>
         {value ? <Value>{value}</Value> : null}
-        {sub ? <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 13, lineHeight: 18 }}>{sub}</Text> : null}
+        {sub ? <Text style={{ color: colors.text2, ...type.small }}>{sub}</Text> : null}
       </View>
       {right}
     </Pressable>
@@ -357,7 +357,7 @@ function OptionSheet<T extends string>({
             accessibilityState={{ selected: o.value === value }}
             style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.hairline }}
           >
-            <Text style={{ color: colors.text, fontFamily: o.value === value ? fontFamily.bodyBold : fontFamily.body, fontSize: 17, lineHeight: 24 }}>
+            <Text style={{ color: colors.text, ...type.body, fontFamily: o.value === value ? fontFamily.bodyBold : fontFamily.body }}>
               {o.label}
             </Text>
             {o.value === value ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.text }} /> : null}
@@ -382,7 +382,7 @@ function ReminderSheet({
   return (
     <SheetFrame onClose={onClose} testID="reminder-sheet">
       <SheetTitle size={20}>{t('you.cueReminder')}</SheetTitle>
-      <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>
+      <Text style={{ color: colors.text2, ...type.callout }}>
         {t('you.reminder.body')}
       </Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
@@ -421,6 +421,7 @@ function NameSheet({ initial, onSave, onClose }: { initial: string; onSave: (nam
           paddingHorizontal: space.s3,
           color: colors.text,
           fontFamily: fontFamily.body,
+          // design-ok: TextInput, a lineHeight shifts the caret and text on iOS
           fontSize: 17,
         }}
       />

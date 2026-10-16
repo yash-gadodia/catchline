@@ -95,7 +95,7 @@ export default function CueDetailScreen({ cue, nav }: { cue: CueRecord; nav: Cue
         {cue.why ? (
           <View style={{ gap: space.s1 }}>
             <SmallCaps size={11}>{t('library.aiEstimate')}</SmallCaps>
-            <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }} testID="cue-why">
+            <Text style={{ color: colors.text2, ...type.callout }} testID="cue-why">
               {cueWhy(cue.metricId, cue.why)}
             </Text>
           </View>
@@ -125,8 +125,8 @@ export default function CueDetailScreen({ cue, nav }: { cue: CueRecord; nav: Cue
       </View>
       <View style={{ paddingTop: space.s5, paddingHorizontal: space.gutter, gap: space.s2 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
-          <Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 17, lineHeight: 22 }}>{metric.label}</Text>
-          <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>
+          <Text style={{ color: colors.text, ...type.button }}>{metric.label}</Text>
+          <Text style={{ color: colors.text2, ...type.readout }}>
             {t('library.cueDetail.measured', { unit: metric.unit, count: chart.length })}
           </Text>
         </View>
@@ -154,12 +154,12 @@ export default function CueDetailScreen({ cue, nav }: { cue: CueRecord; nav: Cue
               style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: space.s3, paddingVertical: 10, borderTopWidth: 1, borderTopColor: colors.hairline }}
             >
               <View style={{ flex: 1, gap: 2 }}>
-                <Text style={{ color: colors.text, fontFamily: fontFamily.bodyMedium, fontSize: 15, lineHeight: 20 }}>{liftTitle(l)}</Text>
-                <Text numberOfLines={1} style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>
+                <Text style={{ color: colors.text, ...type.label }}>{liftTitle(l)}</Text>
+                <Text numberOfLines={1} style={{ color: colors.text2, ...type.readout }}>
                   {cueLiftDetail(l, cue, sessions)}
                 </Text>
               </View>
-              <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>{shortDate(l.date).toLowerCase()}</Text>
+              <Text style={{ color: colors.text2, ...type.readout }}>{shortDate(l.date).toLowerCase()}</Text>
             </View>
           ))}
         </View>
@@ -266,10 +266,11 @@ export function StuckScreen({ cue, nav }: { cue: CueRecord; nav: StuckNav }) {
           <Text style={[display(64, true), { color: colors.text }]}>{t('library.stuck.title')}</Text>
         </Animated.View>
         <Animated.View style={pops[3]}>
-          <Text style={{ color: colors.text, fontFamily: fontFamily.body, fontSize: 17, lineHeight: 24 }} testID="stuck-summary">
+          <Text style={{ color: colors.text, ...type.body }} testID="stuck-summary">
             {change ? (
               <>
                 {`${metric.label} `}
+                {/* design-ok: mono run nested in a type.body line, keeps the parent's 24pt line */}
                 <Text style={{ color: colors.text, fontFamily: fontFamily.mono, fontSize: 15, lineHeight: 24 }}>
                   {`${fmt(change.from)} → ${metricText(cue.metricId, change.to)}`}
                 </Text>
@@ -314,7 +315,7 @@ export function DidntStickScreen({ cue, nav }: { cue: CueRecord; nav: DidntStick
         <Text style={[display(36), { color: colors.text }]} testID="didnt-stick-headline">
           {didntStickHeadline(cue, sessions)}
         </Text>
-        <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>
+        <Text style={{ color: colors.text2, ...type.callout }}>
           {cue.suggestion?.why ?? t('library.didntStick.why')}
         </Text>
       </View>

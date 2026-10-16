@@ -119,7 +119,7 @@ export default function ImportScreen({
                   }}
                 >
                   <Text
-                    style={{ color: colors.text, fontFamily: on ? fontFamily.bodyMedium : fontFamily.body, fontSize: 15, lineHeight: 20 }}
+                    style={{ color: colors.text, ...type.label, fontFamily: on ? fontFamily.bodyMedium : fontFamily.body }}
                   >
                     {r === 'all' ? t('capture.import.all') : String(r)}
                   </Text>

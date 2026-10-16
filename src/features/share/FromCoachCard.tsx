@@ -2,7 +2,7 @@ import { Text, View } from 'react-native';
 import Btn from '../../components/Btn';
 import SmallCaps from '../../components/SmallCaps';
 import { colors, radius, space } from '../../design/tokens';
-import { display, fontFamily } from '../../design/typography';
+import { display, fontFamily, type } from '../../design/typography';
 import type { CoachOverride } from './coachRepository';
 import { formatDate, getLocale, t } from '../../i18n';
 
@@ -37,14 +37,14 @@ export default function FromCoachCard({
           <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.flare }} />
           <SmallCaps size={12} color={colors.text}>{t('share.coach.from', { name: override.coachName })}</SmallCaps>
         </View>
-        <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>
+        <Text style={{ color: colors.text2, ...type.readout }}>
           {overrideDateLabel(override.createdAt, now)}
         </Text>
       </View>
       <Text testID="coach-cue" style={[display(30), { color: colors.text }]}>
         {override.text}
       </Text>
-      <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>
+      <Text style={{ color: colors.text2, ...type.callout }}>
         {t('share.coach.replaces', { cue: override.replacedCue, metric: override.metricLabel.toLowerCase() })}
       </Text>
       <Btn compact onPress={onTry} testID="coach-try">
@@ -69,14 +69,14 @@ export function ReplacedCueRow({ override, sessions }: { override: CoachOverride
       }}
     >
       <View style={{ flex: 1, gap: 2 }}>
-        <Text style={{ color: colors.text2, fontFamily: fontFamily.bodyBold, fontSize: 17, lineHeight: 22 }}>{override.replacedCue}</Text>
-        <Text style={{ color: colors.text3, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>
+        <Text style={{ color: colors.text2, ...type.button }}>{override.replacedCue}</Text>
+        <Text style={{ color: colors.text3, ...type.readout }}>
           {t('share.coach.replacedBy', { count: sessions })}
         </Text>
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
         <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.text3 }} />
-        <Text style={{ color: colors.text3, fontFamily: fontFamily.bodyMedium, fontSize: 13, lineHeight: 18 }}>{t('share.coach.dropped')}</Text>
+        <Text style={{ color: colors.text3, ...type.readout, fontFamily: fontFamily.bodyMedium }}>{t('share.coach.dropped')}</Text>
       </View>
     </View>
   );

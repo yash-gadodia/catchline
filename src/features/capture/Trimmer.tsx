@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { Image, PanResponder, Text, View, type ImageSourcePropType } from 'react-native';
 import { colors, space } from '../../design/tokens';
-import { fontFamily } from '../../design/typography';
+import { type } from '../../design/typography';
 import { moveHandle, timeToX, trimClock, trimLength, xToTime, type Trim } from './trim';
 
 type Handle = 'start' | 'end';
@@ -115,7 +115,7 @@ function Grip({ x, handlers, testID }: { x: number; handlers: object; testID: st
 
 function Mono({ children, testID }: { children: string; testID?: string }) {
   return (
-    <Text testID={testID} style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>
+    <Text testID={testID} style={{ color: colors.text2, ...type.readout }}>
       {children}
     </Text>
   );

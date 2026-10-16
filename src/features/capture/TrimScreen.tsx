@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, space } from '../../design/tokens';
-import { fontFamily } from '../../design/typography';
+import { type } from '../../design/typography';
 import ClipPlayer, { clipThumbs } from './ClipPlayer';
 import { Header, Underlined } from './hud';
 import { activeTrim, type Clip } from './store';
@@ -29,7 +29,7 @@ export default function TrimScreen({
     <View testID="trim-screen" style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }}>
       <Header
         left={<Underlined onPress={onCancel} testID="trim-cancel">{t('capture.trim.cancel')}</Underlined>}
-        center={<Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 17, lineHeight: 22 }}>{t('capture.trim.title')}</Text>}
+        center={<Text style={{ color: colors.text, ...type.button }}>{t('capture.trim.title')}</Text>}
         right={<Underlined onPress={() => onDone(trim)} testID="trim-done">{t('capture.trim.done')}</Underlined>}
       />
       <ClipPlayer
@@ -55,9 +55,7 @@ export default function TrimScreen({
       <Text
         style={{
           color: colors.text2,
-          fontFamily: fontFamily.body,
-          fontSize: 15,
-          lineHeight: 21,
+          ...type.callout,
           paddingHorizontal: space.gutter,
           paddingBottom: Math.max(insets.bottom, space.s4) + space.s5,
         }}

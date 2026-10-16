@@ -3,7 +3,7 @@ import Btn from '../../components/Btn';
 import Sheet from '../../components/Sheet';
 import SmallCaps from '../../components/SmallCaps';
 import { colors, space } from '../../design/tokens';
-import { display, fontFamily } from '../../design/typography';
+import { display, type } from '../../design/typography';
 import type { PurchaseStatus } from '../purchases/usePurchases';
 import { t } from '../../i18n';
 import { FOUNDING_PRICE_CENTS, MONTHLY_CAP, PRICE_CENTS, formatUsd, type StorePlatform } from './entitlements';
@@ -71,7 +71,7 @@ export default function FoundingSheet({
                 {String(seats.remaining)}
               </Text>
               <Text
-                style={{ flex: 1, color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 22, marginBottom: 6 }}
+                style={{ flex: 1, color: colors.text2, ...type.callout, marginBottom: 6 }}
               >
                 {state === 'low'
                   ? t('paywall.founding.low', { total: seats.total })

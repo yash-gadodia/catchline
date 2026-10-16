@@ -3,7 +3,7 @@ import type { Movement } from '../../analysis/types';
 import Sheet from '../../components/Sheet';
 import SmallCaps from '../../components/SmallCaps';
 import { colors, space } from '../../design/tokens';
-import { fontFamily } from '../../design/typography';
+import { fontFamily, type } from '../../design/typography';
 import { groups, liftsIn, soonLifts } from '../onboarding/lifts';
 import { t } from '../../i18n';
 
@@ -39,10 +39,10 @@ export default function LiftSheet({
                   onPress={() => onPick(l.id)}
                   style={{ height: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
                 >
-                  <Text style={{ color: colors.text, fontFamily: on ? fontFamily.bodyBold : fontFamily.body, fontSize: 17, lineHeight: 24 }}>
+                  <Text style={{ color: colors.text, ...type.body, fontFamily: on ? fontFamily.bodyBold : fontFamily.body }}>
                     {l.name}
                   </Text>
-                  <Text style={{ color: on ? colors.text : colors.text3, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>
+                  <Text style={{ color: on ? colors.text : colors.text3, ...type.readout }}>
                     {on ? '✓' : l.sub}
                   </Text>
                 </Pressable>
@@ -50,7 +50,7 @@ export default function LiftSheet({
             })}
           </View>
         ))}
-        <Text style={{ color: colors.text3, fontFamily: fontFamily.mono, fontSize: 12, lineHeight: 16 }}>
+        <Text style={{ color: colors.text3, ...type.caption }}>
           {t('capture.liftSheet.soon', { lifts: soonLifts().join(' · ').toLowerCase() })}
         </Text>
       </Sheet>

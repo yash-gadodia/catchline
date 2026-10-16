@@ -4,7 +4,7 @@ import { measurementLabel, measurementReadout } from '../../analysis/format';
 import Btn from '../../components/Btn';
 import Sheet from '../../components/Sheet';
 import { colors } from '../../design/tokens';
-import { fontFamily } from '../../design/typography';
+import { fontFamily, type } from '../../design/typography';
 import { t } from '../../i18n';
 
 export default function WhyDrawer({ analysis, onClose }: { analysis: Analysis; onClose: () => void }) {
@@ -17,10 +17,10 @@ export default function WhyDrawer({ analysis, onClose }: { analysis: Analysis; o
         style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.75)' }}
       />
       <Sheet gap={16}>
-        <Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 22, lineHeight: 28 }}>
+        <Text style={{ color: colors.text, ...type.title }}>
           {t('analysis.why.title')}
         </Text>
-        <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>
+        <Text style={{ color: colors.text2, ...type.callout }}>
           {t('analysis.why.body')}
         </Text>
         <View style={{ borderTopWidth: 1, borderTopColor: colors.hairline }}>
@@ -42,7 +42,7 @@ export default function WhyDrawer({ analysis, onClose }: { analysis: Analysis; o
                   borderBottomColor: colors.hairline,
                 }}
               >
-                <Text style={{ color: colors.text, fontFamily: fontFamily.body, fontSize: 17, lineHeight: 24 }}>
+                <Text style={{ color: colors.text, ...type.body }}>
                   {measurementLabel(m)}
                 </Text>
                 <Text
@@ -51,13 +51,12 @@ export default function WhyDrawer({ analysis, onClose }: { analysis: Analysis; o
                     maxWidth: '55%',
                     textAlign: 'right',
                     color: colors.text2,
-                    fontFamily: fontFamily.mono,
-                    fontSize: 13,
-                    lineHeight: 18,
+                    ...type.readout,
                   }}
                 >
                   {isCue ? (
                     <>
+                      {/* design-ok: a larger value run nested in a type.readout line; the parent sets the line */}
                       <Text style={{ color: colors.flare, fontFamily: fontFamily.monoMedium, fontSize: 15 }}>{value}</Text>
                       {readout.slice(value.length)}
                     </>

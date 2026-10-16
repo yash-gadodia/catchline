@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Pressable, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import type { Movement } from '../../analysis/types';
 import { colors, radius, space, stroke } from '../../design/tokens';
-import { fontFamily } from '../../design/typography';
+import { fontFamily, type } from '../../design/typography';
 import { liftById } from '../onboarding/lifts';
 import { checkLabel, type CheckResult } from './checks';
 import { t } from '../../i18n';
@@ -38,10 +38,10 @@ export function LiftChip({
         gap: space.s2,
       }}
     >
-      <Text style={{ color: colors.text, fontFamily: fontFamily.bodyMedium, fontSize: 15, lineHeight: 20 }}>
+      <Text style={{ color: colors.text, ...type.label }}>
         {liftById(movement).name}
       </Text>
-      <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 20 }}>⌄</Text>
+      <Text style={{ color: colors.text2, ...type.label, fontFamily: fontFamily.body }}>⌄</Text>
     </Pressable>
   );
 }
@@ -105,11 +105,11 @@ export function CheckList({ results }: { results: CheckResult[] }) {
           style={{ backgroundColor: colors.scrim, paddingVertical: 6, paddingHorizontal: 10, flexDirection: 'row', gap: 10 }}
         >
           {r.pass === null ? null : (
-            <Text style={{ color: r.pass ? colors.text : colors.flare, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>
+            <Text style={{ color: r.pass ? colors.text : colors.flare, ...type.readout }}>
               {r.pass ? '✓' : '✕'}
             </Text>
           )}
-          <Text style={{ color: colors.text, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>{checkLabel(r.id)}</Text>
+          <Text style={{ color: colors.text, ...type.readout }}>{checkLabel(r.id)}</Text>
         </View>
       ))}
     </View>
@@ -157,7 +157,7 @@ export function Underlined({ children, onPress, testID }: { children: string; on
   return (
     <Pressable onPress={onPress} testID={testID} accessibilityRole="button" hitSlop={10}>
       <Text
-        style={{ color: colors.text, fontFamily: fontFamily.bodyMedium, fontSize: 15, lineHeight: 20, textDecorationLine: 'underline' }}
+        style={{ color: colors.text, ...type.label, textDecorationLine: 'underline' }}
       >
         {children}
       </Text>
@@ -167,7 +167,7 @@ export function Underlined({ children, onPress, testID }: { children: string; on
 
 export function Meta({ children, testID }: { children: string; testID?: string }) {
   return (
-    <Text testID={testID} numberOfLines={1} style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>
+    <Text testID={testID} numberOfLines={1} style={{ color: colors.text2, ...type.readout }}>
       {children}
     </Text>
   );

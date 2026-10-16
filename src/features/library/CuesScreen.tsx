@@ -3,7 +3,7 @@ import { ActivityIndicator, Image, Pressable, RefreshControl, ScrollView, Text, 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SmallCaps from '../../components/SmallCaps';
 import { colors, space } from '../../design/tokens';
-import { display, fontFamily } from '../../design/typography';
+import { display, fontFamily, type } from '../../design/typography';
 import { backendEnabled } from '../../data/backend';
 import { syncLibrary } from '../../data/library';
 import { agoLabel, bestOf, cueWindow, pastCueSummary, seriesFor, sessionsCounter, shortDate, statusLabel, trendDirection } from './derive';
@@ -55,7 +55,7 @@ export default function CuesScreen({ onOpen }: { onOpen: (cue: CueRecord) => voi
             <>
               <Image testID="cues-empty-art" source={EMPTY_CUES_ART} style={{ width: 160, height: 160, tintColor: colors.text2 }} />
               <Text style={[display(32), { color: colors.text, textAlign: 'center' }]}>{t('library.cues.emptyTitle')}</Text>
-              <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21, textAlign: 'center' }}>
+              <Text style={{ color: colors.text2, ...type.callout, textAlign: 'center' }}>
                 {t('library.cues.emptyBody')}
               </Text>
             </>
@@ -97,16 +97,16 @@ export default function CuesScreen({ onOpen }: { onOpen: (cue: CueRecord) => voi
               }}
             >
               <View style={{ flex: 1, gap: 2 }}>
-                <Text style={{ color: c.status === 'dropped' ? colors.text2 : colors.text, fontFamily: fontFamily.bodyBold, fontSize: 17, lineHeight: 22 }}>
+                <Text style={{ color: c.status === 'dropped' ? colors.text2 : colors.text, ...type.button }}>
                   {cueText(c.metricId, c.text)}
                 </Text>
-                <Text style={{ color: c.status === 'dropped' ? colors.text3 : colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>
+                <Text style={{ color: c.status === 'dropped' ? colors.text3 : colors.text2, ...type.readout }}>
                   {`${singularMovement(c.movement)} · ${pastCueSummary(c, sessions)} · ${agoLabel(c.endedAt ?? c.givenAt, today)}`}
                 </Text>
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <StatusDot status={c.status} />
-                <Text style={{ color: c.status === 'dropped' ? colors.text2 : colors.text, fontFamily: fontFamily.bodyMedium, fontSize: 13, lineHeight: 18 }}>
+                <Text style={{ color: c.status === 'dropped' ? colors.text2 : colors.text, ...type.readout, fontFamily: fontFamily.bodyMedium }}>
                   {statusLabel(c.status)}
                 </Text>
               </View>
@@ -129,7 +129,7 @@ function ActiveCue({ cue, sessions, today, onOpen }: { cue: CueRecord; sessions:
           <StatusDot status="trying" />
           <SmallCaps size={12} color={colors.text}>{t('library.cues.tryingKicker', { movement: singularMovement(cue.movement) })}</SmallCaps>
         </View>
-        <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>
+        <Text style={{ color: colors.text2, ...type.readout }}>
           {t('library.cues.sessionsAgo', { counter: sessionsCounter(cue, sessions), ago: agoLabel(cue.givenAt, today) })}
         </Text>
       </View>
@@ -145,7 +145,7 @@ function ActiveCue({ cue, sessions, today, onOpen }: { cue: CueRecord; sessions:
           markerLabel={t('library.trends.cueMarker', { date: shortDate(cue.givenAt).toLowerCase() })}
         />
       ) : null}
-      <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>
+      <Text style={{ color: colors.text2, ...type.callout }}>
         {`${metricFor(cue.metricId).caption} ${trendDirection(series.slice(markerIndex ?? 0), cue.metricId)}`.trim()}
       </Text>
     </Pressable>

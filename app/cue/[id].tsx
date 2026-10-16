@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import Btn from '../../src/components/Btn';
 import { colors, space } from '../../src/design/tokens';
-import { display, fontFamily } from '../../src/design/typography';
+import { display, type } from '../../src/design/typography';
 import { backendEnabled } from '../../src/data/backend';
 import { syncLibrary } from '../../src/data/library';
 import CueDetailScreen, { DidntStickScreen, StuckScreen } from '../../src/features/library/CueDetailScreen';
@@ -41,7 +41,7 @@ export default function CueRoute() {
         ) : (
           <>
             <Text style={[display(32), { color: colors.text, textAlign: 'center' }]}>{t('library.cueRoute.goneTitle')}</Text>
-            <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21, textAlign: 'center' }}>
+            <Text style={{ color: colors.text2, ...type.callout, textAlign: 'center' }}>
               {t('library.cueRoute.goneBody')}
             </Text>
             <Btn kind="secondary" onPress={back} testID="cue-missing-back">

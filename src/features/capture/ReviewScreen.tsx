@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Movement } from '../../analysis/types';
 import Btn from '../../components/Btn';
 import { colors, radius, space, stroke } from '../../design/tokens';
-import { fontFamily } from '../../design/typography';
+import { fontFamily, type } from '../../design/typography';
 import { liftById } from '../onboarding/lifts';
 import type { Units } from '../onboarding/store';
 import { GateBtn, Note } from '../onboarding/ui';
@@ -63,7 +63,7 @@ export default function ReviewScreen({
       <ClipPlayer uri={clip.uri} trim={clip.trim} durationS={clip.durationS} width={width} height={stageH} progress={!cutOff}>
         {cutOff ? (
           <View style={{ position: 'absolute', left: space.gutter, bottom: space.s5 }}>
-            <Text testID="cut-off-marker" style={{ color: colors.flare, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>
+            <Text testID="cut-off-marker" style={{ color: colors.flare, ...type.readout }}>
               {t('capture.review.cutOffMarker', { frame: clip.cutOffFrame ?? 0 })}
             </Text>
           </View>
@@ -81,7 +81,7 @@ export default function ReviewScreen({
       ) : (
         <View style={{ paddingHorizontal: space.gutter, paddingVertical: space.s4, gap: space.s3 }}>
           {shared && clip.movementGuessed ? (
-            <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>
+            <Text style={{ color: colors.text2, ...type.callout }}>
               {t('capture.review.looksLike', { lift: liftById(clip.movement).spoken })}
             </Text>
           ) : null}
@@ -93,7 +93,7 @@ export default function ReviewScreen({
             </Underlined>
           </View>
           {clip.fps != null && clip.fps < 60 && shared ? (
-            <Text style={{ color: colors.text3, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>
+            <Text style={{ color: colors.text3, ...type.readout }}>
               {t('capture.review.lowFps', { fps: clip.fps })}
             </Text>
           ) : null}
@@ -164,9 +164,10 @@ export function WeightField({ value, units, onChange }: { value: string; units: 
         placeholder="0"
         placeholderTextColor={colors.text3}
         maxLength={6}
+        // design-ok: TextInput, a lineHeight shifts the caret and text on iOS
         style={{ color: colors.text, fontFamily: fontFamily.bodyMedium, fontSize: 15, minWidth: 36, padding: 0, textAlign: 'right' }}
       />
-      <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 20 }}>{units}</Text>
+      <Text style={{ color: colors.text2, ...type.label, fontFamily: fontFamily.body }}>{units}</Text>
     </View>
   );
 }

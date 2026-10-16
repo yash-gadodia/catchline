@@ -15,7 +15,7 @@ import { keyFrameForPhase, repByIndex } from '../../analysis/timeline';
 import Btn from '../../components/Btn';
 import Sheet from '../../components/Sheet';
 import { colors } from '../../design/tokens';
-import { fontFamily } from '../../design/typography';
+import { fontFamily, type } from '../../design/typography';
 import { impact, success } from '../../lib/haptics';
 import Stage from './Stage';
 import ProcessingPath from './ProcessingPath';
@@ -78,7 +78,7 @@ export default function ProcessingSheet({ analysis, clipUri, reduceMotion, meta,
       {state === 'too_long' ? (
         <Sheet testID="sheet-too-long">
           <Header title={t('analysis.processing.tooLongTitle')} meta={maxS ? t('analysis.processing.maxSeconds', { max: maxS }) : ''} strong />
-          <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 17, lineHeight: 24 }}>
+          <Text style={{ color: colors.text2, ...type.body }}>
             {maxS ? t('analysis.processing.tooLongBodyMax', { max: maxS }) : t('analysis.processing.tooLongBody')}
           </Text>
           <Btn onPress={on.onTrim ?? on.onHide} testID="trim-clip">
@@ -95,7 +95,7 @@ export default function ProcessingSheet({ analysis, clipUri, reduceMotion, meta,
           <View style={{ marginTop: -8 }}>
             <Queue etaSeconds={etaSeconds} ahead={ahead} />
           </View>
-          <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 17, lineHeight: 24 }}>
+          <Text style={{ color: colors.text2, ...type.body }}>
             {t('analysis.processing.longBody')}
           </Text>
           <Btn onPress={on.onNotify} testID="notify-me">
@@ -108,7 +108,7 @@ export default function ProcessingSheet({ analysis, clipUri, reduceMotion, meta,
       ) : null}
       {state === 'done' && analysis ? (
         <Sheet testID="sheet-done">
-          <Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 22, lineHeight: 28 }}>
+          <Text style={{ color: colors.text, ...type.title }}>
             {doneTitle(analysis)}
           </Text>
           <Btn
@@ -191,13 +191,12 @@ function Backdrop({ analysis, state, box }: { analysis: Analysis; state: Process
 function Header({ title, meta, strong }: { title: string; meta: string; strong?: boolean }) {
   return (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
-      <Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 22, lineHeight: 28 }}>{title}</Text>
+      <Text style={{ color: colors.text, ...type.title }}>{title}</Text>
       <Text
         style={{
           color: strong ? colors.text : colors.text2,
+          ...type.readout,
           fontFamily: strong ? fontFamily.monoMedium : fontFamily.mono,
-          fontSize: 13,
-          lineHeight: 18,
         }}
       >
         {meta}
@@ -207,7 +206,7 @@ function Header({ title, meta, strong }: { title: string; meta: string; strong?:
 }
 
 function Queue({ etaSeconds, ahead }: { etaSeconds: number; ahead?: number }) {
-  const mono = { color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 } as const;
+  const mono = { color: colors.text2, ...type.readout } as const;
   return (
     <View style={{ gap: 2 }}>
       <Text style={mono}>{t('analysis.processing.usually', { wait: formatWait(etaSeconds) })}</Text>
@@ -250,7 +249,7 @@ function InProgress({
                 />
               )}
             </View>
-            <Text style={{ color: s.state === 'todo' ? colors.text3 : colors.text, fontFamily: fontFamily.body, fontSize: 17, lineHeight: 24 }}>
+            <Text style={{ color: s.state === 'todo' ? colors.text3 : colors.text, ...type.body }}>
               {s.label}
             </Text>
           </View>
@@ -260,7 +259,7 @@ function InProgress({
         <TextLink onPress={onHide} testID="hide">
           {t('analysis.processing.hide')}
         </TextLink>
-        <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 13, lineHeight: 18, textAlign: 'center' }}>
+        <Text style={{ color: colors.text2, ...type.small, textAlign: 'center' }}>
           {t('analysis.processing.background')}
         </Text>
       </View>
@@ -280,7 +279,7 @@ function Pulse() {
 function TextLink({ children, onPress, testID }: { children: string; onPress: () => void; testID?: string }) {
   return (
     <Pressable onPress={onPress} testID={testID} accessibilityRole="button" style={{ height: 44, justifyContent: 'center', alignItems: 'center' }}>
-      <Text style={{ color: colors.text, fontFamily: fontFamily.bodyMedium, fontSize: 15, lineHeight: 20 }}>{children}</Text>
+      <Text style={{ color: colors.text, ...type.label }}>{children}</Text>
     </Pressable>
   );
 }

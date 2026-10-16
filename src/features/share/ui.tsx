@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Pressable, Switch, Text, View } from 'react-native';
 import { colors, radius, space, stroke } from '../../design/tokens';
-import { fontFamily } from '../../design/typography';
+import { fontFamily, type } from '../../design/typography';
 
 export function Chip({
   label,
@@ -73,7 +73,7 @@ export function ToggleRow({ label, value, onChange, testID }: { label: string; v
         borderBottomColor: colors.hairline,
       }}
     >
-      <Text style={{ color: colors.text, fontFamily: fontFamily.body, fontSize: 17, lineHeight: 24 }}>{label}</Text>
+      <Text style={{ color: colors.text, ...type.body }}>{label}</Text>
       <Toggle value={value} onChange={onChange} testID={testID} />
     </View>
   );
@@ -89,7 +89,7 @@ export function SheetTitle({ children, size = 22 }: { children: string; size?: n
 
 export function Body({ children, color = colors.text2, testID }: { children: ReactNode; color?: string; testID?: string }) {
   return (
-    <Text testID={testID} style={{ color, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>
+    <Text testID={testID} style={{ color, ...type.callout }}>
       {children}
     </Text>
   );

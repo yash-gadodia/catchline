@@ -2,7 +2,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { Redirect, useRouter, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, space } from '../src/design/tokens';
-import { display, fontFamily } from '../src/design/typography';
+import { display, type } from '../src/design/typography';
 import SmallCaps from '../src/components/SmallCaps';
 import { ANALYSES } from '../src/analysis/fixtures';
 import { FAILURE_REASONS } from '../src/features/library/failures';
@@ -62,11 +62,11 @@ export default function DevEntry() {
             testID={`dev-${e.label}`}
             style={{ paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.hairline }}
           >
-            <Text style={{ color: colors.text, fontFamily: fontFamily.body, fontSize: 17, lineHeight: 24 }}>{e.label}</Text>
+            <Text style={{ color: colors.text, ...type.body }}>{e.label}</Text>
           </Pressable>
         ))}
       </View>
-      <Text style={{ color: colors.text3, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18, marginTop: space.s5 }}>
+      <Text style={{ color: colors.text3, ...type.readout, marginTop: space.s5 }}>
         {`fixtures: ${Object.keys(ANALYSES).join(' · ')}`}
       </Text>
     </ScrollView>

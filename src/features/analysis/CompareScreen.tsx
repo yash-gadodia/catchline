@@ -10,7 +10,7 @@ import Segmented from '../../components/Segmented';
 import SmallCaps from '../../components/SmallCaps';
 import TopBar from '../../components/TopBar';
 import { colors, radius, space } from '../../design/tokens';
-import { fontFamily } from '../../design/typography';
+import { fontFamily, type } from '../../design/typography';
 import Stage from './Stage';
 import { FlarePath, GhostPath, HeroNumber, OverlaySvg } from './overlays';
 import { t } from '../../i18n';
@@ -89,10 +89,10 @@ export default function CompareScreen({
             gap: 8,
           }}
         >
-          <Text style={{ color: colors.text, fontFamily: fontFamily.bodyMedium, fontSize: 15, lineHeight: 20 }}>
+          <Text style={{ color: colors.text, ...type.label }}>
             {t('analysis.compare.target', { target: t(target.kind === 'best' ? 'analysis.compare.yourBest' : 'analysis.compare.lastSession'), load: fmt(other.loadKg ?? 0), date: target.dateLabel })}
           </Text>
-          <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 13, lineHeight: 18 }}>▾</Text>
+          <Text style={{ color: colors.text2, ...type.small }}>▾</Text>
         </Pressable>
       </View>
       {mode === 'ghost' ? (
@@ -103,7 +103,7 @@ export default function CompareScreen({
       <Rows rows={rows} topRule={mode === 'ghost'} />
       {mode === 'ghost' ? (
         <View style={{ paddingHorizontal: space.gutter, paddingTop: space.s3, paddingBottom: space.s7 }}>
-          <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }} testID="sync-caption">
+          <Text style={{ color: colors.text2, ...type.readout }} testID="sync-caption">
             {syncCaption(sync.phase, sync.today.frame, sync.other.frame)}
           </Text>
         </View>
@@ -158,14 +158,14 @@ function Ghost({ analysis, other, sync, box, label }: { analysis: Analysis; othe
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           <View style={{ width: 14, height: 3, backgroundColor: colors.flare }} />
-          <Text style={{ color: colors.text, fontFamily: fontFamily.mono, fontSize: 12, lineHeight: 16 }}>{t('analysis.compare.today')}</Text>
+          <Text style={{ color: colors.text, ...type.caption }}>{t('analysis.compare.today')}</Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           <View style={{ flexDirection: 'row', gap: 2 }}>
             <View style={{ width: 6, height: 2, backgroundColor: colors.text }} />
             <View style={{ width: 6, height: 2, backgroundColor: colors.text }} />
           </View>
-          <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 12, lineHeight: 16 }}>{label}</Text>
+          <Text style={{ color: colors.text2, ...type.caption }}>{label}</Text>
         </View>
       </View>
     </View>
@@ -275,10 +275,10 @@ function Rows({ rows, topRule }: { rows: CompareRow[]; topRule: boolean }) {
             borderBottomColor: colors.hairline,
           }}
         >
-          <Text style={{ color: colors.text, fontFamily: fontFamily.body, fontSize: 17, lineHeight: 24 }}>{r.label}</Text>
+          <Text style={{ color: colors.text, ...type.body }}>{r.label}</Text>
           <View style={{ alignItems: 'flex-end' }}>
-            <Text style={{ color: colors.text, fontFamily: fontFamily.mono, fontSize: 15, lineHeight: 20 }}>{r.value}</Text>
-            <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>{r.delta}</Text>
+            <Text style={{ color: colors.text, ...type.label, fontFamily: fontFamily.mono }}>{r.value}</Text>
+            <Text style={{ color: colors.text2, ...type.readout }}>{r.delta}</Text>
           </View>
         </View>
       ))}

@@ -4,7 +4,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SmallCaps from '../../src/components/SmallCaps';
 import { colors, space } from '../../src/design/tokens';
-import { fontFamily } from '../../src/design/typography';
+import { fontFamily, type } from '../../src/design/typography';
 import {
   LowStorageSheet,
   OfflineBanner,
@@ -36,11 +36,11 @@ export default function GlobalStatesRoute() {
         <SmallCaps>Notification copy</SmallCaps>
         {notes.map((n) => (
           <View key={n} style={{ backgroundColor: colors.surface2, borderRadius: 12, padding: space.s3, gap: 2 }}>
-            <Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 15, lineHeight: 20 }}>{NOTIFICATION_TITLE}</Text>
-            <Text style={{ color: colors.text, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 20 }}>{n}</Text>
+            <Text style={{ color: colors.text, ...type.label, fontFamily: fontFamily.bodyBold }}>{NOTIFICATION_TITLE}</Text>
+            <Text style={{ color: colors.text, ...type.label, fontFamily: fontFamily.body }}>{n}</Text>
           </View>
         ))}
-        <Text onPress={() => setStorage(true)} style={{ color: colors.text, fontFamily: fontFamily.bodyMedium, fontSize: 15, lineHeight: 22, textDecorationLine: 'underline' }}>
+        <Text onPress={() => setStorage(true)} style={{ color: colors.text, ...type.callout, fontFamily: fontFamily.bodyMedium, textDecorationLine: 'underline' }}>
           {/* i18n-ok: dev gallery */}
           Show low storage
         </Text>

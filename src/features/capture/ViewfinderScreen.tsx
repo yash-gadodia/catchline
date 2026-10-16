@@ -233,7 +233,7 @@ export default function ViewfinderScreen({
               <View style={{ alignItems: 'center', gap: space.s2 }}>
                 <Text style={[display(28), { color: colors.text }]}>{t('capture.viewfinder.liftWhenReady')}</Text>
                 {/* TODO(on-device pose): auto-stop after the lockout in 1-rep mode. */}
-                <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>
+                <Text style={{ color: colors.text2, ...type.readout }}>
                   {mode === 'rep' ? t('capture.viewfinder.stopAfterLockout') : t('capture.viewfinder.stopAfterLast')}
                 </Text>
               </View>
@@ -254,6 +254,7 @@ export default function ViewfinderScreen({
                     justifyContent: 'center',
                   }}
                 >
+                  {/* design-ok: 11pt label inside the 44pt import tile; no type token this small */}
                   <Text style={{ color: colors.text, fontFamily: fontFamily.bodyMedium, fontSize: 11, lineHeight: 14 }}>{t('capture.viewfinder.import')}</Text>
                 </Pressable>
               ) : (
@@ -264,7 +265,7 @@ export default function ViewfinderScreen({
                 <Text
                   testID="free-count"
                   accessibilityLabel={t('capture.viewfinder.freeA11y', { used: freeUsed, total: freeTotal })}
-                  style={{ width: 44, textAlign: 'center', color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}
+                  style={{ width: 44, textAlign: 'center', color: colors.text2, ...type.readout }}
                 >
                   {`${freeUsed} / ${freeTotal}`}
                 </Text>

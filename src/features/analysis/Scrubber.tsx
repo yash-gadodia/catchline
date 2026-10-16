@@ -3,7 +3,7 @@ import { PanResponder, Text, View } from 'react-native';
 import type { Rep } from '../../analysis/types';
 import { frameAtProgress, phaseTicks, progressOf } from '../../analysis/timeline';
 import { colors } from '../../design/tokens';
-import { fontFamily } from '../../design/typography';
+import { type } from '../../design/typography';
 
 export default function Scrubber({
   rep,
@@ -106,9 +106,7 @@ export default function Scrubber({
                 backgroundColor: colors.text,
                 paddingHorizontal: 8,
                 paddingVertical: 4,
-                fontFamily: fontFamily.mono,
-                fontSize: 12,
-                lineHeight: 16,
+                ...type.caption,
               }}
             >
               {label}

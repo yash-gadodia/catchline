@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Btn from '../../components/Btn';
 import SmallCaps from '../../components/SmallCaps';
 import { colors, space } from '../../design/tokens';
-import { display, fontFamily } from '../../design/typography';
+import { display, fontFamily, type } from '../../design/typography';
 import type { PurchaseStatus } from '../purchases/usePurchases';
 import { t } from '../../i18n';
 import { PRICE_CENTS, TRIAL_DAYS, annualSavingPct, formatUsd, type Period, type StorePlatform } from './entitlements';
@@ -69,15 +69,15 @@ export default function TrialPaywall({
             {(['annual', 'monthly'] as const).map((p) => (
               <OptionCard key={p} selected={period === p} onPress={() => setPeriod(p)} testID={`trial-${p}`}>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 15, lineHeight: 20 }}>
+                  <Text style={{ color: colors.text, ...type.label, fontFamily: fontFamily.bodyBold }}>
                     {p === 'annual' ? t('paywall.annual') : t('paywall.monthly')}
                   </Text>
-                  <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 13, lineHeight: 18 }}>
+                  <Text style={{ color: colors.text2, ...type.small }}>
                     {trialOptionLine(p)}
                   </Text>
                 </View>
                 {p === 'annual' ? (
-                  <Text style={{ color: colors.text, fontFamily: fontFamily.mono, fontSize: 12, lineHeight: 16 }}>
+                  <Text style={{ color: colors.text, ...type.caption }}>
                     {t('paywall.save', { pct: annualSavingPct('pull') })}
                   </Text>
                 ) : null}

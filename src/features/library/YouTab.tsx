@@ -2,7 +2,7 @@ import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 import { colors, space } from '../../design/tokens';
-import { fontFamily } from '../../design/typography';
+import { fontFamily, type } from '../../design/typography';
 import { Title } from './ui';
 import { t } from '../../i18n';
 
@@ -17,12 +17,12 @@ export default function YouTab({ onOpen, onDev }: { onOpen: () => void; onDev: (
         testID="open-you"
         style={{ marginTop: space.s5, paddingVertical: space.s4, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.hairline, flexDirection: 'row', justifyContent: 'space-between' }}
       >
-        <Text style={{ color: colors.text, fontFamily: fontFamily.bodyMedium, fontSize: 17, lineHeight: 22 }}>{t('library.you.account')}</Text>
-        <Text style={{ color: colors.text2, fontFamily: fontFamily.bodyMedium, fontSize: 17, lineHeight: 22 }}>›</Text>
+        <Text style={{ color: colors.text, ...type.button, fontFamily: fontFamily.bodyMedium }}>{t('library.you.account')}</Text>
+        <Text style={{ color: colors.text2, ...type.button, fontFamily: fontFamily.bodyMedium }}>›</Text>
       </Pressable>
       <View style={{ flex: 1 }} />
       <Pressable onLongPress={onDev} delayLongPress={600} testID="version" style={{ alignSelf: 'center', paddingVertical: space.s4 }}>
-        <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>
+        <Text style={{ color: colors.text2, ...type.readout }}>
           {`Catchline ${Constants.expoConfig?.version ?? ''}`.trim()}
         </Text>
       </Pressable>

@@ -6,7 +6,7 @@ import Btn from '../../components/Btn';
 import Segmented from '../../components/Segmented';
 import SmallCaps from '../../components/SmallCaps';
 import { colors, control, radius, space, stroke } from '../../design/tokens';
-import { display, fontFamily } from '../../design/typography';
+import { display, fontFamily, type } from '../../design/typography';
 import { FOCUS, focusLabel, groups, liftsIn, soonLifts } from './lifts';
 import { t } from '../../i18n';
 import type { Units } from './store';
@@ -33,7 +33,7 @@ export default function LiftPickerScreen({
       <ScrollView contentContainerStyle={{ paddingHorizontal: space.gutter, gap: space.s4, paddingBottom: space.s4 }}>
         <View style={{ gap: 6 }}>
           <Text style={[display(36), { color: colors.text }]}>{t('onboarding.picker.title')}</Text>
-          <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>
+          <Text style={{ color: colors.text2, ...type.callout }}>
             {t('onboarding.picker.sub')}
           </Text>
         </View>
@@ -66,11 +66,12 @@ export default function LiftPickerScreen({
                       numberOfLines={2}
                       adjustsFontSizeToFit
                       minimumFontScale={0.8}
+                      // design-ok: two-line tile name, the tight 20pt line keeps the tile height
                       style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 17, lineHeight: 20 }}
                     >
                       {l.name}
                     </Text>
-                    <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 12, lineHeight: 16 }}>{l.sub}</Text>
+                    <Text style={{ color: colors.text2, ...type.caption }}>{l.sub}</Text>
                   </Pressable>
                 );
               })}
@@ -96,15 +97,17 @@ export default function LiftPickerScreen({
                 gap: 4,
               }}
             >
+              {/* design-ok: two-line tile name, the tight 18pt line keeps the tile height */}
               <Text numberOfLines={2} style={{ color: colors.text3, fontFamily: fontFamily.bodyBold, fontSize: 15, lineHeight: 18 }}>
                 {name}
               </Text>
+              {/* design-ok: 11pt tag inside a 64pt tile, below the type scale */}
               <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 11, lineHeight: 14 }}>{t('onboarding.picker.soon')}</Text>
             </View>
           ))}
         </View>
         <View style={{ gap: space.s2 }}>
-          <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>
+          <Text style={{ color: colors.text2, ...type.callout }}>
             {t('onboarding.picker.specific')} <Text style={{ color: colors.text3 }}>{t('onboarding.picker.optional')}</Text>
           </Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
@@ -126,14 +129,14 @@ export default function LiftPickerScreen({
                     justifyContent: 'center',
                   }}
                 >
-                  <Text style={{ color: colors.text, fontFamily: fontFamily.body, fontSize: 13, lineHeight: 18 }}>{focusLabel(f)}</Text>
+                  <Text style={{ color: colors.text, ...type.small }}>{focusLabel(f)}</Text>
                 </Pressable>
               );
             })}
           </View>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>{t('onboarding.picker.units')}</Text>
+          <Text style={{ color: colors.text2, ...type.callout }}>{t('onboarding.picker.units')}</Text>
           <Segmented
             testID="units"
             value={units}

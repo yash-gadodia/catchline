@@ -3,7 +3,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Btn from '../../components/Btn';
 import TopBar from '../../components/TopBar';
 import { colors, radius, space } from '../../design/tokens';
-import { fontFamily } from '../../design/typography';
+import { fontFamily, type } from '../../design/typography';
 import {
   FOUNDING_PRICE_CENTS,
   FREE_VIDEOS,
@@ -45,8 +45,8 @@ function CellView({ cell }: { cell: Cell }) {
       style={{
         color: cell.kind === 'none' ? colors.text3 : colors.text,
         fontFamily: fontFamily.mono,
-        fontSize: 11,
-        lineHeight: 16,
+        // design-ok: 11pt table cell, four tiers must fit the phone width
+        fontSize: 11, lineHeight: 16,
         textAlign: 'center',
       }}
     >
@@ -84,7 +84,7 @@ export default function PlansScreen({
         onBack={onBack}
         more={false}
         center={
-          <Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 17, lineHeight: 22 }}>{t('paywall.plans.title')}</Text>
+          <Text style={{ color: colors.text, ...type.button }}>{t('paywall.plans.title')}</Text>
         }
       />
       <ScrollView contentContainerStyle={{ paddingHorizontal: space.s4, paddingBottom: insets.bottom + space.s6 }}>
@@ -96,8 +96,8 @@ export default function PlansScreen({
                 style={{
                   color: t === current ? colors.text : colors.text2,
                   fontFamily: t === current ? fontFamily.monoMedium : fontFamily.mono,
-                  fontSize: 11,
-                  lineHeight: 16,
+                  // design-ok: 11pt column head, four tiers must fit the phone width
+                  fontSize: 11, lineHeight: 16,
                 }}
               >
                 {short(t)}
@@ -108,7 +108,7 @@ export default function PlansScreen({
         {rows.map((r) => (
           <View key={r.label} style={{ flexDirection: 'row', borderTopWidth: 1, borderTopColor: colors.hairline }}>
             <View style={{ flex: 1.5, justifyContent: 'center', paddingVertical: space.s3 }}>
-              <Text style={{ color: colors.text, fontFamily: fontFamily.body, fontSize: 13, lineHeight: 18 }}>{r.label}</Text>
+              <Text style={{ color: colors.text, ...type.small }}>{r.label}</Text>
             </View>
             {TABLE_TIERS.map((t) => (
               <View key={t} style={col(t)}>
@@ -119,14 +119,16 @@ export default function PlansScreen({
         ))}
         <View style={{ flexDirection: 'row', borderTopWidth: 1, borderTopColor: colors.hairline }}>
           <View style={{ flex: 1.5, justifyContent: 'center', paddingVertical: space.s3 }}>
-            <Text style={{ color: colors.text, fontFamily: fontFamily.body, fontSize: 13, lineHeight: 18 }}>{t('paywall.plans.price')}</Text>
+            <Text style={{ color: colors.text, ...type.small }}>{t('paywall.plans.price')}</Text>
           </View>
           {TABLE_TIERS.map((t) => {
             const [a, b] = priceLines(t);
             return (
               <View key={t} style={col(t)}>
+                {/* design-ok: 10pt price lines, four tiers must fit the phone width */}
                 <Text style={{ color: colors.text, fontFamily: fontFamily.mono, fontSize: 10, lineHeight: 14 }}>{a}</Text>
                 {b ? (
+                  // design-ok: 10pt price lines, four tiers must fit the phone width
                   <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 10, lineHeight: 14 }}>{b}</Text>
                 ) : null}
               </View>
@@ -148,11 +150,11 @@ export default function PlansScreen({
             gap: space.s2,
           }}
         >
-          <Text style={{ color: colors.text, fontFamily: fontFamily.body, fontSize: 13, lineHeight: 18 }}>
+          <Text style={{ color: colors.text, ...type.small }}>
             {t('paywall.plans.current')}
             <Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold }}>{line.name}</Text>
           </Text>
-          <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 12, lineHeight: 16 }}>{line.meta}</Text>
+          <Text style={{ color: colors.text2, ...type.caption }}>{line.meta}</Text>
         </View>
         <Btn kind="secondary" onPress={onChangePlan} testID="change-plan" style={{ marginTop: space.s6 }}>
           {current === 'free' ? t('paywall.seePlans') : t('paywall.plans.change')}

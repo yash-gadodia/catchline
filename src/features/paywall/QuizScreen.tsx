@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Btn from '../../components/Btn';
 import SmallCaps from '../../components/SmallCaps';
 import { colors, space } from '../../design/tokens';
-import { display, fontFamily } from '../../design/typography';
+import { display, fontFamily, type } from '../../design/typography';
 import { selection } from '../../lib/haptics';
 import { t } from '../../i18n';
 import { QUIZ_LENGTH, quizOptionLabel, quizQuestion, type QuizAnswers } from './quiz';
@@ -52,7 +52,7 @@ export default function QuizScreen({
       <View style={{ gap: space.s2 }}>
         {q.options.map((o) => (
           <OptionCard key={o} selected={picked === o} onPress={() => pick(o)} testID={`option-${o}`}>
-            <Text style={{ color: colors.text, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 20 }}>{quizOptionLabel(o)}</Text>
+            <Text style={{ color: colors.text, ...type.label, fontFamily: fontFamily.body }}>{quizOptionLabel(o)}</Text>
           </OptionCard>
         ))}
       </View>

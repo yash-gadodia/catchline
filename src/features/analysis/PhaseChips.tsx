@@ -6,7 +6,7 @@ import { phaseLabel, seconds } from '../../analysis/format';
 import { phaseSeconds } from '../../analysis/timeline';
 import SmallCaps from '../../components/SmallCaps';
 import { colors, control, radius, space } from '../../design/tokens';
-import { fontFamily } from '../../design/typography';
+import { type } from '../../design/typography';
 import { t, type Key } from '../../i18n';
 
 const UNTIMED: PhaseName[] = ['setup', 'recovery'];
@@ -69,7 +69,7 @@ export default function PhaseChips({
               {chipLabel(p.name)}
             </SmallCaps>
             {UNTIMED.includes(p.name) ? null : (
-              <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 12, lineHeight: 16 }}>
+              <Text style={{ color: colors.text2, ...type.caption }}>
                 {seconds(phaseSeconds(p, fps))}
               </Text>
             )}

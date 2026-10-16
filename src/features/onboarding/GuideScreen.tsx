@@ -3,7 +3,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, G, Line, Path, Polyline, Rect, Text as SvgText } from 'react-native-svg';
 import Btn from '../../components/Btn';
 import { colors, space } from '../../design/tokens';
-import { fontFamily } from '../../design/typography';
+import { fontFamily, type } from '../../design/typography';
 import type { LiftGroup } from './lifts';
 import { t } from '../../i18n';
 import { Screen, Title } from './ui';
@@ -59,7 +59,7 @@ export default function GuideScreen({
       </View>
       <View style={{ gap: space.s3 }}>
         {g.lines.map((l) => (
-          <Text key={l} style={{ color: colors.text, fontFamily: fontFamily.body, fontSize: 17, lineHeight: 24 }}>
+          <Text key={l} style={{ color: colors.text, ...type.body }}>
             {l}
           </Text>
         ))}

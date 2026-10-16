@@ -72,25 +72,27 @@ const ShareCard = forwardRef<View, Props>(function ShareCard({ analysis, aspect,
         <View testID="card-brand" style={{ position: 'absolute', left: inset.left, top: inset.top, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
           <Mark size={16} />
           {/* i18n-ok: brand name */}
-          <Text style={[display(15), { color: colors.text, lineHeight: 16 }]}>Catchline</Text>
+          <Text style={[display(15), { color: colors.text }]}>Catchline</Text>
         </View>
       ) : null}
       <View style={{ position: 'absolute', left: inset.left, right: inset.right, bottom: inset.bottom, gap: 3 }}>
         {copy.label ? (
+          // design-ok: 11pt tracked kicker sized to the share card, below the type scale
           <Text testID="card-label" style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 11, lineHeight: 15, letterSpacing: 11 * 0.08 }}>
             {copy.label.toUpperCase()}
           </Text>
         ) : null}
         {copy.hero ? (
-          <Text testID="card-hero" numberOfLines={1} style={[display(58, true), { color: colors.text, lineHeight: 56 }]}>
+          <Text testID="card-hero" numberOfLines={1} style={[display(58, true), { color: colors.text }]}>
             {copy.hero}
           </Text>
         ) : null}
         {copy.cue ? (
-          <Text testID="card-cue" style={[display(25), { color: colors.text, lineHeight: 26 }]}>
+          <Text testID="card-cue" style={[display(25), { color: colors.text }]}>
             {copy.cue}
           </Text>
         ) : null}
+        {/* design-ok: 11pt tracked meta line sized to the share card, below the type scale */}
         <Text testID="card-meta" style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 11, lineHeight: 15, letterSpacing: 11 * 0.08 }}>
           {copy.meta}
         </Text>

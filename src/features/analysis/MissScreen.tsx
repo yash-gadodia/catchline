@@ -6,7 +6,7 @@ import Btn from '../../components/Btn';
 import SmallCaps from '../../components/SmallCaps';
 import TopBar from '../../components/TopBar';
 import { colors, space } from '../../design/tokens';
-import { display, fontFamily } from '../../design/typography';
+import { display, type } from '../../design/typography';
 import EvidenceStage from './EvidenceStage';
 import { t } from '../../i18n';
 import { cueText, cueWhy } from '../../i18n/cues';
@@ -40,7 +40,7 @@ export default function MissScreen({
           <View style={{ flex: 1, paddingTop: space.s5, paddingHorizontal: space.gutter, gap: 10 }}>
             <SmallCaps>{t('analysis.miss.because')}</SmallCaps>
             <Text style={[display(36), { color: colors.text }]}>{cueText(cue.faultId, cue.text)}</Text>
-            <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>
+            <Text style={{ color: colors.text2, ...type.callout }}>
               {cueWhy(cue.faultId, cue.why)}
             </Text>
           </View>

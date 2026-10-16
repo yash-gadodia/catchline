@@ -2,7 +2,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { Redirect, useRouter, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, space } from '../../src/design/tokens';
-import { display, fontFamily } from '../../src/design/typography';
+import { display, type } from '../../src/design/typography';
 import SmallCaps from '../../src/components/SmallCaps';
 import { chipState, EMPTY_USAGE } from '../../src/features/paywall/entitlements';
 import { FreeVideosChip } from '../../src/features/paywall/ui';
@@ -58,7 +58,7 @@ export default function PaywallDev() {
             testID={`dev-${e.label}`}
             style={{ paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.hairline }}
           >
-            <Text style={{ color: colors.text, fontFamily: fontFamily.body, fontSize: 17, lineHeight: 24 }}>{e.label}</Text>
+            <Text style={{ color: colors.text, ...type.body }}>{e.label}</Text>
           </Pressable>
         ))}
       </View>

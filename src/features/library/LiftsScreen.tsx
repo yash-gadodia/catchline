@@ -9,7 +9,7 @@ import Btn from '../../components/Btn';
 import Segmented from '../../components/Segmented';
 import SmallCaps from '../../components/SmallCaps';
 import { colors, radius, space } from '../../design/tokens';
-import { display, fontFamily } from '../../design/typography';
+import { display, fontFamily, type } from '../../design/typography';
 import {
   activeCue,
   filterLifts,
@@ -54,7 +54,7 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
       <Title>{t('library.tabs.lifts')}</Title>
       {chip ? (
         <Pressable onPress={nav.onUnlock} testID="free-chip" hitSlop={8} style={{ height: 44, justifyContent: 'center' }}>
-          <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>{chip}</Text>
+          <Text style={{ color: colors.text2, ...type.readout }}>{chip}</Text>
         </Pressable>
       ) : null}
     </View>
@@ -67,7 +67,7 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.s5 }}>
           <SideOnDiagram />
           <Text style={[display(32), { color: colors.text, textAlign: 'center' }]}>{t('library.lifts.emptyTitle')}</Text>
-          <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21, textAlign: 'center' }}>
+          <Text style={{ color: colors.text2, ...type.callout, textAlign: 'center' }}>
             {t('library.lifts.emptyBody')}
           </Text>
           <View style={{ alignSelf: 'stretch', gap: space.s3 }}>
@@ -119,10 +119,10 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
                 <StatusDot status="trying" />
                 <SmallCaps size={12}>{t('library.status.trying')}</SmallCaps>
               </View>
-              <Text numberOfLines={2} style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 17, lineHeight: 22 }}>
+              <Text numberOfLines={2} style={{ color: colors.text, ...type.button }}>
                 {cueText(cue.metricId, cue.text)}
               </Text>
-              <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>
+              <Text style={{ color: colors.text2, ...type.readout }}>
                 {t('library.lifts.sessions', { counter: sessionsCounter(cue, lib.sessions) })}
               </Text>
             </View>
@@ -161,7 +161,7 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
       </View>
       <View style={{ paddingTop: space.s2 }}>
         {days.length === 0 ? (
-          <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21, paddingTop: space.s5 }}>
+          <Text style={{ color: colors.text2, ...type.callout, paddingTop: space.s5 }}>
             {t('library.lifts.nothing')}
           </Text>
         ) : null}
@@ -197,7 +197,7 @@ function LiftRow({ lift, sessions, cues, newest, nav }: { lift: Lift; sessions: 
       </Pulse>
     ) : lift.status === 'failed' ? (
       <View style={{ width: 48, height: 56, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ color: colors.text3, fontFamily: fontFamily.mono, fontSize: 15, lineHeight: 20 }}>?</Text>
+        <Text style={{ color: colors.text3, ...type.label, fontFamily: fontFamily.mono }}>?</Text>
       </View>
     ) : (
       <Frame image={lift.thumb} width={48} height={56} gray opacity={muted ? 0.4 : 1} path={thumbPath(lift)} />
@@ -210,15 +210,15 @@ function LiftRow({ lift, sessions, cues, newest, nav }: { lift: Lift; sessions: 
     >
       {thumb}
       <View style={{ flex: 1, gap: 2 }}>
-        <Text style={{ color: muted ? colors.text2 : colors.text, fontFamily: fontFamily.bodyBold, fontSize: 17, lineHeight: 22 }}>
+        <Text style={{ color: muted ? colors.text2 : colors.text, ...type.button }}>
           {liftTitle(lift)}
         </Text>
         <Text
           numberOfLines={1}
           style={
             mono
-              ? { color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }
-              : { color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 20 }
+              ? { color: colors.text2, ...type.readout }
+              : { color: colors.text2, ...type.label, fontFamily: fontFamily.body }
           }
         >
           {liftDetail(lift, sessions, { cueShown: !!cue })}
@@ -226,7 +226,7 @@ function LiftRow({ lift, sessions, cues, newest, nav }: { lift: Lift; sessions: 
         {cue ? (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <StatusDot status={cue.status} testID={`dot-${lift.id}-${cue.status}`} />
-            <Text numberOfLines={1} style={{ flex: 1, color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>
+            <Text numberOfLines={1} style={{ flex: 1, color: colors.text2, ...type.readout }}>
               {t('library.lifts.cueLine', { status: statusLabel(cue.status), cue: lower(cueText(cue.metricId, cue.text)) })}
             </Text>
           </View>

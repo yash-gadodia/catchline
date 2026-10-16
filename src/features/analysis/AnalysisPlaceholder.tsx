@@ -2,7 +2,7 @@ import { Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Btn from '../../components/Btn';
 import { colors, space } from '../../design/tokens';
-import { display, fontFamily } from '../../design/typography';
+import { display, type } from '../../design/typography';
 import { t } from '../../i18n';
 
 const COPY = {
@@ -23,7 +23,7 @@ export default function AnalysisPlaceholder({ status, onBack }: { status: keyof 
     >
       <View style={{ flex: 1, justifyContent: 'center', gap: 10 }}>
         <Text style={[display(34), { color: colors.text }]}>{t(copy.title)}</Text>
-        <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>{t(copy.body)}</Text>
+        <Text style={{ color: colors.text2, ...type.callout }}>{t(copy.body)}</Text>
       </View>
       {status === 'loading' ? null : (
         <Btn kind="secondary" onPress={onBack} testID="analysis-back">

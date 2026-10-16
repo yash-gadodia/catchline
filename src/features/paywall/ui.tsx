@@ -3,7 +3,7 @@ import { Image, Pressable, Text, View, useWindowDimensions, type LayoutChangeEve
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Btn from '../../components/Btn';
 import { colors, radius, space } from '../../design/tokens';
-import { display, fontFamily } from '../../design/typography';
+import { display, type } from '../../design/typography';
 import { success as hapticSuccess } from '../../lib/haptics';
 import type { PurchaseStatus } from '../purchases/usePurchases';
 import { t } from '../../i18n';
@@ -64,7 +64,7 @@ export function SheetTitle({ children, size = 30 }: { children: string; size?: n
 }
 
 export function Body({ children, color = colors.text2 }: { children: string; color?: string }) {
-  return <Text style={{ color, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 22 }}>{children}</Text>;
+  return <Text style={{ color, ...type.callout }}>{children}</Text>;
 }
 
 export function Fine({ children, center }: { children: string; center?: boolean }) {
@@ -72,9 +72,7 @@ export function Fine({ children, center }: { children: string; center?: boolean 
     <Text
       style={{
         color: colors.text2,
-        fontFamily: fontFamily.body,
-        fontSize: 13,
-        lineHeight: 18,
+        ...type.small,
         textAlign: center ? 'center' : 'left',
       }}
     >
@@ -118,9 +116,7 @@ export function FreeVideosChip({ state, onPress }: { state: ChipState | null; on
       <Text
         style={{
           color: last ? colors.flare : used ? colors.text2 : colors.text,
-          fontFamily: fontFamily.bodyMedium,
-          fontSize: 15,
-          lineHeight: 20,
+          ...type.label,
         }}
       >
         {state.label}
@@ -190,7 +186,7 @@ export function PurchaseStateSheet({
   if (phase === 'purchasing') {
     return (
       <View testID="state-purchasing" style={{ gap: space.s5 }}>
-        <Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 22, lineHeight: 28 }}>
+        <Text style={{ color: colors.text, ...type.title }}>
           {purchasingTitle(platform)}
         </Text>
         <View
@@ -202,7 +198,7 @@ export function PurchaseStateSheet({
             justifyContent: 'center',
           }}
         >
-          <Text style={{ color: colors.text3, fontFamily: fontFamily.bodyBold, fontSize: 17, lineHeight: 22 }}>
+          <Text style={{ color: colors.text3, ...type.button }}>
             {purchasingLine(plan, price)}
           </Text>
         </View>
@@ -223,7 +219,7 @@ export function PurchaseStateSheet({
   if (phase === 'failed') {
     return (
       <View testID="state-failed" style={{ gap: space.s4 }}>
-        <Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 22, lineHeight: 28 }}>
+        <Text style={{ color: colors.text, ...type.title }}>
           {failedTitle(platform)}
         </Text>
         <Body>{failedBody(!!queuedMovement)}</Body>
@@ -240,7 +236,7 @@ export function PurchaseStateSheet({
   }
   return (
     <View testID="state-offline" style={{ gap: space.s4 }}>
-      <Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 22, lineHeight: 28 }}>
+      <Text style={{ color: colors.text, ...type.title }}>
         {t('paywall.state.offline')}
       </Text>
       <Body>{offlineBody()}</Body>

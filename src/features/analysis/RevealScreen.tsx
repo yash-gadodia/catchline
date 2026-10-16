@@ -18,7 +18,7 @@ import { keyFrameAt, keyFrameForPhase, liftPath, repByIndex } from '../../analys
 import SmallCaps from '../../components/SmallCaps';
 import { impact } from '../../lib/haptics';
 import { colors, space } from '../../design/tokens';
-import { display, fontFamily } from '../../design/typography';
+import { display, type } from '../../design/typography';
 import DrawnPath from './DrawnPath';
 import { DimensionLine, HeroNumber, OverlaySvg, RefLine } from './overlays';
 import { t } from '../../i18n';
@@ -195,7 +195,7 @@ export default function RevealScreen({
       </View>
       <View style={{ paddingHorizontal: space.gutter, paddingTop: space.s5, gap: space.s2 }}>
         {note ? (
-          <Text testID="movement-note" style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}>
+          <Text testID="movement-note" style={{ color: colors.text2, ...type.readout }}>
             {note}
           </Text>
         ) : null}

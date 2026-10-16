@@ -2,7 +2,7 @@ import { Text, View } from 'react-native';
 import Btn from '../../components/Btn';
 import Sheet from '../../components/Sheet';
 import { colors, space } from '../../design/tokens';
-import { fontFamily } from '../../design/typography';
+import { type } from '../../design/typography';
 import { FREE_VIDEOS } from './entitlements';
 import { t } from '../../i18n';
 import { Backdrop, Body, SheetTitle, useSheetTop } from './ui';
@@ -24,7 +24,7 @@ export default function LastFreeSheet({ onContinue, onPlans }: { onContinue: () 
         <Btn kind="secondary" onPress={onPlans} testID="last-free-plans">
           {t('paywall.seePlans')}
         </Btn>
-        <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18, textAlign: 'center' }}>
+        <Text style={{ color: colors.text2, ...type.readout, textAlign: 'center' }}>
           {t('paywall.last.count', { n: total, total })}
         </Text>
       </Sheet>

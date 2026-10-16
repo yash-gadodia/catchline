@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Linking, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, space } from '../../design/tokens';
-import { fontFamily } from '../../design/typography';
+import { type } from '../../design/typography';
 import { PRIVACY_URL, TERMS_URL } from '../../lib/links';
 import { Checkbox, GateBtn, Title } from './ui';
 import { t } from '../../i18n';
@@ -16,7 +16,7 @@ export function privacyPoints(): string[] {
   ];
 }
 
-const small = { fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 };
+const small = { ...type.callout };
 
 export default function PrivacyScreen({
   initialImprove,
@@ -35,7 +35,7 @@ export default function PrivacyScreen({
         <View style={{ borderTopWidth: 1, borderTopColor: colors.hairline }}>
           {privacyPoints().map((p) => (
             <View key={p} style={{ paddingVertical: space.s4, borderBottomWidth: 1, borderBottomColor: colors.hairline }}>
-              <Text style={{ color: colors.text, fontFamily: fontFamily.body, fontSize: 17, lineHeight: 24 }}>{p}</Text>
+              <Text style={{ color: colors.text, ...type.body }}>{p}</Text>
             </View>
           ))}
         </View>
@@ -55,7 +55,7 @@ export default function PrivacyScreen({
         <GateBtn disabled={!agreed} onPress={() => onContinue(improve)} testID="privacy-continue">
           {t('onboarding.privacy.continue')}
         </GateBtn>
-        <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18, textAlign: 'center' }}>
+        <Text style={{ color: colors.text2, ...type.readout, textAlign: 'center' }}>
           <Text style={{ color: colors.text2 }} onPress={() => Linking.openURL(PRIVACY_URL)} accessibilityRole="link" testID="link-privacy">
             {t('onboarding.privacy.policy')}
           </Text>

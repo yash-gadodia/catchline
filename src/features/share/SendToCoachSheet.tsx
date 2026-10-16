@@ -8,7 +8,7 @@ import { keyFrameForPhase, repByIndex } from '../../analysis/timeline';
 import Btn from '../../components/Btn';
 import Sheet from '../../components/Sheet';
 import { colors, space } from '../../design/tokens';
-import { fontFamily } from '../../design/typography';
+import { type } from '../../design/typography';
 import { LINK_DAYS, coachRepository, type CoachLink, type CoachRepository } from './coachRepository';
 import { Body, SheetTitle, ToggleRow } from './ui';
 
@@ -85,7 +85,7 @@ export default function SendToCoachSheet({
           {copied ? t('share.coach.copied') : t('share.coach.copy')}
         </Btn>
         {copied && link ? (
-          <Text testID="coach-link-url" style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18, textAlign: 'center' }}>
+          <Text testID="coach-link-url" style={{ color: colors.text2, ...type.readout, textAlign: 'center' }}>
             {link.url}
           </Text>
         ) : null}

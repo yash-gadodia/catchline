@@ -2,7 +2,7 @@ import { Linking, Text, View } from 'react-native';
 import Btn from '../../components/Btn';
 import Sheet from '../../components/Sheet';
 import { colors, space } from '../../design/tokens';
-import { display, fontFamily } from '../../design/typography';
+import { display, fontFamily, type } from '../../design/typography';
 import { Body, DangerBtn, SheetTitle } from '../share/ui';
 import { formatNumber, t, type Key } from '../../i18n';
 
@@ -29,11 +29,11 @@ export function OfflineBanner({ queued }: { queued: number }) {
         borderBottomColor: colors.hairline,
       }}
     >
-      <Text style={{ flex: 1, color: colors.text, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>
+      <Text style={{ flex: 1, color: colors.text, ...type.callout }}>
         {t('you.offline.banner')}
       </Text>
       {queued > 0 ? (
-        <Text style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 12, lineHeight: 16 }}>{t('you.offline.queued', { count: queued })}</Text>
+        <Text style={{ color: colors.text2, ...type.caption }}>{t('you.offline.queued', { count: queued })}</Text>
       ) : null}
     </View>
   );
@@ -92,7 +92,7 @@ export function PermissionDenied({ kind, onOpenSettings = () => Linking.openSett
       testID={`permission-${kind}`}
       style={{ gap: space.s2, paddingVertical: space.s3, paddingHorizontal: space.s4, borderLeftWidth: 2, borderLeftColor: colors.text, backgroundColor: colors.surface }}
     >
-      <Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 15, lineHeight: 21 }}>{copy.title}</Text>
+      <Text style={{ color: colors.text, ...type.callout, fontFamily: fontFamily.bodyBold }}>{copy.title}</Text>
       <Body>{copy.body}</Body>
       <Btn kind="text" onPress={onOpenSettings} testID="open-settings">
         {t('you.permission.openSettings')}
