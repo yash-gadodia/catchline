@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Pressable, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import Btn from '../../components/Btn';
-import { colors, control, radius, space, stroke } from '../../design/tokens';
+import { colors, control, shape, space, stroke } from '../../design/tokens';
 import { display, fontFamily, type } from '../../design/typography';
 
 export function Title({ children, size = 40 }: { children: string; size?: number }) {
@@ -46,7 +46,7 @@ export function GateBtn({
       style={[
         {
           height: control.height,
-          borderRadius: radius.control,
+          ...shape.control,
           backgroundColor: colors.surface2,
           alignItems: 'center',
           justifyContent: 'center',
@@ -68,7 +68,7 @@ export function DestructiveBtn({ children, onPress, testID }: { children: string
       accessibilityRole="button"
       style={({ pressed }) => ({
         height: control.height,
-        borderRadius: radius.control,
+        ...shape.control,
         borderWidth: stroke.outline,
         borderColor: colors.flare,
         backgroundColor: pressed ? colors.surface2 : 'transparent',
@@ -109,7 +109,7 @@ export function Checkbox({
           height: 28,
           borderWidth: stroke.outline,
           borderColor: checked ? colors.text : colors.hairline,
-          borderRadius: radius.control,
+          ...shape.control,
           alignItems: 'center',
           justifyContent: 'center',
         }}

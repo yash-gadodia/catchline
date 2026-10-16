@@ -5,7 +5,7 @@ import type { Analysis } from '../../analysis/types';
 import { fmt, movementLabel } from '../../analysis/format';
 import Btn from '../../components/Btn';
 import SmallCaps from '../../components/SmallCaps';
-import { colors, radius, space, stroke } from '../../design/tokens';
+import { colors, shape, space, stroke } from '../../design/tokens';
 import { type } from '../../design/typography';
 import PlayerScreen from '../analysis/PlayerScreen';
 import { t } from '../../i18n';
@@ -104,7 +104,7 @@ function CoachMark({ index, top, onNext }: { index: number; top: number; onNext:
         backgroundColor: colors.surface,
         borderWidth: stroke.hairline,
         borderColor: colors.text,
-        borderRadius: radius.control,
+        ...shape.control,
         gap: space.s2,
       }}
     >

@@ -5,7 +5,7 @@ import type { Movement } from '../../analysis/types';
 import Btn from '../../components/Btn';
 import Segmented from '../../components/Segmented';
 import SmallCaps from '../../components/SmallCaps';
-import { colors, control, radius, space, stroke } from '../../design/tokens';
+import { colors, control, shape, space, stroke } from '../../design/tokens';
 import { display, fontFamily, type } from '../../design/typography';
 import { FOCUS, focusLabel, groups, liftsIn, soonLifts } from './lifts';
 import { t } from '../../i18n';
@@ -55,7 +55,7 @@ export default function LiftPickerScreen({
                       minHeight: 96,
                       borderWidth: on ? stroke.outline : stroke.hairline,
                       borderColor: on ? colors.text : colors.hairline,
-                      borderRadius: radius.control,
+                      ...shape.control,
                       paddingVertical: space.s3,
                       paddingHorizontal: 10,
                       justifyContent: 'space-between',
@@ -90,7 +90,7 @@ export default function LiftPickerScreen({
                 borderWidth: stroke.hairline,
                 borderStyle: 'dashed',
                 borderColor: colors.hairline,
-                borderRadius: radius.control,
+                ...shape.control,
                 paddingVertical: 10,
                 paddingHorizontal: 10,
                 justifyContent: 'space-between',
@@ -125,7 +125,7 @@ export default function LiftPickerScreen({
                     paddingHorizontal: 10,
                     borderWidth: stroke.hairline,
                     borderColor: on ? colors.text : colors.hairline,
-                    borderRadius: radius.control,
+                    ...shape.control,
                     justifyContent: 'center',
                   }}
                 >

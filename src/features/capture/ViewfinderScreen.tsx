@@ -8,7 +8,7 @@ import { frameSource } from '../../analysis/frames';
 import Btn from '../../components/Btn';
 import Segmented from '../../components/Segmented';
 import Sheet from '../../components/Sheet';
-import { colors, radius, space, stroke } from '../../design/tokens';
+import { colors, shape, space, stroke } from '../../design/tokens';
 import { display, fontFamily, type } from '../../design/typography';
 import { DestructiveBtn, Note } from '../onboarding/ui';
 import { CameraSurface, type CameraHandle } from './camera';
@@ -249,7 +249,7 @@ export default function ViewfinderScreen({
                     height: 44,
                     borderWidth: stroke.hairline,
                     borderColor: colors.text,
-                    borderRadius: radius.control,
+                    ...shape.control,
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}

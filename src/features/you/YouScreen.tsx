@@ -8,7 +8,7 @@ import { movementLabel } from '../../analysis/format';
 import Btn from '../../components/Btn';
 import Sheet from '../../components/Sheet';
 import SmallCaps from '../../components/SmallCaps';
-import { colors, radius, space } from '../../design/tokens';
+import { colors, shape, space } from '../../design/tokens';
 import { display, fontFamily, type } from '../../design/typography';
 import { useLibraryStore } from '../library/store';
 import { useOnboarding } from '../onboarding/store';
@@ -263,7 +263,7 @@ function Value({ children }: { children: string }) {
 
 function FoundingBadge() {
   return (
-    <View testID="founding-badge" style={{ height: 28, paddingHorizontal: 10, borderWidth: 1, borderColor: colors.flare, borderRadius: radius.control, justifyContent: 'center' }}>
+    <View testID="founding-badge" style={{ height: 28, paddingHorizontal: 10, borderWidth: 1, borderColor: colors.flare, ...shape.control, justifyContent: 'center' }}>
       <SmallCaps size={11} color={colors.text}>{t('you.founding')}</SmallCaps>
     </View>
   );
@@ -417,7 +417,7 @@ function NameSheet({ initial, onSave, onClose }: { initial: string; onSave: (nam
           height: 52,
           borderWidth: 1,
           borderColor: colors.text,
-          borderRadius: radius.control,
+          ...shape.control,
           paddingHorizontal: space.s3,
           color: colors.text,
           fontFamily: fontFamily.body,

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Pressable, Switch, Text, View } from 'react-native';
-import { colors, radius, space, stroke } from '../../design/tokens';
+import { colors, shape, space, stroke } from '../../design/tokens';
 import { fontFamily, type } from '../../design/typography';
 
 export function Chip({
@@ -30,7 +30,7 @@ export function Chip({
         paddingHorizontal: mono ? 10 : 12,
         borderWidth: 1,
         borderColor: on ? colors.text : colors.hairline,
-        borderRadius: radius.control,
+        ...shape.control,
         justifyContent: 'center',
       }}
     >
@@ -119,7 +119,7 @@ export function DangerBtn({
       style={({ pressed }) => ({
         flex: compact ? 1 : undefined,
         height: compact ? 48 : 56,
-        borderRadius: radius.control,
+        ...shape.control,
         borderWidth: stroke.outline,
         borderColor: disabled ? colors.hairline : colors.flare,
         backgroundColor: pressed && !disabled ? colors.surface2 : 'transparent',

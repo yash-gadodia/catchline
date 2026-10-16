@@ -1,7 +1,7 @@
 import { Text, View } from 'react-native';
 import Btn from '../../components/Btn';
 import SmallCaps from '../../components/SmallCaps';
-import { colors, radius, space } from '../../design/tokens';
+import { colors, shape, space } from '../../design/tokens';
 import { display, fontFamily, type } from '../../design/typography';
 import type { CoachOverride } from './coachRepository';
 import { formatDate, getLocale, t } from '../../i18n';
@@ -30,7 +30,7 @@ export default function FromCoachCard({
   return (
     <View
       testID="from-coach"
-      style={{ gap: space.s3, padding: space.s4, borderWidth: 1, borderColor: colors.text, borderRadius: radius.control }}
+      style={{ gap: space.s3, padding: space.s4, borderWidth: 1, borderColor: colors.text, ...shape.control }}
     >
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s2 }}>

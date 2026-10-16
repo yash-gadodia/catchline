@@ -3,7 +3,7 @@ import { ScrollView, Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SmallCaps from '../../src/components/SmallCaps';
-import { colors, space } from '../../src/design/tokens';
+import { colors, shape, space } from '../../src/design/tokens';
 import { fontFamily, type } from '../../src/design/typography';
 import {
   LowStorageSheet,
@@ -35,7 +35,7 @@ export default function GlobalStatesRoute() {
         {/* i18n-ok: dev gallery */}
         <SmallCaps>Notification copy</SmallCaps>
         {notes.map((n) => (
-          <View key={n} style={{ backgroundColor: colors.surface2, borderRadius: 12, padding: space.s3, gap: 2 }}>
+          <View key={n} style={{ backgroundColor: colors.surface2, ...shape.sheet, padding: space.s3, gap: 2 }}>
             <Text style={{ color: colors.text, ...type.label, fontFamily: fontFamily.bodyBold }}>{NOTIFICATION_TITLE}</Text>
             <Text style={{ color: colors.text, ...type.label, fontFamily: fontFamily.body }}>{n}</Text>
           </View>

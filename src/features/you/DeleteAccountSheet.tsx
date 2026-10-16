@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import Btn from '../../components/Btn';
 import Sheet from '../../components/Sheet';
-import { colors, radius, space } from '../../design/tokens';
+import { colors, shape, space } from '../../design/tokens';
 import { fontFamily, type } from '../../design/typography';
 import { Body, DangerBtn, SheetTitle } from '../share/ui';
 import { accountRepository, type AccountRepository } from './account';
@@ -63,7 +63,7 @@ export default function DeleteAccountSheet({
               height: 52,
               borderWidth: 1,
               borderColor: colors.text,
-              borderRadius: radius.control,
+              ...shape.control,
               paddingHorizontal: space.s3,
               color: colors.text,
               fontFamily: fontFamily.mono,

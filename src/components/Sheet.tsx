@@ -28,6 +28,7 @@ export default function Sheet({
           backgroundColor: colors.surface,
           borderTopLeftRadius: radius.sheet,
           borderTopRightRadius: radius.sheet,
+          borderCurve: 'continuous',
           paddingTop: space.s3,
           paddingHorizontal: space.gutter,
           paddingBottom: space.s7,
@@ -37,6 +38,7 @@ export default function Sheet({
       ]}
     >
       <View
+        // design-ok: the grabber is the system sheet's 36x4 capsule handle, not a control
         style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: colors.hairline, alignSelf: 'center' }}
       />
       {children}

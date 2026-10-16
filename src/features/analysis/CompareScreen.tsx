@@ -9,7 +9,7 @@ import Readout from '../../components/Readout';
 import Segmented from '../../components/Segmented';
 import SmallCaps from '../../components/SmallCaps';
 import TopBar from '../../components/TopBar';
-import { colors, radius, space } from '../../design/tokens';
+import { colors, shape, space } from '../../design/tokens';
 import { fontFamily, type } from '../../design/typography';
 import Stage from './Stage';
 import { FlarePath, GhostPath, HeroNumber, OverlaySvg } from './overlays';
@@ -83,7 +83,7 @@ export default function CompareScreen({
             height: 36,
             paddingHorizontal: space.s3,
             backgroundColor: colors.surface,
-            borderRadius: radius.control,
+            ...shape.control,
             flexDirection: 'row',
             alignItems: 'center',
             gap: 8,

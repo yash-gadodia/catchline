@@ -2,7 +2,7 @@ import { useCallback, useState, type ReactNode } from 'react';
 import { Image, Pressable, Text, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Btn from '../../components/Btn';
-import { colors, radius, space } from '../../design/tokens';
+import { colors, shape, space } from '../../design/tokens';
 import { display, type } from '../../design/typography';
 import { success as hapticSuccess } from '../../lib/haptics';
 import type { PurchaseStatus } from '../purchases/usePurchases';
@@ -107,7 +107,7 @@ export function FreeVideosChip({ state, onPress }: { state: ChipState | null; on
         paddingHorizontal: space.s3,
         borderWidth: 1,
         borderColor: last ? colors.flare : colors.hairline,
-        borderRadius: radius.control,
+        ...shape.control,
         alignItems: 'center',
         justifyContent: 'center',
         alignSelf: 'flex-start',
@@ -192,7 +192,7 @@ export function PurchaseStateSheet({
         <View
           style={{
             height: 56,
-            borderRadius: radius.control,
+            ...shape.control,
             backgroundColor: colors.surface2,
             alignItems: 'center',
             justifyContent: 'center',
@@ -270,7 +270,7 @@ export function OptionCard({
         minHeight: 56,
         borderWidth: selected ? 2 : 1,
         borderColor: selected ? colors.text : colors.hairline,
-        borderRadius: radius.control,
+        ...shape.control,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',

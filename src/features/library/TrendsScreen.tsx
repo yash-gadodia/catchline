@@ -8,7 +8,7 @@ import { t } from '../../i18n';
 import Segmented from '../../components/Segmented';
 import SmallCaps from '../../components/SmallCaps';
 import { backendEnabled } from '../../data/backend';
-import { colors, radius, space } from '../../design/tokens';
+import { colors, shape, space } from '../../design/tokens';
 import { display, type } from '../../design/typography';
 import { defaultMovement, measuredMetrics, measuredMovements, metricFor, PRIMARY_METRIC } from './metrics';
 import { bestOf, inRange, latestCue, metricText, seriesFor, shortDate, trendRecap, versionBoundary, versionNote, type Range } from './derive';
@@ -57,7 +57,7 @@ export default function TrendsScreen({ initialMovement }: { initialMovement?: Mo
           gap: space.s2,
           borderWidth: 1,
           borderColor: colors.text,
-          borderRadius: radius.control,
+          ...shape.control,
         }}
       >
         <Text style={{ color: colors.text, ...type.label }}>{movementLabel(movement)}</Text>
@@ -116,7 +116,7 @@ export default function TrendsScreen({ initialMovement }: { initialMovement?: Mo
             backgroundColor: colors.surface,
             borderWidth: 1,
             borderColor: colors.hairline,
-            borderRadius: radius.control,
+            ...shape.control,
             paddingVertical: space.s1,
             minWidth: 200,
           }}

@@ -1,5 +1,5 @@
 import { Pressable, Text, View } from 'react-native';
-import { colors, radius } from '../design/tokens';
+import { colors, shape } from '../design/tokens';
 import { fontFamily } from '../design/typography';
 
 export default function Segmented<T extends string>({
@@ -22,7 +22,7 @@ export default function Segmented<T extends string>({
         flexDirection: 'row',
         borderWidth: 1,
         borderColor: colors.hairline,
-        borderRadius: radius.control,
+        ...shape.control,
         overflow: 'hidden',
       }}
     >

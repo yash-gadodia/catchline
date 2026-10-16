@@ -3,7 +3,7 @@ import { Pressable, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Movement } from '../../analysis/types';
 import Btn from '../../components/Btn';
-import { colors, radius, space, stroke } from '../../design/tokens';
+import { colors, shape, space, stroke } from '../../design/tokens';
 import { fontFamily, type } from '../../design/typography';
 import ClipPlayer from './ClipPlayer';
 import { Header, LiftChip, Meta, Underlined } from './hud';
@@ -113,7 +113,7 @@ export default function ImportScreen({
                     height: 44,
                     borderWidth: stroke.hairline,
                     borderColor: on ? colors.text : colors.hairline,
-                    borderRadius: radius.control,
+                    ...shape.control,
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}

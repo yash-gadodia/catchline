@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { PanResponder, View } from 'react-native';
-import { colors, radius } from '../../design/tokens';
+import { colors, shape } from '../../design/tokens';
 
 export const JOG_STEP_PX = 8;
 
@@ -49,7 +49,7 @@ export default function JogWheel({
       testID="jog-wheel"
       {...pan.panHandlers}
       onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
-      style={{ flex: 1, height: 40, borderRadius: radius.control, overflow: 'hidden', marginHorizontal: 16 }}
+      style={{ flex: 1, height: 40, ...shape.control, overflow: 'hidden', marginHorizontal: 16 }}
     >
       {Array.from({ length: count }, (_, i) => (
         <View

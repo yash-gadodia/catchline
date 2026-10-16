@@ -1,6 +1,6 @@
 import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, radius } from '../../design/tokens';
+import { colors, shape } from '../../design/tokens';
 import { fontFamily, type } from '../../design/typography';
 import { t } from '../../i18n';
 
@@ -65,7 +65,7 @@ export default function TabBar({
           style={({ pressed }) => ({
             width: 56,
             height: 56,
-            borderRadius: radius.control,
+            ...shape.control,
             backgroundColor: colors.flare,
             alignItems: 'center',
             justifyContent: 'center',

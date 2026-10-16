@@ -22,7 +22,7 @@ import Segmented from '../../components/Segmented';
 import SmallCaps from '../../components/SmallCaps';
 import TopBar from '../../components/TopBar';
 import { impact } from '../../lib/haptics';
-import { colors, opacity, radius, space } from '../../design/tokens';
+import { colors, opacity, shape, space } from '../../design/tokens';
 import { display, fontFamily, type } from '../../design/typography';
 import Stage, { type StageLayer } from './Stage';
 import { CurrentDot, FlarePath, KeyDots, OverlaySvg, RefLine } from './overlays';
@@ -330,7 +330,7 @@ function OverlayChip({ kind, on, onPress }: { kind: 'path' | 'strobe' | 'lines' 
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: colors.scrim,
-        borderRadius: radius.control,
+        ...shape.control,
       }}
     >
       <Text style={{ ...type.caption, color: on || !toggle ? colors.text : colors.text3 }}>{t(`analysis.player.overlay.${kind}`)}</Text>

@@ -2,7 +2,7 @@ import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Btn from '../../components/Btn';
 import TopBar from '../../components/TopBar';
-import { colors, radius, space } from '../../design/tokens';
+import { colors, shape, space } from '../../design/tokens';
 import { fontFamily, type } from '../../design/typography';
 import {
   FOUNDING_PRICE_CENTS,
@@ -141,7 +141,7 @@ export default function PlansScreen({
             marginTop: space.s4,
             borderWidth: 1,
             borderColor: colors.text,
-            borderRadius: radius.control,
+            ...shape.control,
             paddingVertical: space.s3,
             paddingHorizontal: space.s3,
             flexDirection: 'row',

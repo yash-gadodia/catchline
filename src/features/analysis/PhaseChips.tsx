@@ -5,7 +5,7 @@ import type { PhaseName, Rep } from '../../analysis/types';
 import { phaseLabel, seconds } from '../../analysis/format';
 import { phaseSeconds } from '../../analysis/timeline';
 import SmallCaps from '../../components/SmallCaps';
-import { colors, control, radius, space } from '../../design/tokens';
+import { colors, control, shape, space } from '../../design/tokens';
 import { type } from '../../design/typography';
 import { t, type Key } from '../../i18n';
 
@@ -59,7 +59,7 @@ export default function PhaseChips({
               paddingHorizontal: 8,
               borderWidth: 1,
               borderColor: on ? colors.text : colors.hairline,
-              borderRadius: radius.control,
+              ...shape.control,
               flexDirection: 'row',
               alignItems: 'center',
               gap: 6,

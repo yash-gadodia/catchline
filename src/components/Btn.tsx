@@ -1,5 +1,5 @@
 import { Pressable, Text, type StyleProp, type ViewStyle } from 'react-native';
-import { colors, control, radius, stroke } from '../design/tokens';
+import { colors, control, shape, stroke } from '../design/tokens';
 import { fontFamily } from '../design/typography';
 
 type Props = {
@@ -39,7 +39,7 @@ export default function Btn({ children, onPress, kind = 'primary', compact, test
       style={({ pressed }) => [
         {
           height: compact ? control.compactHeight : control.height,
-          borderRadius: radius.control,
+          ...shape.control,
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: primary ? colors.flare : pressed ? colors.surface2 : 'transparent',

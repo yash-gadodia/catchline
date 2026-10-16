@@ -8,7 +8,7 @@ import { liftPath, repByIndex } from '../../analysis/timeline';
 import Btn from '../../components/Btn';
 import Segmented from '../../components/Segmented';
 import SmallCaps from '../../components/SmallCaps';
-import { colors, radius, space } from '../../design/tokens';
+import { colors, shape, space } from '../../design/tokens';
 import { display, fontFamily, type } from '../../design/typography';
 import {
   activeCue,
@@ -107,7 +107,7 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
               paddingHorizontal: space.s4,
               borderWidth: 1,
               borderColor: colors.hairline,
-              borderRadius: radius.control,
+              ...shape.control,
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'space-between',

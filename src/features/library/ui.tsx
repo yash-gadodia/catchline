@@ -5,7 +5,7 @@ import Svg, { Polyline } from 'react-native-svg';
 import { frameSource } from '../../analysis/frames';
 import { coverFit, toScreen } from '../../analysis/geometry';
 import type { Point } from '../../analysis/types';
-import { colors, control, radius, stroke } from '../../design/tokens';
+import { colors, control, shape, stroke } from '../../design/tokens';
 import { display, fontFamily, type } from '../../design/typography';
 import type { CueStatus } from './types';
 
@@ -129,7 +129,7 @@ export function Chip({
         justifyContent: 'center',
         borderWidth: 1,
         borderColor: selected ? colors.text : colors.hairline,
-        borderRadius: radius.control,
+        ...shape.control,
       }}
     >
       <Text
@@ -165,7 +165,7 @@ export function DestructiveBtn({
       style={({ pressed }) => [
         {
           height: control.height,
-          borderRadius: radius.control,
+          ...shape.control,
           borderWidth: stroke.outline,
           borderColor: colors.flare,
           alignItems: 'center',

@@ -3,7 +3,7 @@ import { KeyboardAvoidingView, Platform, Text, TextInput, View, useWindowDimensi
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Movement } from '../../analysis/types';
 import Btn from '../../components/Btn';
-import { colors, radius, space, stroke } from '../../design/tokens';
+import { colors, shape, space, stroke } from '../../design/tokens';
 import { fontFamily, type } from '../../design/typography';
 import { liftById } from '../onboarding/lifts';
 import type { Units } from '../onboarding/store';
@@ -149,7 +149,7 @@ export function WeightField({ value, units, onChange }: { value: string; units: 
         paddingHorizontal: space.s3,
         borderWidth: stroke.hairline,
         borderColor: colors.hairline,
-        borderRadius: radius.control,
+        ...shape.control,
         flexDirection: 'row',
         alignItems: 'center',
         gap: space.s2,

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Pressable, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import type { Movement } from '../../analysis/types';
-import { colors, radius, space, stroke } from '../../design/tokens';
+import { colors, shape, space, stroke } from '../../design/tokens';
 import { fontFamily, type } from '../../design/typography';
 import { liftById } from '../onboarding/lifts';
 import { checkLabel, type CheckResult } from './checks';
@@ -31,7 +31,7 @@ export function LiftChip({
         paddingHorizontal: space.s3,
         borderWidth: stroke.hairline,
         borderColor: colors.text,
-        borderRadius: radius.control,
+        ...shape.control,
         backgroundColor: scrim ? HUD_BG : 'transparent',
         flexDirection: 'row',
         alignItems: 'center',
@@ -67,7 +67,7 @@ export function HudBadge({
         minWidth: 36,
         paddingHorizontal: square ? 0 : 10,
         backgroundColor: HUD_BG,
-        borderRadius: radius.control,
+        ...shape.control,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
@@ -137,7 +137,7 @@ export function RecordButton({
         {
           width: 56,
           height: 56,
-          borderRadius: radius.control,
+          ...shape.control,
           backgroundColor: recording ? 'transparent' : colors.flare,
           borderWidth: recording ? stroke.outline : 0,
           borderColor: colors.text,
@@ -148,7 +148,7 @@ export function RecordButton({
         style,
       ]}
     >
-      {recording ? <View style={{ width: 22, height: 22, borderRadius: 2, backgroundColor: colors.flare }} /> : null}
+      {recording ? <View style={{ width: 22, height: 22, ...shape.control, backgroundColor: colors.flare }} /> : null}
     </Pressable>
   );
 }
