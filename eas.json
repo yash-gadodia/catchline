@@ -28,7 +28,10 @@
     "production": {
       "autoIncrement": true,
       "channel": "production",
-      "environment": "production"
+      "environment": "production",
+      "env": {
+        "EXPO_PUBLIC_ON_DEVICE_POSE": "1"
+      }
     }
   },
   "submit": {

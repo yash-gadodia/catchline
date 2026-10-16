@@ -158,3 +158,13 @@ Build 26: Cues crashed and Trends was empty on a real account. Root cause: the C
 - [ ] (Claude) Blurred letterbox instead of black bars when the clip is not 9:16 (4:5 feed and landscape clips).
 - [ ] (Claude) Android: renderShareVideo is iOS only; Android shows the still card.
 - Gotchas: `AVVideoCompositionCoreAnimationTool` crashes the iOS 26 simulator (CA::OGL IOSurfaceCreate), so the overlay is drawn per frame with Core Image; iPhone HLG clips need the composition pinned to Rec.709 or the overlay's white exports grey.
+
+## On-device pose, stage 1 (15-16 Oct, worktree branch off catchline)
+- [x] (Claude) `modules/pose-coreml`: pose.py's own YOLOX-m + RTMPose-m (halpe26) as FP32 Core ML, rtmlib pre/post in Swift, frames rebuilt from the decoded 4:2:0 planes the way pose.py's ffmpeg scales them. Keypoints upload as `<clip>.pose.json`; `enqueue_lift` marks `pose_source = 'device'` (0010); the worker skips RTMPose for those lifts. Any model error, a missing pose object or a kipping HSPU (two-pass) falls back to server pose. Apple Vision was a no-go (~/dev/liftcheck-research/36-on-device-pose.md)
+- [x] (Claude) Build 30 (TestFlight only): models BUNDLED, `EXPO_PUBLIC_ON_DEVICE_POSE=1` in the eas.json `production` profile
+- [ ] (Claude) Before the public release: download the models on first use instead of bundling them (~150 MB FP32; FP16 and 8-bit weights failed parity, see below)
+- [ ] (Yash, device) Measure on-device pose fps on a real iPhone (dev route `catchline://dev-pose?uri=...`); the M4 Mac runs it at 6-9 fps, the simulator (CPU only) at 0.5
+- [ ] (Claude) 21B27BAF's plate scale jumps 4.5 -> 11.2 px/cm on a sub-pixel pose change (bar peak 123 -> 50 cm); fragile in lifts.py, not the pose. Re-record goldens after the flag goes on (Core ML != onnxruntime bit for bit)
+- Export step (before any iOS build; models are gitignored, `.easignore` lets EAS upload them): `cd cv && uv run --with coremltools --with onnx2torch --with torch --with onnx python scripts/export_coreml.py` -> `modules/pose-coreml/ios/models/{YoloxHuman,RTMPoseHalpe26}.mlmodelc`. Without them the build still works and every lift uses server pose
+- Deploy order: `supabase db push --include-all` (0010 lands after 0011), then the worker, then the build
+- Gotchas: FP16 RTMPose moves the lifter's keypoints ~13 px p95 and flipped a made call; 8-bit linear/k-means weights 23-61 px. YOLOX's ONNX carries TopK/NMS (cut before it, per-class NMS in Swift). onnx2torch chokes on Clip nodes with an empty optional input (drop it). ffmpeg 8.1's yuv420p -> bgr24 sits ~2 levels below an exact BT.709 conversion; VideoToolbox BGRA scaling differs by 2 levels mean and moved boxes 20 px p95
