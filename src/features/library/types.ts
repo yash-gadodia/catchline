@@ -26,6 +26,7 @@ export type Session = {
   liftId?: string;
   thumb?: string;
   values: Record<string, number>;
+  analysisVersion?: string;
 };
 
 export type CueStatus = 'trying' | 'stuck' | 'didnt_stick' | 'dropped';

@@ -22,6 +22,8 @@ import {
   seriesFor,
   trendRecap,
   sessionsCounter,
+  versionBoundary,
+  versionNote,
 } from './derive';
 import { emptyLibrary, seededLibrary, TODAY } from './seed';
 import type { Session } from './types';
@@ -232,5 +234,44 @@ describe('real CV measurement ids', () => {
     expect(agoLabel('2026-10-10', TODAY)).toBe('yesterday');
     expect(agoLabel('2026-10-05', TODAY)).toBe('6 days ago');
     expect(agoLabel('2026-09-20', TODAY)).toBe('3 wks ago');
+  });
+});
+
+describe('versionBoundary', () => {
+  const s = (id: string, date: string, analysisVersion?: string, movement: Session['movement'] = 'snatch'): Session => ({
+    id,
+    movement,
+    date,
+    values: { jump_forward: 5 },
+    analysisVersion,
+  });
+
+  it('is null while every lift of the movement was measured by one version', () => {
+    expect(versionBoundary([s('a', '2026-10-01'), s('b', '2026-10-02')], 'snatch')).toBeNull();
+    expect(versionBoundary([s('a', '2026-10-01', 'cv-2026.10.16'), s('b', '2026-10-02', 'cv-2026.10.16')], 'snatch')).toBeNull();
+    expect(versionBoundary([], 'snatch')).toBeNull();
+  });
+
+  it('finds the day the newest version took over and every lift an older one measured', () => {
+    const b = versionBoundary(
+      [
+        s('d', '2026-10-17', 'cv-2026.10.16'),
+        s('a', '2026-10-01'),
+        s('b', '2026-10-05', 'cv-2026.10.01'),
+        s('c', '2026-10-16', 'cv-2026.10.16'),
+        s('x', '2026-10-20', 'cv-2026.10.01', 'clean'),
+      ],
+      'snatch'
+    );
+    expect(b?.since).toBe('2026-10-16');
+    expect([...(b?.older ?? [])].sort()).toEqual(['a', 'b']);
+  });
+
+  it('ignores other movements', () => {
+    expect(versionBoundary([s('a', '2026-10-01', 'cv-2026.10.16'), s('x', '2026-10-02', undefined, 'clean')], 'snatch')).toBeNull();
+  });
+
+  it('says what changed in plain words', () => {
+    expect(versionNote('2026-10-16')).toBe('Analysis improved on 16 Oct; earlier lifts were measured by the older version.');
   });
 });

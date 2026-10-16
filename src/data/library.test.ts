@@ -140,4 +140,10 @@ describe('toSession', () => {
     } as unknown as Parameters<typeof toSession>[1];
     expect(toSession(row({ status: 'done' }), a).values).toEqual({ jump_forward: 6 });
   });
+
+  it('carries the analysis version, absent on lifts measured before it was stamped', () => {
+    const a = { reps: [], measurements: [] } as unknown as Parameters<typeof toSession>[1];
+    expect(toSession(row({ status: 'done' }), { ...a, analysisVersion: 'cv-2026.10.16' }).analysisVersion).toBe('cv-2026.10.16');
+    expect(toSession(row({ status: 'done' }), a).analysisVersion).toBeUndefined();
+  });
 });

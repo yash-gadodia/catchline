@@ -32,4 +32,12 @@ describe('parseAnalysis', () => {
     expect(parseAnalysis(mock).notes).toBeUndefined();
     expect(() => parseAnalysis({ ...mock, notes: 'x' })).toThrow('Invalid Analysis: notes');
   });
+
+  it('accepts the analysis version, and an analysis from before it was stamped', () => {
+    const a = parseAnalysis({ ...mock, analysisVersion: 'cv-2026.10.16', analysisRevision: '807270d' });
+    expect([a.analysisVersion, a.analysisRevision]).toEqual(['cv-2026.10.16', '807270d']);
+    expect(parseAnalysis(mock).analysisVersion).toBeUndefined();
+    expect(() => parseAnalysis({ ...mock, analysisVersion: 3 })).toThrow('Invalid Analysis: analysisVersion');
+    expect(() => parseAnalysis({ ...mock, analysisVersion: '' })).toThrow('Invalid Analysis: analysisVersion');
+  });
 });

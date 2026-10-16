@@ -1,9 +1,10 @@
 import glob
 import os
 
-from catchline_cv import pipeline
+from catchline_cv import ANALYSIS_VERSION, pipeline
 from catchline_cv.video import probe
 
+from .heartbeat import worker_version
 from .jobs import Job, Result
 
 SUPPORTED = {"snatch", "clean", "jerk", "kipping_pull_up", "bar_muscle_up", "kipping_hspu"}
@@ -66,6 +67,8 @@ def _finish(analysis: dict, job: Job) -> dict:
     analysis["id"] = job.lift_id
     analysis["movement"] = job.movement
     analysis["video"]["uri"] = job.keyframe_prefix
+    analysis["analysisVersion"] = ANALYSIS_VERSION
+    analysis["analysisRevision"] = worker_version()
     if job.load_kg is not None:
         analysis["loadKg"] = float(job.load_kg)
     return analysis

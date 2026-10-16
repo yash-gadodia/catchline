@@ -8,9 +8,9 @@ import Segmented from '../../components/Segmented';
 import SmallCaps from '../../components/SmallCaps';
 import { backendEnabled } from '../../data/backend';
 import { colors, radius, space } from '../../design/tokens';
-import { display, fontFamily } from '../../design/typography';
+import { display, fontFamily, type } from '../../design/typography';
 import { defaultMovement, measuredMetrics, measuredMovements, metricFor, PLURAL_MOVEMENT, PRIMARY_METRIC, SINGULAR_MOVEMENT } from './metrics';
-import { bestOf, inRange, latestCue, metricText, seriesFor, shortDate, trendRecap, type Range } from './derive';
+import { bestOf, inRange, latestCue, metricText, seriesFor, shortDate, trendRecap, versionBoundary, versionNote, type Range } from './derive';
 import { useLibrary } from './repository';
 import { useRefresh } from './CuesScreen';
 import TrendChart from './TrendChart';
@@ -74,6 +74,7 @@ export default function TrendsScreen({ initialMovement }: { initialMovement?: Mo
     .filter((c) => c.movement === movement && c.metricId === metric.id)
     .map((c) => ({ index: visible.reduce((idx, p, i) => (p.date <= c.givenAt ? i : idx), -1), label: `cue · ${shortDate(c.givenAt).toLowerCase()}` }))
     .filter((m) => m.index >= 0);
+  const versions = versionBoundary(sessions, movement);
   const recap = trendRecap(metric.id, all, today, cueFor, sessions);
   const latest = visible[visible.length - 1];
   const refresh = <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.text2} />;
@@ -201,6 +202,7 @@ export default function TrendsScreen({ initialMovement }: { initialMovement?: Mo
                 height={200}
                 best={best?.value}
                 markers={markers}
+                hollow={visible.map((p) => versions?.older.has(p.session.id) ?? false)}
                 showDates
               />
             ) : (
@@ -211,6 +213,11 @@ export default function TrendsScreen({ initialMovement }: { initialMovement?: Mo
             <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 15, lineHeight: 21 }}>
               {`${metric.caption} ${metric.lowerIsBetter ? 'Lower' : 'Higher'} is better. ${plural(visible.length, 'session')}.`}
             </Text>
+            {versions ? (
+              <Text testID="version-note" style={[type.small, { color: colors.text2 }]}>
+                {versionNote(versions.since)}
+              </Text>
+            ) : null}
           </View>
         </ScrollView>
       )}

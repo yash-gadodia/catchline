@@ -85,6 +85,23 @@ export function bestOf<T extends { value: number }>(series: T[], metricId: strin
   return series.reduce((best, p) => ((lower ? p.value < best.value : p.value > best.value) ? p : best));
 }
 
+// When a movement's history spans more than one analysis version: the day the
+// newest version took over, and the sessions an older version measured.
+export function versionBoundary(sessions: Session[], movement: Movement): { since: Day; older: Set<string> } | null {
+  const mine = sessions.filter((s) => s.movement === movement).sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  const current = mine[mine.length - 1]?.analysisVersion;
+  const lastOlder = mine.map((s) => s.analysisVersion !== current).lastIndexOf(true);
+  if (lastOlder < 0) return null;
+  return {
+    since: mine[lastOlder + 1].date,
+    older: new Set(mine.filter((s) => s.analysisVersion !== current).map((s) => s.id)),
+  };
+}
+
+export function versionNote(since: Day): string {
+  return `Analysis improved on ${shortDate(since)}; earlier lifts were measured by the older version.`;
+}
+
 // cueShown: the row already carries the cue status line ("Trying · …"), so the
 // low-confidence "possible · …" qualifier would repeat the cue on the same row.
 export function liftDetail(l: Lift, sessions: Session[], opts: { cueShown?: boolean } = {}): string {

@@ -67,6 +67,13 @@ def test_snatch_runs_the_cv_pipeline_with_bucket_paths(detected, tmp_path):
     assert detected["cache_dir"] == os.path.join(str(tmp_path), "cache")
 
 
+def test_every_analysis_carries_the_cv_version_and_the_worker_revision(detected, monkeypatch, tmp_path):
+    monkeypatch.setattr(mod, "worker_version", lambda: "807270d")
+    detected["result"] = {"movement": "snatch", "confidence": 0.9, "lifts": []}
+    r = mod.analyse("clip.mov", JOB, str(tmp_path))
+    assert (r.analysis["analysisVersion"], r.analysis["analysisRevision"]) == ("cv-2026.10.16", "807270d")
+
+
 def test_a_confident_disagreement_runs_the_detected_rule_set_and_keeps_the_choice(detected, tmp_path):
     # prod 14-10-2026: a clean uploaded with the selector left on snatch got a snatch analysis
     detected["result"] = {"movement": "clean", "confidence": 0.9, "lifts": []}
@@ -125,6 +132,7 @@ def test_unsupported_movement_is_a_failure_analysis_without_running_pose(monkeyp
     assert r.analysis["video"] == {"uri": "user-9/lift-9", "width": 608, "height": 1080, "fps": 60.0, "frameCount": 600}
     assert "loadKg" not in r.analysis
     assert "movementUsed" not in r.analysis
+    assert r.analysis["analysisVersion"] == "cv-2026.10.16"
 
 
 def test_the_phone_pose_reaches_the_detector_and_the_pipeline(detected, monkeypatch, tmp_path):

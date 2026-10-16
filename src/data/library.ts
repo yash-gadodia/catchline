@@ -64,6 +64,7 @@ export function toSession(row: LiftRow, a: Analysis): Session {
     liftId: row.id,
     thumb: catchImage(a),
     values: Object.fromEntries(a.measurements.filter((m) => m.status !== 'not_seen').map((m) => [m.id, m.value])),
+    analysisVersion: a.analysisVersion,
   };
 }
 

@@ -125,6 +125,24 @@ describe('Trends tab on a real account', () => {
     expect(view.getByText('Hips vs shoulders, floor to knee, cm. Lower is better. 4 sessions.')).toBeOnTheScreen();
   });
 
+  it('marks the lifts an older analysis version measured: a muted note and hollow points', async () => {
+    const versioned = SESSIONS.map((s, i) => ({ ...s, analysisVersion: i < 2 ? undefined : 'cv-2026.10.16' }));
+    load({ sessions: versioned, cues: [cue] });
+    const view = await render(<TrendsScreen />);
+    expect(view.getByTestId('version-note')).toHaveTextContent(
+      'Analysis improved on 13 Oct; earlier lifts were measured by the older version.'
+    );
+    expect(view.getByTestId('version-note')).toHaveStyle({ color: '#A39F97', fontSize: 13 });
+    expect(view.getAllByTestId('older-point')).toHaveLength(2);
+  });
+
+  it('shows no version note when one version measured every lift', async () => {
+    load({ sessions: SESSIONS.map((s) => ({ ...s, analysisVersion: 'cv-2026.10.16' })), cues: [cue] });
+    const view = await render(<TrendsScreen />);
+    expect(view.queryByTestId('version-note')).toBeNull();
+    expect(view.queryByTestId('older-point')).toBeNull();
+  });
+
   it('Snatch label from a tab route param keeps a failed-only movement honest', async () => {
     load({ sessions: SESSIONS.filter((s) => s.movement === 'snatch') });
     const view = await render(<TrendsScreen initialMovement="clean" />);

@@ -33,6 +33,7 @@ export default function TrendChart({
   markerLabel,
   markers = [],
   showDates,
+  hollow = [],
   testID,
 }: {
   series: ChartPoint[];
@@ -43,6 +44,8 @@ export default function TrendChart({
   markerLabel?: string;
   markers?: { index: number; label: string }[];
   showDates?: boolean;
+  // Points an older analysis version measured, drawn as rings.
+  hollow?: boolean[];
   testID?: string;
 }) {
   const { points, bestY } = chartGeometry(series, width, height, best);
@@ -82,7 +85,11 @@ export default function TrendChart({
         />
         {points.slice(0, -1).map((p, i) => (
           <G key={i}>
-            <Circle cx={p.x} cy={p.y} r={3} fill={colors.text} />
+            {hollow[i] ? (
+              <Circle testID="older-point" cx={p.x} cy={p.y} r={3} fill={colors.bg} stroke={colors.text} strokeWidth={1.5} />
+            ) : (
+              <Circle cx={p.x} cy={p.y} r={3} fill={colors.text} />
+            )}
             <SvgText x={p.x} y={p.y - 8} textAnchor="middle" fill={colors.text2} {...text}>
               {fmt(p.value)}
             </SvgText>

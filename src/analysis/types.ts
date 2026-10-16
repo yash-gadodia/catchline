@@ -133,4 +133,8 @@ export type Analysis = {
   notes?: Note[];
   measurements: Measurement[];
   failure: Failure | null;
+  // The CV rule set that measured this lift ("cv-2026.10.16") and the worker revision it ran on.
+  // Absent on analyses made before versions were stamped.
+  analysisVersion?: string;
+  analysisRevision?: string;
 };

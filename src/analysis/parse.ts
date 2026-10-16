@@ -29,6 +29,7 @@ export function parseAnalysis(json: unknown): Analysis {
     if (rep.keyFrames.length === 0) fail(`rep ${rep.index} has no keyFrames`);
   }
   if (a.notes != null && !Array.isArray(a.notes)) fail('notes');
+  if (a.analysisVersion != null && (typeof a.analysisVersion !== 'string' || a.analysisVersion === '')) fail('analysisVersion');
   if (a.cue && !CONFIDENCE.includes(a.cue.confidence)) fail(`confidence ${a.cue.confidence}`);
   return a;
 }
