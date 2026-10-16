@@ -28,6 +28,9 @@ INFER_H = 1280
 PLATE_CM = 45.0
 PLATE_SPAN_CM = 150.0  # centre-to-centre of the two outer plates on a 220 cm bar (approx.)
 KEYFRAME_H = 1080
+PLATE_FIT_SPREAD = 0.15  # setup-frame plate fits further than this from their median are failed fits
+SCALE_VS_BODY = (0.75, 1.75)  # near-plate px/cm over the lifter's body px/cm: the plate sits 0-75 cm nearer the camera
+BODY_DEPTH_RATIO = (0.75, 1.0)  # bar-centre scale over near-plate scale: the bar centre is never nearer than the plate
 
 
 def mid(k, a, b):
@@ -243,18 +246,20 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
     plates = plates_at(seed)
     if not plates:
         return None
-    # single-frame ellipse fits wander ~7% on static setup frames: use the median axes over the setup
     samples = [plates_at(f) for f in range(max(0, lo - 24), lo, 3)]
+    scale_ok = True
     for i, pl in enumerate(plates):
-        axes = [s[i]["axes"] for s in samples if len(s) == len(plates) and s[i]["side"] == pl["side"]]
-        if len(axes) >= 3:
-            pl["axes"] = tuple(float(v) for v in np.median(axes, axis=0))
-            pl["axes_spread"] = float(np.std([a[0] for a in axes]) / np.median([a[0] for a in axes]))
+        axes, pl["diameter_px"] = plate_diameter([s[i] for s in [plates] + samples if len(s) == len(plates) and s[i]["side"] == pl["side"]])
+        if axes is None:
+            pl["diameter_px"] = max(pl["axes"])
+            scale_ok = False
+        else:
+            pl["axes"] = axes
     near = plates[0]
-    scale_near = near["axes"][0] / PLATE_CM
+    scale_near = near["diameter_px"] / PLATE_CM
     far = plates[1] if len(plates) > 1 else None
     if far is not None:
-        scale_far = far["axes"][0] / PLATE_CM
+        scale_far = far["diameter_px"] / PLATE_CM
         px_per_cm = 2 / (1 / scale_near + 1 / scale_far)
         span_cm = np.linalg.norm(near["centre"] - far["centre"]) / px_per_cm
         # three estimates of how far the camera sits off side-on: bar span, and each plate's ellipse (minor/major = cos)
@@ -278,6 +283,8 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
         if knee_pass is not None and not ev["double_knee_bend"]:
             phases, ev = segment_snatch(up(bar[:, 1]), knee_ang, fps, knee_pass=knee_pass, elbow=elbow, catch_mask=rack,
                                         liftoff=plate_lo)
+    from .lifts import scale_from_body
+    body_scale = scale_from_body(kw)
     depth_ratio = None
     if far is None:
         # side-on, only the near plate is visible and it sits ~75 cm closer to the camera than the lifter.
@@ -285,12 +292,8 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
         pull_end = min(ev["second_ext"], len(fr) - 1)
         rise = -(plate_ref[pull_end, 1] - plate_ref[lo, 1]) if np.isfinite(plate_ref[pull_end, 1]) else np.nanmax(plate_ref[lo:pull_end + 1, 1]) - np.nanmin(plate_ref[lo:pull_end + 1, 1])
         depth_ratio = rise_ratio(plate_ref[lo: pull_end + 1, 1], bar[lo: pull_end + 1, 1]) if rise > 0.5 * near["axes"][0] else None
-        if depth_ratio is not None and 0.2 < depth_ratio <= 1.2:
-            px_per_cm = scale_near * depth_ratio
-            scale_method = f"near plate x parallax depth ratio {depth_ratio:.2f}"
-        else:
-            px_per_cm = scale_near
-            scale_method = "near plate only (no parallax: plate rise too small or lost)"
+        px_per_cm, scale_method = near_bar_scale(scale_near, depth_ratio, body_scale)
+    px_per_cm, scale_method, scale_ok = check_scale(px_per_cm, scale_method, scale_ok, scale_near, body_scale)
 
     # forward = direction the toes point at setup
     toe = mid(ksm, L_BIGTOE, R_BIGTOE)[lo] - mid(ksm, L_HEEL, R_HEEL)[lo]
@@ -385,7 +388,7 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
         "keys": {kk: g(v) for kk, v in key_frames(ev).items()},
         "events": {kk: (g(v) if not isinstance(v, bool) else v) for kk, v in ev.items()},
         "path": path, "values": vals, "detail": detail, "px_per_cm": px_per_cm, "off_side_deg": off_side, "off_side_estimates": off_est,
-        "span_cm": span_cm, "plates": plates, "scale_method": scale_method, "depth_ratio": depth_ratio,
+        "span_cm": span_cm, "plates": plates, "scale_method": scale_method, "scale_ok": scale_ok, "depth_ratio": depth_ratio,
         "catch_depth": vals_depth, "catch_depth_frame": g(depth_f), "catch_kind": catch_kind,
         "catch_knee_min": float(np.min(knee_ang[ev["caught"]: max(ev["caught"], depth_end) + 1])), "plate_tracked": int(np.isfinite(plate_raw[:, 0]).sum()),
         "plate_lost_at": g(int(np.where(np.isfinite(plate_raw[:, 0]))[0].max())), "plate_wrist_corr": agree,
@@ -398,6 +401,44 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
                  "kraw": kw, "elbow": elbow, "ks": ks[s0:e0], "contact": contact, "knee_pass": knee_pass, "lo": lo},
     }
     return info
+
+
+def plate_diameter(fits):
+    """(axes, diameter px) of one plate from its fits over the setup frames, or (None, None) when no fit held.
+    Single-frame ellipse fits wander ~7% on static frames, and on a dark plate that merges with its shadow some fail
+    outright (the coarse search behind them then returns a patch of floor): only refined fits count, as the median
+    after dropping any more than PLATE_FIT_SPREAD off it. The diameter is the larger axis: a fit only loses extent
+    (to the floor or a shadow cut away), so on a side-on plate the shorter axis is the damaged one."""
+    fits = [q for q in fits if "fit_inliers" in q]
+    if not fits:
+        return None, None
+    d = np.array([max(q["axes"]) for q in fits])
+    keep = np.abs(d / np.median(d) - 1) <= PLATE_FIT_SPREAD
+    axes = tuple(float(v) for v in np.median([q["axes"] for q, ok in zip(fits, keep) if ok], axis=0))
+    return axes, float(np.median(d[keep]))
+
+
+def near_bar_scale(scale_near, depth_ratio, body_scale):
+    """(px per cm at the bar centre, method) from the near plate alone. The plate sits nearer the camera than the bar
+    centre; the plate's rise against the wrists' (depth_ratio) says by how much, and without it the lifter's body,
+    which is at the bar's depth (21B27BAF: the plate itself rose 132-138 cm to the peak; near plate alone read 111-116,
+    with the body's depth 136-143)."""
+    if depth_ratio is not None and 0.2 < depth_ratio <= 1.2:
+        return scale_near * depth_ratio, f"near plate x parallax depth ratio {depth_ratio:.2f}"
+    if body_scale:
+        return (scale_near * float(np.clip(body_scale / scale_near, *BODY_DEPTH_RATIO)),
+                "near plate only (no parallax), depth from the lifter's body")
+    return scale_near, "near plate only (no parallax: plate rise too small or lost)"
+
+
+def check_scale(px_per_cm, method, plate_ok, scale_near, body_scale):
+    """The lifter's size is the cross-check: a plate scale far from the body's (a floor patch fitted as the plate) is
+    not used. The body's scale is, and the cue is marked low confidence: (px per cm, method, ok)."""
+    if body_scale and not SCALE_VS_BODY[0] <= scale_near / body_scale <= SCALE_VS_BODY[1]:
+        plate_ok = False
+    if not plate_ok and body_scale:
+        return body_scale, "body segments (plate fit unreliable)", False
+    return px_per_cm, method, plate_ok
 
 
 LABELS = {"hips_rise_early": "Hips rose early", "bar_forward_off_hips": "Bar forward off hips",
@@ -454,7 +495,7 @@ def build_cue(r, reps, best_rep, W, H):
 
     sev = fired[cue_id]
     seen = sum(1 for x in reps if cue_id in rules.fired(x["values"]))
-    conf = rules.rep_confidence(rules.confidence(cue_id, sev, off), seen, len(reps))
+    conf = rules.rep_confidence(rules.confidence(cue_id, sev, off), seen, len(reps)) if r["scale_ok"] else "low"
     d = det[cue_id]
     f = d["frame"]
     Ms = ref["Ms"]
@@ -473,6 +514,8 @@ def build_cue(r, reps, best_rep, W, H):
     conf_text = f"Seen on {seen} of {len(reps)} reps"
     if off > 20:
         conf_text += f", filmed ~{off:.0f}° off side-on: film from the side to confirm"
+    if not r["scale_ok"]:
+        conf_text += ", sized from your body because the plate could not be measured"
     why = rules.why_sentence(cue_id, vals, det[cue_id])
     if r["outcome"] == "missed_forward":
         meas.append({"id": "outcome", "label": "Missed forward", "value": round(r["miss"]["bar_vs_midfoot"], 1), "unit": "cm",
@@ -503,7 +546,7 @@ def miss_card(r, kind, meas, W, H, cause=None, sev=0.0):
                "this clip: nothing in the pull was outside its window. Film one more rep, or a lighter make, and I'll compare.")
         text = "Film one more rep from the side."
     # one rep: the outcome is visible, a cause only counts at 1.5x its band (26 section 8.4)
-    conf = "worth_checking" if cause in outcome.CAUSE_CUE and sev >= 1.5 and (off is None or off <= 20) else "low"
+    conf = "worth_checking" if cause in outcome.CAUSE_CUE and sev >= 1.5 and (off is None or off <= 20) and r.get("scale_ok", True) else "low"
     conf_text = "One missed rep" + (f", filmed ~{off:.0f}° off side-on: film from the side to confirm" if off and off > 20 else "")
     meas.append({"id": "outcome", "label": "Missed " + ("behind" if kind == "missed_behind" else "forward"),
                  "value": round(m["bar_vs_midfoot"], 1), "unit": "cm", "frame": s0 + f, "status": "cue",

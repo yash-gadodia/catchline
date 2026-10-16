@@ -27,7 +27,7 @@ def measurement(r):
     sp = r.get("bar_speed")
     hidden = lambda note: {"id": "bar_speed", "label": "Peak bar speed", "value": 0, "unit": "m/s",
                            "frame": r["events"]["second_ext"], "status": "not_seen", "note": note}
-    if sp is None or r["scale_method"].startswith("near plate only"):
+    if sp is None or r["scale_method"].startswith(("near plate only", "body segments")):
         return hidden("scale too uncertain to time the bar")
     if not PLAUSIBLE[0] <= sp[0] <= PLAUSIBLE[1]:
         return hidden("bar track too unsteady to time")

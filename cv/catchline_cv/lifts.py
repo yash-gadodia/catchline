@@ -202,7 +202,7 @@ def build(movement, reps, best_rep, W, H):
     if cue_id is None:
         return meas, None, cue_rep
     sev = fired[cue_id]
-    conf = rules.rep_confidence(rules.confidence(cue_id, sev, off), seen, len(reps))
+    conf = rules.rep_confidence(rules.confidence(cue_id, sev, off), seen, len(reps)) if r.get("scale_ok", True) else "low"
     d = r["detail"][cue_id]
     f = int(d["frame"])
     ref = r["_ref"]
