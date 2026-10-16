@@ -31,7 +31,7 @@ export default function LiftPickerScreen({
   return (
     <View testID="lift-picker" style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top + space.s5 }}>
       <ScrollView contentContainerStyle={{ paddingHorizontal: space.gutter, gap: space.s4, paddingBottom: space.s4 }}>
-        <View style={{ gap: 6 }}>
+        <View style={{ gap: space.s2 }}>
           <Text style={[display(36), { color: colors.text }]}>{t('onboarding.picker.title')}</Text>
           <Text style={{ color: colors.text2, ...type.callout }}>
             {t('onboarding.picker.sub')}
@@ -57,9 +57,9 @@ export default function LiftPickerScreen({
                       borderColor: on ? colors.text : colors.hairline,
                       ...shape.control,
                       paddingVertical: space.s3,
-                      paddingHorizontal: 10,
+                      paddingHorizontal: space.s3,
                       justifyContent: 'space-between',
-                      gap: 6,
+                      gap: space.s2,
                     }}
                   >
                     <Text
@@ -91,10 +91,10 @@ export default function LiftPickerScreen({
                 borderStyle: 'dashed',
                 borderColor: colors.hairline,
                 ...shape.control,
-                paddingVertical: 10,
-                paddingHorizontal: 10,
+                paddingVertical: space.s3,
+                paddingHorizontal: space.s3,
                 justifyContent: 'space-between',
-                gap: 4,
+                gap: space.s1,
               }}
             >
               {/* design-ok: two-line tile name, the tight 18pt line keeps the tile height */}
@@ -110,7 +110,7 @@ export default function LiftPickerScreen({
           <Text style={{ color: colors.text2, ...type.callout }}>
             {t('onboarding.picker.specific')} <Text style={{ color: colors.text3 }}>{t('onboarding.picker.optional')}</Text>
           </Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.s2 }}>
             {FOCUS.map((f) => {
               const on = focus.includes(f);
               return (
@@ -122,7 +122,7 @@ export default function LiftPickerScreen({
                   onPress={() => setFocus((x) => toggle(x, f))}
                   style={{
                     height: control.chipHeight,
-                    paddingHorizontal: 10,
+                    paddingHorizontal: space.s3,
                     borderWidth: stroke.hairline,
                     borderColor: on ? colors.text : colors.hairline,
                     ...shape.control,

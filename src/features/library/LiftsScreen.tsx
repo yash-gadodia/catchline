@@ -116,7 +116,7 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
             }}
           >
             <View style={{ flex: 1, gap: 2 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s2 }}>
                 <StatusDot status="trying" />
                 <SmallCaps size={12}>{t('library.status.trying')}</SmallCaps>
               </View>
@@ -129,7 +129,7 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
             </View>
           </Pressable>
         ) : null}
-        <View style={{ gap: 6 }}>
+        <View style={{ gap: space.s2 }}>
           <View style={{ alignSelf: 'flex-start' }}>
             <Segmented
               testID="group"
@@ -146,7 +146,7 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
             />
           </View>
           <View style={{ marginHorizontal: -space.gutter }}>
-          <FadeRow testID="movement-chips" contentContainerStyle={{ gap: 6, paddingHorizontal: space.gutter }}>
+          <FadeRow testID="movement-chips" contentContainerStyle={{ gap: space.s2, paddingHorizontal: space.gutter }}>
             {groupMovements(group).map((m) => (
               <Chip
                 key={m}
@@ -168,7 +168,7 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
         ) : null}
         {days.map((d) => (
           <View key={d.day}>
-            <View style={{ paddingTop: 10, paddingBottom: 6 }}>
+            <View style={{ paddingTop: space.s3, paddingBottom: space.s2 }}>
               <SmallCaps>{d.label}</SmallCaps>
             </View>
             {d.lifts.map((l) => (
@@ -204,7 +204,7 @@ function LiftRow({ lift, sessions, cues, newest, nav }: { lift: Lift; sessions: 
       <Frame image={lift.thumb} width={48} height={56} gray opacity={muted ? 0.4 : 1} path={thumbPath(lift)} />
     );
   return (
-    <Row onPress={() => nav.onOpen(lift)} testID={`lift-${lift.id}`} divider="top" style={{ gap: space.s4, paddingVertical: 10 }}>
+    <Row onPress={() => nav.onOpen(lift)} testID={`lift-${lift.id}`} divider="top" style={{ gap: space.s4, paddingVertical: space.s3 }}>
       {thumb}
       <View style={{ flex: 1, gap: 2 }}>
         <Text style={{ color: muted ? colors.text2 : colors.text, ...type.button }}>
@@ -221,7 +221,7 @@ function LiftRow({ lift, sessions, cues, newest, nav }: { lift: Lift; sessions: 
           {liftDetail(lift, sessions, { cueShown: !!cue })}
         </Text>
         {cue ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s2 }}>
             <StatusDot status={cue.status} testID={`dot-${lift.id}-${cue.status}`} />
             <Text numberOfLines={1} style={{ flex: 1, color: colors.text2, ...type.readout }}>
               {t('library.lifts.cueLine', { status: statusLabel(cue.status), cue: lower(cueText(cue.metricId, cue.text)) })}

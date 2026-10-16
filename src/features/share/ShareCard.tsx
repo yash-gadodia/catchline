@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import type { Analysis, KeyFrame } from '../../analysis/types';
 import { toScreen, type Fit } from '../../analysis/geometry';
 import { keyFrameForPhase, liftPath, pointAt, repByIndex } from '../../analysis/timeline';
-import { colors, shade } from '../../design/tokens';
+import { colors, shade, space } from '../../design/tokens';
 import { display, fontFamily } from '../../design/typography';
 import Mark from '../../components/Mark';
 import Stage, { type StageLayer } from '../analysis/Stage';
@@ -69,13 +69,13 @@ const ShareCard = forwardRef<View, Props>(function ShareCard({ analysis, aspect,
         style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 }}
       />
       {brand ? (
-        <View testID="card-brand" style={{ position: 'absolute', left: inset.left, top: inset.top, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+        <View testID="card-brand" style={{ position: 'absolute', left: inset.left, top: inset.top, flexDirection: 'row', alignItems: 'center', gap: space.s1 }}>
           <Mark size={16} />
           {/* i18n-ok: brand name */}
           <Text style={[display(15), { color: colors.text }]}>Catchline</Text>
         </View>
       ) : null}
-      <View style={{ position: 'absolute', left: inset.left, right: inset.right, bottom: inset.bottom, gap: 3 }}>
+      <View style={{ position: 'absolute', left: inset.left, right: inset.right, bottom: inset.bottom, gap: space.s1 }}>
         {copy.label ? (
           // design-ok: 11pt tracked kicker sized to the share card, below the type scale
           <Text testID="card-label" style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 11, lineHeight: 15, letterSpacing: 11 * 0.08 }}>

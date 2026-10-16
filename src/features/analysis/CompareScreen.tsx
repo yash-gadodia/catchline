@@ -86,7 +86,7 @@ export default function CompareScreen({
             ...shape.control,
             flexDirection: 'row',
             alignItems: 'center',
-            gap: 8,
+            gap: space.s2,
           }}
         >
           <Text style={{ color: colors.text, ...type.label }}>
@@ -150,17 +150,17 @@ function Ghost({ analysis, other, sync, box, label }: { analysis: Analysis; othe
           left: space.gutter,
           bottom: 16,
           flexDirection: 'row',
-          gap: 16,
+          gap: space.s4,
           backgroundColor: colors.scrim,
-          paddingVertical: 4,
-          paddingHorizontal: 8,
+          paddingVertical: space.s1,
+          paddingHorizontal: space.s2,
         }}
       >
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s2 }}>
           <View style={{ width: 14, height: 3, backgroundColor: colors.flare }} />
           <Text style={{ color: colors.text, ...type.caption }}>{t('analysis.compare.today')}</Text>
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s2 }}>
           <View style={{ flexDirection: 'row', gap: 2 }}>
             <View style={{ width: 6, height: 2, backgroundColor: colors.text }} />
             <View style={{ width: 6, height: 2, backgroundColor: colors.text }} />
@@ -232,7 +232,7 @@ function SideBySide({
               style={{
                 flex: 1,
                 alignItems: 'center',
-                paddingVertical: 6,
+                paddingVertical: space.s2,
                 borderRightWidth: i === all.length - 1 ? 0 : 1,
                 borderRightColor: colors.hairline,
                 borderBottomWidth: 2,
@@ -270,7 +270,7 @@ function Rows({ rows, topRule }: { rows: CompareRow[]; topRule: boolean }) {
             flexDirection: 'row',
             justifyContent: 'space-between',
             alignItems: 'baseline',
-            paddingVertical: 8,
+            paddingVertical: space.s2,
             borderBottomWidth: i === rows.length - 1 ? 0 : 1,
             borderBottomColor: colors.hairline,
           }}

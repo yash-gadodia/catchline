@@ -14,7 +14,7 @@ import { doneTitle, formatWait, processingSteps } from '../../analysis/format';
 import { keyFrameForPhase, repByIndex } from '../../analysis/timeline';
 import Btn from '../../components/Btn';
 import Sheet from '../../components/Sheet';
-import { colors, shade } from '../../design/tokens';
+import { colors, shade, space } from '../../design/tokens';
 import { fontFamily, type } from '../../design/typography';
 import { impact, success } from '../../lib/haptics';
 import Stage from './Stage';
@@ -92,7 +92,7 @@ export default function ProcessingSheet({ analysis, clipUri, reduceMotion, meta,
       {state === 'long' ? (
         <Sheet testID="sheet-long">
           <Header title={t('analysis.processing.longTitle')} meta={`${Math.round(elapsed)} s`} strong />
-          <View style={{ marginTop: -8 }}>
+          <View style={{ marginTop: -space.s2 }}>
             <Queue etaSeconds={etaSeconds} ahead={ahead} />
           </View>
           <Text style={{ color: colors.text2, ...type.body }}>
@@ -233,10 +233,10 @@ function InProgress({
   return (
     <Sheet testID="sheet-progress">
       <Header title={t('analysis.processing.watching')} meta={meta} />
-      {note ? <View style={{ marginTop: -8 }}>{note}</View> : null}
-      <View style={{ gap: 12 }}>
+      {note ? <View style={{ marginTop: -space.s2 }}>{note}</View> : null}
+      <View style={{ gap: space.s3 }}>
         {processingSteps(analysis, step, firstStep).map((s) => (
-          <View key={s.label} style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }} testID={`step-${s.state}`}>
+          <View key={s.label} style={{ flexDirection: 'row', alignItems: 'center', gap: space.s3 }} testID={`step-${s.state}`}>
             <View style={{ width: 20 }}>
               {s.state === 'active' ? (
                 <Pulse />
