@@ -33,7 +33,7 @@ const EMPTY_CUES_ART = require('../../../assets/art/empty-cues.png');
 
 export default function CuesScreen({ onOpen }: { onOpen: (cue: CueRecord) => void }) {
   const insets = useSafeAreaInsets();
-  const { cues, sessions, today, synced } = useLibrary();
+  const { cues, lifts, sessions, today, synced } = useLibrary();
   const { refreshing, onRefresh } = useRefresh();
   const trying = cues.filter((c) => c.status === 'trying');
   const past = cues.filter((c) => c.status !== 'trying');
@@ -41,6 +41,8 @@ export default function CuesScreen({ onOpen }: { onOpen: (cue: CueRecord) => voi
 
   if (cues.length === 0) {
     const loading = backendEnabled() && !synced;
+    // A lifter whose lifts all came back clean has already filmed; tell them why the tab is empty (#18).
+    const clean = lifts.some((l) => l.status === 'done');
     return (
       <ScrollView
         style={{ flex: 1, backgroundColor: colors.bg }}
@@ -55,9 +57,11 @@ export default function CuesScreen({ onOpen }: { onOpen: (cue: CueRecord) => voi
           ) : (
             <>
               <Image testID="cues-empty-art" source={EMPTY_CUES_ART} style={{ width: 160, height: 160, tintColor: colors.text2 }} />
-              <Text style={[display(32), { color: colors.text, textAlign: 'center' }]}>{t('library.cues.emptyTitle')}</Text>
+              <Text style={[display(32), { color: colors.text, textAlign: 'center' }]}>
+                {t(clean ? 'library.cues.cleanTitle' : 'library.cues.emptyTitle')}
+              </Text>
               <Text style={{ color: colors.text2, ...type.callout, textAlign: 'center' }}>
-                {t('library.cues.emptyBody')}
+                {t(clean ? 'library.cues.cleanBody' : 'library.cues.emptyBody')}
               </Text>
             </>
           )}

@@ -100,6 +100,8 @@ export const library: Strings<typeof en> = {
   'library.chart.best': "mejor {value}",
   'library.cues.emptyTitle': "Tu primera indicación aparece aquí.",
   'library.cues.emptyBody': "Cuando grabes un levantamiento, lo único que debes corregir vive en esta pestaña hasta que lo asimiles.",
+  'library.cues.cleanTitle': 'Nada que corregir todavía.',
+  'library.cues.cleanBody': 'Ningún levantamiento ha cruzado un umbral de fallo. El primero que lo haga deja su consigna en esta pestaña hasta que se fije.',
   'library.cues.past': "Indicaciones anteriores",
   'library.cues.tryingKicker': "Probando · {movement}",
   'library.cues.sessionsAgo': "{counter} sesiones · {ago}",
