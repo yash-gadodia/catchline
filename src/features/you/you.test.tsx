@@ -176,7 +176,7 @@ describe('YouScreen', () => {
       exportedAt: expect.any(String),
       account: { name: 'Alex', plan: 'Pull · Founding member · for life' },
       settings: DEFAULT_SETTINGS,
-      lifts: ['snatch-mock', 'snatch-mock-low', 'snatch-mock-miss', 'snatch-real'],
+      lifts: ['snatch-mock', 'snatch-mock-clean', 'snatch-mock-low', 'snatch-mock-miss', 'snatch-real'],
     });
   });
 });
