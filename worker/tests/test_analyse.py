@@ -71,7 +71,7 @@ def test_every_analysis_carries_the_cv_version_and_the_worker_revision(detected,
     monkeypatch.setattr(mod, "worker_version", lambda: "807270d")
     detected["result"] = {"movement": "snatch", "confidence": 0.9, "lifts": []}
     r = mod.analyse("clip.mov", JOB, str(tmp_path))
-    assert (r.analysis["analysisVersion"], r.analysis["analysisRevision"]) == ("cv-2026.10.16", "807270d")
+    assert (r.analysis["analysisVersion"], r.analysis["analysisRevision"]) == ("cv-2026.10.17", "807270d")
 
 
 def test_a_confident_disagreement_runs_the_detected_rule_set_and_keeps_the_choice(detected, tmp_path):
@@ -127,12 +127,13 @@ def test_unsupported_movement_is_a_failure_analysis_without_running_pose(monkeyp
     assert r.analysis["movement"] == "ring_muscle_up"
     assert r.analysis["failure"] == {
         "reason": "unsupported_movement",
+        "code": "not_available",
         "message": "ring muscle up analysis is not available yet.",
     }
     assert r.analysis["video"] == {"uri": "user-9/lift-9", "width": 608, "height": 1080, "fps": 60.0, "frameCount": 600}
     assert "loadKg" not in r.analysis
     assert "movementUsed" not in r.analysis
-    assert r.analysis["analysisVersion"] == "cv-2026.10.16"
+    assert r.analysis["analysisVersion"] == "cv-2026.10.17"
 
 
 def test_the_phone_pose_reaches_the_detector_and_the_pipeline(detected, monkeypatch, tmp_path):

@@ -135,6 +135,34 @@ def plate_liftoff(plate_y, start, diameter, rise=0.05):
     return None
 
 
+def plate_follows_bar(plate_y, bar_y, start, end, diameter, min_ratio=0.25):
+    """Whether the plate rose with the hands from lift-off to the peak: a lift moves the plate with the bar, while a
+    lifter fixing their cap lifts only the hands (IMG_0074: the plate rose 0.07 of the hands' rise there, 0.93 on its
+    real snatches). The plate lags the wrists early in the pull: 21B27BAF's app transcode lost the plate 12 frames in,
+    at 0.40. Image y (down positive) per frame. Judged while the plate is tracked; None when it cannot say (no plate
+    at lift-off, or the hands rose under half a plate diameter by then)."""
+    y, b = np.asarray(plate_y, float), np.asarray(bar_y, float)
+    if not np.isfinite(y[start]):
+        return None
+    seen = np.where(np.isfinite(y[start: end + 1]))[0]
+    last = start + int(seen[-1])
+    hands = b[start] - np.min(b[start: last + 1])
+    if hands < 0.5 * diameter:
+        return None
+    return bool(y[start] - np.nanmin(y[start: last + 1]) >= min_ratio * hands)
+
+
+def approaches_camera(shin_px, start, end, ratio=1.5):
+    """The person walked toward the camera between lift-off and the peak: their shin (knee to ankle, close to the same
+    length through every phase of a lift) came out over `ratio` times longer. IMG_0074 ends with the lifter walking
+    up to pick up the phone: 212 -> 625 px (x2.95); its snatches read x1.00-1.01. Medians over +-5 frames."""
+    s = np.asarray(shin_px, float)
+    a, b = (s[max(0, f - 5): f + 6] for f in (start, end))
+    if not (np.isfinite(a).any() and np.isfinite(b).any()):
+        return False
+    return bool(np.nanmedian(b) > ratio * np.nanmedian(a))
+
+
 def key_frames(events):
     return {"setup": max(0, events["liftoff"] - 1), "first_pull": events["first_ext"], "transition": events["rebend"],
             "second_pull": events["second_ext"], "turnover": (events["second_ext"] + events["peak"]) // 2, "catch": events["caught"],

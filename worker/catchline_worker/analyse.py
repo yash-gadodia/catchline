@@ -31,6 +31,7 @@ def analyse(clip: str, job: Job, workdir: str, pose: dict | None = None) -> Resu
             "measurements": [],
             "failure": {
                 "reason": "unsupported_movement",
+                "code": "not_available",
                 "message": f"{job.movement.replace('_', ' ')} analysis is not available yet.",
             },
         }

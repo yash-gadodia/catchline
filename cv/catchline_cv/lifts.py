@@ -109,12 +109,13 @@ def load_window(ctx, s0, e0, wrist_band=False):
 
 
 def write_out(ctx, rep_info, extra_fields=None):
-    from .pipeline import KEYFRAME_H, base, export_keyframes, write
+    from .pipeline import KEYFRAME_H, base, export_keyframes, withhold, write
     movement = ctx["movement"]
     best = max(rep_info, key=lambda r: (r["made"], -r["severity"]))
     for i, r in enumerate(rep_info):
         r["index"] = i + 1
     measurements, cue, cue_rep = build(movement, rep_info, best, ctx["W"], ctx["H"])
+    cue, no_cue = withhold(cue, cue_rep, measurements)
     os.makedirs(ctx["assets_dir"], exist_ok=True)
     out_reps, jobs = [], []
     for r in rep_info:
@@ -127,12 +128,13 @@ def write_out(ctx, rep_info, extra_fields=None):
                          "phases": r["phases"], "keyFrames": kfs, "path": r["path"]})
     export_keyframes(ctx, jobs)
     analysis = base(ctx["analysis_id"], ctx["meta"], ctx["n"], movement) | {
-        "reps": out_reps, "bestRepIndex": best["index"], "cue": cue, "notes": rules.notes(movement, rep_info, cue),
+        "reps": out_reps, "bestRepIndex": best["index"], "cue": cue,
+        **({"noCueReason": no_cue} if no_cue else {}), "notes": rules.notes(movement, rep_info, cue),
         "measurements": measurements, "failure": None}
     if cue_rep["px_per_cm"]:
         analysis = {**analysis, "pxPerCm": round(cue_rep["px_per_cm"] * KEYFRAME_H / ctx["H"], 3)}
-        order = ["version", "id", "movement", "video", "traceKind", "pxPerCm", "reps", "bestRepIndex", "cue", "notes",
-                 "measurements", "failure"]
+        order = ["version", "id", "movement", "video", "traceKind", "pxPerCm", "reps", "bestRepIndex", "cue",
+                 "noCueReason", "notes", "measurements", "failure"]
         analysis = {kk: analysis[kk] for kk in order if kk in analysis}
     write(ctx["out_json"], analysis)
     timing = {"pose_s": round(ctx["t_pose"], 1), "total_s": round(time.time() - ctx["t0"], 1)}
@@ -300,15 +302,18 @@ def run_clean(ctx):
     rack = rack_mask(lowpass(k.reshape(len(k), -1), fps).reshape(k.shape), lowpass(wr, fps), fps)
     reps = find_rack_reps(lowpass(up(wr[:, 1]), fps), lowpass(up(mid(k, L_KNEE, R_KNEE)[:, 1]), fps), rack, fps)
     if not reps:
-        return ctx["fail"]("unsupported_movement", "No clean found: the bar never went from the floor to a front-rack hold.")
-    infos = []
+        return ctx["fail"]("unsupported_movement", "no_reps", "No clean found: the bar never went from the floor to a front-rack hold.")
+    infos, not_lifts = [], 0
     for ri, (start, end, _) in enumerate(reps):
         r = analyse_rep(ctx["clip"], ctx["meta"], ctx["people"], k, ctx["ks"], ctx["boxes"], start, end, fps, H, ctx["W"],
                         ctx["debug_dir"], ri + 1, kind="clean")
-        if r is not None:
+        not_lifts += r is False
+        if r:
             infos.append(clean_info(ctx, r))
+    if not infos and not_lifts:
+        return ctx["fail"]("unsupported_movement", "no_reps", "No clean found: the bar never went from the floor to a front-rack hold.")
     if not infos:
-        return ctx["fail"]("bar_out_of_frame", "Could not find the plates at the start of the lift, so the bar could not be measured.")
+        return ctx["fail"]("bar_out_of_frame", "no_plate", "Could not find the plates at the start of the lift, so the bar could not be measured.")
     return write_out(ctx, infos)
 
 
@@ -374,10 +379,10 @@ def run_jerk(ctx):
     head = lowpass(up(mv.head_y(k, t)), fps)
     reps = find_jerk_reps(np.abs(wr - sho) < 0.35 * t, wr > head, fps)
     if not reps:
-        return ctx["fail"]("unsupported_movement", "No jerk found: the bar never went from the shoulders to overhead.")
+        return ctx["fail"]("unsupported_movement", "no_reps", "No jerk found: the bar never went from the shoulders to overhead.")
     px_body = scale_from_body(k)
     if not px_body:
-        return ctx["fail"]("too_far", "Could not measure the lifter's body to scale the clip.")
+        return ctx["fail"]("too_far", "no_body_scale", "Could not measure the lifter's body to scale the clip.")
     infos = []
     for ri, (start, end, _) in enumerate(reps):
         infos.append(jerk_rep(ctx, ri + 1, start, end, px_body))
@@ -460,7 +465,7 @@ def run_gym(ctx):
     sho = lowpass(up(mid(ctx["world"], L_SHO, R_SHO)[:, 1]), fps)  # camera motion removed: reps are body travel
     px_per_cm = scale_from_body(k)
     if not px_per_cm:
-        return ctx["fail"]("too_far", "Could not measure the athlete's body to scale the clip.")
+        return ctx["fail"]("too_far", "no_body_scale", "Could not measure the athlete's body to scale the clip.")
     rel = sho - lowpass(up(mid(ctx["world"], L_WRI, R_WRI)[:, 1]), fps)  # shoulders above the hands, px
     if movement == "kipping_hspu":
         # a rep bottoms out with the shoulders near the hands (head on the floor) and tops out arms-length above
@@ -479,9 +484,9 @@ def run_gym(ctx):
         cyc = gym.merge_cycles(cyc, sho, rel, -0.75 * t)
         name = "pull" if movement == "kipping_pull_up" else "muscle-up"
     if not cyc:
-        return ctx["fail"]("unsupported_movement", f"No {name} reps found in this clip.")
+        return ctx["fail"]("unsupported_movement", "no_reps", f"No {name} reps found in this clip.")
     if movement != "kipping_hspu" and any(gym.shoulders_cut_off(k, a, b, H) for a, _, b in cyc):
-        return ctx["fail"]("clip_cut_off", "The bar and the top of the rep are out of the frame. Film with the bar and "
+        return ctx["fail"]("clip_cut_off", "shoulders_cut_off", "The bar and the top of the rep are out of the frame. Film with the bar and "
                                            "some space above it in view.")
     infos = []
     for ri, (a, top, b) in enumerate(cyc):
@@ -490,7 +495,7 @@ def run_gym(ctx):
         if r is not None:
             infos.append(r)
     if not infos:
-        return ctx["fail"]("unsupported_movement", f"No {name} reps found in this clip.")
+        return ctx["fail"]("unsupported_movement", "no_reps", f"No {name} reps found in this clip.")
     return write_out(ctx, infos)
 
 

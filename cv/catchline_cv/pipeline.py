@@ -16,7 +16,8 @@ from . import rules
 from . import speed
 from .geometry import angle, bar_from_wrists, lowpass, normalise, rise_ratio, trunk_angle
 from .lifter import select_lifter
-from .phases import SNATCH_PHASES, catch_depth, find_reps, key_frames, plate_liftoff, segment_snatch
+from .phases import (SNATCH_PHASES, approaches_camera, catch_depth, find_reps, key_frames, plate_follows_bar,
+                     plate_liftoff, segment_snatch)
 from .pose import (L_ANK, L_BIGTOE, L_ELB, L_HEEL, R_ELB, L_HIP, L_KNEE, L_SHO, L_WRI, R_ANK, R_BIGTOE, R_HEEL,
                    R_HIP, R_KNEE, R_SHO, R_WRI, run_pose, strip_head)
 from .privacy import blur_bystanders, bystanders
@@ -81,16 +82,19 @@ def run(clip, out_json, assets_dir, asset_prefix, debug_dir, cache_dir, analysis
     n = len(people)
     k, ks, boxes = select_lifter(people, hanging=mv.FAMILY.get(movement) == "hanging")
 
-    def fail(reason, message, frame=None):
+    def fail(reason, code, message, frame=None):
+        # reason picks the app's failure screen; code is the specific refusal, kept in lifts.error to measure them
         return write(out_json, base(analysis_id, meta, n, movement) | {
             "reps": [], "bestRepIndex": 0, "cue": None, "measurements": [],
-            "failure": {"reason": reason, "message": message} | ({"frame": int(frame)} if frame is not None else {})})
+            "failure": {"reason": reason, "code": code, "message": message} | ({"frame": int(frame)} if frame is not None else {})})
 
     world = to_world(k, camera_path(clip, people, INFER_H))
     det = detected or detect.detect(world, fps)
-    ok, msg = mv.check(movement, mv.signals(world, fps))
+    sig = mv.signals(world, fps)
+    ok, msg = mv.check(movement, sig)
     if not ok:
-        return stamp(fail("unsupported_movement", msg), out_json, det)
+        code = "not_available" if movement not in mv.FAMILY else "no_person" if sig is None else "movement_mismatch"
+        return stamp(fail("unsupported_movement", code, msg), out_json, det)
     ctx = {"clip": clip, "meta": meta, "people": people, "k": k, "ks": ks, "boxes": boxes, "fps": fps, "H": H, "W": W,
            "n": n, "out_json": out_json, "assets_dir": assets_dir, "asset_prefix": asset_prefix, "debug_dir": debug_dir,
            "analysis_id": analysis_id, "movement": movement, "fail": fail, "t0": t0, "t_pose": t_pose, "world": world}
@@ -108,16 +112,18 @@ def run_snatch(ctx):
     wr_h = up(mid(k, L_WRI, R_WRI)[:, 1])
     reps = find_reps(lowpass(wr_h, fps), lowpass(up(mv.head_y(k)), fps), lowpass(up(mid(k, L_KNEE, R_KNEE)[:, 1]), fps), fps)
     if not reps:
-        return fail("unsupported_movement", "No floor-to-overhead lift found in this clip.")
+        return fail("unsupported_movement", "no_reps", "No floor-to-overhead lift found in this clip.")
 
-    out_reps, rep_info = [], []
+    out_reps, rep_info, not_lifts = [], [], 0
     for ri, (start, end, _) in enumerate(reps):
         info = analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_dir, ri + 1)
-        if info is None:
-            continue
-        rep_info.append(info)
+        not_lifts += info is False
+        if info:
+            rep_info.append(info)
+    if not rep_info and not_lifts:
+        return fail("unsupported_movement", "no_reps", "No floor-to-overhead lift found in this clip.")
     if not rep_info:
-        return fail("bar_out_of_frame", "Could not find the plates at the start of the lift, so the bar could not be measured.")
+        return fail("bar_out_of_frame", "no_plate", "Could not find the plates at the start of the lift, so the bar could not be measured.")
 
     best = max(rep_info, key=lambda r: (r["made"], -r["severity"]))
     for i, r in enumerate(rep_info):
@@ -125,6 +131,7 @@ def run_snatch(ctx):
     # the cue comes from the rep where the chosen fault is most severe; the others say whether it repeats
     cue_rep = next((r for r in rep_info if r["outcome"].startswith("missed")), None) or max(rep_info, key=lambda r: r["severity"])
     measurements, cue = build_cue(cue_rep, rep_info, best, W, H)
+    cue, no_cue = withhold(cue, cue_rep, measurements)
 
     keyframes_dir = assets_dir
     os.makedirs(keyframes_dir, exist_ok=True)
@@ -145,6 +152,7 @@ def run_snatch(ctx):
         "reps": out_reps,
         "bestRepIndex": best["index"],
         "cue": cue,
+        **({"noCueReason": no_cue} if no_cue else {}),
         "notes": rules.notes("snatch", rep_info, cue),
         "measurements": measurements,
         "failure": None,
@@ -287,6 +295,11 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
         if knee_pass is not None and not ev["double_knee_bend"]:
             phases, ev = segment_snatch(up(bar[:, 1]), knee_ang, fps, knee_pass=knee_pass, elbow=elbow, catch_mask=rack,
                                         liftoff=plate_lo)
+    # not a lift: the hands went overhead but the plate stayed down, or the person walked up to the camera
+    shin = np.nanmean([np.linalg.norm(kw[:, a] - kw[:, b], axis=1) for a, b in ((L_KNEE, L_ANK), (R_KNEE, R_ANK))], axis=0)
+    if (plate_follows_bar(plate_ref[:, 1], bar[:, 1], lo, ev["peak"], near["diameter_px"]) is False
+            or approaches_camera(shin, lo, ev["peak"])):
+        return False
     depth_ratio = None
     if far is None:
         # side-on, only the near plate is visible and it sits ~75 cm closer to the camera than the lifter.
@@ -360,6 +373,8 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
         made = bool((rack[ev["caught"]:] & (knee_ang[ev["caught"]:] > 155) & (hip_ang[ev["caught"]:] > 155)).any())
     # a miss needs the bar to have left the lifter inside the window; a clip that ends mid-hold is not a miss
     released = ev["hold_end"] < len(fr)
+    # part of the rep is not in the clip: it starts after the setup, or ends with the bar still held short of a make
+    cut_off = bool((s0 == 0 and lo < int(0.3 * fps)) or (s0 + len(fr) >= n and not released and not made))
     outcome_kind = outcome.classify(made, bar_vs_mid, bar_vx) if made or released else "unknown"
     lean = lambda f: 90.0 - float(trunk[f])
     ahead = lambda f: fwd * (sho[f, 0] - hip[f, 0]) > 0
@@ -396,7 +411,7 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
         "plate_lost_at": g(int(np.where(np.isfinite(plate_raw[:, 0]))[0].max())), "plate_wrist_corr": agree,
         "peak_h": peak_h, "drop": drop, "turnover_s": turnover_s, "standing_h": standing_h,
         "bar_speed": (sp[0], g(sp[1])) if sp else None,
-        "hands_overlap": bool(hands_overlap), "stab_inliers_min": int(min(inliers)) if inliers else 0, "fwd": fwd,
+        "cut_off": cut_off, "hands_overlap": bool(hands_overlap), "stab_inliers_min": int(min(inliers)) if inliers else 0, "fwd": fwd,
         "severity": max(rules.fired(vals).values(), default=0.0), "outcome": outcome_kind, "miss": miss,
         "_ref": {"s0": s0, "Ms": Ms, "ksm": ksm, "bar": bar, "plate_ref": plate_ref, "knee_ang": knee_ang,
                  "hip_ang": hip_ang, "trunk": trunk, "hip": hip, "sho": sho, "ank": ank, "frames": fr,
@@ -534,6 +549,36 @@ def build_cue(r, reps, best_rep, W, H):
            "evidence": {"rep": r["index"], "frame": s0 + f, "from": normalise(frm, W, H), "to": normalise(to, W, H),
                         "value": round(vals[cue_id], 1), "unit": "cm", "caption": caption}}
     return meas, cue
+
+
+OUTCOMES = {"missed_forward", "missed_behind", "missed", "jerk_forward", "jerk_back", "could_not_stand"}
+
+
+def withhold(cue, r, meas):
+    """(cue, noCueReason). The owner's rule (42 Q4): always show the path, phases and timing, cue only when confident.
+    A low-confidence cue, or any cue on a rep the clip cut off, is held back with the reason, and the rows it rested
+    on stop claiming to be the cue (off side-on, the horizontal ones are not judged at all)."""
+    if cue is None or (cue["confidence"] != "low" and not r.get("cut_off")):
+        return cue, None
+    fid = cue["faultId"]
+    off = r.get("off_side_deg")
+    horizontal = lambda i: i == "outcome" or i in OUTCOMES or rules.RULES.get(i, {}).get("horizontal", False)
+    if r.get("cut_off"):
+        reason = {"code": "rep_cut_off"}
+    elif off is not None and off > 20 and horizontal(fid):
+        reason = {"code": "off_side_on", "offSideDeg": int(round(off))}
+    elif not r.get("scale_ok", True):
+        reason = {"code": "plate_hidden"}
+    elif fid in OUTCOMES:
+        reason = {"code": "unclear_miss"}
+    else:
+        reason = {"code": "low_confidence"}
+    for m in meas:
+        if m["status"] == "cue":
+            m["status"] = "follows" if m["id"] in rules.RULES else "normal"
+        if reason["code"] == "off_side_on" and horizontal(m["id"]) and m["status"] != "not_seen":
+            m["status"], m["note"] = "not_seen", f"not judged: filmed ~{off:.0f}° off side-on"
+    return None, reason
 
 
 def miss_card(r, kind, meas, W, H, cause=None, sev=0.0):
