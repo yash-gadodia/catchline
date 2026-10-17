@@ -1,6 +1,7 @@
 import type { Movement } from '../../analysis/types';
 import { ANALYSES } from '../../analysis/fixtures';
 import { liveAnalysis } from '../../analysis/live';
+import { isPartial } from '../../analysis/parse';
 import { fmt, movementLabel, speedText } from '../../analysis/format';
 import { formatDate, getLocale, t } from '../../i18n';
 import { cueText } from '../../i18n/cues';
@@ -120,6 +121,9 @@ export function liftDetail(l: Lift, sessions: Session[], opts: { cueShown?: bool
   const session = sessions.find((s) => s.liftId === l.id);
   const metricId = PRIMARY_METRIC[l.movement];
   const value = session?.values[metricId];
+  if (analysis && isPartial(analysis)) {
+    return value == null ? t('library.detail.noCueOnly') : t('library.detail.noCue', { head: `${metricFor(metricId).short} ${metricText(metricId, value)}` });
+  }
   if (analysis && !analysis.cue && !analysis.failure && analysis.reps.length > 0) {
     return value == null
       ? t('library.detail.clean')

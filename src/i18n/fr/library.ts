@@ -31,6 +31,9 @@ export const library: Strings<typeof en> = {
   'library.detail.clean': 'propre',
   'library.detail.cleanHead': '{head} · propre',
   'library.detail.best': "{head} · record {value}",
+  // REVIEW: machine-drafted, needs a native speaker before release.
+  'library.detail.noCue': "{head} · pas de consigne",
+  'library.detail.noCueOnly': "analysé · pas de consigne",
   'library.counter': "{done} sur {target}",
   'library.ago.today': "aujourd'hui",
   'library.ago.yesterday': "hier",

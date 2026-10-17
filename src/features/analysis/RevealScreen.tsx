@@ -63,7 +63,8 @@ export default function RevealScreen({
   const insets = useSafeAreaInsets();
   // No cue (no fault fired): the same storyboard without the fault zoom, typing "Clean rep." instead.
   const cue = analysis.cue;
-  const cueLine = cue ? cueText(cue.faultId, cue.text) : t('analysis.clean.title');
+  // A partial (cue held back) types "No cue this time"; the result screen says why.
+  const cueLine = cue ? cueText(cue.faultId, cue.text) : t(analysis.noCueReason ? 'analysis.partial.title' : 'analysis.clean.title');
   const rep = repByIndex(analysis, cue?.evidence.rep ?? analysis.bestRepIndex);
   const box: Size = { width, height: Math.round(width * 1.25) };
   const src = { width: analysis.video.width, height: analysis.video.height };

@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Analysis, Cue } from '../../analysis/types';
 import { filmedAtAngle, liftTitle } from '../../analysis/format';
 import { keyFrameAt, keyFrameForPhase, liftPath, repByIndex } from '../../analysis/timeline';
+import { noCueCopy } from './partial';
 import { toScreen } from '../../analysis/geometry';
 import Btn from '../../components/Btn';
 import SmallCaps from '../../components/SmallCaps';
@@ -53,6 +54,7 @@ export default function CueScreen({
   const retest = useRetest(analysis, retestCueId);
   const retestable = useRetestable(analysis, retestCueId);
   const cue = analysis.cue;
+  if (!cue && !analysis.failure && analysis.noCueReason) return <Partial analysis={analysis} nav={nav} retest={retest} retestable={retestable} />;
   if (!cue && !analysis.failure && analysis.reps.length > 0) return <Clean analysis={analysis} nav={nav} retest={retest} />;
   if (!cue) return <NoCue analysis={analysis} nav={nav} retest={retest} retestable={retestable} />;
   if (cue.confidence !== 'clear') return <LowConfidence analysis={analysis} cue={cue} nav={nav} retest={retest} retestable={retestable} />;
@@ -273,6 +275,62 @@ function Clean({ analysis, nav, retest }: { analysis: Analysis; nav: Nav; retest
             </TextAction>
           </View>
         ) : null}
+      </View>
+    </View>
+  );
+}
+
+// A partial result: the path and phases were measured, the cue was held back. Says why and how to film it next time.
+function Partial({ analysis, nav, retest, retestable }: { analysis: Analysis; nav: Nav } & RetestProps) {
+  const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const copy = noCueCopy(analysis);
+  const rep = repByIndex(analysis, analysis.bestRepIndex);
+  const key = keyFrameForPhase(rep, 'catch') ?? rep.keyFrames[rep.keyFrames.length - 1];
+  const box = { width, height: Math.round(width * (330 / 390)) };
+  const src = { width: analysis.video.width, height: analysis.video.height };
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }} testID="partial-result">
+      <TopBar title={liftTitle(analysis)} onBack={nav.onBack} onMore={nav.onMore} />
+      <View>
+        <Stage src={src} box={box} focus={{ x: 0.5, y: 0.45 }} layers={[{ image: key.image }]}>
+          {(fit) => (
+            <OverlaySvg box={box}>
+              <FlarePath points={liftPath(rep).map((p) => toScreen(p, fit))} testID="partial-path" />
+            </OverlaySvg>
+          )}
+        </Stage>
+      </View>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: space.s4, paddingHorizontal: space.gutter, gap: space.s2 }}>
+        {retest ? <RetestVerdict retest={retest} onStuck={nav.onStuck} /> : null}
+        <SmallCaps>{t('analysis.partial.label')}</SmallCaps>
+        <Text style={[display(32), { color: colors.text }]} testID="no-cue-title">
+          {t('analysis.partial.title')}
+        </Text>
+        <Text style={{ color: colors.text2, ...type.body }} testID="no-cue-reason">
+          {copy?.reason ?? ''}
+        </Text>
+        <View style={{ marginTop: space.s3, gap: space.s1 }}>
+          <SmallCaps>{t('analysis.partial.nextTime')}</SmallCaps>
+          <Text style={{ color: colors.text, ...type.body }} testID="no-cue-tip">
+            {copy?.tip ?? ''}
+          </Text>
+        </View>
+        <Disclaimer />
+      </ScrollView>
+      <View style={{ paddingTop: space.s4, paddingHorizontal: space.gutter, paddingBottom: space.s7, gap: space.s2 }}>
+        {retestable && nav.onRetest ? (
+          <Btn onPress={() => nav.onRetest?.(retestable.id)} testID="cue-retest">
+            {t('analysis.cue.retest')}
+          </Btn>
+        ) : (
+          <Btn onPress={nav.onFilmAgain} testID="film-again">
+            {t('analysis.partial.filmAgain')}
+          </Btn>
+        )}
+        <Btn kind="secondary" onPress={nav.onTry} testID="see-breakdown">
+          {t('analysis.cue.seeBreakdown')}
+        </Btn>
       </View>
     </View>
   );

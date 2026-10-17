@@ -27,6 +27,8 @@ export const library = {
   'library.detail.clean': 'clean',
   'library.detail.cleanHead': '{head} · clean',
   'library.detail.best': '{head} · best {value}',
+  'library.detail.noCue': "{head} · no cue",
+  'library.detail.noCueOnly': "analysed · no cue",
   'library.counter': '{done} of {target}',
   'library.ago.today': 'today',
   'library.ago.yesterday': 'yesterday',

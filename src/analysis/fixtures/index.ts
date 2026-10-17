@@ -68,6 +68,20 @@ export const snatchMockLow: Analysis = {
   },
 };
 
+// A partial result: path, phases and the vertical numbers, with the cue held back because the clip was filmed
+// ~34° off side-on (forward and back distances are not trusted, so they read not_seen).
+const HORIZONTAL = new Set(['bar_drift_hip', 'jump_forward']);
+export const snatchMockPartial: Analysis = {
+  ...snatchMock,
+  id: 'snatch-mock-partial',
+  cue: null,
+  notes: [],
+  noCueReason: { code: 'off_side_on', offSideDeg: 34 },
+  measurements: snatchMock.measurements.map((m) =>
+    HORIZONTAL.has(m.id) ? { ...m, value: 0, status: 'not_seen', note: 'not judged: filmed off side-on' } : m.status === 'cue' ? { ...m, status: 'normal' } : m
+  ),
+};
+
 const missRep: Rep = { ...repByIndex(snatchMock, 2), index: 1, made: false };
 const missBase: Analysis = { ...snatchMock, id: 'snatch-mock-miss', loadKg: 67.5, reps: [missRep], bestRepIndex: 1 };
 const turnover = evidenceAt(missBase, 1, 'turnover');
@@ -158,6 +172,7 @@ export const ANALYSES: Record<string, Analysis> = {
   'snatch-mock-clean': snatchMockClean,
   'snatch-mock-low': snatchMockLow,
   'snatch-mock-miss': snatchMockMiss,
+  'snatch-mock-partial': snatchMockPartial,
   'snatch-real': snatchReal,
 };
 

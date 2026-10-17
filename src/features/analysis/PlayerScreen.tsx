@@ -36,6 +36,7 @@ import DrawLayer from './DrawLayer';
 import { isComplete, type Shape } from './drawGeometry';
 import { t } from '../../i18n';
 import { cueText } from '../../i18n/cues';
+import { noCueCopy } from './partial';
 
 export type Speed = '0.25' | '0.5' | '1';
 type Overlays = { path: boolean; strobe: boolean; lines: boolean };
@@ -64,6 +65,7 @@ export default function PlayerScreen({
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const rep = repByIndex(analysis, analysis.cue?.evidence.rep ?? analysis.bestRepIndex);
+  const partial = analysis.cue ? null : noCueCopy(analysis);
   const [frame, setFrameState] = useState(clampFrame(rep, initialFrame ?? analysis.cue?.evidence.frame ?? rep.startFrame));
   const [speed, setSpeed] = useState<Speed>('0.25');
   const [playing, setPlaying] = useState(false);
@@ -276,6 +278,15 @@ export default function PlayerScreen({
               {confidenceLine(analysis.cue)}
             </Text>
             <DrillCard faultId={analysis.cue.faultId} />
+          </>
+        ) : partial ? (
+          <>
+            <Text style={[display(26), { color: colors.text }]} numberOfLines={2}>
+              {t('analysis.partial.title')}
+            </Text>
+            <Text testID="player-no-cue" style={{ ...type.caption, color: colors.text2 }}>
+              {`${partial.reason} ${partial.tip}`}
+            </Text>
           </>
         ) : null}
         <CueNotes notes={analysis.notes} />
