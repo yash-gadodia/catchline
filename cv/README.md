@@ -21,6 +21,7 @@ are recorded in `tests/golden/`. Point `CATCHLINE_CLIPS` at a directory holding 
 Mini's `~/catchline-cv2/clips`; `.mp4` names are the app-format transcodes, see `transcode.sh` in the scale notes) and run
 `CATCHLINE_CLIPS=<dir> uv run pytest tests/test_golden.py -q`. Without the variable the test is skipped. Any speed-up to
 the pipeline must keep it green; re-record with `CATCHLINE_GOLDEN_UPDATE=1` only for an intended change in results.
+**Traces** (`catchline_cv/trace.py`, `tests/test_trace.py`): `trace.recording()` keeps what the pipeline read from the clip (lifter keypoints without head points, camera path, stabilisation, plate fits and track) and `trace.replaying(t)` re-runs everything after pose from it, no video. The worker stores one per lift for `python -m catchline_worker rerun`. Re-record the trace fixtures with the goldens: `CATCHLINE_CLIPS=<dir> CATCHLINE_GOLDEN_UPDATE=1 uv run pytest tests/test_trace.py -k recording`, and commit only 21B27BAF (its pose is already in fixtures/) and A1F2F738 (the owner's): the other reference clips show other athletes, so their traces stay in the Mini's `~/catchline-traces-fixtures`, run with `CATCHLINE_TRACES=`).
 `scripts/verify_json.py <json> <root> <out.jpg>` draws the JSON's own normalised path and evidence on its keyframes (checks the contract, not the internals).
 
 To ship into the app: copy `<id>.json` to `src/analysis/fixtures/` and `keyframes/` to `assets/analysis/<id>/`; `KeyFrame.image` is `assets/analysis/<id>/<file>` (repo-relative).
