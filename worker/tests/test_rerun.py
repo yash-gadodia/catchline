@@ -75,7 +75,9 @@ def test_a_rules_change_saves_a_new_current_analysis_with_the_new_headline(blob,
     (args,) = db.saves()
     new = args["p_analysis"]
     assert args["p_lift_id"] == "lift-1"
-    assert (stored["cue"]["faultId"], new["cue"]["faultId"]) == ("missed_forward", "bar_forward_off_hips")
+    # the stored lift is a partial (the miss had no measured cause); the lowered threshold gives it a headline
+    assert (stored["cue"], stored["noCueReason"], new["cue"]["faultId"]) == (None, {"code": "unclear_miss"},
+                                                                             "bar_forward_off_hips")
     assert new["video"]["uri"] == "user-1/lift-1"
     assert new["analysisRevision"] != "older-rev"
     old_stills = [(k["image"], k["frame"]) for r in stored["reps"] for k in r["keyFrames"]]

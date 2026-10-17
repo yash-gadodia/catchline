@@ -67,7 +67,7 @@ def test_a_stored_trace_replays_to_the_golden_analysis_exactly(name, tmp_path):
 
 def test_a_rules_change_is_picked_up_by_the_replay(tmp_path, monkeypatch):
     name = "2026-10-05_21B27BAF.mov"
-    assert golden(name)["analysis"]["cue"]["faultId"] == "missed_forward"
+    assert golden(name)["analysis"]["noCueReason"] == {"code": "unclear_miss"}
     monkeypatch.setitem(rules.RULES["bar_forward_off_hips"], "threshold", 1.0)
     analysis, misses = replay(stored(name), tmp_path, "snatch")
     assert misses == []

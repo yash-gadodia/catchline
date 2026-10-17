@@ -683,27 +683,9 @@
    }
   ],
   "bestRepIndex": 1,
-  "cue": {
-   "faultId": "missed_forward",
-   "text": "Film one more rep from the side.",
-   "why": "Missed forward. The bar left you 27 cm in front of mid-foot. I can't tell why from this clip: nothing in the pull was outside its window. Film one more rep, or a lighter make, and I'll compare.",
-   "confidence": "low",
-   "confidenceText": "One missed rep",
-   "evidence": {
-    "rep": 1,
-    "frame": 121,
-    "from": {
-     "x": 0.4508,
-     "y": 0.7397
-    },
-    "to": {
-     "x": 0.6321,
-     "y": 0.5303
-    },
-    "value": 26.6,
-    "unit": "cm",
-    "caption": "bar 27 cm in front of mid-foot"
-   }
+  "cue": null,
+  "noCueReason": {
+   "code": "unclear_miss"
   },
   "notes": [],
   "measurements": [
@@ -776,7 +758,7 @@
     "value": 26.6,
     "unit": "cm",
     "frame": 121,
-    "status": "cue",
+    "status": "normal",
     "note": "bar vs mid-foot when it left you (+ = in front)"
    }
   ],

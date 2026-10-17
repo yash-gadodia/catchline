@@ -18,6 +18,7 @@
   "measurements": [],
   "failure": {
    "reason": "clip_cut_off",
+   "code": "shoulders_cut_off",
    "message": "The bar and the top of the rep are out of the frame. Film with the bar and some space above it in view."
   },
   "detectedMovement": {
