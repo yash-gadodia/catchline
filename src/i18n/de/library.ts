@@ -100,6 +100,8 @@ export const library: Strings<typeof en> = {
   'library.chart.best': "Bestwert {value}",
   'library.cues.emptyTitle': "Dein erster Hinweis landet hier.",
   'library.cues.emptyBody': "Wenn du einen Lift filmst, bleibt die eine Sache zum Verbessern in diesem Tab, bis sie sitzt.",
+  'library.cues.cleanTitle': 'Noch nichts zu korrigieren.',
+  'library.cues.cleanBody': 'Noch kein Lift hat eine Fehlerschwelle überschritten. Der erste, der es tut, legt seinen Cue hier ab, bis er sitzt.',
   'library.cues.past': "Frühere Hinweise",
   'library.cues.tryingKicker': "Im Test · {movement}",
   'library.cues.sessionsAgo': "{counter} Einheiten · {ago}",

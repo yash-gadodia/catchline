@@ -95,6 +95,8 @@ export const library = {
   'library.chart.best': 'best {value}',
   'library.cues.emptyTitle': 'Your first cue lands here.',
   'library.cues.emptyBody': 'After you film a lift, the one thing to fix lives on this tab until it sticks.',
+  'library.cues.cleanTitle': 'Nothing to fix yet.',
+  'library.cues.cleanBody': 'No lift has crossed a fault threshold yet. The first one that does puts its cue on this tab until it sticks.',
   'library.cues.past': 'Past cues',
   'library.cues.tryingKicker': 'Trying · {movement}',
   'library.cues.sessionsAgo': '{counter} sessions · {ago}',
