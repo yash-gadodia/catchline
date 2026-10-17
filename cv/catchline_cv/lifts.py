@@ -219,7 +219,7 @@ def build(movement, reps, best_rep, W, H):
         conf_text += f", filmed ~{off:.0f}° off side-on: film from the side to confirm"
     why = rules.why_sentence(cue_id, r["values"], r["detail"][cue_id])
     if kind != "make":
-        why = f"{OUTCOME_HEAD[kind](r['outcome_value'])} Earliest thing I can see: {why[0].lower()}{why[1:]}"
+        why = f"{OUTCOME_HEAD.get(kind, OUTCOME_HEAD['missed'])(r['outcome_value'])} Earliest thing I can see: {why[0].lower()}{why[1:]}"
     cue = {"faultId": cue_id, "text": rules.CUES[cue_id], "why": why,
            "confidence": conf, "confidenceText": conf_text,
            "evidence": {"rep": r["index"], "frame": r["s0"] + f,
