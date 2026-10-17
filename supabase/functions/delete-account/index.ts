@@ -1,6 +1,7 @@
 // delete-account - App-Store-grade account deletion.
 // delete_my_account() (RPC) erases the caller's lifts, analyses, cues, coach links
-// and consents (storage is swept by purge_storage), but a SQL RPC can't remove the
+// and consents and queues the deletion of their lift traces (storage is swept by
+// purge_storage); this function also removes the caller's lift-traces folder, but a SQL RPC can't remove the
 // Supabase Auth record. This function runs the RPC as the caller, revokes the
 // stored Sign in with Apple token (apple_tokens, 0009; GATE: skipped until the
 // APPLE_SIWA_* secrets are set), then uses the service_role admin API to delete
@@ -32,6 +33,14 @@ Deno.serve(async (req: Request) => {
       async deleteData(authHeader) {
         const { error } = await userClient(authHeader).rpc("delete_my_account");
         return error ? error.message : null;
+      },
+      async deleteTraces(userId) {
+        const bucket = admin.storage.from("lift-traces");
+        const { data, error } = await bucket.list(userId, { limit: 1000 });
+        if (error) throw error;
+        if (!data?.length) return;
+        const { error: rmErr } = await bucket.remove(data.map((o) => `${userId}/${o.name}`));
+        if (rmErr) throw rmErr;
       },
       appleConfigured: cfg !== null,
       async appleToken(userId) {

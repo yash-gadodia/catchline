@@ -11,6 +11,10 @@ function deps(over: Partial<Deps> = {}) {
       calls.push("deleteData");
       return Promise.resolve(null);
     },
+    deleteTraces: (u) => {
+      calls.push(`deleteTraces:${u}`);
+      return Promise.resolve();
+    },
     appleConfigured: true,
     appleToken: (u) => {
       calls.push(`appleToken:${u}`);
@@ -37,7 +41,7 @@ Deno.test("revokes the stored Apple token after the data and before the auth use
   const res = await handle(post(), d);
   assertEquals(res.status, 200);
   assertEquals(await res.json(), { success: true });
-  assertEquals(calls, ["deleteData", `appleToken:${U1}`, "revoke:refresh-1", `deleteAuthUser:${U1}`]);
+  assertEquals(calls, ["deleteData", `deleteTraces:${U1}`, `appleToken:${U1}`, "revoke:refresh-1", `deleteAuthUser:${U1}`]);
 });
 
 Deno.test("still deletes the user when the revoke fails", async () => {
@@ -46,13 +50,13 @@ Deno.test("still deletes the user when the revoke fails", async () => {
   });
   const res = await handle(post(), d);
   assertEquals(res.status, 200);
-  assertEquals(calls, ["deleteData", `appleToken:${U1}`, `deleteAuthUser:${U1}`]);
+  assertEquals(calls, ["deleteData", `deleteTraces:${U1}`, `appleToken:${U1}`, `deleteAuthUser:${U1}`]);
 });
 
 Deno.test("still deletes the user when the token lookup fails", async () => {
   const { d, calls } = deps({ appleToken: () => Promise.reject(new Error("db down")) });
   assertEquals((await handle(post(), d)).status, 200);
-  assertEquals(calls, ["deleteData", `deleteAuthUser:${U1}`]);
+  assertEquals(calls, ["deleteData", `deleteTraces:${U1}`, `deleteAuthUser:${U1}`]);
 });
 
 Deno.test("no stored token (anonymous or pre-0009 user): no revoke", async () => {
@@ -63,13 +67,13 @@ Deno.test("no stored token (anonymous or pre-0009 user): no revoke", async () =>
     },
   });
   assertEquals((await handle(post(), d)).status, 200);
-  assertEquals(calls, ["deleteData", `appleToken:${U1}`, `deleteAuthUser:${U1}`]);
+  assertEquals(calls, ["deleteData", `deleteTraces:${U1}`, `appleToken:${U1}`, `deleteAuthUser:${U1}`]);
 });
 
 Deno.test("GATE: not configured -> no Apple calls, user still deleted", async () => {
   const { d, calls } = deps({ appleConfigured: false });
   assertEquals((await handle(post(), d)).status, 200);
-  assertEquals(calls, ["deleteData", `deleteAuthUser:${U1}`]);
+  assertEquals(calls, ["deleteData", `deleteTraces:${U1}`, `deleteAuthUser:${U1}`]);
 });
 
 Deno.test("401s, and a data-delete failure stops before Apple and auth", async () => {
@@ -85,4 +89,11 @@ Deno.test("401s, and a data-delete failure stops before Apple and auth", async (
   assertEquals(res.status, 500);
   assertEquals(await res.json(), { error: "data_delete_failed", detail: "boom" });
   assertEquals(calls, ["deleteData"]);
+});
+
+Deno.test("removes the lift traces after the data, and a trace failure never blocks the deletion", async () => {
+  const { d, calls } = deps({ deleteTraces: () => Promise.reject(new Error("storage down")) });
+  const res = await handle(post(), d);
+  assertEquals(res.status, 200);
+  assertEquals(calls, ["deleteData", `appleToken:${U1}`, "revoke:refresh-1", `deleteAuthUser:${U1}`]);
 });

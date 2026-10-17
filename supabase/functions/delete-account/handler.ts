@@ -9,6 +9,8 @@ export type Deps = {
   userFor(authHeader: string): Promise<string | null>;
   /** delete_my_account() run as the caller; an error message, or null. */
   deleteData(authHeader: string): Promise<string | null>;
+  /** Removes the objects in the caller's lift-traces folder (service role). */
+  deleteTraces(userId: string): Promise<void>;
   /** False while the Sign in with Apple key secrets are missing (GATE). */
   appleConfigured: boolean;
   appleToken(userId: string): Promise<string | null>;
@@ -24,8 +26,10 @@ function json(body: unknown, status = 200) {
   });
 }
 
-// App data first, then Apple's token revoked (guideline 5.1.1(v)), then the
-// auth user. A revoke failure is logged and never blocks the deletion.
+// App data first, then the lift traces, then Apple's token revoked (guideline
+// 5.1.1(v)), then the auth user. A trace or revoke failure is logged and never
+// blocks the deletion: delete_my_account already queued the traces' deletion and
+// purge_storage removes any trace whose lift is gone.
 export async function handle(req: Request, deps: Deps): Promise<Response> {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
@@ -37,6 +41,12 @@ export async function handle(req: Request, deps: Deps): Promise<Response> {
 
   const rpcErr = await deps.deleteData(authHeader);
   if (rpcErr) return json({ error: "data_delete_failed", detail: rpcErr }, 500);
+
+  try {
+    await deps.deleteTraces(userId);
+  } catch (e) {
+    console.error("trace delete failed", e);
+  }
 
   if (!deps.appleConfigured) {
     console.log("apple revocation not configured");
