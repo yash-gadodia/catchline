@@ -1,7 +1,20 @@
-import type { Analysis } from './types';
+import type { Analysis, NoCueCode } from './types';
 
 const MOVEMENTS = ['snatch', 'clean', 'jerk', 'kipping_pull_up', 'bar_muscle_up', 'kipping_hspu'];
 const CONFIDENCE = ['clear', 'worth_checking', 'low'];
+const NO_CUE: NoCueCode[] = ['off_side_on', 'plate_hidden', 'rep_cut_off', 'unclear_miss', 'low_confidence'];
+
+// A partial result: measured (reps, no failure) with the cue held back for a reason.
+export function isPartial(a: Analysis): boolean {
+  return !a.failure && !a.cue && !!a.noCueReason && a.reps.length > 0;
+}
+
+// The reason a partial has no cue; a code from a newer worker reads as low confidence.
+export function noCueCode(a: Analysis): NoCueCode | null {
+  if (!isPartial(a)) return null;
+  const code = a.noCueReason!.code;
+  return NO_CUE.includes(code) ? code : 'low_confidence';
+}
 
 function inUnit(n: unknown): boolean {
   return typeof n === 'number' && n >= 0 && n <= 1;
@@ -32,5 +45,9 @@ export function parseAnalysis(json: unknown): Analysis {
   if (a.analysisVersion != null && (typeof a.analysisVersion !== 'string' || a.analysisVersion === '')) fail('analysisVersion');
   if (a.reanalysedAt != null && (typeof a.reanalysedAt !== 'string' || Number.isNaN(Date.parse(a.reanalysedAt)))) fail('reanalysedAt');
   if (a.cue && !CONFIDENCE.includes(a.cue.confidence)) fail(`confidence ${a.cue.confidence}`);
+  if (a.noCueReason != null) {
+    if (typeof a.noCueReason !== 'object' || typeof a.noCueReason.code !== 'string') fail('noCueReason');
+    if (a.noCueReason.offSideDeg != null && typeof a.noCueReason.offSideDeg !== 'number') fail('noCueReason.offSideDeg');
+  }
   return a;
 }

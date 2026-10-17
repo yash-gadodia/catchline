@@ -1,4 +1,4 @@
-import { parseAnalysis } from './parse';
+import { isPartial, noCueCode, parseAnalysis } from './parse';
 import mock from './fixtures/snatch-mock.json';
 
 describe('parseAnalysis', () => {
@@ -41,5 +41,36 @@ describe('parseAnalysis', () => {
     expect(() => parseAnalysis({ ...mock, analysisVersion: '' })).toThrow('Invalid Analysis: analysisVersion');
     expect(parseAnalysis({ ...mock, reanalysedAt: '2026-10-16T08:30:00Z' }).reanalysedAt).toBe('2026-10-16T08:30:00Z');
     expect(() => parseAnalysis({ ...mock, reanalysedAt: 'soon' })).toThrow('Invalid Analysis: reanalysedAt');
+  });
+
+  it('accepts a partial result, and reads its reason', () => {
+    const partial = { ...mock, cue: null, noCueReason: { code: 'off_side_on', offSideDeg: 34 } };
+    const a = parseAnalysis(partial);
+    expect(a.noCueReason).toEqual({ code: 'off_side_on', offSideDeg: 34 });
+    expect([isPartial(a), noCueCode(a)]).toEqual([true, 'off_side_on']);
+    expect(noCueCode(parseAnalysis({ ...partial, noCueReason: { code: 'plate_hidden' } }))).toBe('plate_hidden');
+  });
+
+  it('reads a reason code from a newer worker as low confidence', () => {
+    expect(noCueCode(parseAnalysis({ ...mock, cue: null, noCueReason: { code: 'glare' } }))).toBe('low_confidence');
+  });
+
+  it('treats old analyses and no-fault analyses as not partial', () => {
+    const old = parseAnalysis(mock);
+    expect([old.noCueReason, isPartial(old), noCueCode(old)]).toEqual([undefined, false, null]);
+    const clean = parseAnalysis({ ...mock, cue: null, noCueReason: null });
+    expect([isPartial(clean), noCueCode(clean)]).toEqual([false, null]);
+  });
+
+  it('keeps the specific refusal code on a failure', () => {
+    const a = parseAnalysis({ ...mock, reps: [], cue: null, failure: { reason: 'unsupported_movement', code: 'no_reps', message: 'm' } });
+    expect(a.failure).toEqual({ reason: 'unsupported_movement', code: 'no_reps', message: 'm' });
+  });
+
+  it('rejects a malformed reason', () => {
+    expect(() => parseAnalysis({ ...mock, cue: null, noCueReason: 'off_side_on' })).toThrow('Invalid Analysis: noCueReason');
+    expect(() => parseAnalysis({ ...mock, cue: null, noCueReason: { code: 'off_side_on', offSideDeg: '34' } })).toThrow(
+      'Invalid Analysis: noCueReason.offSideDeg'
+    );
   });
 });

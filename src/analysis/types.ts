@@ -104,7 +104,13 @@ export type Failure = {
     | 'unknown';
   frame?: number;
   message: string;
+  // The specific refusal behind the reason (e.g. 'no_reps', 'movement_mismatch'), logged for the refusal rate; never shown.
+  code?: string;
 };
+
+// Why a measured lift has no cue: the path and phases are real, the cue was held back (a partial result).
+export type NoCueCode = 'off_side_on' | 'plate_hidden' | 'rep_cut_off' | 'unclear_miss' | 'low_confidence';
+export type NoCueReason = { code: NoCueCode; offSideDeg?: number };
 
 // What the pose alone says the clip shows; 'unknown' when the signal is weak.
 export type DetectedMovement = { movement: Movement | 'unknown'; confidence: number };
@@ -129,6 +135,8 @@ export type Analysis = {
   reps: Rep[];
   bestRepIndex: number;
   cue: Cue | null;
+  // Set only on a partial (failure null, cue null). Absent or null with cue null: nothing needed fixing.
+  noCueReason?: NoCueReason | null;
   // Absent on analyses made before sub-notes shipped.
   notes?: Note[];
   measurements: Measurement[];
