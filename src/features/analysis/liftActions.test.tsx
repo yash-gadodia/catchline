@@ -5,7 +5,7 @@ import { snatchMock, snatchMockLow } from '../../analysis/fixtures';
 import { loadLibrary } from '../library/repository';
 import PlayerRoute from '../../../app/analysis/player';
 import CueRoute from '../../../app/analysis/cue';
-import { openLiftActions, reportUrl } from './liftActions';
+import { openLiftActions, reportText, reportUrl, sendReport } from './liftActions';
 
 const mockRouter = { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true), dismissTo: jest.fn() };
 const mockParams: { current: Record<string, string> } = { current: {} };
@@ -97,5 +97,31 @@ describe('the ··· button on the result screens', () => {
       fireEvent.press(view.getByTestId('topbar-more'));
     });
     expect(Linking.openURL).toHaveBeenCalledWith(reportUrl(snatchMockLow));
+  });
+});
+
+// #16: a phone with no mail client rejects the mailto, which left the row doing nothing at all.
+describe('Report a wrong result when no mail app can open', () => {
+  it('copies the report and names the address instead of failing silently', async () => {
+    const open = jest.fn(async () => {
+      throw new Error('Unable to open URL: mailto:pirsquare.yash+catchline@gmail.com');
+    });
+    const copy = jest.fn();
+    const alert = jest.fn();
+    await sendReport(snatchMock, { open, copy, alert });
+    expect(copy).toHaveBeenCalledWith(reportText(snatchMock));
+    expect(alert).toHaveBeenCalledWith(
+      'No mail app on this phone',
+      'The lift details are copied. Email them to pirsquare.yash+catchline@gmail.com.'
+    );
+  });
+
+  it('opens the mail draft and says nothing when mail is there', async () => {
+    const open = jest.fn(async () => true);
+    const copy = jest.fn();
+    const alert = jest.fn();
+    await sendReport(snatchMock, { open, copy, alert });
+    expect(open).toHaveBeenCalledWith(reportUrl(snatchMock));
+    expect([copy, alert].map((f) => f.mock.calls.length)).toEqual([0, 0]);
   });
 });

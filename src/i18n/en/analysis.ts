@@ -4,6 +4,8 @@ export const analysis = {
   'analysis.actions.filmAnother': 'Film another set',
   'analysis.actions.report': 'Report a wrong result',
   'analysis.actions.cancel': 'Cancel',
+  'analysis.report.noMailTitle': 'No mail app on this phone',
+  'analysis.report.noMailBody': 'The lift details are copied. Email them to {email}.',
   'analysis.baseline.today': '{value} today',
   'analysis.baseline.bestOnly': '{head}. Your best is {best}.',
   'analysis.baseline.average': 'your last {n} average {avg}',
