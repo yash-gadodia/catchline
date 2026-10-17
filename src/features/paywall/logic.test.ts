@@ -1,9 +1,10 @@
 import { foundingState, getFoundingSeats, localSeats, remoteSeats, seatsFraction, seatsLeftLabel, setSeatsSource } from './seats';
 import { QUIZ_LENGTH, quizMovement, quizQuestion } from './quiz';
 import { offeringFor, packageIdFor, periodFromProductId, planKey, playSubscriptionId, productIdFor } from './products';
-import { cueStatusLabel, getProofCues } from './proofCues';
+import { cueStatusLabel, proofCuesFrom } from './proofCues';
 import { setWebCheckoutOverride, webCheckoutEnabled } from './flags';
 import { useUsage } from './usageStore';
+import type { CueRecord } from '../library/types';
 import { foundingSeats } from '../../lib/api';
 
 jest.mock('../../lib/api', () => ({ ...jest.requireActual('../../lib/api'), foundingSeats: jest.fn() }));
@@ -102,8 +103,45 @@ describe('products', () => {
 });
 
 describe('proof cues', () => {
+  const cue = (over: Partial<CueRecord>): CueRecord => ({
+    id: 'c',
+    movement: 'snatch',
+    text: 'Stay over the bar longer',
+    metricId: 'bar_drift_hip',
+    givenAt: '2026-10-01',
+    status: 'trying',
+    sessionsTarget: 6,
+    before: { image: 'asset:snatch/6-catch' },
+    after: { image: 'asset:snatch/6-catch' },
+    ...over,
+  });
+
+  // #13: a lifter with no lifts was shown three stand-in cues as if they were their own.
+  it('is empty for a lifter with no cues', () => {
+    expect(proofCuesFrom([], [])).toEqual([]);
+  });
+
+  it('reads the lifter’s own cues, newest first, with their own counts', () => {
+    const cues = [
+      cue({ id: 'old', text: 'Finish the pull before you drop', givenAt: '2026-09-01', status: 'stuck' }),
+      cue({ id: 'new', givenAt: '2026-10-05', sessionsDone: 3 }),
+      cue({ id: 'gone', text: 'Hips to the bar on the MU', givenAt: '2026-09-20', status: 'didnt_stick' }),
+    ];
+    expect(proofCuesFrom(cues, [])).toEqual([
+      { text: 'Stay over the bar longer', status: 'trying', tries: 3, of: 6 },
+      { text: 'Hips to the bar on the MU', status: 'didnt' },
+      { text: 'Finish the pull before you drop', status: 'stuck' },
+    ]);
+  });
+
+  it('keeps only the three newest', () => {
+    const cues = ['2026-10-01', '2026-10-02', '2026-10-03', '2026-10-04'].map((d, i) =>
+      cue({ id: `c${i}`, givenAt: d, status: 'stuck' })
+    );
+    expect(proofCuesFrom(cues, [])).toHaveLength(3);
+  });
+
   it('labels each status', () => {
-    expect(getProofCues().map(cueStatusLabel)).toEqual(['Stuck', 'Trying · 3 of 6', 'Trying · 1 of 6']);
     expect(cueStatusLabel({ text: 'x', status: 'didnt' })).toBe("Didn't stick");
     expect(cueStatusLabel({ text: 'x', status: 'dropped' })).toBe('Dropped');
     expect(cueStatusLabel({ text: 'x', status: 'trying' })).toBe('Trying');

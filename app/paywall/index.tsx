@@ -3,9 +3,9 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { track, EVENTS } from '../../src/lib/analytics';
 import { usePurchases, type PurchaseStatus } from '../../src/features/purchases/usePurchases';
 import PaywallSheet from '../../src/features/paywall/PaywallSheet';
-import { getProofCues } from '../../src/features/paywall/proofCues';
+import { useProofCues } from '../../src/features/paywall/proofCues';
 import { annualSavingFor, makePriceFor } from '../../src/features/paywall/storePrices';
-import { purchasePlan, storePlatform, useFoundingSeats } from '../../src/features/paywall/hooks';
+import { purchasePlan, storePlatform, useFoundingSeats, useVideosLeft } from '../../src/features/paywall/hooks';
 import { FOUNDING_SEATS_TOTAL } from '../../src/features/paywall/entitlements';
 import { submitDraft } from '../../src/features/capture/submit';
 import type { Phase } from '../../src/features/paywall/ui';
@@ -27,6 +27,8 @@ export default function PaywallRoute() {
   const seats = p.seats !== undefined ? { total: FOUNDING_SEATS_TOTAL, remaining: Number(p.seats) } : loaded;
   const priceFor = useMemo(() => makePriceFor(offerings), [offerings]);
   const savePct = useMemo(() => annualSavingFor(offerings), [offerings]);
+  const cues = useProofCues();
+  const freeLeft = useVideosLeft();
   const movement = p.movement ?? 'lift';
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
@@ -40,7 +42,8 @@ export default function PaywallRoute() {
   return (
     <PaywallSheet
       key={`${p.phase ?? ''}-${p.seats ?? ''}`}
-      cues={getProofCues()}
+      cues={cues}
+      freeLeft={freeLeft}
       seats={seats}
       platform={storePlatform()}
       now={new Date()}

@@ -1,6 +1,7 @@
 import { formatDate, getLocale, t } from '../../i18n';
 import {
   FOUNDING_PRICE_CENTS,
+  FREE_VIDEOS,
   MONTHLY_CAP,
   PRICE_CENTS,
   TRIAL_DAYS,
@@ -65,6 +66,13 @@ export function trialNote(period: Period, now: Date, price = formatUsd(PRICE_CEN
 export function trialOptionLine(period: Period): string {
   if (period === 'monthly') return t('paywall.trialMonthly', { price: formatUsd(PRICE_CENTS.pull.monthly) });
   return t('paywall.trialAnnual', { perMonth: formatUsd(annualPerMonthCents('pull')), price: formatUsd(PRICE_CENTS.pull.annual) });
+}
+
+// The sheet is reached at the cap and organically from Plans, where the free videos are
+// still in hand: only the first can say they are done.
+export function sheetTitle(freeLeft: number): string {
+  if (freeLeft > 0) return t('paywall.sheet.titleLeft');
+  return t('paywall.sheet.title', { count: FREE_VIDEOS.organic });
 }
 
 export function pullSummary(): string {

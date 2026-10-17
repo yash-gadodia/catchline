@@ -7,8 +7,8 @@ import { colors, space } from '../../design/tokens';
 import { display, fontFamily, type } from '../../design/typography';
 import type { PurchaseStatus } from '../purchases/usePurchases';
 import { t } from '../../i18n';
-import { FREE_VIDEOS, annualSavingPct, tierName, type Period, type StorePlatform } from './entitlements';
-import { chargeNote, continueLabel, planPrice, pullSummary } from './copy';
+import { annualSavingPct, tierName, type Period, type StorePlatform } from './entitlements';
+import { chargeNote, continueLabel, planPrice, pullSummary, sheetTitle } from './copy';
 import { cueStatusLabel, type ProofCue } from './proofCues';
 import type { Plan } from './products';
 import { foundingState, seatsLeftLabel, type FoundingSeats } from './seats';
@@ -16,6 +16,7 @@ import { Backdrop, Fine, OptionCard, PurchaseStateSheet, Row, SheetTitle, Status
 
 type Props = {
   cues: ProofCue[];
+  freeLeft: number;
   seats: FoundingSeats | null;
   platform: StorePlatform;
   now: Date;
@@ -40,6 +41,7 @@ function planOf(choice: Choice, period: Period): Plan {
 // lifter's own cues. One plan, Pull, preselected on annual, plus the founding seat.
 export default function PaywallSheet({
   cues,
+  freeLeft,
   seats,
   platform,
   now,
@@ -82,7 +84,7 @@ export default function PaywallSheet({
           </View>
         ) : (
           <ScrollView style={{ maxHeight: height * 0.88 }} contentContainerStyle={{ gap: space.s3, paddingTop: space.s2 }}>
-            <SheetTitle>{t('paywall.sheet.title', { count: FREE_VIDEOS.organic })}</SheetTitle>
+            <SheetTitle>{sheetTitle(freeLeft)}</SheetTitle>
             {cues.length > 0 ? (
               <View style={{ borderTopWidth: 1, borderTopColor: colors.hairline }} testID="proof-cues">
                 {cues.slice(0, 3).map((c, i, all) => (

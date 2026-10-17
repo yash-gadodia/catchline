@@ -9,6 +9,7 @@ import {
   purchasingLine,
   purchasingTitle,
   renewalDate,
+  sheetTitle,
   shortDate,
   successBody,
   trialNote,
@@ -100,5 +101,12 @@ describe('purchase states', () => {
     expect(successBody(PULL_MONTHLY, OCT11)).toBe('Pull, renews 11 Nov 2026.');
     expect(successBody(FOUNDING, OCT11, 'clean')).toBe('Pull, for life. No renewal. Your queued clean is first in line.');
     expect(successBody({ ...PULL_ANNUAL, trial: true }, OCT11)).toBe('Pull trial, first charge 18 Oct.');
+  });
+
+  // #13: the sheet is also reached from Plans with every free video still in hand.
+  it('only says the free videos are done when they are', () => {
+    expect(sheetTitle(0)).toBe('Your 3 free videos are done. Keep the cues coming.');
+    expect(sheetTitle(3)).toBe('Keep the cues coming.');
+    expect(sheetTitle(1)).toBe('Keep the cues coming.');
   });
 });
