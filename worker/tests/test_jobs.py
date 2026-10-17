@@ -4,6 +4,8 @@ import os
 import subprocess
 
 import pytest
+from catchline_cv import ANALYSIS_VERSION, pipeline
+from catchline_cv import trace as cv_trace
 from catchline_cv.video import ClipUnreadable
 
 from catchline_worker.jobs import ERROR_CODES, MAX_ATTEMPTS, Job, Result, drain, error_code, process_one
@@ -126,7 +128,14 @@ def test_empty_queue_returns_none():
 def test_success_runs_download_analyse_upload_complete_then_deletes_clip():
     db = FakeDb([ROW])
     out = process_one(db, fake_analyse)
-    assert out == {"lift_id": "lift-1", "status": "done", "cue_id": "cue-1", "keyframes": 2, "clip_deleted": True}
+    assert out == {
+        "lift_id": "lift-1",
+        "status": "done",
+        "cue_id": "cue-1",
+        "keyframes": 2,
+        "trace": False,
+        "clip_deleted": True,
+    }
     assert db.names() == [
         "claim_lift_job",
         "download",
@@ -152,6 +161,75 @@ def test_success_runs_download_analyse_upload_complete_then_deletes_clip():
     )
     assert db.calls[6] == ("remove", "raw-clips", ["user-1/lift-1", "user-1/lift-1.pose.json"])
     assert db.calls[7] == ("rpc", "mark_clip_deleted", {"p_lift_id": "lift-1"})
+
+
+META = {"width": 608, "height": 1080, "fps": 30.0, "frameCount": 153, "rotation": 0}
+
+
+class TraceDb(FakeDb):
+    """Keeps what was uploaded to lift-traces; fails that upload when asked."""
+
+    def __init__(self, *a, fail_trace=False, **kw):
+        super().__init__(*a, **kw)
+        self.fail_trace = fail_trace
+        self.traces = {}
+
+    def upload(self, bucket, path, src, content_type):
+        super().upload(bucket, path, src, content_type)
+        if bucket == "lift-traces":
+            if self.fail_trace:
+                raise ConnectionError("storage down")
+            with open(src, "rb") as fh:
+                self.traces[path] = fh.read()
+
+
+@pytest.fixture
+def reading_analyse(monkeypatch):
+    """An analyse that reads the clip through the pipeline, as the real one does (the probe stands in)."""
+    monkeypatch.setattr(pipeline, "probe", lambda clip: dict(META))
+
+    def run(clip, job, workdir, pose=None):
+        pipeline.probe(clip)
+        r = fake_analyse(clip, job, workdir)
+        return Result(r.analysis | {"pxPerCm": 4.5}, r.keyframes)
+
+    return run
+
+
+def test_the_trace_is_saved_gzipped_under_the_lift_before_completing(reading_analyse):
+    db = TraceDb([ROW])
+    out = process_one(db, reading_analyse)
+    assert out["trace"] is True
+    assert db.names() == [
+        "claim_lift_job",
+        "download",
+        "pose_source",
+        "upload",
+        "upload",
+        "upload",
+        "complete_lift_job",
+        "remove",
+        "mark_clip_deleted",
+    ]
+    assert db.calls[5] == ("upload", "lift-traces", "user-1/lift-1.json.gz", "application/gzip")
+    saved = cv_trace.loads(db.traces["user-1/lift-1.json.gz"])
+    assert (saved["meta"], saved["scale"], saved["poseSource"]) == (META, 4.5, "server")
+    assert saved["analysisVersion"] == ANALYSIS_VERSION
+    assert pipeline.probe("x") == META, "the recording is undone after the job"
+
+
+def test_no_trace_when_the_pipeline_never_read_the_clip():
+    db = TraceDb([ROW])
+    assert process_one(db, fake_analyse)["trace"] is False
+    assert db.traces == {}
+
+
+def test_a_trace_upload_failure_never_fails_the_lift(reading_analyse, caplog):
+    db = TraceDb([ROW], fail_trace=True)
+    with caplog.at_level(logging.ERROR):
+        out = process_one(db, reading_analyse)
+    assert (out["status"], out["trace"], out["clip_deleted"]) == ("done", False, True)
+    assert "trace upload failed for lift lift-1" in caplog.text
 
 
 POSE = {"source": "apple-vision", "fps": 30, "width": 1080, "height": 1920, "frames": []}
@@ -303,7 +381,14 @@ def test_final_failure_notifies_but_a_retry_does_not():
 def test_push_errors_never_change_the_job_result():
     db = FakeDb([ROW])
     out = process_one(db, fake_analyse, push=FakePush(fail=True))
-    assert out == {"lift_id": "lift-1", "status": "done", "cue_id": "cue-1", "keyframes": 2, "clip_deleted": True}
+    assert out == {
+        "lift_id": "lift-1",
+        "status": "done",
+        "cue_id": "cue-1",
+        "keyframes": 2,
+        "trace": False,
+        "clip_deleted": True,
+    }
 
 
 def test_token_lookup_errors_never_change_the_job_result():

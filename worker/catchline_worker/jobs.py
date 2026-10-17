@@ -6,6 +6,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from catchline_cv import external_pose
+from catchline_cv import trace as cv_trace
 from catchline_cv.video import ClipUnreadable
 
 from .push import failed_message, ready_message
@@ -14,6 +15,7 @@ log = logging.getLogger("catchline_worker")
 
 RAW_BUCKET = "raw-clips"
 KEYFRAME_BUCKET = "keyframes"
+TRACE_BUCKET = "lift-traces"
 MAX_ATTEMPTS = 3
 VISIBILITY_S = 600
 
@@ -43,6 +45,10 @@ class Job:
     def pose_path(self) -> str:
         return f"{self.clip_path}.pose.json"
 
+    @property
+    def trace_path(self) -> str:
+        return f"{self.keyframe_prefix}.json.gz"
+
 
 @dataclass(frozen=True)
 class Result:
@@ -70,6 +76,23 @@ def fetch_pose(db, job: Job, workdir: str) -> dict | None:
     except Exception:
         log.exception("device pose for lift %s unusable; running server pose", job.lift_id)
         return None
+
+
+def save_trace(db, job: Job, rec: cv_trace.Recorder, result: Result, pose: dict | None, workdir: str) -> bool:
+    """Keep what the pipeline read from the clip (catchline_cv.trace: the lifter's keypoints without head points,
+    camera path, plate track; no video) so the lift can be re-analysed after the clip is gone. Best effort: a lift
+    without a trace is only one that cannot be re-run. Nothing is kept when the pipeline never read the clip."""
+    if rec.meta is None:
+        return False
+    try:
+        path = os.path.join(workdir, "trace.json.gz")
+        with open(path, "wb") as fh:
+            fh.write(cv_trace.dumps(rec.trace(result.analysis, "server" if pose is None else "device")))
+        db.upload(TRACE_BUCKET, job.trace_path, path, "application/gzip")
+        return True
+    except Exception:
+        log.exception("trace upload failed for lift %s", job.lift_id)
+        return False
 
 
 def delete_clip(db, job: Job) -> bool:
@@ -105,7 +128,7 @@ def process_one(
     """Claim one job and run it to a terminal state (or back into the queue).
 
     Success: download clip (+ the phone's pose for a pose_source 'device' lift) ->
-    analyse -> upload keyframes -> complete_lift_job -> delete clip -> notify.
+    analyse -> upload keyframes and the trace -> complete_lift_job -> delete clip -> notify.
     Error with attempts left: fail_lift_job(retry) and keep the clip for the retry.
     Error on the last attempt: fail_lift_job(no retry), delete the clip and notify.
     """
@@ -117,9 +140,11 @@ def process_one(
             clip = os.path.join(tmp, "clip")
             db.download(RAW_BUCKET, job.clip_path, clip)
             pose = fetch_pose(db, job, tmp)
-            result = analyse(clip, job, tmp) if pose is None else analyse(clip, job, tmp, pose=pose)
+            with cv_trace.recording() as rec:
+                result = analyse(clip, job, tmp) if pose is None else analyse(clip, job, tmp, pose=pose)
             for path in result.keyframes:
                 db.upload(KEYFRAME_BUCKET, f"{job.keyframe_prefix}/{os.path.basename(path)}", path, "image/jpeg")
+            traced = save_trace(db, job, rec, result, pose, tmp)
             out = db.rpc(
                 "complete_lift_job", {"p_msg_id": job.msg_id, "p_lift_id": job.lift_id, "p_analysis": result.analysis}
             )
@@ -149,6 +174,7 @@ def process_one(
         "status": out["status"],
         "cue_id": out.get("cue_id"),
         "keyframes": len(result.keyframes),
+        "trace": traced,
         "clip_deleted": deleted,
     }
 

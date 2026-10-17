@@ -2,6 +2,7 @@ import argparse
 import json
 import logging
 import os
+import sys
 import time
 
 from .heartbeat import Heartbeat, worker_id, worker_version
@@ -15,7 +16,11 @@ def client() -> Supabase:
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Catchline lift worker")
+    if sys.argv[1:2] == ["rerun"]:
+        from .rerun import main as rerun_main
+
+        return rerun_main(sys.argv[2:])
+    ap = argparse.ArgumentParser(description="Catchline lift worker (also: rerun --since <date>)")
     mode = ap.add_mutually_exclusive_group()
     mode.add_argument("--once", action="store_true", help="process at most one job, then exit")
     mode.add_argument("--drain", action="store_true", help="process until the queue is empty, then exit")

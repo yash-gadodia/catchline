@@ -25,6 +25,19 @@ class Supabase:
         rows = r.json()
         return rows[0]["pose_source"] if rows else "server"
 
+    def select(self, table: str, params: dict) -> list[dict]:
+        r = self.http.get(f"/rest/v1/{table}", params=params)
+        r.raise_for_status()
+        return r.json()
+
+    def get_bytes(self, bucket: str, path: str) -> bytes | None:
+        """The object's bytes, or None when it does not exist."""
+        r = self.http.get(f"/storage/v1/object/{bucket}/{path}")
+        if r.status_code in (400, 404):
+            return None
+        r.raise_for_status()
+        return r.content
+
     def download(self, bucket: str, path: str, dest: str) -> None:
         with self.http.stream("GET", f"/storage/v1/object/{bucket}/{path}") as r:
             r.raise_for_status()
