@@ -1,5 +1,5 @@
 import * as Clipboard from 'expo-clipboard';
-import { act, fireEvent, render } from '@testing-library/react-native';
+import { act, fireEvent, render, within } from '@testing-library/react-native';
 import LiftsScreen from './LiftsScreen';
 import CuesScreen from './CuesScreen';
 import CueDetailScreen, { DidntStickScreen, StuckScreen } from './CueDetailScreen';
@@ -241,6 +241,15 @@ describe('FailureScreen', () => {
     expect(getByTestId('failure-header')).toHaveTextContent('Snatch · 62.5 kg · frame 158');
     await press(getByTestId('failure-primary'));
     expect(onAction).toHaveBeenCalledWith(copy.primary.action);
+  });
+
+  // #17: the longest body (unsupported_movement) overflowed the fixed copy block and the pinned
+  // actions painted over its last line, so "The clip stays in your library." could not be read.
+  it.each(FAILURE_REASONS)('%s: the body stays reachable in the scrollable copy block', async (reason) => {
+    const { getByTestId } = await render(<FailureScreen reason={reason} header="Snatch" refCode="7f3a21" onAction={jest.fn()} />);
+    const block = getByTestId('failure-copy');
+    expect(block.type).toBe('RCTScrollView');
+    expect(within(block).getByText(FAILURE_COPY[reason].body)).toBeOnTheScreen();
   });
 
   it('lets the lifter pick between two people', async () => {
