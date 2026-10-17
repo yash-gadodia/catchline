@@ -90,7 +90,8 @@ export const you: Strings<typeof en> = {
   'you.stored.originals.title': 'Seus clipes originais',
   'you.stored.originals.body': 'No seu celular. Enviados uma vez para análise e apagados dos nossos servidores em até 24 horas.',
   'you.stored.positions.title': 'Posições e trajetória da barra',
-  'you.stored.positions.body': 'Números, não vídeo. Sem pontos do rosto; os pontos da cabeça são descartados antes de guardar.',
+  // REVIEW: machine-drafted, needs a native speaker
+  'you.stored.positions.body': 'Posições do corpo e trajetória da barra como números, não vídeo, guardadas para que seu histórico melhore quando a análise melhorar. Sem pontos do rosto; os pontos da cabeça são descartados antes de guardar. Apagadas com sua conta.',
   'you.stored.frames.title': 'Quadros-chave',
   'you.stored.frames.body': 'Cinco imagens por levantamento para o estroboscópio e o recorte de evidência. Pessoas ao fundo ficam desfocadas.',
   'you.stored.cues.title': 'Dicas e se elas funcionaram',

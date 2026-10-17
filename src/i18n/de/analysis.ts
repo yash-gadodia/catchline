@@ -36,6 +36,8 @@ export const analysis: Strings<typeof en> = {
   'analysis.cue.notForMe': 'Nicht für mich',
   'analysis.cue.whyThis': 'Warum das?',
   'analysis.cue.retest': 'Diesen Hinweis erneut testen',
+  // REVIEW: machine-drafted, needs a native speaker
+  'analysis.cue.reanalysed': 'Am {date} mit der verbesserten Analyse neu ausgewertet',
   'analysis.cue.lowConfidence': 'Geringe Sicherheit',
   'analysis.cue.worthChecking': 'Prüfenswert, nicht sicher',
   'analysis.cue.dashedPath': 'gestrichelter Weg = geringere Sicherheit',

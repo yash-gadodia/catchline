@@ -87,7 +87,7 @@ export const you = {
   'you.stored.originals.title': 'Your original clips',
   'you.stored.originals.body': 'On your phone. Sent once for analysis, deleted from our servers within 24 hours.',
   'you.stored.positions.title': 'Positions and bar path',
-  'you.stored.positions.body': 'Numbers, not video. No face points; head keypoints are dropped before storage.',
+  'you.stored.positions.body': 'Body positions and bar path as numbers, not video, kept so your history improves when the analysis does. No face points; head keypoints are dropped before storage. Deleted with your account.',
   'you.stored.frames.title': 'Key frames',
   'you.stored.frames.body': 'Five stills per lift for the strobe and the evidence crop. Background people blurred.',
   'you.stored.cues.title': 'Cues and whether they stuck',

@@ -90,7 +90,8 @@ export const you: Strings<typeof en> = {
   'you.stored.originals.title': 'Tes vidéos originales',
   'you.stored.originals.body': "Sur ton téléphone. Envoyées une fois pour l'analyse, supprimées de nos serveurs sous 24 heures.",
   'you.stored.positions.title': 'Positions et trajectoire de la barre',
-  'you.stored.positions.body': 'Des chiffres, pas de vidéo. Aucun point du visage, les points de la tête sont retirés avant stockage.',
+  // REVIEW: machine-drafted, needs a native speaker
+  'you.stored.positions.body': "Positions du corps et trajectoire de la barre sous forme de chiffres, pas de vidéo, conservées pour que ton historique s'améliore quand l'analyse s'améliore. Aucun point du visage, les points de la tête sont retirés avant stockage. Supprimées avec ton compte.",
   'you.stored.frames.title': 'Images clés',
   'you.stored.frames.body': "Cinq images par mouvement pour la chronophotographie et le recadrage de preuve. Les personnes à l'arrière-plan sont floutées.",
   'you.stored.cues.title': 'Consignes et si elles ont tenu',

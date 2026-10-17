@@ -30,6 +30,7 @@ export function parseAnalysis(json: unknown): Analysis {
   }
   if (a.notes != null && !Array.isArray(a.notes)) fail('notes');
   if (a.analysisVersion != null && (typeof a.analysisVersion !== 'string' || a.analysisVersion === '')) fail('analysisVersion');
+  if (a.reanalysedAt != null && (typeof a.reanalysedAt !== 'string' || Number.isNaN(Date.parse(a.reanalysedAt)))) fail('reanalysedAt');
   if (a.cue && !CONFIDENCE.includes(a.cue.confidence)) fail(`confidence ${a.cue.confidence}`);
   return a;
 }

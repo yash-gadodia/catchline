@@ -21,7 +21,7 @@ import Stage from './Stage';
 import { FlarePath, OverlaySvg } from './overlays';
 import RetestVerdict, { useRetest, useRetestable, type Retest } from './RetestVerdict';
 import type { CueRecord } from '../library/types';
-import { t } from '../../i18n';
+import { formatDate, t } from '../../i18n';
 import { cueText, cueWhy } from '../../i18n/cues';
 
 type Nav = {
@@ -88,6 +88,7 @@ function CueBody({ analysis, nav, onWhy, retest, retestable }: { analysis: Analy
         <DrillCard faultId={cue.faultId} />
         <CueNotes notes={analysis.notes} />
         <Disclaimer />
+        <Reanalysed analysis={analysis} />
       </ScrollView>
       <View style={{ paddingTop: space.s4, paddingHorizontal: space.gutter, paddingBottom: space.s7, gap: space.s2 }}>
         <Btn onPress={nav.onTry} testID="cue-try">
@@ -113,6 +114,17 @@ function RetestButton({ cue, nav }: { cue?: CueRecord; nav: Nav }) {
     <Btn kind="secondary" onPress={() => nav.onRetest?.(cue.id)} testID="cue-retest">
       {t('analysis.cue.retest')}
     </Btn>
+  );
+}
+
+// A lift re-run from its stored trace says so, quietly: the numbers may differ from the first time it was shown.
+export function Reanalysed({ analysis }: { analysis: Analysis }) {
+  if (!analysis.reanalysedAt) return null;
+  const date = formatDate(new Date(analysis.reanalysedAt), { day: 'numeric', month: 'short', year: 'numeric' });
+  return (
+    <Text testID="reanalysed" style={{ color: colors.text2, ...type.caption }}>
+      {t('analysis.cue.reanalysed', { date })}
+    </Text>
   );
 }
 
@@ -183,6 +195,7 @@ function LowConfidence({ analysis, nav, retest, retestable }: { analysis: Analys
         <Text style={{ color: colors.text2, ...type.callout }}>{cueWhy(cue.faultId, cue.why)}</Text>
         <CueNotes notes={analysis.notes} />
         <Disclaimer />
+        <Reanalysed analysis={analysis} />
       </ScrollView>
       <View style={{ paddingTop: space.s4, paddingHorizontal: space.gutter, paddingBottom: space.s7, gap: space.s2 }}>
         <Btn
@@ -220,6 +233,7 @@ function NoCue({ analysis, nav, retest, retestable }: { analysis: Analysis; nav:
         <Text style={{ color: colors.text2, ...type.body }}>
           {analysis.failure?.message ?? t('analysis.cue.everyRepMatched')}
         </Text>
+        <Reanalysed analysis={analysis} />
       </View>
       {retestable && nav.onRetest ? (
         <View style={{ paddingHorizontal: space.gutter, paddingBottom: Math.max(insets.bottom, space.s7) }}>

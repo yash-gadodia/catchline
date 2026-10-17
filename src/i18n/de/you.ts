@@ -90,7 +90,8 @@ export const you: Strings<typeof en> = {
   'you.stored.originals.title': 'Deine Originalclips',
   'you.stored.originals.body': 'Auf deinem Handy. Einmal zur Analyse gesendet und innerhalb von 24 Stunden von unseren Servern gelöscht.',
   'you.stored.positions.title': 'Positionen und Stangenweg',
-  'you.stored.positions.body': 'Zahlen, kein Video. Keine Gesichtspunkte; Kopfpunkte werden vor dem Speichern verworfen.',
+  // REVIEW: machine-drafted, needs a native speaker
+  'you.stored.positions.body': 'Körperpositionen und Hantelweg als Zahlen, kein Video, gespeichert, damit dein Verlauf besser wird, wenn die Analyse besser wird. Keine Gesichtspunkte; Kopfpunkte werden vor dem Speichern verworfen. Werden mit deinem Konto gelöscht.',
   'you.stored.frames.title': 'Schlüsselbilder',
   'you.stored.frames.body': 'Fünf Standbilder pro Lift für die Stroboskop-Ansicht und den Beweisausschnitt. Personen im Hintergrund werden unscharf.',
   'you.stored.cues.title': 'Hinweise und ob sie gesessen haben',

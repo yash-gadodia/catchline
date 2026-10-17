@@ -137,4 +137,6 @@ export type Analysis = {
   // Absent on analyses made before versions were stamped.
   analysisVersion?: string;
   analysisRevision?: string;
+  // Set when the lift was re-analysed from its stored trace with a newer analysis (ISO time, server-stamped).
+  reanalysedAt?: string;
 };

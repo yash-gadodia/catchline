@@ -33,6 +33,7 @@ export const analysis = {
   'analysis.cue.notForMe': 'Not for me',
   'analysis.cue.whyThis': 'Why this?',
   'analysis.cue.retest': 'Retest this cue',
+  'analysis.cue.reanalysed': 'Re-analysed on {date} with the improved analysis',
   'analysis.cue.lowConfidence': 'Low confidence',
   'analysis.cue.worthChecking': 'Worth checking, not certain',
   'analysis.cue.dashedPath': 'dashed path = lower confidence',

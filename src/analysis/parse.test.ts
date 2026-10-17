@@ -39,5 +39,7 @@ describe('parseAnalysis', () => {
     expect(parseAnalysis(mock).analysisVersion).toBeUndefined();
     expect(() => parseAnalysis({ ...mock, analysisVersion: 3 })).toThrow('Invalid Analysis: analysisVersion');
     expect(() => parseAnalysis({ ...mock, analysisVersion: '' })).toThrow('Invalid Analysis: analysisVersion');
+    expect(parseAnalysis({ ...mock, reanalysedAt: '2026-10-16T08:30:00Z' }).reanalysedAt).toBe('2026-10-16T08:30:00Z');
+    expect(() => parseAnalysis({ ...mock, reanalysedAt: 'soon' })).toThrow('Invalid Analysis: reanalysedAt');
   });
 });
