@@ -41,6 +41,7 @@ export default function CueRoute() {
         onNotForMe: back,
         onBack: back,
         onFilmAgain: filmAgain,
+        onShare: () => router.push({ pathname: '/share', params: { fixture: analysis.id } }),
         onMore: () =>
           openLiftActions(analysis, {
             onShare: () => {

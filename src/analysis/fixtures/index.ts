@@ -150,8 +150,12 @@ export function isSample(a: Analysis): boolean {
 
 export const SAMPLE_ROUTE = { pathname: '/analysis/processing', params: { fixture: SAMPLE_ID } } as const;
 
+// A clean rep: measured fine, no fault crossed its threshold (prod lift eeed17ec, build 31 crashed on it).
+export const snatchMockClean: Analysis = { ...snatchMock, id: 'snatch-mock-clean', cue: null, notes: [] };
+
 export const ANALYSES: Record<string, Analysis> = {
   'snatch-mock': snatchMock,
+  'snatch-mock-clean': snatchMockClean,
   'snatch-mock-low': snatchMockLow,
   'snatch-mock-miss': snatchMockMiss,
   'snatch-real': snatchReal,

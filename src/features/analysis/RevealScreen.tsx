@@ -61,16 +61,17 @@ export default function RevealScreen({
   const reduce = reduceMotion ?? systemReduce;
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const cue = analysis.cue!;
-  const cueLine = cueText(cue.faultId, cue.text);
-  const rep = repByIndex(analysis, cue.evidence.rep);
+  // No cue (no fault fired): the same storyboard without the fault zoom, typing "Clean rep." instead.
+  const cue = analysis.cue;
+  const cueLine = cue ? cueText(cue.faultId, cue.text) : t('analysis.clean.title');
+  const rep = repByIndex(analysis, cue?.evidence.rep ?? analysis.bestRepIndex);
   const box: Size = { width, height: Math.round(width * 1.25) };
   const src = { width: analysis.video.width, height: analysis.video.height };
   const fit = coverFit(src, box, { x: 0.5, y: 0.3 });
   const strobe = STROBE.map((s) => ({ ...s, key: keyFrameForPhase(rep, s.phase) })).filter(
     (s): s is typeof s & { key: KeyFrame } => !!s.key
   );
-  const fault = keyFrameAt(rep, cue.evidence.frame);
+  const fault = keyFrameAt(rep, cue?.evidence.frame ?? rep.startFrame);
 
   const pops = [useSharedValue(0), useSharedValue(0), useSharedValue(0), useSharedValue(0)];
   const draw = useSharedValue(reduce ? 1 : 0);
@@ -101,11 +102,13 @@ export default function RevealScreen({
 
     if (reduce) {
       pops.forEach((p, i) => (p.value = withTiming(strobe[i]?.opacity ?? 0, { duration: 200 })));
-      at(900, () => {
-        faultOpacity.value = withTiming(1, { duration: 200 });
-        line.value = 1;
-        setShowNumber(true);
-      });
+      if (cue) {
+        at(900, () => {
+          faultOpacity.value = withTiming(1, { duration: 200 });
+          line.value = 1;
+          setShowNumber(true);
+        });
+      }
       at(1300, () => {
         setTyped(text.length);
         impact('rigid');
@@ -125,12 +128,14 @@ export default function RevealScreen({
       draw.value = withTiming(1, { duration: REVEAL.pathMs, easing: Easing.out(Easing.cubic) });
     });
     at(REVEAL.pathStart + REVEAL.pathMs + 40, () => impact('rigid'));
-    at(REVEAL.zoomAt, () => {
-      faultOpacity.value = withTiming(1, { duration: 200 });
-      zoom.value = withTiming(1.25, { duration: 400, easing: Easing.out(Easing.cubic) });
-      line.value = withTiming(1, { duration: REVEAL.lineMs });
-    });
-    at(REVEAL.numberAt, () => setShowNumber(true));
+    if (cue) {
+      at(REVEAL.zoomAt, () => {
+        faultOpacity.value = withTiming(1, { duration: 200 });
+        zoom.value = withTiming(1.25, { duration: 400, easing: Easing.out(Easing.cubic) });
+        line.value = withTiming(1, { duration: REVEAL.lineMs });
+      });
+      at(REVEAL.numberAt, () => setShowNumber(true));
+    }
     at(REVEAL.typeAt, () => {
       let n = 0;
       typer = typerRef.current = setInterval(() => {
@@ -151,8 +156,8 @@ export default function RevealScreen({
   }, []);
 
   const s = (p: { x: number; y: number }) => toScreen(p, fit);
-  const evidenceTo = s(cue.evidence.to);
-  const evidenceFrom = s(cue.evidence.from);
+  const evidenceTo = s(cue?.evidence.to ?? { x: 0.5, y: 0.5 });
+  const evidenceFrom = s(cue?.evidence.from ?? { x: 0.5, y: 0.5 });
   const centre = { x: box.width / 2, y: box.height / 2 };
   const zoomStyle = useAnimatedStyle(() => ({
     transform: [
@@ -188,7 +193,7 @@ export default function RevealScreen({
               <DimensionLine from={evidenceFrom} to={evidenceTo} />
             </OverlaySvg>
           </Animated.View>
-          {showNumber && typed === 0 ? (
+          {cue && showNumber && typed === 0 ? (
             <HeroNumber text={heroValue(cue)} at={{ x: Math.min(evidenceFrom.x, evidenceTo.x) + 12, y: evidenceTo.y }} size={40} box={box} />
           ) : null}
         </Animated.View>
@@ -201,7 +206,7 @@ export default function RevealScreen({
         ) : null}
         {typed > 0 ? (
           <>
-            <SmallCaps size={13}>{t('analysis.reveal.oneThing')}</SmallCaps>
+            <SmallCaps size={13}>{cue ? t('analysis.reveal.oneThing') : t('analysis.clean.label')}</SmallCaps>
             <Text style={[display(34), { color: colors.text }]} testID="reveal-cue">
               {cueLine.slice(0, typed)}
               {typed < cueLine.length ? <Text style={{ color: colors.flare }}>|</Text> : null}

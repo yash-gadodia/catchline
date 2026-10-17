@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { Analysis } from '../../analysis/types';
+import type { Analysis, Cue } from '../../analysis/types';
 import { filmedAtAngle, liftTitle } from '../../analysis/format';
-import { keyFrameAt, liftPath, repByIndex } from '../../analysis/timeline';
+import { keyFrameAt, keyFrameForPhase, liftPath, repByIndex } from '../../analysis/timeline';
 import { toScreen } from '../../analysis/geometry';
 import Btn from '../../components/Btn';
 import SmallCaps from '../../components/SmallCaps';
@@ -32,6 +32,7 @@ type Nav = {
   onKeep?: () => void;
   onMore?: () => void;
   onRetest?: (cueId: string) => void;
+  onShare?: () => void;
   onStuck?: (cueId: string) => void;
 };
 
@@ -52,21 +53,28 @@ export default function CueScreen({
   const retest = useRetest(analysis, retestCueId);
   const retestable = useRetestable(analysis, retestCueId);
   const cue = analysis.cue;
+  if (!cue && !analysis.failure && analysis.reps.length > 0) return <Clean analysis={analysis} nav={nav} retest={retest} />;
   if (!cue) return <NoCue analysis={analysis} nav={nav} retest={retest} retestable={retestable} />;
-  if (cue.confidence !== 'clear') return <LowConfidence analysis={analysis} nav={nav} retest={retest} retestable={retestable} />;
+  if (cue.confidence !== 'clear') return <LowConfidence analysis={analysis} cue={cue} nav={nav} retest={retest} retestable={retestable} />;
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }} testID="cue-screen">
-      <CueBody analysis={analysis} nav={nav} onWhy={() => setWhy(true)} retest={retest} retestable={retestable} />
+      <CueBody analysis={analysis} cue={cue} nav={nav} onWhy={() => setWhy(true)} retest={retest} retestable={retestable} />
       {why ? <WhyDrawer analysis={analysis} onClose={() => setWhy(false)} /> : null}
     </View>
   );
 }
 
-function CueBody({ analysis, nav, onWhy, retest, retestable }: { analysis: Analysis; nav: Nav; onWhy: () => void } & RetestProps) {
+function CueBody({
+  analysis,
+  cue,
+  nav,
+  onWhy,
+  retest,
+  retestable,
+}: { analysis: Analysis; cue: Cue; nav: Nav; onWhy: () => void } & RetestProps) {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const { lifts, sessions } = useLibrary();
-  const cue = analysis.cue!;
   const sample = isSample(analysis);
   const baseline = sample ? null : baselineSentence(analysis, lifts, sessions);
   return (
@@ -147,10 +155,9 @@ function TextAction({ children, onPress, testID }: { children: string; onPress?:
   );
 }
 
-function LowConfidence({ analysis, nav, retest, retestable }: { analysis: Analysis; nav: Nav } & RetestProps) {
+function LowConfidence({ analysis, cue, nav, retest, retestable }: { analysis: Analysis; cue: Cue; nav: Nav } & RetestProps) {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const cue = analysis.cue!;
   const rep = repByIndex(analysis, cue.evidence.rep);
   const key = keyFrameAt(rep, cue.evidence.frame);
   const box = { width, height: Math.round(width * (330 / 390)) };
@@ -212,6 +219,57 @@ function LowConfidence({ analysis, nav, retest, retestable }: { analysis: Analys
           <View style={{ alignItems: 'center' }}>
             <TextAction onPress={nav.onFilmAgain} testID="film-again">
               {t('analysis.cue.filmAgain')}
+            </TextAction>
+          </View>
+        ) : null}
+      </View>
+    </View>
+  );
+}
+
+// A clean rep: measured fine and no fault crossed its threshold. A result, not a gap: the path, then go heavier.
+function Clean({ analysis, nav, retest }: { analysis: Analysis; nav: Nav; retest: Retest | null }) {
+  const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const rep = repByIndex(analysis, analysis.bestRepIndex);
+  const key = keyFrameForPhase(rep, 'catch') ?? rep.keyFrames[rep.keyFrames.length - 1];
+  const box = { width, height: Math.round(width * (330 / 390)) };
+  const src = { width: analysis.video.width, height: analysis.video.height };
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }} testID="clean-result">
+      <TopBar title={liftTitle(analysis)} onBack={nav.onBack} onMore={nav.onMore} />
+      <View>
+        <Stage src={src} box={box} focus={{ x: 0.5, y: 0.45 }} layers={[{ image: key?.image }]}>
+          {(fit) => (
+            <OverlaySvg box={box}>
+              <FlarePath points={liftPath(rep).map((p) => toScreen(p, fit))} testID="clean-path" />
+            </OverlaySvg>
+          )}
+        </Stage>
+      </View>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: space.s4, paddingHorizontal: space.gutter, gap: space.s2 }}>
+        {retest ? <RetestVerdict retest={retest} onStuck={nav.onStuck} /> : null}
+        <SmallCaps>{t('analysis.clean.label')}</SmallCaps>
+        <Text style={[display(40), { color: colors.text }]} testID="clean-title">
+          {t('analysis.clean.title')}
+        </Text>
+        <Text style={{ color: colors.text2, ...type.body }} testID="clean-body">
+          {t('analysis.clean.body')}
+        </Text>
+        <Disclaimer />
+        <Reanalysed analysis={analysis} />
+      </ScrollView>
+      <View style={{ paddingTop: space.s4, paddingHorizontal: space.gutter, paddingBottom: space.s7, gap: space.s2 }}>
+        <Btn onPress={nav.onFilmAgain} testID="retest-heavier">
+          {t('analysis.clean.retestHeavier')}
+        </Btn>
+        <Btn kind="secondary" onPress={nav.onTry} testID="see-breakdown">
+          {t('analysis.cue.seeBreakdown')}
+        </Btn>
+        {nav.onShare ? (
+          <View style={{ alignItems: 'center' }}>
+            <TextAction onPress={nav.onShare} testID="clean-share">
+              {t('analysis.clean.share')}
             </TextAction>
           </View>
         ) : null}

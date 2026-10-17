@@ -24,6 +24,8 @@ export const library = {
   'library.detail.miss': 'miss · {cue}',
   'library.detail.possible': 'possible · {cue}',
   'library.detail.analysed': 'analysed',
+  'library.detail.clean': 'clean',
+  'library.detail.cleanHead': '{head} · clean',
   'library.detail.best': '{head} · best {value}',
   'library.counter': '{done} of {target}',
   'library.ago.today': 'today',

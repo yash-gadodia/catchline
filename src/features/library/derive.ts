@@ -120,6 +120,11 @@ export function liftDetail(l: Lift, sessions: Session[], opts: { cueShown?: bool
   const session = sessions.find((s) => s.liftId === l.id);
   const metricId = PRIMARY_METRIC[l.movement];
   const value = session?.values[metricId];
+  if (analysis && !analysis.cue && !analysis.failure && analysis.reps.length > 0) {
+    return value == null
+      ? t('library.detail.clean')
+      : t('library.detail.cleanHead', { head: `${metricFor(metricId).short} ${metricText(metricId, value)}` });
+  }
   // The headline number first, so a row reads without opening it.
   if (value == null) return analysis?.cue ? analysis.cue.evidence.caption : (l.headline ?? t('library.detail.analysed'));
   const best = bestOf(seriesFor(sessions, l.movement, metricId), metricId);

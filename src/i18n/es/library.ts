@@ -27,6 +27,9 @@ export const library: Strings<typeof en> = {
   'library.detail.miss': "fallo · {cue}",
   'library.detail.possible': "posible · {cue}",
   'library.detail.analysed': "analizado",
+  // REVIEW: machine-drafted, needs a native speaker before release.
+  'library.detail.clean': 'limpia',
+  'library.detail.cleanHead': '{head} · limpia',
   'library.detail.best': "{head} · mejor {value}",
   'library.counter': "{done} de {target}",
   'library.ago.today': "hoy",

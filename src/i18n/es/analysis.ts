@@ -46,6 +46,12 @@ export const analysis: Strings<typeof en> = {
   'analysis.cue.filmAgain': 'Graba de nuevo de lado',
   'analysis.cue.couldNotRead': 'No pudimos leer este',
   'analysis.cue.nothingToFix': 'Nada que corregir en esta serie',
+  // REVIEW: machine-drafted, needs a native speaker before release.
+  'analysis.clean.title': 'Repetición limpia.',
+  'analysis.clean.body': 'Nada superó un umbral de fallo. Trayectoria y fases abajo.',
+  'analysis.clean.label': 'Trayectoria y fases · Estimación de la IA',
+  'analysis.clean.retestHeavier': 'Prueba con más peso',
+  'analysis.clean.share': 'Compartir',
   'analysis.cue.everyRepMatched': 'Cada repetición igualó tu mejor marca. Sigue grabando.',
   'analysis.miss.because': 'Fallaste porque',
   'analysis.miss.compare': 'Compara con tu intento válido',

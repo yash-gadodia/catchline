@@ -46,6 +46,12 @@ export const analysis: Strings<typeof en> = {
   'analysis.cue.filmAgain': 'Nochmal von der Seite filmen',
   'analysis.cue.couldNotRead': 'Diesen konnten wir nicht auswerten',
   'analysis.cue.nothingToFix': 'Nichts zu verbessern in diesem Satz',
+  // REVIEW: machine-drafted, needs a native speaker before release.
+  'analysis.clean.title': 'Saubere Wiederholung.',
+  'analysis.clean.body': 'Keine Fehlerschwelle überschritten. Hantelweg und Phasen unten.',
+  'analysis.clean.label': 'Hantelweg und Phasen · KI-Schätzung',
+  'analysis.clean.retestHeavier': 'Schwerer erneut testen',
+  'analysis.clean.share': 'Teilen',
   'analysis.cue.everyRepMatched': 'Jede Wiederholung war so gut wie dein Bestwert. Film weiter.',
   'analysis.miss.because': 'Fehlversuch, weil',
   'analysis.miss.compare': 'Mit deinem gültigen Versuch vergleichen',
