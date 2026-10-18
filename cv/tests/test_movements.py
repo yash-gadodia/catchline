@@ -106,6 +106,34 @@ def test_check_rejects_a_snatch_tagged_as_a_pull_up_and_accepts_the_match():
     assert movement.check("ring_muscle_up", sig) == (False, "ring muscle up analysis is not available.")
 
 
+def test_a_kip_filmed_off_side_on_with_drifting_hands_is_still_hanging():
+    # #29: 30-45 deg off side-on, tracking and camera drift move the "fixed" hands about as far as the feet, so the
+    # feet-vs-hands test fails and the chin-at-the-bar frames read as a barbell at the shoulders
+    n = 390
+    t = np.arange(n)
+    sho = 300 + 240 * (0.5 + 0.5 * np.cos(2 * np.pi * t / 50))
+    wri = 250 + 60 * np.sin(2 * np.pi * t / n)
+    k = body_seq(n, sho, sho + 200, wri, wri_x=360 + 300 * t / n)
+    assert movement.check("kipping_pull_up", movement.signals(k, FPS)) == (True, None)
+    assert movement.family(movement.signals(k, FPS)) == "hanging"
+
+
+def test_hands_overhead_moving_with_the_body_are_not_hanging():
+    n = 300  # an overhead-squat-like clip: bar overhead the whole time, the hands ride up and down with the shoulders
+    t = np.arange(n)
+    sho = 500 + 200 * (0.5 + 0.5 * np.cos(2 * np.pi * t / 90))
+    sig = movement.signals(body_seq(n, sho, sho + 200, sho - 250), FPS)
+    assert sig["overhead_s"] * FPS >= 0.75 * n
+    assert sig["hanging"] is False
+
+
+def test_a_second_of_upside_down_pose_in_a_long_snatch_clip_is_not_a_handstand():
+    k = np.concatenate([snatch_like(120)] * 8)  # 32 s
+    k[300:345] = handstand_like(45)  # 1.5 s of flipped pose
+    assert movement.family(movement.signals(k, FPS)) == "barbell"
+    assert movement.family(movement.signals(handstand_like(), FPS)) == "inverted"
+
+
 def test_check_lets_an_unclear_clip_through_to_the_analysis():
     still = body_seq(90, 500.0, 700.0, 690.0, knee_y=850.0, ank_y=1000.0)  # standing, hands at the hips
     sig = movement.signals(still, FPS)
