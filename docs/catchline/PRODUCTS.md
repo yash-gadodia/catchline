@@ -10,9 +10,9 @@ Prices are USD base prices. Let Apple and Google set the other territories, then
 |---|---|---|---|---|
 | Free | 3 for life (1 in the ad funnel) | - | - | none |
 | Hook | 12 a month | $4.99 | $29.99 | `hook` |
-| Pull (preselected) | 40 a month | $9.99 | $59.99 | `hook`, `pull` |
+| Pull (preselected) | Unlimited (1000 a month fair use) | $2.99 | $19.99 | `hook`, `pull` |
 | Platform | 100 a month, fair use | $14.99 | $99.99 | `hook`, `pull`, `platform` |
-| Founding member | 40 a month (Pull for life) | - | $49.99 once | `hook`, `pull`, `founding` |
+| Founding member | Unlimited (Pull for life) | - | $29.99 once | `hook`, `pull`, `founding` |
 
 What each tier unlocks (`featuresFor` in `entitlements.ts`):
 - Free and Hook: cue, player, watermarked share. Hook adds 90-day cue memory.
@@ -29,13 +29,13 @@ The monthly caps reset on the 1st of each calendar month. Usage is counted on th
 |---|---|---|---|---|---|
 | `catchline_hook_monthly` | Auto-renewable | 1 month | $4.99 | 3 | none |
 | `catchline_hook_annual` | Auto-renewable | 1 year | $29.99 | 3 | none |
-| `catchline_pull_monthly` | Auto-renewable | 1 month | $9.99 | 2 | none |
-| `catchline_pull_annual` | Auto-renewable | 1 year | $59.99 | 2 | none |
-| `catchline_pull_monthly_trial7` | Auto-renewable | 1 month | $9.99 | 2 | Free trial, 1 week |
-| `catchline_pull_annual_trial7` | Auto-renewable | 1 year | $59.99 | 2 | Free trial, 1 week |
+| `catchline_pull_monthly` | Auto-renewable | 1 month | $2.99 | 2 | none |
+| `catchline_pull_annual` | Auto-renewable | 1 year | $19.99 | 2 | none |
+| `catchline_pull_monthly_trial7` | Auto-renewable | 1 month | $2.99 | 2 | Free trial, 1 week |
+| `catchline_pull_annual_trial7` | Auto-renewable | 1 year | $19.99 | 2 | Free trial, 1 week |
 | `catchline_platform_monthly` | Auto-renewable | 1 month | $14.99 | 1 | none |
 | `catchline_platform_annual` | Auto-renewable | 1 year | $99.99 | 1 | none |
-| `catchline_founding_lifetime` | Non-consumable | - | $49.99 | - | - |
+| `catchline_founding_lifetime` | Non-consumable | - | $29.99 | - | - |
 
 - Only the two `_trial7` products have a trial, so the organic paywall never shows one. Apple allows one introductory offer per subscription group per person, so a lifter who has already used a trial pays from day one.
 - On iOS an upgrade takes effect straight away. Apple charges the full price of the new tier and refunds the unused part of the old one, so the upgrade sheet shows "$59.99 today, $X back for unused time" on iOS.

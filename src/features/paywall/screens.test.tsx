@@ -78,12 +78,12 @@ describe('PaywallSheet', () => {
     expect(getAllByTestId('dot-stuck')).toHaveLength(1);
     expect(getByTestId('tier-pull')).toBeSelected();
     expect(getByTestId('period-annual')).toBeSelected();
-    expect(getByText('Continue · $59.99 a year')).toBeOnTheScreen();
+    expect(getByText('Continue · $19.99 a year')).toBeOnTheScreen();
     expect(
       getByText('Charged today, renews yearly, cancel any time. This lift is saved and goes first.')
     ).toBeOnTheScreen();
-    expect(getByText('Annual · save 50%')).toBeOnTheScreen();
-    expect(getByTestId('tier-pull')).toHaveTextContent('Pull40 videos a month · ghost of best · did it stick · no watermark$59.99/yr');
+    expect(getByText('Annual · save 44%')).toBeOnTheScreen();
+    expect(getByTestId('tier-pull')).toHaveTextContent('PullUnlimited videos · ghost of best · did it stick · no watermark$19.99/yr');
     expect(getByTestId('founding-seats')).toHaveTextContent('137 of 500 left');
   });
 
@@ -102,10 +102,10 @@ describe('PaywallSheet', () => {
   it('switches to monthly and to the founding seat with exact charge copy', async () => {
     const { getByText, getByTestId } = await renderPaywall(handlers());
     await press(getByTestId('period-monthly'));
-    expect(getByText('Continue · $9.99 a month')).toBeOnTheScreen();
-    expect(getByTestId('tier-pull')).toHaveTextContent('Pull40 videos a month · ghost of best · did it stick · no watermark$9.99/mo');
+    expect(getByText('Continue · $2.99 a month')).toBeOnTheScreen();
+    expect(getByTestId('tier-pull')).toHaveTextContent('PullUnlimited videos · ghost of best · did it stick · no watermark$2.99/mo');
     await press(getByTestId('tier-founding'));
-    expect(getByText('Take a seat · $49.99')).toBeOnTheScreen();
+    expect(getByText('Take a seat · $29.99')).toBeOnTheScreen();
     expect(
       getByText('Charged once today. No renewal, Pull for life. This lift is saved and goes first.')
     ).toBeOnTheScreen();
@@ -162,7 +162,7 @@ describe('PaywallSheet', () => {
     const { getByTestId, getByText } = await renderPaywall(handlers(), { platform: 'android', initialPhase: 'purchasing' });
     expect(getByTestId('state-purchasing')).toBeOnTheScreen();
     expect(getByText('Confirming with Google Play')).toBeOnTheScreen();
-    expect(getByText('Pull · $59.99 a year')).toBeOnTheScreen();
+    expect(getByText('Pull · $19.99 a year')).toBeOnTheScreen();
   });
 
   it('Not now keeps the clip queued; Restore restores', async () => {
@@ -190,7 +190,7 @@ describe('PlansScreen', () => {
     );
     expect(getByTestId('col-current-pull')).toHaveStyle({ backgroundColor: '#1F1F1F' });
     expect(getByTestId('current-plan')).toHaveTextContent('Current plan: Pullrenews 11 Oct 2027');
-    expect(getByText('$59.99/yr')).toBeOnTheScreen();
+    expect(getByText('$19.99/yr')).toBeOnTheScreen();
     expect(getByText('once')).toBeOnTheScreen();
     expect(getByText('Free')).toBeOnTheScreen();
     expect(getByText('Founding')).toBeOnTheScreen();
@@ -220,7 +220,7 @@ describe('FoundingSheet', () => {
   it('shows the live counter with no timer', async () => {
     const p = props();
     const { getByTestId, getByText, queryByText } = await render(<FoundingSheet seats={SEATS} {...p} />);
-    expect(getByText('Pull, for life, for $49.99 once.')).toBeOnTheScreen();
+    expect(getByText('Pull, for life, for $29.99 once.')).toBeOnTheScreen();
     expect(getByTestId('seats-remaining')).toHaveTextContent('137');
     expect(getByText('of 500 seats left. Seats are the only limit.')).toBeOnTheScreen();
     expect(getByTestId('seats-bar-open')).toHaveStyle({ width: '27.4%', backgroundColor: '#EDE9E1' });
@@ -239,7 +239,7 @@ describe('FoundingSheet', () => {
     const p = props();
     const { getByText } = await render(<FoundingSheet seats={{ total: 500, remaining: 0 }} {...p} />);
     expect(getByText('All 500 seats are taken.')).toBeOnTheScreen();
-    expect(getByText('Thanks to the first 500. Pull is $59.99 a year, cancel any time.')).toBeOnTheScreen();
+    expect(getByText('Thanks to the first 500. Pull is $19.99 a year, cancel any time.')).toBeOnTheScreen();
     await press(getByText('See plans'));
     expect(p.onSeePlans).toHaveBeenCalledTimes(1);
   });
@@ -247,7 +247,7 @@ describe('FoundingSheet', () => {
   it('taking a seat buys the founding product', async () => {
     const p = props();
     const { getByText } = await render(<FoundingSheet seats={SEATS} {...p} />);
-    await press(getByText('Take a seat · $49.99'));
+    await press(getByText('Take a seat · $29.99'));
     expect(p.purchase).toHaveBeenCalledWith({ kind: 'founding' });
     expect(getByText('Pull, for life. No renewal.')).toBeOnTheScreen();
   });
@@ -257,7 +257,7 @@ describe('CapSheet', () => {
   it('a Pull subscriber at the cap sees the reset date and no upgrade', async () => {
     const onQueue = jest.fn();
     const { getByText, queryByTestId, queryByText } = await render(<CapSheet tier="pull" now={NOW} onQueue={onQueue} />);
-    expect(getByText("You've used your 40 this month.")).toBeOnTheScreen();
+    expect(getByText("You've used your 1000 this month.")).toBeOnTheScreen();
     expect(
       getByText("Resets on 1 Nov. This clip is saved and goes through then. Filming and everything you've already analysed keep working.")
     ).toBeOnTheScreen();
@@ -267,9 +267,9 @@ describe('CapSheet', () => {
     expect(queryByText(/Upgrade|Platform/)).toBeNull();
   });
 
-  it('a founding member gets the same 40 and reset', async () => {
+  it('a founding member gets the same fair-use cap and reset', async () => {
     const { getByText } = await render(<CapSheet tier="founding" now={NOW} onQueue={jest.fn()} />);
-    expect(getByText("You've used your 40 this month.")).toBeOnTheScreen();
+    expect(getByText("You've used your 1000 this month.")).toBeOnTheScreen();
   });
 });
 
@@ -352,15 +352,15 @@ describe('TrialPaywall', () => {
     const { getByText, getByTestId, queryByText } = await render(<TrialPaywall webCheckout={false} {...p} />);
     expect(getByText('Try Pull free for 7 days')).toBeOnTheScreen();
     expect(getByTestId('trial-annual')).toBeSelected();
-    expect(getByText('$5 a month, billed $59.99')).toBeOnTheScreen();
-    expect(getByText('save 50%')).toBeOnTheScreen();
+    expect(getByText('$1.67 a month, billed $19.99')).toBeOnTheScreen();
+    expect(getByText('save 44%')).toBeOnTheScreen();
     expect(
-      getByText("Today: nothing. 18 Oct: $59.99 unless you cancel. We'll remind you two days before.")
+      getByText("Today: nothing. 18 Oct: $19.99 unless you cancel. We'll remind you two days before.")
     ).toBeOnTheScreen();
     expect(queryByText('Pay on the web instead')).toBeNull();
     await press(getByTestId('trial-monthly'));
     expect(
-      getByText("Today: nothing. 18 Oct: $9.99 unless you cancel. We'll remind you two days before.")
+      getByText("Today: nothing. 18 Oct: $2.99 unless you cancel. We'll remind you two days before.")
     ).toBeOnTheScreen();
     await press(getByText('Start free trial'));
     expect(p.purchase).toHaveBeenCalledWith({ kind: 'sub', tier: 'pull', period: 'monthly', trial: true });

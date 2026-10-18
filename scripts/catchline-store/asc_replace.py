@@ -36,14 +36,14 @@ SUBSCRIPTIONS = [
     # productId, reference name, period, level, USD, display name, description (<=55), trial
     ("catchline_platform_monthly", "Catchline Platform Monthly", "ONE_MONTH", 1, "14.99", "Platform", "100 videos a month, coach link, CSV export", False),
     ("catchline_platform_annual", "Catchline Platform Annual", "ONE_YEAR", 1, "99.99", "Platform (annual)", "100 videos a month, coach link, CSV export", False),
-    ("catchline_pull_monthly", "Catchline Pull Monthly", "ONE_MONTH", 2, "9.99", "Pull", "40 videos a month, full cue memory, no watermark", False),
-    ("catchline_pull_annual", "Catchline Pull Annual", "ONE_YEAR", 2, "59.99", "Pull (annual)", "40 videos a month, full cue memory, no watermark", False),
-    ("catchline_pull_monthly_trial7", "Catchline Pull Monthly Trial", "ONE_MONTH", 2, "9.99", "Pull", "40 videos a month, full cue memory, no watermark", True),
-    ("catchline_pull_annual_trial7", "Catchline Pull Annual Trial", "ONE_YEAR", 2, "59.99", "Pull (annual)", "40 videos a month, full cue memory, no watermark", True),
+    ("catchline_pull_monthly", "Catchline Pull Monthly", "ONE_MONTH", 2, "2.99", "Pull", "Unlimited videos, full cue memory, no watermark", False),
+    ("catchline_pull_annual", "Catchline Pull Annual", "ONE_YEAR", 2, "19.99", "Pull (annual)", "Unlimited videos, full cue memory, no watermark", False),
+    ("catchline_pull_monthly_trial7", "Catchline Pull Monthly Trial", "ONE_MONTH", 2, "2.99", "Pull", "Unlimited videos, full cue memory, no watermark", True),
+    ("catchline_pull_annual_trial7", "Catchline Pull Annual Trial", "ONE_YEAR", 2, "19.99", "Pull (annual)", "Unlimited videos, full cue memory, no watermark", True),
     ("catchline_hook_monthly", "Catchline Hook Monthly", "ONE_MONTH", 3, "4.99", "Hook", "12 videos a month and 90 days of cue memory", False),
     ("catchline_hook_annual", "Catchline Hook Annual", "ONE_YEAR", 3, "29.99", "Hook (annual)", "12 videos a month and 90 days of cue memory", False),
 ]
-LIFETIME = ("catchline_founding_lifetime", "Catchline Founding Lifetime", "49.99", "Founding member",
+LIFETIME = ("catchline_founding_lifetime", "Catchline Founding Lifetime", "29.99", "Founding member",
             "Pull for life. One payment, 500 seats only")
 
 WHATS_NEW = (

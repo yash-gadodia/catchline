@@ -6,7 +6,7 @@ import { colors, space } from '../../design/tokens';
 import { display, type } from '../../design/typography';
 import type { PurchaseStatus } from '../purchases/usePurchases';
 import { t } from '../../i18n';
-import { FOUNDING_PRICE_CENTS, MONTHLY_CAP, PRICE_CENTS, formatUsd, type StorePlatform } from './entitlements';
+import { FOUNDING_PRICE_CENTS, PRICE_CENTS, formatUsd, type StorePlatform } from './entitlements';
 import type { Plan } from './products';
 import { foundingState, seatsFraction, type FoundingSeats } from './seats';
 import { Backdrop, Body, LegalLinks, PurchaseStateSheet, SheetTitle, usePurchaseFlow, useSheetTop, type Phase } from './ui';
@@ -89,7 +89,7 @@ export default function FoundingSheet({
               />
             </View>
             <View style={{ gap: space.s1 }}>
-              <Body>{t('paywall.founding.everything', { count: MONTHLY_CAP.founding })}</Body>
+              <Body>{t('paywall.founding.everything')}</Body>
               <Body>{t('paywall.founding.badge')}</Body>
               <Body>{t('paywall.founding.price')}</Body>
             </View>

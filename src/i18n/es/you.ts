@@ -50,6 +50,7 @@ export const you: Strings<typeof en> = {
   'you.plan.free': 'Gratis',
   'you.plan.videosLeft': 'Te quedan {left} de {total} vídeos',
   'you.plan.videosLeftMonth': 'Te quedan {left} de {total} vídeos este mes',
+  'you.plan.unlimited': 'vídeos ilimitados',
   'you.plan.foundingMember': 'Miembro fundador',
   'you.plan.forLife': 'de por vida',
   'you.plan.renews': 'se renueva el {day} {month}',

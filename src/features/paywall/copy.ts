@@ -2,7 +2,6 @@ import { formatDate, getLocale, t } from '../../i18n';
 import {
   FOUNDING_PRICE_CENTS,
   FREE_VIDEOS,
-  MONTHLY_CAP,
   PRICE_CENTS,
   TRIAL_DAYS,
   annualPerMonthCents,
@@ -76,7 +75,7 @@ export function sheetTitle(freeLeft: number): string {
 }
 
 export function pullSummary(): string {
-  return t('paywall.pullSummary', { count: MONTHLY_CAP.pull });
+  return t('paywall.pullSummary');
 }
 
 export function purchasingTitle(platform: StorePlatform): string {

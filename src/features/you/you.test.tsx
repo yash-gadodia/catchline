@@ -57,7 +57,7 @@ describe('plan and settings labels', () => {
   it('shows founding as Pull for life with no renewal date', () => {
     expect(planLabel({ tier: 'pull', founding: true })).toBe('Pull · Founding member · for life');
     expect(planLabel({ tier: 'pull', founding: false, billing: 'annual', renewsOn: '2027-10-02T00:00:00.000Z' })).toBe(
-      'Pull · $59.99/yr · renews 2 Oct'
+      'Pull · $19.99/yr · renews 2 Oct'
     );
     expect(planLabel({ tier: 'hook', founding: false, billing: 'monthly', renewsOn: '2026-11-11T00:00:00.000Z' })).toBe(
       'Hook · $4.99/mo · renews 11 Nov'
@@ -195,9 +195,9 @@ describe('YouScreen with the backend on', () => {
     const used = { lifetime: 1, month: '', thisMonth: 0 };
     expect(livePlanLabel('free', used, 'organic', now)).toBe('Free · 2 of 3 videos left');
     expect(livePlanLabel('free', used, 'ad', now)).toBe('Free · 0 of 1 videos left');
-    expect(livePlanLabel('pull', { lifetime: 5, month: '2026-10', thisMonth: 2 }, 'organic', now)).toBe('Pull · 38 of 40 videos left this month');
+    expect(livePlanLabel('pull', { lifetime: 5, month: '2026-10', thisMonth: 2 }, 'organic', now)).toBe('Pull · unlimited videos');
     expect(livePlanLabel('founding', { lifetime: 5, month: '2026-09', thisMonth: 2 }, 'organic', now)).toBe(
-      'Founding member · 40 of 40 videos left this month'
+      'Founding member · unlimited videos'
     );
   });
 
@@ -267,7 +267,7 @@ describe('YouScreen with the backend on', () => {
     useUsage.getState().record('founding', new Date());
     useUsage.getState().record('founding', new Date());
     const screen = await render(<YouScreen nav={nav} version="1.0.3" />);
-    expect(within(screen.getByTestId('row-plan')).getByText('Founding member · 38 of 40 videos left this month')).toBeOnTheScreen();
+    expect(within(screen.getByTestId('row-plan')).getByText('Founding member · unlimited videos')).toBeOnTheScreen();
     expect(screen.getByTestId('founding-badge')).toBeOnTheScreen();
   });
 

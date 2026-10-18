@@ -40,10 +40,10 @@ describe('dates', () => {
 
 describe('charge copy', () => {
   it('Continue states the exact price and period', () => {
-    expect(continueLabel(PULL_ANNUAL)).toBe('Continue · $59.99 a year');
-    expect(continueLabel(PULL_MONTHLY)).toBe('Continue · $9.99 a month');
+    expect(continueLabel(PULL_ANNUAL)).toBe('Continue · $19.99 a year');
+    expect(continueLabel(PULL_MONTHLY)).toBe('Continue · $2.99 a month');
     expect(continueLabel({ kind: 'sub', tier: 'hook', period: 'annual' })).toBe('Continue · $29.99 a year');
-    expect(continueLabel(FOUNDING)).toBe('Take a seat · $49.99');
+    expect(continueLabel(FOUNDING)).toBe('Take a seat · $29.99');
   });
 
   it('uses the store price string when given', () => {
@@ -62,17 +62,17 @@ describe('charge copy', () => {
 
   it('trial copy names the first charge date', () => {
     expect(trialNote('annual', OCT11)).toBe(
-      "Today: nothing. 18 Oct: $59.99 unless you cancel. We'll remind you two days before."
+      "Today: nothing. 18 Oct: $19.99 unless you cancel. We'll remind you two days before."
     );
     expect(trialNote('monthly', OCT11)).toBe(
-      "Today: nothing. 18 Oct: $9.99 unless you cancel. We'll remind you two days before."
+      "Today: nothing. 18 Oct: $2.99 unless you cancel. We'll remind you two days before."
     );
-    expect(trialOptionLine('annual')).toBe('$5 a month, billed $59.99');
-    expect(trialOptionLine('monthly')).toBe('$9.99 a month');
+    expect(trialOptionLine('annual')).toBe('$1.67 a month, billed $19.99');
+    expect(trialOptionLine('monthly')).toBe('$2.99 a month');
   });
 
   it('the Pull summary', () => {
-    expect(pullSummary()).toBe('40 videos a month · ghost of best · did it stick · no watermark');
+    expect(pullSummary()).toBe('Unlimited videos · ghost of best · did it stick · no watermark');
   });
 });
 
@@ -85,8 +85,8 @@ describe('purchase states', () => {
   });
 
   it('purchasing line', () => {
-    expect(purchasingLine(PULL_ANNUAL)).toBe('Pull · $59.99 a year');
-    expect(purchasingLine(FOUNDING)).toBe('Founding member · $49.99 once');
+    expect(purchasingLine(PULL_ANNUAL)).toBe('Pull · $19.99 a year');
+    expect(purchasingLine(FOUNDING)).toBe('Founding member · $29.99 once');
   });
 
   it('failed body keeps the queue promise only when there is a clip', () => {
