@@ -109,7 +109,7 @@ export type Failure = {
 };
 
 // Why a measured lift has no cue: the path and phases are real, the cue was held back (a partial result).
-export type NoCueCode = 'off_side_on' | 'plate_hidden' | 'rep_cut_off' | 'unclear_miss' | 'low_confidence';
+export type NoCueCode = 'off_side_on' | 'plate_hidden' | 'rep_cut_off' | 'unclear_miss' | 'low_confidence' | 'bar_lost';
 export type NoCueReason = { code: NoCueCode; offSideDeg?: number };
 
 // What the pose alone says the clip shows; 'unknown' when the signal is weak.
