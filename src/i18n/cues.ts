@@ -2,6 +2,7 @@
 // the worker's English is exactly the copy we translated; anything else (a new fault, reworded copy) stays English.
 import { en } from './en';
 import { getLocale, isKey, translate, type Locale } from './index';
+import { ALTERNATES } from '../analysis/device/rules';
 
 const SIDES = ['left', 'right', 'late'] as const;
 
@@ -36,4 +37,14 @@ export function cueWhy(faultId: string, english: string, locale: Locale = getLoc
     if (isKey(sideKey)) vars.side = translate(locale, sideKey);
   }
   return translate(locale, key, vars);
+}
+
+// Other ways to say a cue, from the shared rules data (so a cue analysed before this shipped gets them too),
+// translated by position when the English still matches what was translated.
+export function cueAlternates(faultId: string, locale: Locale = getLocale()): string[] {
+  return (ALTERNATES[faultId] ?? []).map(({ text }, i) => {
+    const key = `cue.alt.${faultId}.${i + 1}`;
+    if (locale === 'en' || !isKey(key) || en[key] !== text) return text;
+    return translate(locale, key);
+  });
 }

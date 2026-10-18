@@ -129,6 +129,8 @@ export const library: Strings<typeof en> = {
   'library.you.account': "Conta, plano e ajustes",
   'library.cueDetail.trying': "Testando · {counter}",
   'library.cueDetail.whyThis': "Por que esta?",
+  // REVIEW: machine-drafted, needs a native speaker before release.
+  'library.cueDetail.otherWays': "Outras formas de dizer",
   'library.cueDetail.measured': { one: "{unit} · {count} sessão medida", other: "{unit} · {count} sessões medidas" },
   'library.cueDetail.cueGiven': "dica dada",
   'library.cueDetail.lifts': "Levantamentos com esta dica",

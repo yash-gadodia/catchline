@@ -13,7 +13,7 @@ import DrillCard from '../drills/DrillCard';
 import Readout from '../../components/Readout';
 import SmallCaps from '../../components/SmallCaps';
 import TopBar from '../../components/TopBar';
-import { colors, space } from '../../design/tokens';
+import { colors, space, stroke } from '../../design/tokens';
 import { display, fontFamily, type } from '../../design/typography';
 import { lightTick, success } from '../../lib/haptics';
 import {
@@ -33,7 +33,7 @@ import {
 } from './derive';
 import { metricFor, singularMovement } from './metrics';
 import { t } from '../../i18n';
-import { cueText, cueWhy } from '../../i18n/cues';
+import { cueAlternates, cueText, cueWhy } from '../../i18n/cues';
 import { cleanStreak, RETESTS_TO_STICK } from './retest';
 import { useLibrary } from './repository';
 import TrendChart from './TrendChart';
@@ -57,6 +57,22 @@ function cueLiftDetail(l: Lift, cue: CueRecord, sessions: Session[]): string {
     return value == null ? t('library.detail.analysed') : `${metricFor(cue.metricId).short} ${metricText(cue.metricId, value)}`;
   }
   return liftDetail(l, sessions);
+}
+
+// The same fix in other words, for when the headline cue does not land.
+function OtherWays({ faultId }: { faultId: string }) {
+  const alternates = cueAlternates(faultId);
+  if (!alternates.length) return null;
+  return (
+    <View testID="cue-alternates" style={{ borderTopWidth: stroke.hairline, borderTopColor: colors.hairline, paddingTop: space.s3, gap: space.s2 }}>
+      <SmallCaps>{t('library.cueDetail.otherWays')}</SmallCaps>
+      {alternates.map((a) => (
+        <Text key={a} style={{ ...type.callout, color: colors.text }}>
+          {a}
+        </Text>
+      ))}
+    </View>
+  );
 }
 
 export default function CueDetailScreen({ cue, nav }: { cue: CueRecord; nav: CueDetailNav }) {
@@ -106,6 +122,7 @@ export default function CueDetailScreen({ cue, nav }: { cue: CueRecord; nav: Cue
           </Underlined>
         ) : null}
         <DrillCard faultId={cue.metricId} />
+        <OtherWays faultId={cue.metricId} />
       </View>
       <View style={{ flexDirection: 'row', gap: 2 }} testID="before-after">
         <Frame image={cue.before.image} width={half} height={220} gray zoom={1.25} focus={{ x: 0.52, y: 0.32 }}>

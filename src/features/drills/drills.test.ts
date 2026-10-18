@@ -7,10 +7,8 @@ import { setLanguage } from '../../i18n';
 
 describe('drill content', () => {
   it('the fixture matches the CV RULES dict, so a new fault cannot ship without a drill', () => {
-    const rules = readFileSync(join(__dirname, '../../../cv/catchline_cv/rules.py'), 'utf8');
-    const block = rules.slice(rules.indexOf('RULES = {'), rules.indexOf('\n}\n', rules.indexOf('RULES = {')));
-    const ids = [...block.matchAll(/^\s+"([a-z_]+)": \{/gm)].map((m) => m[1]);
-    expect(ids).toEqual(FAULT_IDS);
+    const rules = JSON.parse(readFileSync(join(__dirname, '../../../cv/catchline_cv/rules.json'), 'utf8'));
+    expect(Object.keys(rules.RULES)).toEqual(FAULT_IDS);
   });
 
   it('every fault the CV can cue has exactly one drill, keyed by its own id', () => {

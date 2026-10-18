@@ -15,7 +15,7 @@ import {
   type Catalogue,
   type Locale,
 } from './index';
-import { cueText, cueWhy } from './cues';
+import { cueAlternates, cueText, cueWhy } from './cues';
 
 afterEach(() => setLanguage('en'));
 
@@ -118,18 +118,33 @@ describe('catalogues', () => {
 });
 
 describe('cue copy', () => {
-  const rules = readFileSync(join(__dirname, '../../cv/catchline_cv/rules.py'), 'utf8');
-  const dict = (name: string) => {
-    const body = new RegExp(`^${name} = \\{\\n([\\s\\S]*?)\\n\\}`, 'm').exec(rules)![1];
-    return Object.fromEntries([...body.matchAll(/^\s+"(\w+)": "(.*)",$/gm)].map((m) => [m[1], m[2]]));
+  const rules = JSON.parse(readFileSync(join(__dirname, '../../cv/catchline_cv/rules.json'), 'utf8')) as {
+    CUES: Record<string, string>;
+    WHY: Record<string, string>;
+    ALTERNATES: Record<string, { text: string }[]>;
   };
 
   it('matches the worker cue text and why templates word for word', () => {
-    const cues = dict('CUES');
-    const whys = dict('WHY');
-    expect(Object.keys(cues)).toHaveLength(19);
-    for (const [id, text] of Object.entries(cues)) expect(en[`cue.text.${id}` as keyof typeof en]).toBe(text);
-    for (const [id, why] of Object.entries(whys)) expect(en[`cue.why.${id}` as keyof typeof en]).toBe(why);
+    expect(Object.keys(rules.CUES)).toHaveLength(19);
+    for (const [id, text] of Object.entries(rules.CUES)) expect(en[`cue.text.${id}` as keyof typeof en]).toBe(text);
+    for (const [id, why] of Object.entries(rules.WHY)) expect(en[`cue.why.${id}` as keyof typeof en]).toBe(why);
+  });
+
+  it('has an English key for every alternate, word for word, and no stray ones', () => {
+    const keys = Object.entries(rules.ALTERNATES).flatMap(([id, alts]) => alts.map((a, i) => [`cue.alt.${id}.${i + 1}`, a.text]));
+    for (const [key, text] of keys) expect(`${key}: ${en[key as keyof typeof en]}`).toBe(`${key}: ${text}`);
+    expect(Object.keys(en).filter((k) => k.startsWith('cue.alt.')).sort()).toEqual(keys.map(([k]) => k).sort());
+  });
+
+  it('shows the alternates in the lifter language', () => {
+    expect(cueAlternates('jump_forward', 'en')).toEqual([
+      'Jump straight up, not forward',
+      'Stay behind the line',
+      'Pull the bar into you',
+      'Push the floor straight down',
+    ]);
+    expect(cueAlternates('jump_forward', 'es')[1]).toBe('Quédate detrás de la línea');
+    expect(cueAlternates('not_a_fault', 'de')).toEqual([]);
   });
 
   it('translates a known cue and its why, keeping the measurement', () => {
