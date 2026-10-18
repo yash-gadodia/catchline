@@ -26,6 +26,14 @@ if [ -n "$hits" ]; then
   fail=1
 fi
 
+# 3) gitleaks over the staged diff, when installed (CI scans the whole history either way)
+if command -v gitleaks >/dev/null 2>&1; then
+  if ! gitleaks git --pre-commit --staged --no-banner --redact --log-level error -v .; then
+    echo "✖ pre-commit: gitleaks found a secret in the staged changes (see above)."
+    fail=1
+  fi
+fi
+
 if [ "$fail" = "1" ]; then
   echo ""
   echo "This repo is PUBLIC. Real values belong in .secrets/ or .env (both gitignored)."

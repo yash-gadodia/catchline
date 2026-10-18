@@ -1,4 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
+import * as Updates from 'expo-updates';
 
 export const EVENTS = {
   APP_OPEN: 'app_open',
@@ -14,6 +16,7 @@ export type EventName = (typeof EVENTS)[keyof typeof EVENTS];
 type Props = Record<string, string | number | boolean>;
 
 const ANON_ID_KEY = '@catchline/anon_id';
+const CRASH_KEY = '@catchline/last_crash';
 
 let enabled = false;
 let endpoint = '';
@@ -56,6 +59,49 @@ export function init(): void {
     ? `${process.env.EXPO_PUBLIC_ANALYTICS_HOST}/capture`
     : 'https://us.i.posthog.com/capture';
   enabled = true;
+  catchGlobalErrors();
+  AsyncStorage.getItem(CRASH_KEY)
+    .then((saved) => {
+      if (!saved) return;
+      AsyncStorage.removeItem(CRASH_KEY);
+      const crash = JSON.parse(saved) as { message: string; stack: string; release: Props };
+      getOrCreateAnonId().then((anon) =>
+        sendEvent('$exception', {
+          $exception_message: crash.message,
+          stack: crash.stack,
+          fatal: true,
+          ...crash.release,
+          distinct_id: userId ?? anon,
+        }),
+      );
+    })
+    .catch(() => {});
+}
+
+// Which binary and which OTA an event came from, so a crash maps to the update that shipped it
+// and the rollback decision has data.
+function release(): Props {
+  return {
+    $app_version: Constants.expoConfig?.version ?? 'unknown',
+    update_id: Updates.updateId ?? 'embedded',
+    runtime_version: Updates.runtimeVersion ?? 'unknown',
+    channel: Updates.channel ?? 'none',
+  };
+}
+
+// A fatal JS error kills the app before a fetch can finish, so it is saved and sent on the next launch.
+function catchGlobalErrors(): void {
+  const previous = ErrorUtils.getGlobalHandler();
+  ErrorUtils.setGlobalHandler((error: unknown, isFatal?: boolean) => {
+    const message = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error ? (error.stack ?? '').slice(0, 2000) : '';
+    if (isFatal) {
+      AsyncStorage.setItem(CRASH_KEY, JSON.stringify({ message, stack, release: release() })).catch(() => {});
+    } else {
+      captureError(error, { fatal: false });
+    }
+    previous(error, isFatal);
+  });
 }
 
 export function identify(id: string): void {
@@ -92,6 +138,7 @@ export function captureError(error: unknown, context?: Props): void {
   getOrCreateAnonId().then((anon) => {
     sendEvent('$exception', {
       $exception_message: message,
+      stack: error instanceof Error ? (error.stack ?? '').slice(0, 2000) : '',
       ...context,
       distinct_id: userId ?? anon,
     });
@@ -102,6 +149,6 @@ function sendEvent(event: string, props: Record<string, unknown>): void {
   fetch(endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ api_key: apiKey, event, properties: props }),
+    body: JSON.stringify({ api_key: apiKey, event, properties: { ...release(), ...props } }),
   }).catch(() => {});
 }

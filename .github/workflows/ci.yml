@@ -16,6 +16,12 @@ jobs:
     runs-on: [self-hosted, catchline-mini]
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history, so gitleaks scans every commit.
+          fetch-depth: 0
+      # The repo is public: a secret in any commit is a leak, so scan the whole history every run.
+      - name: Secret scan
+        run: gitleaks git --no-banner --redact .
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -28,3 +34,17 @@ jobs:
         run: npm run check
       - name: Tests
         run: npm test -- --ci
+      # The backend suites ran only by hand, so a CV, worker or edge-function regression could
+      # merge green. Each is about 30 s; the Deno suite under a second.
+      - name: CV tests
+        working-directory: cv
+        run: uv run pytest -q
+      - name: Worker lint + tests
+        working-directory: worker
+        run: uv run ruff check . && uv run pytest -q
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Edge function tests
+        working-directory: supabase/functions
+        run: deno test -q --allow-env --allow-read
