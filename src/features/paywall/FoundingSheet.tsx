@@ -9,7 +9,7 @@ import { t } from '../../i18n';
 import { FOUNDING_PRICE_CENTS, MONTHLY_CAP, PRICE_CENTS, formatUsd, type StorePlatform } from './entitlements';
 import type { Plan } from './products';
 import { foundingState, seatsFraction, type FoundingSeats } from './seats';
-import { Backdrop, Body, PurchaseStateSheet, SheetTitle, usePurchaseFlow, useSheetTop, type Phase } from './ui';
+import { Backdrop, Body, LegalLinks, PurchaseStateSheet, SheetTitle, usePurchaseFlow, useSheetTop, type Phase } from './ui';
 
 const FOUNDING: Plan = { kind: 'founding' };
 
@@ -99,6 +99,7 @@ export default function FoundingSheet({
             <Btn kind="text" onPress={onYearly} testID="pay-yearly" style={{ alignSelf: 'center' }}>
               {t('paywall.founding.yearly')}
             </Btn>
+            <LegalLinks />
           </>
         )}
       </Sheet>

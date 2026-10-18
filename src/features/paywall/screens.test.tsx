@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native';
+import { Linking, StyleSheet } from 'react-native';
 import { act, fireEvent, render } from '@testing-library/react-native';
 import CapSheet from './CapSheet';
 import LastFreeSheet from './LastFreeSheet';
@@ -9,6 +9,7 @@ import QuizScreen from './QuizScreen';
 import TrialPaywall from './TrialPaywall';
 import type { ProofCue } from './proofCues';
 import { ART, FreeVideosChip, artFrame } from './ui';
+import { PRIVACY_URL, TERMS_URL } from '../../lib/links';
 
 const NOW = new Date(2026, 9, 11);
 const CUES: ProofCue[] = [
@@ -385,5 +386,37 @@ describe('LastFreeSheet', () => {
     await press(getByText('See plans'));
     expect(onContinue).toHaveBeenCalledTimes(1);
     expect(onPlans).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('Terms and Privacy on every purchase screen', () => {
+  const expectLinks = async (getByText: (s: string) => Parameters<typeof fireEvent.press>[0]) => {
+    const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+    await press(getByText('Terms of Use'));
+    await press(getByText('Privacy Policy'));
+    expect(open.mock.calls).toEqual([[TERMS_URL], [PRIVACY_URL]]);
+  };
+  const buy = () => jest.fn(() => Promise.resolve('success' as const));
+
+  it('paywall sheet', async () => {
+    const { getByText } = await render(
+      <PaywallSheet cues={CUES} freeLeft={0} seats={SEATS} platform="ios" now={NOW} purchase={buy()}
+        onNotNow={jest.fn()} onRestore={jest.fn()} onWatch={jest.fn()} />
+    );
+    await expectLinks(getByText);
+  });
+
+  it('founding sheet', async () => {
+    const { getByText } = await render(
+      <FoundingSheet seats={SEATS} platform="ios" now={NOW} purchase={buy()} onYearly={jest.fn()} onSeePlans={jest.fn()} onDone={jest.fn()} />
+    );
+    await expectLinks(getByText);
+  });
+
+  it('trial paywall', async () => {
+    const { getByText } = await render(
+      <TrialPaywall webCheckout={false} now={NOW} platform="ios" purchase={buy()} onWeb={jest.fn()} onDone={jest.fn()} onClose={jest.fn()} />
+    );
+    await expectLinks(getByText);
   });
 });

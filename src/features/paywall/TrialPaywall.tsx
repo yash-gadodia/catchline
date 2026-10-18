@@ -10,7 +10,7 @@ import { t } from '../../i18n';
 import { PRICE_CENTS, TRIAL_DAYS, annualSavingPct, formatUsd, type Period, type StorePlatform } from './entitlements';
 import { trialNote, trialOptionLine } from './copy';
 import type { Plan } from './products';
-import { Body, OptionCard, PurchaseStateSheet, usePurchaseFlow } from './ui';
+import { Body, LegalLinks, OptionCard, PurchaseStateSheet, usePurchaseFlow } from './ui';
 
 // Ad-traffic funnel step 3: after the one free analysis, an annual-led 7-day trial.
 export default function TrialPaywall({
@@ -96,6 +96,9 @@ export default function TrialPaywall({
               {t('paywall.trial.web')}
             </Btn>
           ) : null}
+          <View style={{ marginTop: space.s3 }}>
+            <LegalLinks />
+          </View>
         </>
       )}
     </View>

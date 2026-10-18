@@ -12,7 +12,7 @@ import { chargeNote, continueLabel, planPrice, pullSummary, sheetTitle } from '.
 import { cueStatusLabel, type ProofCue } from './proofCues';
 import type { Plan } from './products';
 import { foundingState, seatsLeftLabel, type FoundingSeats } from './seats';
-import { Backdrop, Fine, OptionCard, PurchaseStateSheet, Row, SheetTitle, StatusDot, usePurchaseFlow, useSheetTop, type Phase } from './ui';
+import { Backdrop, Fine, LegalLinks, OptionCard, PurchaseStateSheet, Row, SheetTitle, StatusDot, usePurchaseFlow, useSheetTop, type Phase } from './ui';
 
 type Props = {
   cues: ProofCue[];
@@ -159,6 +159,7 @@ export default function PaywallSheet({
                 {t('paywall.restore')}
               </Btn>
             </View>
+            <LegalLinks />
           </ScrollView>
         )}
       </Sheet>
