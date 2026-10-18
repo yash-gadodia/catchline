@@ -7,7 +7,7 @@ description: Verify, commit, push `catchline`, and watch CI. Use when the user s
 
 Land the current changes on `catchline`. Never push red code, never push or commit to `main` (that is Parallax).
 
-1. **Gate green** (show the output, don't infer): `npm run qa` (typecheck, check-all, jest, `expo export -p ios`). Add `supabase test db` on the Mini if SQL/migrations changed, and `uv run pytest` in `cv/` or `worker/` if those changed. If anything fails, **stop and fix it** — tell the user plainly what's broken.
+1. **Gate green** (show the output, don't infer): `npm run qa` (typecheck, check-all, jest, cv and worker pytest, deno test, `expo export -p ios`). Add `supabase test db` on the Mini if SQL/migrations changed. If anything fails, **stop and fix it** — tell the user plainly what's broken.
 2. **Commit** only your own paths (`git commit -- <paths>`), Conventional Commits, imperative subject ≤72 chars, with the co-author trailer from `.claude/rules/git.md`.
 3. **Push `catchline`**:
    - On `catchline`: `git pull --rebase origin catchline`, then `git push origin catchline`.
