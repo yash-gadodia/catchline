@@ -533,7 +533,11 @@ def build_cue(r, reps, best_rep, W, H):
 
     sev = fired[cue_id]
     seen = sum(1 for x in reps if cue_id in rules.fired(x["values"]))
-    conf = rules.rep_confidence(rules.confidence(cue_id, sev, off), seen, len(reps)) if r["scale_ok"] else "low"
+    conf = rules.rep_confidence(rules.confidence(cue_id, sev, off), seen, len(reps))
+    if not r["scale_ok"]:
+        # sized from the body (no plate outline held, common in real gym footage): never "clear", but a fault well
+        # past its threshold is still worth checking. Holding every such cue back left 5 of 5 lifts on 18 Oct with none.
+        conf = "worth_checking" if conf != "low" and sev >= 1.5 else "low"
     d = det[cue_id]
     f = d["frame"]
     Ms = ref["Ms"]
@@ -582,10 +586,10 @@ def withhold(cue, r, meas):
         reason = {"code": "rep_cut_off"}
     elif off is not None and off > 20 and horizontal(fid):
         reason = {"code": "off_side_on", "offSideDeg": int(round(off))}
-    elif not r.get("scale_ok", True):
-        reason = {"code": "plate_hidden"}
     elif fid in OUTCOMES:
         reason = {"code": "unclear_miss"}
+    elif not r.get("scale_ok", True):
+        reason = {"code": "plate_hidden"}
     else:
         reason = {"code": "low_confidence"}
     for m in meas:
@@ -614,7 +618,7 @@ def miss_card(r, kind, meas, W, H, cause=None, sev=0.0):
                "this clip: nothing in the pull was outside its window. Film one more rep, or a lighter make, and I'll compare.")
         text = "Film one more rep from the side."
     # one rep: the outcome is visible, a cause only counts at 1.5x its band (26 section 8.4)
-    conf = "worth_checking" if cause in outcome.CAUSE_CUE and sev >= 1.5 and (off is None or off <= 20) and r.get("scale_ok", True) else "low"
+    conf = "worth_checking" if cause in outcome.CAUSE_CUE and sev >= 1.5 and (off is None or off <= 20) else "low"
     conf_text = "One missed rep" + (f", filmed ~{off:.0f}° off side-on: film from the side to confirm" if off and off > 20 else "")
     meas.append({"id": "outcome", "label": "Missed " + ("behind" if kind == "missed_behind" else "forward"),
                  "value": round(m["bar_vs_midfoot"], 1), "unit": "cm", "frame": s0 + f, "status": "cue",
