@@ -1,104 +1,45 @@
-"""Fault rules (03-fault-taxonomy.md, 23-gymnastics.md) over measured values. Pure functions, no IO."""
+"""Fault rules (03-fault-taxonomy.md, 23-gymnastics.md) over measured values. Pure functions, no IO beyond loading
+rules.json, the data this module shares with the app's src/analysis/device/rules.ts so the two cannot drift."""
+import json
+from pathlib import Path
 
-# fault id -> threshold, unit, lift order (where in the lift the fault starts; the causal chain for gymnastics).
+_DATA = json.loads((Path(__file__).parent / "rules.json").read_text())
+
+# RULES: fault id -> threshold, unit, lift order (where in the lift the fault starts; the causal chain for gymnastics).
 # horizontal = projection-sensitive (horizontal distance or a 2D joint angle), so capped off side-on.
 # below = the fault is a value under the threshold (too little push-away).
-RULES = {
-    "hips_rise_early": {"threshold": 8.0, "unit": "cm", "order": 1, "horizontal": False},
-    "bar_forward_off_hips": {"threshold": 10.0, "unit": "cm", "order": 2, "horizontal": True},
-    # 03's lenient 5 cm plus ~3 cm of foot-point noise: a made power snatch whose heel landed on its start line read
-    # 5.3 cm (original) and 6.3 cm (app transcode), and at 5 cm the jump outranked every other fault
-    "jump_forward": {"threshold": 8.0, "unit": "cm", "order": 3, "horizontal": True},
-    # clean: 03 MVP #4 (early arm bend, 160 deg for the clean) and #6 (cut pull); 0.1 s = 3 frames at 30 fps.
-    # The snatch bends at 150 deg, 03's 165 less a margin for ~10 deg of elbow keypoint error (CF L1, Everett)
-    "early_arm_bend": {"threshold": 0.1, "unit": "s", "order": 1.5, "horizontal": True},
-    "incomplete_extension": {"threshold": 8.0, "unit": "deg", "order": 1.8, "horizontal": True},
-    # snatch S6, full knee extension to elbow lockout: 03 flags > 450 ms; elite 235 +- 20 ms (JSSM 11:162 table 2),
-    # beginners 0.4-0.7 s (Torokhtiy). Horizontal: the lockout frame is a 2D elbow angle, read late off side-on
-    "slow_turnover": {"threshold": 0.45, "unit": "s", "order": 2.5, "horizontal": True},
-    # snatch S6 drop, bar peak to elbow lockout: Nagao 2019 elite 17 +- 4 cm (made) vs 18 cm (missed), 03's novice
-    # flag > 25 cm. Horizontal for the same reason: a late lockout frame reads as a longer drop
-    "bar_crash": {"threshold": 25.0, "unit": "cm", "order": 2.7, "horizontal": True},
-    # jerk: 03 MVP #8, #7, #9, #10 (thresholds a notch above the taxonomy's for phone noise)
-    "forward_dip": {"threshold": 4.0, "unit": "cm", "order": 1, "horizontal": True},
-    "press_out": {"threshold": 15.0, "unit": "deg", "order": 2, "horizontal": True},
-    "chest_dive": {"threshold": 15.0, "unit": "deg", "order": 3, "horizontal": True},
-    "bar_forward_overhead": {"threshold": 6.0, "unit": "cm", "order": 4, "horizontal": True},
-    # gymnastics v1 (23 section 6.1), conservative: kip K2 -> K1 -> K3, BMU B1 -> B2 -> B3, HSPU H2 -> H1
-    "leg_kip": {"threshold": 50.0, "unit": "deg", "order": 1, "horizontal": True},
-    "early_arm_pull": {"threshold": 0.13, "unit": "s", "order": 2, "horizontal": True},
-    "no_push_away": {"threshold": 4.0, "unit": "cm", "order": 3, "horizontal": True, "below": True},
-    "bmu_early_pull": {"threshold": 45.0, "unit": "cm", "order": 1, "horizontal": False},
-    "hips_low_transition": {"threshold": 30.0, "unit": "cm", "order": 2, "horizontal": False},
-    "chicken_wing": {"threshold": 0.12, "unit": "s", "order": 3, "horizontal": False},
-    "hspu_banana": {"threshold": 10.0, "unit": "cm", "order": 1, "horizontal": True},
-    "hspu_kip_timing": {"threshold": 10.0, "unit": "cm", "order": 2, "horizontal": False},
-}
-
-FAULTS = {
-    "snatch": ["hips_rise_early", "early_arm_bend", "bar_forward_off_hips", "slow_turnover", "bar_crash", "jump_forward"],
-    "clean": ["hips_rise_early", "early_arm_bend", "incomplete_extension", "bar_forward_off_hips", "jump_forward"],
-    "jerk": ["forward_dip", "press_out", "chest_dive", "bar_forward_overhead"],
-    "kipping_pull_up": ["leg_kip", "early_arm_pull", "no_push_away"],
-    "bar_muscle_up": ["bmu_early_pull", "hips_low_transition", "chicken_wing"],
-    "kipping_hspu": ["hspu_banana", "hspu_kip_timing"],
-}
+# Where the thresholds come from:
+# - jump_forward 8 cm: 03's lenient 5 cm plus ~3 cm of foot-point noise: a made power snatch whose heel landed on its
+#   start line read 5.3 cm (original) and 6.3 cm (app transcode), and at 5 cm the jump outranked every other fault
+# - early_arm_bend 0.1 s, incomplete_extension 8 deg: clean 03 MVP #4 (early arm bend, 160 deg for the clean) and #6
+#   (cut pull); 0.1 s = 3 frames at 30 fps. The snatch bends at 150 deg, 03's 165 less a margin for ~10 deg of elbow
+#   keypoint error (CF L1, Everett)
+# - slow_turnover 0.45 s: snatch S6, full knee extension to elbow lockout: 03 flags > 450 ms; elite 235 +- 20 ms
+#   (JSSM 11:162 table 2), beginners 0.4-0.7 s (Torokhtiy). Horizontal: the lockout frame is a 2D elbow angle, read
+#   late off side-on
+# - bar_crash 25 cm: snatch S6 drop, bar peak to elbow lockout: Nagao 2019 elite 17 +- 4 cm (made) vs 18 cm (missed),
+#   03's novice flag > 25 cm. Horizontal for the same reason: a late lockout frame reads as a longer drop
+# - jerk: 03 MVP #8, #7, #9, #10 (thresholds a notch above the taxonomy's for phone noise)
+# - gymnastics v1 (23 section 6.1), conservative: kip K2 -> K1 -> K3, BMU B1 -> B2 -> B3, HSPU H2 -> H1
+RULES = _DATA["RULES"]
+FAULTS = _DATA["FAULTS"]
 # gymnastics reports the earliest fault in the causal chain (23 section 6.1); the barbell lifts the most severe
-CAUSAL = {"kipping_pull_up", "bar_muscle_up", "kipping_hspu"}
+CAUSAL = set(_DATA["CAUSAL"])
 # snatch rules no coach label has calibrated yet: never "clear" until one does
-UNCALIBRATED_SNATCH = {"early_arm_bend", "slow_turnover", "bar_crash"}
+UNCALIBRATED_SNATCH = set(_DATA["UNCALIBRATED_SNATCH"])
 
 # 25-cue-library.md section 4: the primary cue per fault (under 8 words, external focus)
-CUES = {
-    "early_arm_bend": "Let the bar hang; stand up through it.",
-    "hips_rise_early": "Push the floor down, chest comes up.",
-    "bar_forward_off_hips": "Brush the bar up, don't bump it.",
-    "jump_forward": "Land on the line you started on.",
-    "incomplete_extension": "Finish tall, then drop.",
-    "press_out": "Punch the bar up as your feet land.",
-    "forward_dip": "Dip straight down the elevator shaft.",
-    "bar_forward_overhead": "Finish with the bar behind your ears.",
-    "chest_dive": "Lead the split with your front heel.",
-    "early_arm_pull": "Press the bar down before you bend.",
-    "leg_kip": "Glue your feet; swing from the bar.",
-    "no_push_away": "Chin over, then push the bar away.",
-    "bmu_early_pull": "Push the bar down, swing past it.",
-    "hips_low_transition": "Drive your knees up to the bar.",
-    "chicken_wing": "Send both elbows over at once.",
-    "hspu_kip_timing": "Knees to elbows, then kick the ceiling.",
-    "hspu_banana": "Drive your heels up the wall.",
-    "slow_turnover": "Pull yourself under the bar, fast.",
-    "bar_crash": "Meet the bar; lock out as you land.",
-}
-# section 4 why templates, {m} = the measurement in plain units (section 5: integers, 1 cm, 2 deg, 10 ms)
-WHY = {
-    "early_arm_bend": "Your elbows bent {m} before your hips finished, so the bar lost leg speed.",
-    "hips_rise_early": "Your back angle dropped {m} between the floor and the knee, which put the bar in front of you.",
-    "bar_forward_off_hips": "The bar flew {m} forward after hip contact, so you had to chase it.",
-    "jump_forward": "Your feet landed {m} in front of where they started.",
-    "incomplete_extension": "Your hips stopped {m} short of straight before you went under.",
-    "press_out": "Your elbows were {m} short of locked when the bar peaked, then pressed the rest.",
-    "forward_dip": "The bar moved {m} forward during your dip, so the drive went forward too.",
-    # the table's reference is the ear; no head points are kept, so the shoulder line stands in for it
-    "bar_forward_overhead": "The bar locked out {m} in front of your shoulder line.",
-    "chest_dive": "Your torso leaned {m} forward in the split, leaving your hips behind the bar.",
-    "early_arm_pull": "Your elbows bent {m} before your hips opened, turning the kip into a strict pull.",
-    "leg_kip": "Your knees bent {m} each swing while your shoulders barely moved.",
-    "no_push_away": "You dropped straight down after the rep, so the next swing had nothing to load.",
-    "bmu_early_pull": "Your elbows bent with your hips {m} below the bar; you pulled to it, not around it.",
-    "hips_low_transition": "Your hips peaked {m} below the bar; aim for about 20 cm.",
-    "chicken_wing": "Your {side} elbow crossed the bar {m} behind the other.",
-    "hspu_kip_timing": "Your knees stopped {m} above your hips before the kick, so the hips gave no drive.",
-    "hspu_banana": "Your hips sat {m} off the wall at the top.",
-    "slow_turnover": "It took {m} from full extension to locking out, so the bar was falling before you were under it.",
-    "bar_crash": "The bar fell {m} from its peak before your arms locked, so it landed on you.",
-}
+CUES = _DATA["CUES"]
+# other ways to say each cue, from docs/catchline/fault-catalog: [{"text", "source"}] per fault id
+ALTERNATES = _DATA["ALTERNATES"]
+# section 4 why templates, {m} = the measurement in plain units (section 5: integers, 1 cm, 2 deg, 10 ms).
+# bar_forward_overhead: the table's reference is the ear; no head points are kept, so the shoulder line stands in for it
+WHY = _DATA["WHY"]
 # causal gating (25 section 4, 03 section 6): when both fire, the cause is cued, not the effect
-GATES = [("bar_forward_off_hips", "jump_forward"), ("hips_rise_early", "early_arm_bend"),
-         ("hips_low_transition", "chicken_wing"), ("hspu_banana", "hspu_kip_timing")]
+GATES = [tuple(g) for g in _DATA["GATES"]]
 # a cause measured at half its threshold still explains a fired effect: the jump threshold sits under the 10 cm swing
 # one, so a 6 cm swing that throws the feet 9 cm forward was being cued as the jump
-PRESENT = 0.5
+PRESENT = _DATA["PRESENT"]
 
 
 def gate(fired_ids):

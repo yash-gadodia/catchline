@@ -162,6 +162,21 @@ describe('Cue detail and outcomes', () => {
     expect(nav.onDrop).toHaveBeenCalledTimes(1);
   });
 
+  it('lists other ways to say a measured cue', async () => {
+    const nav = { onBack: jest.fn(), onStuck: jest.fn(), onDidntStick: jest.fn(), onDrop: jest.fn() };
+    const jump = { ...cue('c-stay-over'), metricId: 'jump_forward' };
+    const { getByTestId } = await render(<CueDetailScreen cue={jump} nav={nav} />);
+    expect(getByTestId('cue-alternates')).toHaveTextContent(
+      'OTHER WAYS TO SAY ITJump straight up, not forwardStay behind the linePull the bar into youPush the floor straight down'
+    );
+  });
+
+  it('lists no other ways for a fault without them', async () => {
+    const nav = { onBack: jest.fn(), onStuck: jest.fn(), onDidntStick: jest.fn(), onDrop: jest.fn() };
+    const { queryByTestId } = await render(<CueDetailScreen cue={cue('c-stay-over')} nav={nav} />);
+    expect(queryByTestId('cue-alternates')).toBeNull();
+  });
+
   it('celebrates a cue that stuck with the change it made', async () => {
     const nav = { onNext: jest.fn(), onShare: jest.fn() };
     const { getByText, getByTestId } = await render(<StuckScreen cue={cue('c-finish-pull')} nav={nav} />);

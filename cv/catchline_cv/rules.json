@@ -1,0 +1,568 @@
+{
+  "_doc": "Single source for cv/catchline_cv/rules.py and src/analysis/device/rules.ts: rule thresholds, ids and copy (the sourcing notes stay as comments in rules.py). ALTERNATES are other ways to say each primary cue, verbatim from docs/catchline/fault-catalog (source = <movement>/<catalogue id>).",
+  "RULES": {
+    "hips_rise_early": {
+      "threshold": 8.0,
+      "unit": "cm",
+      "order": 1,
+      "horizontal": false
+    },
+    "bar_forward_off_hips": {
+      "threshold": 10.0,
+      "unit": "cm",
+      "order": 2,
+      "horizontal": true
+    },
+    "jump_forward": {
+      "threshold": 8.0,
+      "unit": "cm",
+      "order": 3,
+      "horizontal": true
+    },
+    "early_arm_bend": {
+      "threshold": 0.1,
+      "unit": "s",
+      "order": 1.5,
+      "horizontal": true
+    },
+    "incomplete_extension": {
+      "threshold": 8.0,
+      "unit": "deg",
+      "order": 1.8,
+      "horizontal": true
+    },
+    "slow_turnover": {
+      "threshold": 0.45,
+      "unit": "s",
+      "order": 2.5,
+      "horizontal": true
+    },
+    "bar_crash": {
+      "threshold": 25.0,
+      "unit": "cm",
+      "order": 2.7,
+      "horizontal": true
+    },
+    "forward_dip": {
+      "threshold": 4.0,
+      "unit": "cm",
+      "order": 1,
+      "horizontal": true
+    },
+    "press_out": {
+      "threshold": 15.0,
+      "unit": "deg",
+      "order": 2,
+      "horizontal": true
+    },
+    "chest_dive": {
+      "threshold": 15.0,
+      "unit": "deg",
+      "order": 3,
+      "horizontal": true
+    },
+    "bar_forward_overhead": {
+      "threshold": 6.0,
+      "unit": "cm",
+      "order": 4,
+      "horizontal": true
+    },
+    "leg_kip": {
+      "threshold": 50.0,
+      "unit": "deg",
+      "order": 1,
+      "horizontal": true
+    },
+    "early_arm_pull": {
+      "threshold": 0.13,
+      "unit": "s",
+      "order": 2,
+      "horizontal": true
+    },
+    "no_push_away": {
+      "threshold": 4.0,
+      "unit": "cm",
+      "order": 3,
+      "horizontal": true,
+      "below": true
+    },
+    "bmu_early_pull": {
+      "threshold": 45.0,
+      "unit": "cm",
+      "order": 1,
+      "horizontal": false
+    },
+    "hips_low_transition": {
+      "threshold": 30.0,
+      "unit": "cm",
+      "order": 2,
+      "horizontal": false
+    },
+    "chicken_wing": {
+      "threshold": 0.12,
+      "unit": "s",
+      "order": 3,
+      "horizontal": false
+    },
+    "hspu_banana": {
+      "threshold": 10.0,
+      "unit": "cm",
+      "order": 1,
+      "horizontal": true
+    },
+    "hspu_kip_timing": {
+      "threshold": 10.0,
+      "unit": "cm",
+      "order": 2,
+      "horizontal": false
+    }
+  },
+  "FAULTS": {
+    "snatch": [
+      "hips_rise_early",
+      "early_arm_bend",
+      "bar_forward_off_hips",
+      "slow_turnover",
+      "bar_crash",
+      "jump_forward"
+    ],
+    "clean": [
+      "hips_rise_early",
+      "early_arm_bend",
+      "incomplete_extension",
+      "bar_forward_off_hips",
+      "jump_forward"
+    ],
+    "jerk": [
+      "forward_dip",
+      "press_out",
+      "chest_dive",
+      "bar_forward_overhead"
+    ],
+    "kipping_pull_up": [
+      "leg_kip",
+      "early_arm_pull",
+      "no_push_away"
+    ],
+    "bar_muscle_up": [
+      "bmu_early_pull",
+      "hips_low_transition",
+      "chicken_wing"
+    ],
+    "kipping_hspu": [
+      "hspu_banana",
+      "hspu_kip_timing"
+    ]
+  },
+  "CAUSAL": [
+    "bar_muscle_up",
+    "kipping_hspu",
+    "kipping_pull_up"
+  ],
+  "UNCALIBRATED_SNATCH": [
+    "bar_crash",
+    "early_arm_bend",
+    "slow_turnover"
+  ],
+  "CUES": {
+    "early_arm_bend": "Let the bar hang; stand up through it.",
+    "hips_rise_early": "Push the floor down, chest comes up.",
+    "bar_forward_off_hips": "Brush the bar up, don't bump it.",
+    "jump_forward": "Land on the line you started on.",
+    "incomplete_extension": "Finish tall, then drop.",
+    "press_out": "Punch the bar up as your feet land.",
+    "forward_dip": "Dip straight down the elevator shaft.",
+    "bar_forward_overhead": "Finish with the bar behind your ears.",
+    "chest_dive": "Lead the split with your front heel.",
+    "early_arm_pull": "Press the bar down before you bend.",
+    "leg_kip": "Glue your feet; swing from the bar.",
+    "no_push_away": "Chin over, then push the bar away.",
+    "bmu_early_pull": "Push the bar down, swing past it.",
+    "hips_low_transition": "Drive your knees up to the bar.",
+    "chicken_wing": "Send both elbows over at once.",
+    "hspu_kip_timing": "Knees to elbows, then kick the ceiling.",
+    "hspu_banana": "Drive your heels up the wall.",
+    "slow_turnover": "Pull yourself under the bar, fast.",
+    "bar_crash": "Meet the bar; lock out as you land."
+  },
+  "WHY": {
+    "early_arm_bend": "Your elbows bent {m} before your hips finished, so the bar lost leg speed.",
+    "hips_rise_early": "Your back angle dropped {m} between the floor and the knee, which put the bar in front of you.",
+    "bar_forward_off_hips": "The bar flew {m} forward after hip contact, so you had to chase it.",
+    "jump_forward": "Your feet landed {m} in front of where they started.",
+    "incomplete_extension": "Your hips stopped {m} short of straight before you went under.",
+    "press_out": "Your elbows were {m} short of locked when the bar peaked, then pressed the rest.",
+    "forward_dip": "The bar moved {m} forward during your dip, so the drive went forward too.",
+    "bar_forward_overhead": "The bar locked out {m} in front of your shoulder line.",
+    "chest_dive": "Your torso leaned {m} forward in the split, leaving your hips behind the bar.",
+    "early_arm_pull": "Your elbows bent {m} before your hips opened, turning the kip into a strict pull.",
+    "leg_kip": "Your knees bent {m} each swing while your shoulders barely moved.",
+    "no_push_away": "You dropped straight down after the rep, so the next swing had nothing to load.",
+    "bmu_early_pull": "Your elbows bent with your hips {m} below the bar; you pulled to it, not around it.",
+    "hips_low_transition": "Your hips peaked {m} below the bar; aim for about 20 cm.",
+    "chicken_wing": "Your {side} elbow crossed the bar {m} behind the other.",
+    "hspu_kip_timing": "Your knees stopped {m} above your hips before the kick, so the hips gave no drive.",
+    "hspu_banana": "Your hips sat {m} off the wall at the top.",
+    "slow_turnover": "It took {m} from full extension to locking out, so the bar was falling before you were under it.",
+    "bar_crash": "The bar fell {m} from its peak before your arms locked, so it landed on you."
+  },
+  "GATES": [
+    [
+      "bar_forward_off_hips",
+      "jump_forward"
+    ],
+    [
+      "hips_rise_early",
+      "early_arm_bend"
+    ],
+    [
+      "hips_low_transition",
+      "chicken_wing"
+    ],
+    [
+      "hspu_banana",
+      "hspu_kip_timing"
+    ]
+  ],
+  "PRESENT": 0.5,
+  "ALTERNATES": {
+    "early_arm_bend": [
+      {
+        "text": "Long arms until you finish",
+        "source": "snatch/early_arm_bend"
+      },
+      {
+        "text": "Arms are ropes, legs are the engine",
+        "source": "snatch/early_arm_bend"
+      },
+      {
+        "text": "Jump first, then pull",
+        "source": "snatch/early_arm_bend"
+      },
+      {
+        "text": "Hang from the bar",
+        "source": "snatch/early_arm_bend"
+      }
+    ],
+    "hips_rise_early": [
+      {
+        "text": "Push the floor away",
+        "source": "snatch/hips_rise_early"
+      },
+      {
+        "text": "Chest and hips rise together",
+        "source": "snatch/hips_rise_early"
+      },
+      {
+        "text": "Squeeze the bar off the floor",
+        "source": "snatch/hips_rise_early"
+      },
+      {
+        "text": "Keep your back angle off the floor",
+        "source": "clean/clean_hips_shoot_up_first_pull"
+      }
+    ],
+    "bar_forward_off_hips": [
+      {
+        "text": "Jump straight up",
+        "source": "snatch/bar_swings_forward_second_pull"
+      },
+      {
+        "text": "Keep the bar close to your body",
+        "source": "snatch/bar_swings_forward_second_pull"
+      },
+      {
+        "text": "Hips to the bar, not through it",
+        "source": "snatch/bar_swings_forward_second_pull"
+      },
+      {
+        "text": "Drive straight up through the floor",
+        "source": "clean/clean_bar_loop_forward"
+      }
+    ],
+    "jump_forward": [
+      {
+        "text": "Jump straight up, not forward",
+        "source": "snatch/jump_forward"
+      },
+      {
+        "text": "Stay behind the line",
+        "source": "snatch/jump_forward"
+      },
+      {
+        "text": "Pull the bar into you",
+        "source": "snatch/jump_forward"
+      },
+      {
+        "text": "Push the floor straight down",
+        "source": "clean/clean_jump_forward"
+      }
+    ],
+    "incomplete_extension": [
+      {
+        "text": "Stand all the way up first",
+        "source": "snatch/incomplete_extension"
+      },
+      {
+        "text": "Jump, then go under",
+        "source": "snatch/incomplete_extension"
+      },
+      {
+        "text": "Push the floor through the top",
+        "source": "snatch/incomplete_extension"
+      },
+      {
+        "text": "Extend, then pull under",
+        "source": "clean/clean_incomplete_extension"
+      }
+    ],
+    "press_out": [
+      {
+        "text": "Punch and lock as you land",
+        "source": "jerk/jerk_press_out"
+      },
+      {
+        "text": "Lock it at the bottom",
+        "source": "jerk/jerk_press_out"
+      },
+      {
+        "text": "Arms straight as feet hit",
+        "source": "jerk/jerk_press_out"
+      },
+      {
+        "text": "Snap the elbows",
+        "source": "jerk/jerk_press_out"
+      }
+    ],
+    "forward_dip": [
+      {
+        "text": "Chest tall in the dip",
+        "source": "jerk/jerk_dip_torso_forward"
+      },
+      {
+        "text": "Stay tall, bend the knees",
+        "source": "jerk/jerk_dip_torso_forward"
+      },
+      {
+        "text": "Dip through your heels",
+        "source": "jerk/jerk_dip_torso_forward"
+      },
+      {
+        "text": "Dip straight, drive straight",
+        "source": "jerk/jerk_bar_forward_drive"
+      }
+    ],
+    "bar_forward_overhead": [
+      {
+        "text": "Lock it over the base",
+        "source": "jerk/jerk_bar_not_over_base"
+      },
+      {
+        "text": "Stack wrist, shoulder, hip",
+        "source": "jerk/jerk_bar_not_over_base"
+      },
+      {
+        "text": "Head through the window",
+        "source": "jerk/jerk_bar_in_front_of_head"
+      },
+      {
+        "text": "Bar up and back",
+        "source": "jerk/jerk_bar_forward_drive"
+      }
+    ],
+    "chest_dive": [
+      {
+        "text": "Hips under the bar",
+        "source": "jerk/jerk_hips_behind_bar_split"
+      },
+      {
+        "text": "Torso stays vertical",
+        "source": "jerk/jerk_hips_behind_bar_split"
+      },
+      {
+        "text": "Split straight down",
+        "source": "jerk/jerk_hips_behind_bar_split"
+      },
+      {
+        "text": "Bar back, not head forward",
+        "source": "jerk/jerk_hips_behind_bar_split"
+      }
+    ],
+    "early_arm_pull": [
+      {
+        "text": "Hips first, then arms",
+        "source": "kipping_pull_up/early_pull"
+      },
+      {
+        "text": "Wait for the hollow, then pull",
+        "source": "kipping_pull_up/early_pull"
+      },
+      {
+        "text": "Straight arms until the hips fire",
+        "source": "kipping_pull_up/early_pull"
+      },
+      {
+        "text": "Let the swing lift you, then pull",
+        "source": "kipping_pull_up/early_pull"
+      }
+    ],
+    "leg_kip": [
+      {
+        "text": "Squeeze the legs together",
+        "source": "kipping_pull_up/bent_knees_crazy_legs"
+      },
+      {
+        "text": "One long line, hip to toe",
+        "source": "kipping_pull_up/bent_knees_crazy_legs"
+      },
+      {
+        "text": "Swing from the shoulders, not the legs",
+        "source": "kipping_pull_up/leg_driven_kick_tarzan"
+      },
+      {
+        "text": "Keep the legs quiet",
+        "source": "kipping_pull_up/leg_driven_kick_tarzan"
+      }
+    ],
+    "no_push_away": [
+      {
+        "text": "Push the bar away at the top",
+        "source": "kipping_pull_up/no_push_away_dead_drop"
+      },
+      {
+        "text": "Push away, then swing",
+        "source": "kipping_pull_up/no_push_away_dead_drop"
+      },
+      {
+        "text": "Throw yourself back to the arch",
+        "source": "kipping_pull_up/no_push_away_dead_drop"
+      },
+      {
+        "text": "Top, push, arch",
+        "source": "kipping_pull_up/no_push_away_dead_drop"
+      }
+    ],
+    "bmu_early_pull": [
+      {
+        "text": "Pull around the bar, not to it",
+        "source": "bar_muscle_up/early_arm_pull"
+      },
+      {
+        "text": "Push the bar down to your hips",
+        "source": "bar_muscle_up/early_arm_pull"
+      },
+      {
+        "text": "Lever back, then pull",
+        "source": "bar_muscle_up/early_arm_pull"
+      },
+      {
+        "text": "Arms long until the hips arrive",
+        "source": "bar_muscle_up/early_arm_pull"
+      }
+    ],
+    "hips_low_transition": [
+      {
+        "text": "Hips to the bar",
+        "source": "bar_muscle_up/no_hip_pop_hips_low"
+      },
+      {
+        "text": "Hips up, then over",
+        "source": "bar_muscle_up/no_hip_pop_hips_low"
+      },
+      {
+        "text": "Pull the bar to your hips",
+        "source": "bar_muscle_up/incomplete_pull_low_transition"
+      },
+      {
+        "text": "Finish the pull, then turn",
+        "source": "bar_muscle_up/incomplete_pull_low_transition"
+      }
+    ],
+    "chicken_wing": [
+      {
+        "text": "Square shoulders to the bar",
+        "source": "bar_muscle_up/chicken_wing"
+      },
+      {
+        "text": "Even pull, both arms",
+        "source": "bar_muscle_up/chicken_wing"
+      },
+      {
+        "text": "Feet together in the kip",
+        "source": "bar_muscle_up/chicken_wing"
+      }
+    ],
+    "hspu_kip_timing": [
+      {
+        "text": "Knees down to the chest",
+        "source": "kipping_hspu/insufficient_tuck"
+      },
+      {
+        "text": "Load the hips, then kick",
+        "source": "kipping_hspu/insufficient_tuck"
+      },
+      {
+        "text": "Bigger tuck, bigger kick",
+        "source": "kipping_hspu/insufficient_tuck"
+      },
+      {
+        "text": "Legs first, then press",
+        "source": "kipping_hspu/kip_timing_press_early"
+      }
+    ],
+    "hspu_banana": [
+      {
+        "text": "Hips stay on the wall",
+        "source": "kipping_hspu/hips_drift_from_wall_strict"
+      },
+      {
+        "text": "Stay stacked",
+        "source": "kipping_hspu/hips_drift_from_wall_strict"
+      },
+      {
+        "text": "One straight line, no banana",
+        "source": "kipping_hspu/arched_lockout_banana"
+      },
+      {
+        "text": "Kick back into the wall",
+        "source": "kipping_hspu/heels_miss_wall"
+      }
+    ],
+    "slow_turnover": [
+      {
+        "text": "Finish, then attack under",
+        "source": "snatch/slow_turnover"
+      },
+      {
+        "text": "Punch up as you drop",
+        "source": "snatch/slow_turnover"
+      },
+      {
+        "text": "Meet the bar, don't wait",
+        "source": "snatch/slow_turnover"
+      },
+      {
+        "text": "Get under, not up",
+        "source": "snatch/slow_turnover"
+      }
+    ],
+    "bar_crash": [
+      {
+        "text": "Hold the bar the whole way",
+        "source": "snatch/bar_crash"
+      },
+      {
+        "text": "Pull yourself down to it",
+        "source": "snatch/bar_crash"
+      },
+      {
+        "text": "Stay connected to the bar",
+        "source": "snatch/bar_crash"
+      },
+      {
+        "text": "Pull under, don't fall under",
+        "source": "clean/clean_bar_crash"
+      }
+    ]
+  }
+}

@@ -124,6 +124,7 @@ export const library = {
   'library.you.account': 'Account, plan and settings',
   'library.cueDetail.trying': 'Trying · {counter}',
   'library.cueDetail.whyThis': 'Why this?',
+  'library.cueDetail.otherWays': 'Other ways to say it',
   'library.cueDetail.measured': { one: '{unit} · {count} session measured', other: '{unit} · {count} sessions measured' },
   'library.cueDetail.cueGiven': 'cue given',
   'library.cueDetail.lifts': 'Lifts on this cue',
