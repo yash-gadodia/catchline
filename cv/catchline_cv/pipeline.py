@@ -347,6 +347,15 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
     peak_h = cm(bar[lo, 1] - bar[ev["peak"], 1])
     drop = cm(bar[ev["caught"], 1] - bar[ev["peak"], 1])
     turnover_s = (ev["caught"] - ev["second_ext"]) / fps
+    if kind == "snatch":
+        from .lifts import clean_pull_values
+        cv_, cd_ = clean_pull_values(ksm, hip_ang, knee_ang, lo, ev, fps, elbow_deg=150.0)
+        d = cd_["early_arm_bend"]
+        vals["early_arm_bend"] = arm_bend_value(cv_["early_arm_bend"], d["from_frame"], d["to_frame"], lo)
+        detail["early_arm_bend"] = d
+        tv, td = turnover_values(ev, elbow, drop, fps)
+        vals.update(tv)
+        detail.update(td)
     standing_h = cm(np.nanmax(ank[:, 1] - mv.head_y(ksm))) + 12.0  # the head stand-in sits ~12 cm below the crown
 
     # plate vs wrist agreement over the pull (bar proxy validation)
@@ -422,6 +431,34 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
     return info
 
 
+MIN_PHASE = 2  # frames: a turnover, second pull or catch phase shorter than this is a segmentation artefact
+
+
+def arm_bend_value(value, brk, hip_full, lo):
+    """The snatch's early arm bend, or None when the arms were already bent at lift-off (a hang start or an
+    occluded elbow) or the hips finished within a frame or two of it (a pull that short is a phase artefact)."""
+    if brk - lo <= MIN_PHASE or hip_full - lo <= MIN_PHASE:
+        return None
+    return value
+
+
+def turnover_values(ev, elbow, drop_cm, fps, max_s=1.0):
+    """Slow turnover (s, full knee extension to elbow lockout) and bar crash (cm, bar peak to lockout), snatch S6.
+    Each is None unless the catch is a real elbow lockout (not the descent fallback) and the phases it spans are at
+    least MIN_PHASE frames; a turnover over max_s is the segmentation, not the lifter."""
+    vals = {"slow_turnover": None, "bar_crash": None}
+    det = {"slow_turnover": {"frame": ev["caught"], "from_frame": ev["second_ext"]},
+           "bar_crash": {"frame": ev["caught"], "from_frame": ev["peak"]}}
+    if not elbow[ev["caught"]] >= 150 or ev["second_ext"] - ev["rebend"] < MIN_PHASE or ev["peak"] - ev["second_ext"] < MIN_PHASE:
+        return vals, det
+    t = (ev["caught"] - ev["second_ext"]) / fps
+    if t <= max_s:
+        vals["slow_turnover"] = t
+    if ev["caught"] - ev["peak"] >= MIN_PHASE:
+        vals["bar_crash"] = drop_cm
+    return vals, det
+
+
 def not_a_lift(near, plate_y, bar_y, shin, liftoff, peak):
     """The hands went overhead but the plate stayed down, the person walked up to the camera, or the bar never rose
     from lift-off (1fec9d79: the lifter at the phone, keypoint scores 0.04-0.16, peak = lift-off). The plate test
@@ -484,9 +521,11 @@ def check_scale(px_per_cm, method, plate_ok, scale_near, body_scale):
 
 
 LABELS = {"hips_rise_early": "Hips rose early", "bar_forward_off_hips": "Bar forward off hips",
-          "jump_forward": "Jumped forward"}
+          "jump_forward": "Jumped forward", "early_arm_bend": "Early arm bend", "slow_turnover": "Slow turnover",
+          "bar_crash": "Bar drop into the catch"}
 NOTES = {"hips_rise_early": "hips vs shoulders, floor to knee", "bar_forward_off_hips": "after hip contact",
-         "jump_forward": "feet, lift-off to catch"}
+         "jump_forward": "feet, lift-off to catch", "early_arm_bend": "elbows bent before the hips finished (+ = early)",
+         "slow_turnover": "full extension to elbow lockout", "bar_crash": "bar peak to elbow lockout"}
 
 
 def build_cue(r, reps, best_rep, W, H):
@@ -497,10 +536,12 @@ def build_cue(r, reps, best_rep, W, H):
     fired = rules.fired(vals)
     s0 = ref["s0"]
     meas = []
-    for fid in ("hips_rise_early", "bar_forward_off_hips", "jump_forward"):
+    for fid in rules.FAULTS["snatch"]:
         v = vals.get(fid)
+        unit = rules.RULES[fid]["unit"]
+        nd = 2 if unit == "s" else 1
         if v is None:
-            meas.append({"id": fid, "label": LABELS[fid], "value": 0, "unit": "cm", "frame": r["start"], "status": "not_seen",
+            meas.append({"id": fid, "label": LABELS[fid], "value": 0, "unit": unit, "frame": r["start"], "status": "not_seen",
                          "note": "not judged: the step forward was the bail" if r["outcome"] == "missed_behind" and fid == "jump_forward"
                          else "could not measure"})
             continue
@@ -508,11 +549,11 @@ def build_cue(r, reps, best_rep, W, H):
         note = NOTES[fid]
         if rules.RULES[fid]["horizontal"]:
             note += angle_note
-        m = {"id": fid, "label": LABELS[fid], "value": round(v, 1), "unit": "cm",
-             "frame": s0 + det[fid]["frame"], "status": status, "note": note}
+        m = {"id": fid, "label": LABELS[fid], "value": round(float(v), nd), "unit": unit,
+             "frame": s0 + int(det[fid]["frame"]), "status": status, "note": note}
         bv = best_rep["values"].get(fid)
         if best_rep is not r and bv is not None:
-            m["best"] = round(bv, 1)
+            m["best"] = round(float(bv), nd)
         meas.append(m)
     meas += [
         {"id": "bar_peak_height", "label": "Bar peak height", "value": round(r["peak_h"], 1), "unit": "cm",
@@ -537,11 +578,8 @@ def build_cue(r, reps, best_rep, W, H):
 
     sev = fired[cue_id]
     seen = sum(1 for x in reps if cue_id in rules.fired(x["values"]))
-    conf = rules.rep_confidence(rules.confidence(cue_id, sev, off), seen, len(reps))
-    if not r["scale_ok"]:
-        # sized from the body (no plate outline held, common in real gym footage): never "clear", but a fault well
-        # past its threshold is still worth checking. Holding every such cue back left 5 of 5 lifts on 18 Oct with none.
-        conf = "worth_checking" if conf != "low" and sev >= 1.5 else "low"
+    conf = cue_confidence(cue_id, sev, off, seen, len(reps), r["scale_ok"])
+    unit = rules.RULES[cue_id]["unit"]
     d = det[cue_id]
     f = d["frame"]
     Ms = ref["Ms"]
@@ -554,13 +592,20 @@ def build_cue(r, reps, best_rep, W, H):
     elif cue_id == "bar_forward_off_hips":
         frm, to = raw(ref["bar"][d["from_frame"]], f), raw(ref["bar"][f], f)
         caption = f"hip · {vals[cue_id]:.0f} cm fwd"
+    elif cue_id == "early_arm_bend":
+        frm, to = raw(mid(ref["ksm"], L_ELB, R_ELB)[d["from_frame"]], f), raw(ref["hip"][d["to_frame"]], f)
+        caption = f"elbows bend {vals[cue_id]:.2f} s early"
+    elif cue_id in ("slow_turnover", "bar_crash"):
+        frm, to = raw(ref["bar"][d["from_frame"]], f), raw(ref["bar"][f], f)
+        caption = (f"extension to lockout · {vals[cue_id]:.2f} s" if cue_id == "slow_turnover"
+                   else f"bar · {vals[cue_id]:.0f} cm drop")
     else:
         frm, to = raw(d["from"], f), raw(d["to"], f)
         caption = f"feet · {vals[cue_id]:.0f} cm fwd"
     conf_text = f"Seen on {seen} of {len(reps)} reps"
     if off > 20:
         conf_text += f", filmed ~{off:.0f}° off side-on: film from the side to confirm"
-    if not r["scale_ok"]:
+    if not r["scale_ok"] and unit != "s":
         conf_text += ", sized from your body because the plate could not be measured"
     why = rules.why_sentence(cue_id, vals, det[cue_id])
     if r["outcome"] == "missed_forward":
@@ -570,8 +615,20 @@ def build_cue(r, reps, best_rep, W, H):
     cue = {"faultId": cue_id, "text": rules.CUES[cue_id], "why": why,
            "confidence": conf, "confidenceText": conf_text,
            "evidence": {"rep": r["index"], "frame": s0 + f, "from": normalise(frm, W, H), "to": normalise(to, W, H),
-                        "value": round(vals[cue_id], 1), "unit": "cm", "caption": caption}}
+                        "value": round(float(vals[cue_id]), 2 if unit == "s" else 1), "unit": unit, "caption": caption}}
     return meas, cue
+
+
+def cue_confidence(cue_id, sev, off, seen, total, scale_ok):
+    conf = rules.rep_confidence(rules.confidence(cue_id, sev, off), seen, total)
+    if cue_id in rules.UNCALIBRATED_SNATCH and conf == "clear":
+        conf = "worth_checking"
+    if not scale_ok and rules.RULES[cue_id]["unit"] != "s":
+        # sized from the body (no plate outline held, common in real gym footage): never "clear", but a fault well
+        # past its threshold is still worth checking. Holding every such cue back left 5 of 5 lifts on 18 Oct with none.
+        # A time needs no scale.
+        conf = "worth_checking" if conf != "low" and sev >= 1.5 else "low"
+    return conf
 
 
 OUTCOMES = {"missed_forward", "missed_behind", "missed", "jerk_forward", "jerk_back", "could_not_stand"}

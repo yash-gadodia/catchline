@@ -308,4 +308,10 @@ export const library: Strings<typeof en> = {
   'library.metric.bar_peak_height.label': "Maximale Stangenhöhe",
   'library.metric.bar_peak_height.short': "Hochpunkt",
   'library.metric.bar_peak_height.caption': "Maximale Stangenhöhe über dem Abheben, cm.",
+  'library.metric.slow_turnover.label': "Langsames Umsetzen",
+  'library.metric.slow_turnover.short': "Umsetzen",
+  'library.metric.slow_turnover.caption': "Volle Streckung bis zum Aussperren der Ellbogen, Sekunden.",
+  'library.metric.bar_crash.label': "Stangenfall in die Annahme",
+  'library.metric.bar_crash.short': "Fall",
+  'library.metric.bar_crash.caption': "Fall der Stange vom Hochpunkt bis zum Aussperren der Ellbogen, cm.",
 };

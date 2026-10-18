@@ -308,4 +308,10 @@ export const library: Strings<typeof en> = {
   'library.metric.bar_peak_height.label': "Hauteur max de la barre",
   'library.metric.bar_peak_height.short': "sommet",
   'library.metric.bar_peak_height.caption': "Hauteur max de la barre au-dessus du décollage, cm.",
+  'library.metric.slow_turnover.label': "Retournement lent",
+  'library.metric.slow_turnover.short': "retournement",
+  'library.metric.slow_turnover.caption': "Extension complète jusqu'au verrouillage des coudes, secondes.",
+  'library.metric.bar_crash.label': "Chute de la barre à la réception",
+  'library.metric.bar_crash.short': "chute",
+  'library.metric.bar_crash.caption': "Chute de la barre depuis son point haut jusqu'au verrouillage des coudes, cm.",
 };

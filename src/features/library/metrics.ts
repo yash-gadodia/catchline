@@ -33,6 +33,8 @@ export const METRICS: Record<string, MetricSpec> = {
   jump_forward: { id: 'jump_forward', unit: 'cm', lowerIsBetter: true },
   early_arm_bend: { id: 'early_arm_bend', unit: 's', lowerIsBetter: true },
   incomplete_extension: { id: 'incomplete_extension', unit: 'deg', lowerIsBetter: true },
+  slow_turnover: { id: 'slow_turnover', unit: 's', lowerIsBetter: true },
+  bar_crash: { id: 'bar_crash', unit: 'cm', lowerIsBetter: true },
   forward_dip: { id: 'forward_dip', unit: 'cm', lowerIsBetter: true },
   press_out: { id: 'press_out', unit: 'deg', lowerIsBetter: true },
   chest_dive: { id: 'chest_dive', unit: 'deg', lowerIsBetter: true },
@@ -68,7 +70,7 @@ export function metricFor(id: string): Metric {
 // Preferred chip order per movement: the CV's faults in lift order, then its extras, then the
 // design-era ids the dev fixtures use. Trends shows only the ones a session actually measured.
 export const MOVEMENT_METRICS: Record<Movement, string[]> = {
-  snatch: ['hips_rise_early', 'bar_forward_off_hips', 'jump_forward', 'catch_depth', 'turnover_time', 'bar_peak_height', 'bar_drift_hip', 'pull_time'],
+  snatch: ['hips_rise_early', 'early_arm_bend', 'bar_forward_off_hips', 'slow_turnover', 'bar_crash', 'jump_forward', 'catch_depth', 'turnover_time', 'bar_peak_height', 'bar_drift_hip', 'pull_time'],
   clean: ['hips_rise_early', 'early_arm_bend', 'incomplete_extension', 'bar_forward_off_hips', 'jump_forward', 'catch_depth', 'turnover_time', 'bar_peak_height', 'bar_drift_hip', 'pull_time', 'elbow_turn'],
   jerk: ['forward_dip', 'press_out', 'chest_dive', 'bar_forward_overhead', 'dip_depth', 'bar_path_jerk'],
   kipping_pull_up: ['leg_kip', 'early_arm_pull', 'no_push_away', 'kip_height', 'body_line', 'cycle_time'],
