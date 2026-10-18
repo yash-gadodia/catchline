@@ -53,7 +53,7 @@ app = modal.App("catchline-worker", image=image)
 secrets = [modal.Secret.from_name("catchline-supabase")]
 
 
-@app.function(secrets=secrets, cpu=2.0, memory=4096, timeout=900, scaledown_window=180, max_containers=4)
+@app.function(secrets=secrets, cpu=8.0, memory=8192, timeout=900, scaledown_window=180, max_containers=4)
 def drain() -> list[dict]:
     import logging
 
