@@ -20,6 +20,7 @@ import {
 import { useUsage } from '../paywall/usageStore';
 import { formatDate, t } from '../../i18n';
 import { usePurchases } from '../purchases/usePurchases';
+import type { CsvLift } from './liftsCsv';
 import type { Settings } from './settings';
 
 export type Tier = 'free' | 'hook' | 'pull' | 'platform';
@@ -130,17 +131,46 @@ export function useAccountView(now: Date = new Date()): AccountView | null {
   return liveView(auth, tier, usage, variant, now);
 }
 
+export type ExportedLift = {
+  id: string;
+  date: string;
+  movement: string;
+  loadKg?: number;
+  reps?: number;
+  status: string;
+  cue?: string;
+  measurements: { id: string; label: string; value: number; unit: string }[];
+  analysisVersion?: string;
+};
+
 export type DataExport = {
   exportedAt: string;
   account: { name: string; plan: string };
   settings: Settings;
-  lifts: string[];
+  lifts: ExportedLift[];
 };
+
+// Each lift as the lifter saw it: what, when, the cue, and every measurement the clip could see (as the CSV export).
+export function exportedLift({ lift, analysis }: CsvLift): ExportedLift {
+  return {
+    id: lift.id,
+    date: lift.date,
+    movement: lift.movement,
+    loadKg: lift.loadKg,
+    reps: lift.reps,
+    status: lift.status,
+    cue: analysis?.cue?.text,
+    measurements: (analysis?.measurements ?? [])
+      .filter((m) => m.status !== 'not_seen')
+      .map((m) => ({ id: m.id, label: m.label, value: m.value, unit: m.unit })),
+    analysisVersion: analysis?.analysisVersion,
+  };
+}
 
 export interface AccountRepository {
   get(): Account | null;
   rename(name: string): Promise<void>;
-  exportAllData(settings: Settings, liftIds: string[]): Promise<DataExport>;
+  exportAllData(settings: Settings, lifts: CsvLift[]): Promise<DataExport>;
   deleteAccount(): Promise<void>;
 }
 
@@ -155,13 +185,13 @@ export function createLocalAccountRepository(now: () => Date = () => new Date())
       const a = useAccountStore.getState().account;
       if (a) useAccountStore.setState({ account: { ...a, name } });
     },
-    async exportAllData(settings, liftIds) {
+    async exportAllData(settings, lifts) {
       const a = accountView(now());
       return {
         exportedAt: now().toISOString(),
         account: { name: a?.name ?? '', plan: a?.plan ?? '' },
         settings,
-        lifts: liftIds,
+        lifts: lifts.map(exportedLift),
       };
     },
     async deleteAccount() {
