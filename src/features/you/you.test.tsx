@@ -1,8 +1,9 @@
 import { loadLibrary } from '../library/repository';
 import { act, fireEvent, render, within } from '@testing-library/react-native';
-import { Linking } from 'react-native';
+import { Linking, Platform, Share } from 'react-native';
+import { File } from 'expo-file-system';
 import { isHapticsEnabled } from '../../lib/haptics';
-import YouScreen, { exportMyData } from './YouScreen';
+import YouScreen, { exportMyData, shareExport } from './YouScreen';
 import WhatIsStoredScreen from './WhatIsStoredScreen';
 import DeleteAccountSheet, { confirmed } from './DeleteAccountSheet';
 import { LowStorageSheet, OfflineBanner, PermissionDenied, UpdateRequired, formatBytes } from './GlobalStates';
@@ -16,6 +17,10 @@ import { useUsage } from '../paywall/usageStore';
 import { usePurchases } from '../purchases/usePurchases';
 import { NO_USER, useAuthUser } from '../auth/authUser';
 
+jest.mock('expo-file-system', () => {
+  const File = jest.fn().mockImplementation(() => ({ uri: 'file:///cache/catchline-data.json', create: jest.fn(), write: jest.fn() }));
+  return { File, Paths: { cache: { uri: 'file:///cache/' } } };
+});
 jest.mock('../../data/backend', () => ({ backendEnabled: jest.fn(() => false) }));
 jest.mock('../../lib/api', () => ({
   recordConsent: jest.fn(() => Promise.resolve()),
@@ -319,6 +324,18 @@ describe('exportMyData', () => {
     const send = jest.fn(() => Promise.resolve());
     await exportMyData(send);
     expect(send).toHaveBeenCalledTimes(1);
+  });
+
+  it('shares the export as a named JSON file on iOS', async () => {
+    Platform.OS = 'ios';
+    const share = jest.spyOn(Share, 'share').mockResolvedValue({ action: Share.sharedAction });
+    const bundle = await createLocalAccountRepository(() => new Date('2026-10-11T10:00:00.000Z')).exportAllData(DEFAULT_SETTINGS, []);
+    await shareExport(bundle);
+    const file = (File as unknown as jest.Mock).mock.results[0].value;
+    expect((File as unknown as jest.Mock).mock.calls[0][1]).toBe('catchline-data.json');
+    expect(file.create).toHaveBeenCalledWith({ overwrite: true });
+    expect(file.write).toHaveBeenCalledWith(JSON.stringify(bundle, null, 2));
+    expect(share).toHaveBeenCalledWith({ url: 'file:///cache/catchline-data.json' });
   });
 });
 

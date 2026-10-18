@@ -1,7 +1,8 @@
 import { useState, type ReactNode } from 'react';
-import { Pressable, ScrollView, Share, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, ScrollView, Share, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
+import { File, Paths } from 'expo-file-system';
 import { ANALYSES } from '../../analysis/fixtures';
 import { backendEnabled } from '../../data/backend';
 import { movementLabel } from '../../analysis/format';
@@ -50,7 +51,15 @@ function pickers() {
 }
 
 export async function shareExport(bundle: DataExport): Promise<void> {
-  await Share.share({ title: 'catchline-export.json', message: JSON.stringify(bundle, null, 2) });
+  const json = JSON.stringify(bundle, null, 2);
+  if (Platform.OS !== 'ios') {
+    await Share.share({ title: 'catchline-data.json', message: json });
+    return;
+  }
+  const file = new File(Paths.cache, 'catchline-data.json');
+  file.create({ overwrite: true });
+  file.write(json);
+  await Share.share({ url: file.uri });
 }
 
 export async function exportMyData(send: (bundle: DataExport) => Promise<void> = shareExport): Promise<void> {
