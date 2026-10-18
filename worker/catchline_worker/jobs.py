@@ -1,11 +1,13 @@
 import logging
 import os
 import tempfile
+import time
 import traceback
 from collections.abc import Callable
 from dataclasses import dataclass
 
 from catchline_cv import external_pose
+from catchline_cv import pose as cv_pose
 from catchline_cv import trace as cv_trace
 from catchline_cv.video import ClipUnreadable
 
@@ -17,10 +19,16 @@ RAW_BUCKET = "raw-clips"
 KEYFRAME_BUCKET = "keyframes"
 TRACE_BUCKET = "lift-traces"
 MAX_ATTEMPTS = 3
-VISIBILITY_S = 600
+FUNCTION_TIMEOUT_S = 900  # modal_app.drain's timeout
+# a claimed job stays invisible for longer than any call can run, so no second container claims it mid-run
+VISIBILITY_S = FUNCTION_TIMEOUT_S + 60
+# drain stops claiming once less than this is left of the call, so a backlog never kills a call mid-job
+DRAIN_RESERVE_S = 300
 
 # The only strings ever written to lifts.error (client-readable). Everything else stays in the worker log.
 ERROR_CODES = {"clip_unreadable", "unknown"}
+# codes a retry can never fix: fail on the first attempt
+FINAL_CODES = {"clip_unreadable"}
 
 
 def error_code(e: BaseException) -> str:
@@ -135,22 +143,31 @@ def process_one(
     job = claim(db, max_attempts)
     if job is None:
         return None
+    t = {}
+    t0 = time.monotonic()
     with tempfile.TemporaryDirectory(dir=workdir) as tmp:
         try:
             clip = os.path.join(tmp, "clip")
             db.download(RAW_BUCKET, job.clip_path, clip)
             pose = fetch_pose(db, job, tmp)
+            t["download"] = time.monotonic() - t0
+            p0 = cv_pose.pose_seconds
             with cv_trace.recording() as rec:
                 result = analyse(clip, job, tmp) if pose is None else analyse(clip, job, tmp, pose=pose)
+            t["pose"] = cv_pose.pose_seconds - p0
+            t["analysis"] = time.monotonic() - t0 - t["download"] - t["pose"]
+            t1 = time.monotonic()
             for path in result.keyframes:
                 db.upload(KEYFRAME_BUCKET, f"{job.keyframe_prefix}/{os.path.basename(path)}", path, "image/jpeg")
             traced = save_trace(db, job, rec, result, pose, tmp)
+            t["upload"] = time.monotonic() - t1
             out = db.rpc(
                 "complete_lift_job", {"p_msg_id": job.msg_id, "p_lift_id": job.lift_id, "p_analysis": result.analysis}
             )
         except Exception as e:
-            retry = job.attempt < max_attempts
             code = error_code(e)
+            retry = job.attempt < max_attempts and code not in FINAL_CODES
+            log_timing(job, "error", t, t0)
             log.error("lift %s attempt %s failed (%s): %s", job.lift_id, job.attempt, code, traceback.format_exc())
             status = db.rpc(
                 "fail_lift_job",
@@ -167,6 +184,7 @@ def process_one(
                 "clip_deleted": deleted,
             }
     deleted = delete_clip(db, job)
+    log_timing(job, out["status"], t, t0)
     if out["status"] in ("done", "failed"):
         notify(db, push, job, ok=out["status"] == "done")
     return {
@@ -179,9 +197,22 @@ def process_one(
     }
 
 
-def drain(db, analyse: Analyse, workdir: str | None = None, limit: int = 100, push=None) -> list[dict]:
+def log_timing(job: Job, status: str, t: dict, t0: float) -> None:
+    stages = " ".join(f"{k}={v:.1f}s" for k, v in t.items())
+    log.info("lift %s %s attempt=%s %s total=%.1fs", job.lift_id, status, job.attempt, stages, time.monotonic() - t0)
+
+
+def drain(
+    db, analyse: Analyse, workdir: str | None = None, limit: int = 100, push=None, budget_s: float | None = None
+) -> list[dict]:
+    """Process jobs until the queue is empty or `limit` is hit. budget_s: stop claiming new jobs once this many
+    seconds have passed, so a call with a timeout never starts a job it cannot finish."""
+    start = time.monotonic()
     done = []
     while len(done) < limit:
+        if budget_s is not None and time.monotonic() - start >= budget_s:
+            log.info("drain budget of %ss spent after %s jobs; the next call picks up the rest", budget_s, len(done))
+            break
         r = process_one(db, analyse, workdir, push=push)
         if r is None:
             break

@@ -53,16 +53,17 @@ app = modal.App("catchline-worker", image=image)
 secrets = [modal.Secret.from_name("catchline-supabase")]
 
 
-@app.function(secrets=secrets, cpu=8.0, memory=8192, timeout=900, scaledown_window=180, max_containers=4)
+@app.function(secrets=secrets, cpu=8.0, memory=8192, timeout=900, scaledown_window=180, max_containers=10)
 def drain() -> list[dict]:
     import logging
 
     from catchline_worker.__main__ import client
     from catchline_worker.analyse import analyse
+    from catchline_worker.jobs import DRAIN_RESERVE_S, FUNCTION_TIMEOUT_S
     from catchline_worker.jobs import drain as run
 
     logging.basicConfig(level=logging.INFO)
-    return run(client(), analyse, "/tmp")
+    return run(client(), analyse, "/tmp", budget_s=FUNCTION_TIMEOUT_S - DRAIN_RESERVE_S)
 
 
 @app.function(secrets=secrets, schedule=modal.Period(minutes=2))

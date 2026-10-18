@@ -1,3 +1,5 @@
+import time
+
 import numpy as np
 
 from .video import frames
@@ -57,22 +59,36 @@ def merge_passes(upright, rotated, min_iou=0.3):
     return out
 
 
+_MODELS = {}
+pose_seconds = 0.0  # cumulative run_pose wall time in this process, so the worker can log the pose stage
+
+
+def _models(mode):
+    """The YOLOX + RTMPose pair for a mode, built once per process: rebuilding the ONNX sessions cost every clip."""
+    if mode not in _MODELS:
+        import onnxruntime as ort
+        from rtmlib import YOLOX, BodyWithFeet, RTMPose
+
+        cfg = BodyWithFeet.MODE[mode]
+        det = YOLOX(cfg["det"], model_input_size=cfg["det_input_size"], backend="onnxruntime", device="cpu")
+        pose = RTMPose(cfg["pose"], model_input_size=cfg["pose_input_size"], backend="onnxruntime", device="cpu")
+        # same CPU provider and default threads as rtmlib, but idle worker threads sleep instead of spinning: on the
+        # shared Mini (VM, Spotlight, other agents) spinning threads fight the rest of the box for cores. Same kernels,
+        # same numbers; per-frame interleaved A/Bs on 14-10-2026: 1.11x on the Mini, 1.34x on a busy laptop.
+        so = ort.SessionOptions()
+        so.add_session_config_entry("session.intra_op.allow_spinning", "0")
+        det.session = ort.InferenceSession(det.onnx_model, sess_options=so, providers=["CPUExecutionProvider"])
+        pose.session = ort.InferenceSession(pose.onnx_model, sess_options=so, providers=["CPUExecutionProvider"])
+        _MODELS[mode] = det, pose
+    return _MODELS[mode]
+
+
 def run_pose(path, height, mode="balanced", two_pass=False):
     """All people in every frame: list (per frame) of (bbox[4], kpts[26,2], scores[26]) in inference px, head points
     already dropped. two_pass also runs every frame rotated 180 degrees and keeps the more confident pose per person."""
-    import onnxruntime as ort
-    from rtmlib import YOLOX, RTMPose, BodyWithFeet
-
-    cfg = BodyWithFeet.MODE[mode]
-    det = YOLOX(cfg["det"], model_input_size=cfg["det_input_size"], backend="onnxruntime", device="cpu")
-    pose = RTMPose(cfg["pose"], model_input_size=cfg["pose_input_size"], backend="onnxruntime", device="cpu")
-    # same CPU provider and default threads as rtmlib, but idle worker threads sleep instead of spinning: on the
-    # shared Mini (VM, Spotlight, other agents) spinning threads fight the rest of the box for cores. Same kernels,
-    # same numbers; per-frame interleaved A/Bs on 14-10-2026: 1.11x on the Mini, 1.34x on a busy laptop.
-    so = ort.SessionOptions()
-    so.add_session_config_entry("session.intra_op.allow_spinning", "0")
-    det.session = ort.InferenceSession(det.onnx_model, sess_options=so, providers=["CPUExecutionProvider"])
-    pose.session = ort.InferenceSession(pose.onnx_model, sess_options=so, providers=["CPUExecutionProvider"])
+    global pose_seconds
+    t0 = time.monotonic()
+    det, pose = _models(mode)
 
     def infer(img):
         boxes = det(img)
@@ -89,4 +105,5 @@ def run_pose(path, height, mode="balanced", two_pass=False):
         if two_pass:
             people = merge_passes(people, unrotate(infer(np.ascontiguousarray(img[::-1, ::-1])), shape))
         out.append(people)
+    pose_seconds += time.monotonic() - t0
     return strip_head(out), shape

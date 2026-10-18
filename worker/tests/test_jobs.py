@@ -1,14 +1,29 @@
 import json
 import logging
 import os
+import re
 import subprocess
+from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from catchline_cv import ANALYSIS_VERSION, pipeline
 from catchline_cv import trace as cv_trace
 from catchline_cv.video import ClipUnreadable
 
-from catchline_worker.jobs import ERROR_CODES, MAX_ATTEMPTS, Job, Result, drain, error_code, process_one
+from catchline_worker import jobs
+from catchline_worker.jobs import (
+    DRAIN_RESERVE_S,
+    ERROR_CODES,
+    FUNCTION_TIMEOUT_S,
+    MAX_ATTEMPTS,
+    VISIBILITY_S,
+    Job,
+    Result,
+    drain,
+    error_code,
+    process_one,
+)
 
 ROW = {
     "msg_id": 7,
@@ -122,7 +137,7 @@ def crashing_analyse(clip, job, workdir):
 def test_empty_queue_returns_none():
     db = FakeDb()
     assert process_one(db, fake_analyse) is None
-    assert db.calls == [("rpc", "claim_lift_job", {"p_vt": 600, "p_max_attempts": MAX_ATTEMPTS})]
+    assert db.calls == [("rpc", "claim_lift_job", {"p_vt": 960, "p_max_attempts": MAX_ATTEMPTS})]
 
 
 def test_success_runs_download_analyse_upload_complete_then_deletes_clip():
@@ -467,3 +482,93 @@ def test_final_unreadable_clip_sends_the_failed_push_and_stores_only_the_code():
     assert fail_error(db) == "clip_unreadable"
     assert push.sent == [FAILED_PUSH]
     assert db.names()[-4:] == ["fail_lift_job", "remove", "mark_clip_deleted", "push_token"]
+
+
+def test_unreadable_clip_on_the_first_attempt_fails_for_good_without_retries():
+    push = FakePush()
+    db = FakeDb([ROW])
+    out = process_one(db, unreadable_analyse, push=push)
+    assert out == {
+        "lift_id": "lift-1",
+        "status": "failed",
+        "error": "clip_unreadable",
+        "attempt": 1,
+        "clip_deleted": True,
+    }
+    assert db.calls[-4] == (
+        "rpc",
+        "fail_lift_job",
+        {"p_msg_id": 7, "p_lift_id": "lift-1", "p_error": "clip_unreadable", "p_retry": False},
+    )
+    assert push.sent == [FAILED_PUSH]
+
+
+MODAL_APP = (Path(__file__).parent.parent / "modal_app.py").read_text()
+
+
+def test_a_claim_outlives_the_modal_call_that_holds_it():
+    timeout = int(re.findall(r"timeout=(\d+)", MODAL_APP.split("def drain(")[0])[-1])
+    assert timeout == FUNCTION_TIMEOUT_S == 900
+    assert timeout + 60 <= VISIBILITY_S
+
+
+def test_modal_drain_runs_on_ten_eight_cpu_containers():
+    assert "cpu=8.0, memory=8192, timeout=900, scaledown_window=180, max_containers=10)" in MODAL_APP
+    assert "budget_s=FUNCTION_TIMEOUT_S - DRAIN_RESERVE_S" in MODAL_APP
+
+
+class Clock:
+    def __init__(self):
+        self.now = 0.0
+
+    def monotonic(self):
+        return self.now
+
+
+def test_drain_stops_claiming_once_the_budget_is_spent(monkeypatch):
+    clock = Clock()
+    monkeypatch.setattr(jobs, "time", SimpleNamespace(monotonic=clock.monotonic))
+
+    def slow_analyse(clip, job, workdir):
+        clock.now += 250
+        return fake_analyse(clip, job, workdir)
+
+    db = FakeDb([ROW] * 5)
+    out = drain(db, slow_analyse, budget_s=FUNCTION_TIMEOUT_S - DRAIN_RESERVE_S)
+    assert len(out) == 3
+    assert db.names().count("claim_lift_job") == 3
+    assert len(db.jobs) == 2
+
+
+def test_drain_without_a_budget_empties_the_queue(monkeypatch):
+    clock = Clock()
+    monkeypatch.setattr(jobs, "time", SimpleNamespace(monotonic=clock.monotonic))
+
+    def slow_analyse(clip, job, workdir):
+        clock.now += 10_000
+        return fake_analyse(clip, job, workdir)
+
+    assert len(drain(FakeDb([ROW] * 3), slow_analyse)) == 3
+
+
+def test_each_job_logs_its_stage_timings(monkeypatch, caplog):
+    clock = Clock()
+    monkeypatch.setattr(jobs, "time", SimpleNamespace(monotonic=clock.monotonic))
+
+    class TimedDb(FakeDb):
+        def download(self, *a):
+            clock.now += 1.5
+            super().download(*a)
+
+        def upload(self, *a):
+            clock.now += 0.5
+            super().upload(*a)
+
+    def timed_analyse(clip, job, workdir):
+        jobs.cv_pose.pose_seconds += 4.0
+        clock.now += 6.0
+        return fake_analyse(clip, job, workdir)
+
+    with caplog.at_level(logging.INFO, logger="catchline_worker"):
+        process_one(TimedDb([ROW]), timed_analyse)
+    assert "lift lift-1 done attempt=1 download=1.5s pose=4.0s analysis=2.0s upload=1.0s total=8.5s" in caplog.text
