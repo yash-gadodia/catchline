@@ -586,6 +586,10 @@ def withhold(cue, r, meas):
             if m["status"] == "cue":
                 m["status"] = "normal"
         return None, {"code": "bar_lost"}
+    off = r.get("off_side_deg")
+    if cue is None and off is not None and off > 20:
+        # most snatch rules are horizontal and read short off side-on, so "nothing fired" is not "clean"
+        return None, {"code": "off_side_on", "offSideDeg": int(round(off))}
     if cue is None or (cue["confidence"] != "low" and not r.get("cut_off")):
         return cue, None
     fid = cue["faultId"]

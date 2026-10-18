@@ -27,7 +27,7 @@ def test_a_confident_cue_is_kept():
     assert withhold(cue("bar_forward_off_hips", "worth_checking"), {"off_side_deg": 34.3}, m) == (
         cue("bar_forward_off_hips", "worth_checking"), None)
     assert m == meas()
-    assert withhold(None, {"off_side_deg": 50.0}, m) == (None, None)
+    assert withhold(None, {"off_side_deg": 12.0}, m) == (None, None)
 
 
 def test_a_low_cue_filmed_off_side_on_is_held_back_and_the_horizontal_rows_are_not_judged():
@@ -182,3 +182,8 @@ def test_a_snatch_whose_bar_never_clears_the_shoulders_lost_the_bar_and_is_never
     assert withhold(None, {"bar_lost": True}, m) == (None, {"code": "bar_lost"})
     assert withhold(cue("bar_forward_off_hips", "worth_checking"), {"bar_lost": True}, m) == (None, {"code": "bar_lost"})
     assert "cue" not in [x["status"] for x in m]
+
+
+def test_nothing_fired_off_side_on_is_not_clean():
+    # the horizontal rules read short at 37-56 deg, so a lift with no cue there is unjudged, not clean
+    assert withhold(None, {"off_side_deg": 44.4}, meas()) == (None, {"code": "off_side_on", "offSideDeg": 44})
