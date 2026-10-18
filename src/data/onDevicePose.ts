@@ -1,9 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AppState } from 'react-native';
 import PoseCoreML, { type PoseResult } from '../../modules/pose-coreml';
 import { supabase } from '../lib/supabase';
 
-export const POSE_ATTEMPT_KEY = 'catchline-pose-attempt';
-export const POSE_DISABLED_KEY = 'catchline-pose-disabled';
+// v2 (18 Oct): v1 also latched when the lifter hid the app mid-model, which left phones on the
+// slow server pose for good; the new keys start every phone fresh.
+export const POSE_ATTEMPT_KEY = 'catchline-pose-attempt-v2';
+export const POSE_DISABLED_KEY = 'catchline-pose-disabled-v2';
 const SERVER_SWITCH = 'on_device_pose';
 
 // Off unless EXPO_PUBLIC_ON_DEVICE_POSE=1, and only where the native module exists (iOS).
@@ -44,12 +47,17 @@ export async function analyzeClipPose(uri: string, onProgress: (p: number) => vo
   if (!onDevicePoseEnabled() || PoseCoreML === null) return null;
   const sub = PoseCoreML.addListener('onProgress', (e) => onProgress(e.progress));
   await AsyncStorage.setItem(POSE_ATTEMPT_KEY, '1');
+  // Leaving the app mid-model is an interruption, not a crash: iOS may end the app in the background.
+  const away = AppState.addEventListener('change', (state) => {
+    if (state !== 'active') void AsyncStorage.removeItem(POSE_ATTEMPT_KEY);
+  });
   try {
     return poseJson(await PoseCoreML.analyzePose(uri));
   } catch {
     return null;
   } finally {
     await AsyncStorage.removeItem(POSE_ATTEMPT_KEY);
+    away.remove();
     sub.remove();
   }
 }

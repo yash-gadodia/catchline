@@ -102,7 +102,10 @@ function LiveProcessing({ lift }: { lift?: string }) {
   const liftId = lift ?? job?.liftId ?? null;
   const [status, setStatus] = useState<JobStatus | null>(null);
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
-  const [elapsed, setElapsed] = useState(0);
+  // The clock counts from when this lift was sent (the job id is its start time), so reopening keeps it.
+  const startedAt = job && (!lift || lift === job.liftId) ? Number(job.id.replace('job-', '')) || null : null;
+  const since = () => (startedAt ? Math.max(0, Math.floor((Date.now() - startedAt) / 1000)) : 0);
+  const [elapsed, setElapsed] = useState(since);
   const [crawl, setCrawl] = useState(0);
   const [waiting, setWaiting] = useState(false);
   const [ahead, setAhead] = useState(0);
@@ -122,7 +125,7 @@ function LiveProcessing({ lift }: { lift?: string }) {
     router.replace({ pathname: '/failure/[id]', params: { id, reason } });
 
   useEffect(() => {
-    const tick = setInterval(() => setElapsed((e) => e + 1), 1000);
+    const tick = setInterval(() => setElapsed((e) => (startedAt ? since() : e + 1)), 1000);
     const crawler = setInterval(() => setCrawl((c) => Math.min(c + 1, 2)), CRAWL_MS);
     return () => {
       clearInterval(tick);
