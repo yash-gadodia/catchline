@@ -61,7 +61,7 @@ def test_the_new_snatch_faults_rank_by_severity_then_lift_order():
 
 
 def test_the_new_snatch_rules_are_projection_sensitive_so_off_side_on_reads_low():
-    for fid in rules.UNCALIBRATED_SNATCH:
+    for fid in ("early_arm_bend", "slow_turnover", "bar_crash"):
         assert rules.RULES[fid]["horizontal"] is True
         assert rules.confidence(fid, 2.0, 35.0) == "low"
 

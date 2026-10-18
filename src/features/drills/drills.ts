@@ -243,6 +243,41 @@ export const DRILLS: Record<string, Drill> = {
     why: 'A full tuck sets up the kick so the hips drive the rep, where we measured the knees stopping short above the hips.',
     draft: true,
   },
+  hips_too_low_at_start: {
+    faultId: 'hips_too_low_at_start',
+    name: 'Snatch lift-offs',
+    steps: [
+      'Set up with your hips a little higher than your knees and your arms long.',
+      'Push the floor away until the bar passes your knees, then lower it.',
+      'Check that your hips and chest rose together.',
+    ],
+    dose: '3 x 3 at 60 to 70 %',
+    why: 'Starting from a slightly higher hip position lets the legs push the bar off the floor instead of the hips shooting up once it gets going.',
+    draft: true,
+  },
+  shoulders_behind_bar_at_start: {
+    faultId: 'shoulders_behind_bar_at_start',
+    name: 'Setup holds',
+    steps: [
+      'Set up and hold the start for 3 seconds with your armpits over the bar.',
+      'Lift the bar to just below the knee and pause for 2 seconds.',
+    ],
+    dose: '3 x 3 at 50 to 60 %',
+    why: 'Holding the start position teaches the shoulders to sit over the bar, so the bar can travel back toward you as it leaves the floor.',
+    draft: true,
+  },
+  jump_back_excessive: {
+    faultId: 'jump_back_excessive',
+    name: 'Snatch from the power position',
+    steps: [
+      'Start standing with the bar at your hips and a mat or tape line behind your heels.',
+      'Snatch from there and land with your heels in front of the line.',
+      'Finish with one full snatch from the floor.',
+    ],
+    dose: '4 x 2 at 60 to 70 %',
+    why: 'A line behind your heels shows when your feet travel back further than the bar, which is the distance we measured.',
+    draft: true,
+  },
 };
 
 // The drill in the lifter's language (src/i18n/<lang>/drills.ts), English where a line has no key.
