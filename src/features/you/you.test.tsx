@@ -9,7 +9,9 @@ import DeleteAccountSheet, { confirmed } from './DeleteAccountSheet';
 import { LowStorageSheet, OfflineBanner, PermissionDenied, UpdateRequired, formatBytes } from './GlobalStates';
 import { NOTIFICATION_COPY, NOTIFICATION_TITLE } from './notificationCopy';
 import { DEFAULT_SETTINGS, reminderLabel, settingLabels, useSettings } from './settings';
-import { accountLine, createLocalAccountRepository, livePlanLabel, planLabel, useAccountStore } from './account';
+import { accountLine, createLocalAccountRepository, livePlanLabel, planLabel, useAccountStore, type DataExport } from './account';
+import { ANALYSES } from '../../analysis/fixtures';
+import { useLibraryStore } from '../library/store';
 import { backendEnabled } from '../../data/backend';
 import { recordConsent } from '../../lib/api';
 import { useOnboarding } from '../onboarding/store';
@@ -177,12 +179,9 @@ describe('YouScreen', () => {
     const send = jest.fn(() => Promise.resolve());
     const screen = await render(<YouScreen nav={nav} version="1.0.3" exportData={send} />);
     await press(screen.getByTestId('row-export'));
-    expect(send).toHaveBeenCalledWith({
-      exportedAt: expect.any(String),
-      account: { name: 'Alex', plan: 'Pull · Founding member · for life' },
-      settings: DEFAULT_SETTINGS,
-      lifts: ['snatch-mock', 'snatch-mock-clean', 'snatch-mock-low', 'snatch-mock-miss', 'snatch-mock-partial', 'snatch-real'],
-    });
+    const bundle = (send.mock.calls[0] as unknown as [DataExport])[0];
+    expect(bundle).toMatchObject({ account: { name: 'Alex', plan: 'Pull · Founding member · for life' }, settings: DEFAULT_SETTINGS });
+    expect(bundle.lifts.map((l) => l.id)).toEqual(useLibraryStore.getState().lifts.map((l) => l.id));
   });
 });
 
@@ -286,12 +285,10 @@ describe('YouScreen with the backend on', () => {
     const send = jest.fn(() => Promise.resolve());
     const screen = await render(<YouScreen nav={nav} version="1.0.3" exportData={send} />);
     await press(screen.getByTestId('row-export'));
-    expect(send).toHaveBeenCalledWith({
-      exportedAt: expect.any(String),
-      account: { name: '', plan: 'Free · 3 of 3 videos left' },
-      settings: DEFAULT_SETTINGS,
-      lifts: ['l-snatch-today', 'l-clean', 'l-mu', 'l-jerk', 'l-snatch-queued', 'l-snatch-miss', 'l-snatch-real', 'l-snatch-low'],
-    });
+    const bundle = (send.mock.calls[0] as unknown as [DataExport])[0];
+    expect(bundle).toMatchObject({ account: { name: '', plan: 'Free · 3 of 3 videos left' }, settings: DEFAULT_SETTINGS });
+    expect(bundle.lifts.map((l) => l.id)).toEqual(['l-snatch-today', 'l-clean', 'l-mu', 'l-jerk', 'l-snatch-queued', 'l-snatch-miss', 'l-snatch-real', 'l-snatch-low']);
+    expect(bundle.lifts.every((l) => l.date && l.movement)).toBe(true);
   });
 
   it('exports my lifts as a CSV for everyone, free plan included', async () => {
@@ -317,9 +314,20 @@ describe('YouScreen with the backend on', () => {
 });
 
 describe('exportMyData', () => {
+  it('carries each lift itself (date, movement, cue, every seen measurement), not just its id', async () => {
+    const analysis = ANALYSES['snatch-mock'];
+    const lift = { id: 'l1', movement: 'snatch' as const, date: '2026-10-11', loadKg: 60, status: 'analysed' as const, analysisId: 'snatch-mock' };
+    const bundle = await createLocalAccountRepository().exportAllData(DEFAULT_SETTINGS, [{ lift: lift as never, analysis }]);
+    const seen = analysis.measurements.filter((m: { status: string }) => m.status !== 'not_seen');
+    expect(bundle.lifts).toHaveLength(1);
+    expect(bundle.lifts[0]).toMatchObject({ id: 'l1', date: '2026-10-11', movement: 'snatch', loadKg: 60, cue: analysis.cue?.text });
+    expect(bundle.lifts[0].measurements).toEqual(seen.map((m) => ({ id: m.id, label: m.label, value: m.value, unit: m.unit })));
+    expect(seen.length).toBeGreaterThan(0);
+  });
+
   it('stamps the export time from the repository clock', async () => {
     const repo = createLocalAccountRepository(() => new Date('2026-10-11T10:00:00.000Z'));
-    const bundle = await repo.exportAllData(DEFAULT_SETTINGS, ['snatch-mock']);
+    const bundle = await repo.exportAllData(DEFAULT_SETTINGS, []);
     expect(bundle.exportedAt).toBe('2026-10-11T10:00:00.000Z');
     const send = jest.fn(() => Promise.resolve());
     await exportMyData(send);

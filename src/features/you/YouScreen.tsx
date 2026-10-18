@@ -3,7 +3,6 @@ import { Platform, Pressable, ScrollView, Share, Text, TextInput, View } from 'r
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 import { File, Paths } from 'expo-file-system';
-import { ANALYSES } from '../../analysis/fixtures';
 import { backendEnabled } from '../../data/backend';
 import { movementLabel } from '../../analysis/format';
 import Btn from '../../components/Btn';
@@ -12,12 +11,11 @@ import Sheet from '../../components/Sheet';
 import SmallCaps from '../../components/SmallCaps';
 import { colors, shape, space } from '../../design/tokens';
 import { display, fontFamily, type } from '../../design/typography';
-import { useLibraryStore } from '../library/store';
 import { useOnboarding } from '../onboarding/store';
 import { Chip, SheetTitle, Toggle } from '../share/ui';
 import { signInWithApple, type AppleSignIn } from '../auth/appleSignIn';
 import { Note } from '../onboarding/ui';
-import { exportMyLifts, shareLiftsCsv } from './liftsCsv';
+import { exportMyLifts, libraryLifts, shareLiftsCsv } from './liftsCsv';
 import { LANGUAGE_NAMES, LOCALES, t, type Language } from '../../i18n';
 import { accountRepository, signOutOfAccount, useAccountView, type DataExport } from './account';
 import {
@@ -63,8 +61,7 @@ export async function shareExport(bundle: DataExport): Promise<void> {
 }
 
 export async function exportMyData(send: (bundle: DataExport) => Promise<void> = shareExport): Promise<void> {
-  const lifts = backendEnabled() ? useLibraryStore.getState().lifts.map((l) => l.id) : Object.keys(ANALYSES);
-  await send(await accountRepository.exportAllData(settingsOf(useSettings.getState()), lifts));
+  await send(await accountRepository.exportAllData(settingsOf(useSettings.getState()), libraryLifts()));
 }
 
 export default function YouScreen({
