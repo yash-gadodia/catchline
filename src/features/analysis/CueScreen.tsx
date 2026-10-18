@@ -97,10 +97,10 @@ function CueBody({
         <StatusRow>{cue.confidenceText}</StatusRow>
         <DrillCard faultId={cue.faultId} />
         <CueNotes notes={analysis.notes} />
-        <Disclaimer />
         <Reanalysed analysis={analysis} />
       </ScrollView>
-      <View style={{ paddingTop: space.s4, paddingHorizontal: space.gutter, paddingBottom: space.s7, gap: space.s2 }}>
+      <View testID="result-actions" style={{ paddingTop: space.s4, paddingHorizontal: space.gutter, paddingBottom: space.s7, gap: space.s2 }}>
+        <Disclaimer />
         <Btn onPress={nav.onTry} testID="cue-try">
           {t('analysis.cue.try')}
         </Btn>
@@ -203,10 +203,10 @@ function LowConfidence({ analysis, cue, nav, retest, retestable }: { analysis: A
         <Text style={[display(32), { color: colors.text }]}>{cueText(cue.faultId, cue.text)}</Text>
         <Text style={{ color: colors.text2, ...type.callout }}>{cueWhy(cue.faultId, cue.why)}</Text>
         <CueNotes notes={analysis.notes} />
-        <Disclaimer />
         <Reanalysed analysis={analysis} />
       </ScrollView>
-      <View style={{ paddingTop: space.s4, paddingHorizontal: space.gutter, paddingBottom: space.s7, gap: space.s2 }}>
+      <View testID="result-actions" style={{ paddingTop: space.s4, paddingHorizontal: space.gutter, paddingBottom: space.s7, gap: space.s2 }}>
+        <Disclaimer />
         <Btn
           onPress={() => {
             nav.onKeep?.();
@@ -258,10 +258,10 @@ function Clean({ analysis, nav, retest }: { analysis: Analysis; nav: Nav; retest
         <Text style={{ color: colors.text2, ...type.body }} testID="clean-body">
           {t('analysis.clean.body')}
         </Text>
-        <Disclaimer />
         <Reanalysed analysis={analysis} />
       </ScrollView>
-      <View style={{ paddingTop: space.s4, paddingHorizontal: space.gutter, paddingBottom: space.s7, gap: space.s2 }}>
+      <View testID="result-actions" style={{ paddingTop: space.s4, paddingHorizontal: space.gutter, paddingBottom: space.s7, gap: space.s2 }}>
+        <Disclaimer />
         <Btn onPress={nav.onFilmAgain} testID="retest-heavier">
           {t('analysis.clean.retestHeavier')}
         </Btn>
@@ -316,9 +316,9 @@ function Partial({ analysis, nav, retest, retestable }: { analysis: Analysis; na
             {copy?.tip ?? ''}
           </Text>
         </View>
-        <Disclaimer />
       </ScrollView>
-      <View style={{ paddingTop: space.s4, paddingHorizontal: space.gutter, paddingBottom: space.s7, gap: space.s2 }}>
+      <View testID="result-actions" style={{ paddingTop: space.s4, paddingHorizontal: space.gutter, paddingBottom: space.s7, gap: space.s2 }}>
+        <Disclaimer />
         {retestable && nav.onRetest ? (
           <Btn onPress={() => nav.onRetest?.(retestable.id)} testID="cue-retest">
             {t('analysis.cue.retest')}

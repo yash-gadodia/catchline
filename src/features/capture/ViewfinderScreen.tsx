@@ -45,7 +45,8 @@ export default function ViewfinderScreen({
   onMovement: (m: Movement) => void;
   checker: FramingChecker;
   fps: number;
-  freeUsed: number;
+  // Free plan only; a paid plan has no free-video count to show.
+  freeUsed?: number;
   freeTotal: number;
   secondsLeft: () => number;
   originals: number;
@@ -261,7 +262,7 @@ export default function ViewfinderScreen({
                 <View style={{ width: 44 }} />
               )}
               <RecordButton recording={recording} onPress={press} />
-              {session.kind === 'idle' ? (
+              {session.kind === 'idle' && freeUsed != null ? (
                 <Text
                   testID="free-count"
                   accessibilityLabel={t('capture.viewfinder.freeA11y', { used: freeUsed, total: freeTotal })}

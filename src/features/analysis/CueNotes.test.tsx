@@ -1,5 +1,5 @@
 import { act, fireEvent, render } from '@testing-library/react-native';
-import { snatchMock, snatchMockLow } from '../../analysis/fixtures';
+import { snatchMock, snatchMockClean, snatchMockLow, snatchMockPartial } from '../../analysis/fixtures';
 import type { Note } from '../../analysis/types';
 import { loadLibrary } from '../library/repository';
 import CueNotes from './CueNotes';
@@ -83,6 +83,17 @@ describe('disclaimer', () => {
     expect(clear.getAllByText(text)).toHaveLength(1);
     const low = await render(<CueScreen analysis={snatchMockLow} nav={nav} />);
     expect(low.getAllByText(text)).toHaveLength(1);
+  });
+
+  it.each([
+    ['clear', snatchMock],
+    ['low confidence', snatchMockLow],
+    ['clean', snatchMockClean],
+    ['partial', snatchMockPartial],
+  ] as const)('sits with the pinned actions on the %s result, not in the scroll area', async (_name, analysis) => {
+    const screen = await render(<CueScreen analysis={{ ...analysis, notes }} nav={nav} />);
+    expect(screen.getAllByText(text)).toHaveLength(1);
+    expect(screen.getByTestId('result-actions')).toContainElement(screen.getByTestId('disclaimer'));
   });
 
   it('never claims to diagnose or prevent injury', async () => {

@@ -12,9 +12,7 @@ import { hasConsent, useHydrated, useOnboarding } from '../../src/features/onboa
 import { colors } from '../../src/design/tokens';
 import { useLibrary } from '../../src/features/library/repository';
 import { previousValue, targetLine } from '../../src/features/library/retest';
-
-// TODO(paywall): the free-video count comes from the account in Phase 3.
-const FREE_TOTAL = 3;
+import { FREE_VIDEOS } from '../../src/features/library/types';
 
 type Params = { checks?: string; state?: string; still?: string; left?: string; retest?: string };
 
@@ -38,7 +36,7 @@ export default function CaptureRoute() {
   const camera = useCameraPermission();
   const { movement, setMovement, originals, setOriginals, setDraft, addOriginal } = useCapture();
   const checker = useMemo(() => (params.checks ? fixedChecker(parseChecks(params.checks)) : stubChecker), [params.checks]);
-  const { cues, sessions, lifts } = useLibrary();
+  const { cues, sessions, lifts, plan, freeVideosUsed } = useLibrary();
   const retest = cues.find((c) => c.id === params.retest && c.status === 'trying');
 
   // A retest films the cue's movement.
@@ -61,8 +59,8 @@ export default function CaptureRoute() {
       onMovement={setMovement}
       checker={checker}
       fps={RECORD_FPS}
-      freeUsed={0}
-      freeTotal={FREE_TOTAL}
+      freeUsed={plan === 'free' ? Math.min(freeVideosUsed, FREE_VIDEOS) : undefined}
+      freeTotal={FREE_VIDEOS}
       secondsLeft={() => secondsLeft(RECORD_FPS)}
       originals={originals.length}
       onDeleteOriginals={() => setOriginals(deleteOriginals(originals))}
