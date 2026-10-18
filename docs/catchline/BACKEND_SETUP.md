@@ -1,6 +1,6 @@
 # Catchline backend: setup and go-live steps
 
-The backend is **hosted** since 2026-10-11: Supabase project `slowxjhvrdswdabjfydk` (the former Parallax project, wiped and renamed "Catchline") plus an always-on worker on the Mac Mini. See "Hosted backend" below. No Modal app exists yet; the RevenueCat webhook function is live but not yet configured in the RevenueCat dashboard. The steps marked **(Yash)** need an account, a dashboard or a credential.
+The backend is **hosted** since 2026-10-11: Supabase project `slowxjhvrdswdabjfydk` (the former Parallax project, wiped and renamed "Catchline") plus the worker on Modal (app `catchline-worker`, workspace pirsquare-yash, live since 2026-10-18; the Mac Mini worker is retired, its plist renamed `.disabled`). Deploy: `git rev-parse --short HEAD > worker/REVISION && modal deploy worker/modal_app.py` from the laptop. See "Hosted backend" below. the RevenueCat webhook function is live but not yet configured in the RevenueCat dashboard. The steps marked **(Yash)** need an account, a dashboard or a credential.
 
 ## What exists
 
@@ -12,7 +12,7 @@ The backend is **hosted** since 2026-10-11: Supabase project `slowxjhvrdswdabjfy
 | Plan sync on demand (`sync-plan`: caller's JWT -> RevenueCat `GET /v1/subscribers/{uid}` -> `apply_plan`, upgrades only) | `supabase/functions/sync-plan/` | `deno test` in that folder (12) |
 | Parallax history (not applied) | `supabase/archive-parallax/` | kept for the record; excluded from tsc |
 | Worker (pgmq job -> `cv/catchline_cv` -> analysis + cue) | `worker/catchline_worker/` | `uv run pytest` (14), `ruff check` + `ruff format --check` |
-| Modal deploy file (not deployed) | `worker/modal_app.py` | lint only |
+| Modal worker (live) | `worker/modal_app.py` | test lift ba636a80 queued -> done in 80 s on Modal (18 Oct) |
 | App API (`createLift` + TUS, `subscribeToLift`, `getAnalysis`, `listLifts`, `listCues`, `updateCue`, `createCoachLink`, `recordConsent`, `getAllowance`) | `src/lib/api/` | `npm test` (`src/lib/api/*.test.ts`) |
 | DB types | `src/types/db.ts` (generated) | `npm run typecheck` |
 | End-to-end | `scripts/catchline-e2e.sh` | see "Local run" |
