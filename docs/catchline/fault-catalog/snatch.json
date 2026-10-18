@@ -1,0 +1,1649 @@
+[
+  {
+    "id": "bar_away_from_shins_at_start",
+    "name": "Bar too far from shins at setup",
+    "phase": "setup",
+    "looks_like": "Visible gap between bar and shins before lift-off; bar sits over toes instead of over the balls of the feet.",
+    "root_causes": [
+      "Setting up with shins vertical",
+      "Weight on heels at setup",
+      "Habit from deadlifting"
+    ],
+    "downstream": [
+      "Bar swings out off the floor",
+      "Lifter chases the bar forward",
+      "Forward miss"
+    ],
+    "measurable_side_on": "partial",
+    "signal": "At lift-off frame: horizontal distance from plate centre to ankle keypoint, scaled by plate diameter (45 cm bumper = known length). Compare to the lifter's own rep history rather than an absolute norm.",
+    "threshold": {
+      "value": "plate centre > 20 cm in front of ankle keypoint at lift-off",
+      "units": "cm",
+      "source": "heuristic, not from a source (unverified); bar-over-balls-of-feet guidance from CrossFit L1"
+    },
+    "priority": 2,
+    "cues": [
+      "Bar over the balls of your feet",
+      "Shins touch the bar before you pull",
+      "Roll the bar in to your shins",
+      "Knees over the bar at the start",
+      "Pull the bar in before it leaves",
+      "Start with the bar brushing your laces"
+    ],
+    "why": [
+      "If the bar starts away from you, it has to swing back in or you have to chase it forward."
+    ],
+    "drills": [
+      "Snatch lift-offs",
+      "Halting snatch deadlift"
+    ],
+    "sources": [
+      "https://open-exam-prep.com/study-guides/crossfit-l3/training-seeing/training-faults-olympic-gymnastics",
+      "https://open-exam-prep.com/study-guides/crossfit-l1/chapter-6-additional-movements/weightlifting-snatch",
+      "https://catalystathletics.com/article/1902/Jumping-Forward-in-the-Snatch-or-Clean-Error-Correction/"
+    ],
+    "implement_first_rank": null
+  },
+  {
+    "id": "hips_too_high_at_start",
+    "name": "Hips too high at setup",
+    "phase": "setup",
+    "looks_like": "Start looks like a stiff-leg deadlift: knees nearly straight, torso close to horizontal, shoulders far in front of the bar.",
+    "root_causes": [
+      "Poor ankle/hip mobility",
+      "Habit from conventional deadlift",
+      "Weak quads at deep knee angles"
+    ],
+    "downstream": [
+      "Back takes the load early",
+      "Bar drifts forward",
+      "Early second pull",
+      "Forward miss"
+    ],
+    "measurable_side_on": "yes",
+    "signal": "At lift-off: knee angle (hip-knee-ankle) and torso angle from horizontal (hip-shoulder line).",
+    "threshold": {
+      "value": "knee angle > 115 deg AND torso < 20 deg above horizontal at lift-off",
+      "units": "deg",
+      "source": "heuristic, not from a source (unverified)"
+    },
+    "priority": 2,
+    "cues": [
+      "Sit the hips down to start",
+      "Bend the legs more",
+      "Chest up before the bar moves",
+      "Shoulders back toward back pockets",
+      "Push the floor away with your legs",
+      "Start like a jump, not a deadlift"
+    ],
+    "why": [
+      "Your legs are the strongest engine off the floor. Hips too high take them out of the lift."
+    ],
+    "drills": [
+      "Setup holds with PVC",
+      "Pause snatch deadlift at 2 inches"
+    ],
+    "sources": [
+      "https://www.crossfit.com/pro-coach/ask-a-coach-missing-bar-forward-snatch",
+      "https://open-exam-prep.com/study-guides/crossfit-l3/training-seeing/training-faults-olympic-gymnastics"
+    ],
+    "implement_first_rank": null
+  },
+  {
+    "id": "hips_too_low_at_start",
+    "name": "Hips too low / squatting the bar up",
+    "phase": "setup",
+    "looks_like": "Start looks like a squat: hips at or below knees, torso very upright, shoulders behind the bar; hips then shoot up as the bar breaks.",
+    "root_causes": [
+      "Coached 'chest up' too hard",
+      "Misunderstanding of the start",
+      "Strong quads, weak back"
+    ],
+    "downstream": [
+      "Hips shoot up anyway once the bar moves",
+      "Knees in the way of the bar",
+      "Bar swings out around the knees"
+    ],
+    "measurable_side_on": "yes",
+    "signal": "At lift-off: hip keypoint height vs knee keypoint height; shoulder x relative to plate centre x.",
+    "threshold": {
+      "value": "hip at or below knee height (within 5 cm) at lift-off",
+      "units": "cm",
+      "source": "heuristic, not from a source (unverified); CF L1: hips higher than knees, lower than shoulders"
+    },
+    "priority": 1,
+    "cues": [
+      "Hips a little higher than knees",
+      "Shoulders just over the bar",
+      "Find tension, then lift",
+      "Do not squat the bar off",
+      "Arms hang straight down to the bar"
+    ],
+    "why": [
+      "A start that is too low just turns into hips-shooting-up once the bar gets heavy."
+    ],
+    "drills": [
+      "Snatch lift-offs",
+      "Pause at the knee snatch deadlift"
+    ],
+    "sources": [
+      "https://open-exam-prep.com/study-guides/crossfit-l1/chapter-6-additional-movements/weightlifting-snatch",
+      "https://open-exam-prep.com/study-guides/crossfit-l3/training-seeing/training-faults-olympic-gymnastics"
+    ],
+    "implement_first_rank": null
+  },
+  {
+    "id": "shoulders_behind_bar_at_start",
+    "name": "Shoulders behind the bar at start",
+    "phase": "setup",
+    "looks_like": "From the side the shoulder joint is behind the bar line at lift-off.",
+    "root_causes": [
+      "Hips too low",
+      "Sitting back to the heels"
+    ],
+    "downstream": [
+      "Bar swings out as it leaves the floor",
+      "Early hip opening"
+    ],
+    "measurable_side_on": "partial",
+    "signal": "Shoulder keypoint x minus plate centre x at lift-off (sign by lifter facing direction).",
+    "threshold": {
+      "value": "shoulder > 5 cm behind plate centre at lift-off",
+      "units": "cm",
+      "source": "heuristic, not from a source (unverified); Kauhanen 1984 (via Cissik): elite shoulders further in front of bar at start"
+    },
+    "priority": 1,
+    "cues": [
+      "Shoulders over or just ahead of bar",
+      "Lean over the bar a little",
+      "Armpits over the bar",
+      "Weight over midfoot, not heels",
+      "Cover the bar with your shoulders"
+    ],
+    "why": [
+      "Shoulders slightly over the bar lets the bar move back toward you, not away."
+    ],
+    "drills": [
+      "Setup holds",
+      "Snatch lift-offs"
+    ],
+    "sources": [
+      "https://open-exam-prep.com/study-guides/crossfit-l3/training-seeing/training-faults-olympic-gymnastics",
+      "https://cissik.com/blog/?p=447"
+    ],
+    "implement_first_rank": null
+  },
+  {
+    "id": "rounded_back_at_start",
+    "name": "Rounded back at setup or off the floor",
+    "phase": "setup",
+    "looks_like": "Lumbar or thoracic spine flexes before or as the bar breaks.",
+    "root_causes": [
+      "Mobility limits",
+      "Weak erectors",
+      "Not setting tension"
+    ],
+    "downstream": [
+      "Force leaks",
+      "Bar drifts forward",
+      "Injury risk"
+    ],
+    "measurable_side_on": "no",
+    "signal": "2D keypoints (hip, shoulder) give a straight segment; spine curvature is not recoverable at ~5 cm error. Would need a dedicated back-contour model.",
+    "threshold": {
+      "value": "none found",
+      "units": "",
+      "source": "none found"
+    },
+    "priority": 2,
+    "cues": [
+      "Chest proud before you pull",
+      "Squeeze the back tight",
+      "Long spine, then lift",
+      "Big breath, brace, then go",
+      "Show your logo to the front"
+    ],
+    "why": [
+      "A soft back bends under load and steals the force your legs make."
+    ],
+    "drills": [
+      "Snatch-grip RDL",
+      "Pause snatch deadlift"
+    ],
+    "sources": [
+      "https://open-exam-prep.com/study-guides/crossfit-l3/training-seeing/training-faults-olympic-gymnastics"
+    ],
+    "implement_first_rank": null
+  },
+  {
+    "id": "hips_rise_early",
+    "name": "Hips shoot up off the floor",
+    "phase": "first_pull",
+    "looks_like": "Right after lift-off the hips rise quickly while the bar and shoulders barely move; torso tips toward horizontal.",
+    "root_causes": [
+      "Yanking the bar off the floor without tension",
+      "Legs weak at small knee angles relative to hips",
+      "Setup too low"
+    ],
+    "downstream": [
+      "Balance shifts to the toes",
+      "Forces an early second pull",
+      "Less bar speed and height",
+      "Jump forward / forward miss"
+    ],
+    "measurable_side_on": "yes",
+    "signal": "Floor-to-knee window: (a) change in torso angle (hip-shoulder line vs horizontal) from lift-off to bar at knee height; (b) hip vertical rise vs plate vertical rise over the first ~150 ms. Both use segments of ~50 cm so 5 cm joint error is ~6 deg.",
+    "threshold": {
+      "value": "torso angle drops > 15 deg between lift-off and bar at knee, OR hip rises > 2x plate rise in first 150 ms",
+      "units": "deg / ratio",
+      "source": "heuristic, not from a source (unverified); qualitative definition from Everett (Catalyst) and CF L1 ('hips and shoulders rise at the same rate')"
+    },
+    "priority": 3,
+    "cues": [
+      "Push the floor away",
+      "Chest and hips rise together",
+      "Lift the chest with your legs",
+      "Squeeze the bar off the floor",
+      "Keep your back angle until the knee",
+      "Legs first, hips follow",
+      "Slow off the floor, fast at the top"
+    ],
+    "why": [
+      "If your hips rise first, your back does the work and the bar drifts forward.",
+      "Bar speed is what counts, not hip speed."
+    ],
+    "drills": [
+      "Pause snatch deadlift (just off floor and at knee)",
+      "Slow-eccentric snatch deadlift",
+      "Snatch pulls from riser"
+    ],
+    "sources": [
+      "https://catalystathletics.com/article/2215/Fix-the-Hips-Shooting-Up-in-the-Snatch-Clean",
+      "https://open-exam-prep.com/study-guides/crossfit-l1/chapter-6-additional-movements/weightlifting-snatch",
+      "https://open-exam-prep.com/study-guides/crossfit-l3/training-seeing/training-faults-olympic-gymnastics",
+      "https://www.crossfit.com/pro-coach/ask-a-coach-missing-bar-forward-snatch",
+      "https://catalystathletics.com/article/1902/Jumping-Forward-in-the-Snatch-or-Clean-Error-Correction/"
+    ],
+    "implement_first_rank": 2
+  },
+  {
+    "id": "rushed_floor_break",
+    "name": "Rushing / jerking the bar off the floor",
+    "phase": "first_pull",
+    "looks_like": "Bar snaps off the floor with a spike in speed, often with a visible bounce of the plates or hips rising first.",
+    "root_causes": [
+      "Thinking a fast first pull is better",
+      "No pre-tension in the arms and back"
+    ],
+    "downstream": [
+      "Hips shoot up",
+      "Loss of positions",
+      "Second pull from a bad position"
+    ],
+    "measurable_side_on": "partial",
+    "signal": "Plate vertical velocity: peak velocity in floor-to-knee phase relative to peak velocity in second pull. Elite: ~1.00 m/s first vs ~1.93 m/s second (ratio ~0.5).",
+    "threshold": {
+      "value": "first-pull peak / second-pull peak bar velocity > 0.7",
+      "units": "ratio",
+      "source": "heuristic, not from a source (unverified); elite reference values from Nagao 2019 (1.00 vs 1.93 m/s) and Harbili 2014 (0.98 vs 1.82 m/s)"
+    },
+    "priority": 2,
+    "cues": [
+      "Squeeze it off, don't rip it",
+      "Patient off the floor",
+      "Build speed as the bar rises",
+      "Take the slack out first",
+      "Push, then jump",
+      "Smooth to the knee, violent at the hip"
+    ],
+    "why": [
+      "The bar should keep speeding up. Ripping it off the floor wrecks the position you need for the jump."
+    ],
+    "drills": [
+      "Slow-pull snatch",
+      "Halting snatch deadlift + snatch"
+    ],
+    "sources": [
+      "https://catalystathletics.com/article/2215/Fix-the-Hips-Shooting-Up-in-the-Snatch-Clean",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC6628121/",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC3990899"
+    ],
+    "implement_first_rank": null
+  },
+  {
+    "id": "bar_drifts_forward_first_pull",
+    "name": "Bar drifts away in the first pull",
+    "phase": "first_pull",
+    "looks_like": "Bar moves forward, away from the shins, between floor and knee; a gap opens at knee height.",
+    "root_causes": [
+      "Hips rising early",
+      "Shoulders yield to the load",
+      "Lats not engaged",
+      "Knees not moving back"
+    ],
+    "downstream": [
+      "Longer bar path",
+      "Early second pull",
+      "Bar swings forward",
+      "Forward miss"
+    ],
+    "measurable_side_on": "yes",
+    "signal": "Plate-centre horizontal displacement from lift-off to the frame the bar passes knee height (plate tracking is ~1-2 cm, scaled by plate diameter). Elite bars move toward the lifter in the first pull.",
+    "threshold": {
+      "value": "net horizontal move away from lifter > 2 cm by knee height",
+      "units": "cm",
+      "source": "Elite first-pull displacement toward lifter: 6 +/- 3 cm (Harbili 2014), 7 +/- 3 cm (Nagao 2019 Dx1), 3-9 cm (Garhammer 1985 via Petrizzo 2016); cutoff itself is heuristic, not from a source (unverified)"
+    },
+    "priority": 3,
+    "cues": [
+      "Keep the bar on your legs",
+      "Sweep the bar back to you",
+      "Pull the bar into your shins",
+      "Push your knees back",
+      "Squeeze your armpits down",
+      "Pinkies tight, lats on",
+      "Bar brushes all the way up"
+    ],
+    "why": [
+      "A bar that drifts away is heavier and has to be pulled back or chased.",
+      "Every cm forward is a cm you must fix later."
+    ],
+    "drills": [
+      "Halting snatch deadlift",
+      "Segment snatch deadlift",
+      "Coach-tug drill with PVC"
+    ],
+    "sources": [
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC3990899",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC6628121/",
+      "https://www.asep.org/asep/asep/JEPonlineJUNE2016_Petrizzo.pdf",
+      "https://www.crossfit.com/pro-coach/ask-a-coach-missing-bar-forward-snatch",
+      "https://open-exam-prep.com/study-guides/crossfit-l3/training-seeing/training-faults-olympic-gymnastics"
+    ],
+    "implement_first_rank": 6
+  },
+  {
+    "id": "bar_straight_up_past_knees",
+    "name": "Bar moves straight up past the knees (no sweep back)",
+    "phase": "first_pull",
+    "looks_like": "Bar rises vertically or slightly forward past the knees instead of moving slightly back toward the thighs.",
+    "root_causes": [
+      "Not shifting balance back as the bar leaves",
+      "Knees not cleared back",
+      "Weak hamstrings / RDL position"
+    ],
+    "downstream": [
+      "Bar meets the thighs too far forward",
+      "Bar swings out in the second pull",
+      "Jump forward"
+    ],
+    "measurable_side_on": "yes",
+    "signal": "Plate-centre horizontal displacement from lift-off to bar at mid-thigh (knee-height + ~15 cm).",
+    "threshold": {
+      "value": "toward-lifter displacement < 2 cm by mid-thigh",
+      "units": "cm",
+      "source": "Everett (Catalyst) cause #4 of jumping forward; elite toward-lifter 3-9 cm (Garhammer via Petrizzo), 6 cm (Harbili); cutoff heuristic, not from a source (unverified)"
+    },
+    "priority": 2,
+    "cues": [
+      "Bar travels back past the knees",
+      "Sweep the bar into your thighs",
+      "Knees back, bar back",
+      "Shift to midfoot as it breaks",
+      "Stay over it to mid-thigh"
+    ],
+    "why": [
+      "A small sweep back lines the bar up with your hips so the jump drives it up, not out."
+    ],
+    "drills": [
+      "Segment snatch pulls",
+      "Slow pulls to mid-thigh",
+      "Snatch-grip RDL"
+    ],
+    "sources": [
+      "https://catalystathletics.com/article/1902/Jumping-Forward-in-the-Snatch-or-Clean-Error-Correction/",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC3990899",
+      "https://www.asep.org/asep/asep/JEPonlineJUNE2016_Petrizzo.pdf"
+    ],
+    "implement_first_rank": null
+  },
+  {
+    "id": "early_arm_bend",
+    "name": "Early arm bend",
+    "phase": "first_pull",
+    "looks_like": "Elbows bend before the hips and knees finish extending; bar is pulled with the arms off the thighs.",
+    "root_causes": [
+      "Intentionally pulling with the arms",
+      "Grip too narrow (bar lands low on thigh)",
+      "Forward imbalance",
+      "Starting the second pull too early",
+      "Long arms / short torso"
+    ],
+    "downstream": [
+      "Lost power from legs and hips",
+      "Elbows go back, not up and out",
+      "Bar separates from body",
+      "Slow, weak third pull"
+    ],
+    "measurable_side_on": "partial",
+    "signal": "Elbow angle (shoulder-elbow-wrist) of the near-side arm, tracked from lift-off until max hip extension. Forearm/upper arm segments ~30 cm so 5 cm error is ~10 deg; use a large margin. Wrist may be occluded by plate; use bar centre as the wrist proxy.",
+    "threshold": {
+      "value": "elbow angle < 150 deg before peak hip/knee extension",
+      "units": "deg",
+      "source": "heuristic, not from a source (unverified) (margin for 10 deg error); fault definition from CF L1/L3 and Everett"
+    },
+    "priority": 3,
+    "cues": [
+      "Long arms until you finish",
+      "Arms are ropes, legs are the engine",
+      "Jump first, then pull",
+      "When the arms bend, the power ends",
+      "Loose elbows, turned out",
+      "Hang from the bar",
+      "Finish the legs before the arms"
+    ],
+    "why": [
+      "Bent arms soak up the force your legs make instead of passing it to the bar."
+    ],
+    "drills": [
+      "Snatch pull + snatch complex",
+      "Halting snatch deadlift",
+      "Hang power snatch with straight-arm focus"
+    ],
+    "sources": [
+      "https://catalystathletics.com/article/1904/Arm-Bend-in-the-Snatch-Clean-Its-Still-Not-the-Solution-to-/",
+      "https://open-exam-prep.com/study-guides/crossfit-l1/chapter-6-additional-movements/weightlifting-snatch",
+      "https://open-exam-prep.com/study-guides/crossfit-l3/training-seeing/training-faults-olympic-gymnastics",
+      "https://www.crossfit.com/pro-coach/ask-a-coach-missing-bar-forward-snatch"
+    ],
+    "implement_first_rank": 7
+  },
+  {
+    "id": "early_hip_opening",
+    "name": "Shoulders behind the bar too early",
+    "phase": "transition",
+    "looks_like": "Torso becomes upright or leans back before the bar reaches mid-thigh; shoulders move behind the bar early.",
+    "root_causes": [
+      "Rushing to the jump",
+      "Fear of being on the toes",
+      "Coached 'chest up' too hard"
+    ],
+    "downstream": [
+      "Bar contacts low on the thigh",
+      "Bar swings forward",
+      "Jump backward",
+      "Low bar height"
+    ],
+    "measurable_side_on": "yes",
+    "signal": "Shoulder x relative to plate-centre x and torso angle vs vertical while the plate is below mid-thigh.",
+    "threshold": {
+      "value": "shoulder behind plate centre while bar below mid-thigh, OR torso within 20 deg of vertical before bar at mid-thigh",
+      "units": "cm / deg",
+      "source": "heuristic, not from a source (unverified); Everett: stay over the bar until mid/upper thigh; Kauhanen: elite shoulders behind bar only by the explosive phase"
+    },
+    "priority": 2,
+    "cues": [
+      "Stay over the bar longer",
+      "Shoulders over the bar to mid-thigh",
+      "Patience, then explode",
+      "Wait for the bar to reach your hips",
+      "Chest over the bar, then jump"
+    ],
+    "why": [
+      "Opening early wastes the hips. Wait until the bar is high on your thigh, then jump."
+    ],
+    "drills": [
+      "Halting snatch deadlift to mid-thigh",
+      "Segment snatch",
+      "Hang snatch from above knee"
+    ],
+    "sources": [
+      "https://www.catalystathletics.com/article/2041/Jumping-Backward-in-the-Snatch-Clean-When-How-to-Fix-It/",
+      "https://catalystathletics.com/article/1904/Arm-Bend-in-the-Snatch-Clean-Its-Still-Not-the-Solution-to-/",
+      "https://www.crossfit.com/pro-coach/ask-a-coach-missing-bar-forward-snatch",
+      "https://cissik.com/blog/?p=447"
+    ],
+    "implement_first_rank": null
+  },
+  {
+    "id": "early_second_pull",
+    "name": "Starting the jump too low",
+    "phase": "transition",
+    "looks_like": "The explosive hip drive begins with the bar at or just above the knee instead of mid/upper thigh.",
+    "root_causes": [
+      "Impatience",
+      "Hips rising early",
+      "Grip too narrow"
+    ],
+    "downstream": [
+      "Bar drifts forward",
+      "Early arm bend",
+      "Less acceleration at the top"
+    ],
+    "measurable_side_on": "yes",
+    "signal": "Bar height at the onset of the second-pull acceleration (where plate vertical velocity starts its main rise) relative to the knee keypoint height measured at that frame.",
+    "threshold": {
+      "value": "acceleration onset with plate < 10 cm above knee height",
+      "units": "cm",
+      "source": "heuristic, not from a source (unverified); CrossFit coach: second pull started at/above knees causes forward drift"
+    },
+    "priority": 2,
+    "cues": [
+      "Jump from the hips, not the knees",
+      "Wait until the bar is high",
+      "Bar to the pockets, then jump",
+      "Shoulders over until mid-thigh",
+      "Patience past the knee"
+    ],
+    "why": [
+      "The jump only works when the bar is near your hips."
+    ],
+    "drills": [
+      "Halting snatch deadlift + snatch",
+      "Hang snatch from high thigh"
+    ],
+    "sources": [
+      "https://www.crossfit.com/pro-coach/ask-a-coach-missing-bar-forward-snatch",
+      "https://catalystathletics.com/article/1904/Arm-Bend-in-the-Snatch-Clean-Its-Still-Not-the-Solution-to-/"
+    ],
+    "implement_first_rank": null
+  },
+  {
+    "id": "transition_bar_deceleration",
+    "name": "Bar slows down in the transition (scoop stall)",
+    "phase": "transition",
+    "looks_like": "Bar visibly slows or stalls as it passes the knees while the knees rebend (forced scoop).",
+    "root_causes": [
+      "Actively scooping the knees",
+      "Weak hamstrings/back in the knee position",
+      "Pausing to 'set up' the jump"
+    ],
+    "downstream": [
+      "Less bar speed into the second pull",
+      "Lower bar height",
+      "Slow turnover"
+    ],
+    "measurable_side_on": "yes",
+    "signal": "Plate vertical velocity: local minimum between first-pull peak and second-pull peak, as a fraction of the first-pull peak. Sample at >= 60 fps; smooth over 3 frames.",
+    "threshold": {
+      "value": "velocity dip > 30% of first-pull peak",
+      "units": "%",
+      "source": "Kipp & Harris 2015: heavier relative loads showed smaller acceleration drops in the second knee bend, coaches should limit deceleration; numeric cutoff heuristic, not from a source (unverified)"
+    },
+    "priority": 2,
+    "cues": [
+      "Keep the bar speeding up",
+      "Don't scoop, just push",
+      "Let the knees slide under",
+      "No pause at the knee",
+      "Smooth from knee to hip",
+      "Bar never slows down"
+    ],
+    "why": [
+      "A bar that stalls at the knee needs extra effort to get going again."
+    ],
+    "drills": [
+      "Slow-pull snatch to full speed",
+      "Snatch from below the knee (hang)"
+    ],
+    "sources": [
+      "https://epublications.marquette.edu/exsci_fac/87",
+      "https://catalystathletics.com/video/1641/The-Scoop-or-Double-Knee-Bend/",
+      "https://www.nsca.com/education/articles/nsca-coach/the-double-knee-bend-characteristics-and-coaching-points"
+    ],
+    "implement_first_rank": null
+  },
+  {
+    "id": "bar_contacts_low_on_thigh",
+    "name": "Bar contacts low on the thigh",
+    "phase": "second_pull",
+    "looks_like": "Bar bangs off mid-thigh instead of brushing the hip crease/upper thigh.",
+    "root_causes": [
+      "Grip too narrow",
+      "Early arm bend",
+      "Early hip opening"
+    ],
+    "downstream": [
+      "Bar swings forward",
+      "Forward miss"
+    ],
+    "measurable_side_on": "partial",
+    "signal": "Height of the plate centre at its most-backward point in the second pull (contact proxy) relative to the hip keypoint height.",
+    "threshold": {
+      "value": "most-backward bar point > 15 cm below hip keypoint",
+      "units": "cm",
+      "source": "heuristic, not from a source (unverified); Everett: in snatch the bar should sit in the hip crease at arm's length"
+    },
+    "priority": 2,
+    "cues": [
+      "Brush the bar at your hips",
+      "Bar to the hip crease",
+      "Arms long to the pockets",
+      "Contact high, not on the thigh",
+      "Widen the grip a touch"
+    ],
+    "why": [
+      "Hitting low on the thigh kicks the bar forward instead of up."
+    ],
+    "drills": [
+      "Hip snatch",
+      "Snatch from power position"
+    ],
+    "sources": [
+      "https://catalystathletics.com/article/1904/Arm-Bend-in-the-Snatch-Clean-Its-Still-Not-the-Solution-to-/",
+      "https://open-exam-prep.com/study-guides/crossfit-l1/chapter-6-additional-movements/weightlifting-snatch"
+    ],
+    "implement_first_rank": null
+  },
+  {
+    "id": "bar_swings_forward_second_pull",
+    "name": "Bar swings / loops forward off the hips",
+    "phase": "second_pull",
+    "looks_like": "After hip contact the bar arcs well out in front, often beyond the starting line; classic 'loop'.",
+    "root_causes": [
+      "Hips driving forward into the bar (hip bang)",
+      "Stiff, actively locked arms",
+      "Bar away from body before contact",
+      "Legs not driving long enough",
+      "Leaning back"
+    ],
+    "downstream": [
+      "Lifter jumps forward to chase it",
+      "Forward miss (most common miss type)"
+    ],
+    "measurable_side_on": "yes",
+    "signal": "Plate-centre horizontal: (a) max forward excursion from the most-backward point in second pull to max height (Nagao Dx2); (b) whether the bar crosses in front of its lift-off vertical line before the catch.",
+    "threshold": {
+      "value": "Dx2 > 15 cm, OR bar > 3 cm in front of start line during second pull/turnover",
+      "units": "cm",
+      "source": "Elite reference Dx2 0.12 +/- 0.09 m (Nagao 2019); second-pull away-from-lifter 4 +/- 3 cm (Harbili 2014); 3-18 cm range (Garhammer via Petrizzo); cutoffs heuristic, not from a source (unverified)"
+    },
+    "priority": 3,
+    "cues": [
+      "Jump straight up",
+      "Brush, don't bang",
+      "Keep the bar close to your body",
+      "Shrug and pull it in",
+      "Hips to the bar, not through it",
+      "Elbows up and out",
+      "Drive the floor, not the hips"
+    ],
+    "why": [
+      "Hitting the bar with your hips throws it away from you; then you must chase it.",
+      "A vertical push puts all your power into height."
+    ],
+    "drills": [
+      "Snatch high pull",
+      "Hip snatch",
+      "Dip snatch"
+    ],
+    "sources": [
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC6628121/",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC3990899",
+      "https://www.asep.org/asep/asep/JEPonlineJUNE2016_Petrizzo.pdf",
+      "https://catalystathletics.com/article/1902/Jumping-Forward-in-the-Snatch-or-Clean-Error-Correction/",
+      "https://catalystathletics.com/article/1884/Missing-Snatches-Behind-Diagnosis-Correction",
+      "https://open-exam-prep.com/study-guides/crossfit-l1/chapter-6-additional-movements/weightlifting-snatch",
+      "https://www.crossfit.com/pro-coach/ask-a-coach-missing-bar-forward-snatch"
+    ],
+    "implement_first_rank": 1
+  },
+  {
+    "id": "incomplete_extension",
+    "name": "Not finishing the pull (pulling under early)",
+    "phase": "second_pull",
+    "looks_like": "Lifter drops under before hips and knees reach full extension; no visible tall finish.",
+    "root_causes": [
+      "Fear/rush under heavy loads",
+      "Overcoaching speed under the bar",
+      "Timing problems"
+    ],
+    "downstream": [
+      "Low bar height and speed",
+      "Bar crash",
+      "Failed lift"
+    ],
+    "measurable_side_on": "yes",
+    "signal": "Max knee angle and max torso-from-vertical during second pull; also bar peak height relative to lifter standing height (estimate from frame 0 head/ankle keypoints).",
+    "threshold": {
+      "value": "max knee angle < 155 deg OR torso still > 10 deg forward of vertical at peak extension",
+      "units": "deg",
+      "source": "Elite max second-pull knee extension 165 +/- 5 deg, hip ~200 deg (Harbili 2014); cutoff includes ~10 deg error margin, heuristic, not from a source (unverified)"
+    },
+    "priority": 3,
+    "cues": [
+      "Finish tall",
+      "Stand all the way up first",
+      "Jump, then go under",
+      "Hips through before you pull under",
+      "Push the floor through the top",
+      "Tall, then fast",
+      "Finish the jump"
+    ],
+    "why": [
+      "The bar only goes as high as your extension sends it.",
+      "Pulling under early leaves power on the floor."
+    ],
+    "drills": [
+      "Snatch from power position",
+      "Snatch high pull",
+      "Hang snatch from mid-thigh"
+    ],
+    "sources": [
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC3990899",
+      "https://open-exam-prep.com/study-guides/crossfit-l3/training-seeing/training-faults-olympic-gymnastics",
+      "https://catalystathletics.com/article/2195/Ask-Greg-Slow-Snatch-Turnover/"
+    ],
+    "implement_first_rank": 4
+  },
+  {
+    "id": "over_extension_lean_back",
+    "name": "Leaning back too far at the top",
+    "phase": "second_pull",
+    "looks_like": "At the finish the torso leans far behind vertical; lifter looks like a banana.",
+    "root_causes": [
+      "Coached to 'finish' too hard",
+      "Pushing hips through the bar",
+      "Weight on heels"
+    ],
+    "downstream": [
+      "Bar swings forward",
+      "Jump back",
+      "Slow turnover",
+      "Miss behind"
+    ],
+    "measurable_side_on": "yes",
+    "signal": "Torso angle behind vertical (hip-shoulder line) at peak hip extension.",
+    "threshold": {
+      "value": "torso > 30 deg behind vertical at peak extension",
+      "units": "deg",
+      "source": "heuristic, not from a source (unverified); Everett: over-extending causes jump back; elite hip angle ~200 deg (Harbili) implies a modest lean back"
+    },
+    "priority": 2,
+    "cues": [
+      "Finish up, not back",
+      "Shoulders over hips at the top",
+      "Tall, not leaning",
+      "Jump vertically",
+      "Stop leaning, start pulling under"
+    ],
+    "why": [
+      "Leaning back spends time you need to get under the bar."
+    ],
+    "drills": [
+      "Snatch from power position",
+      "Tall snatch"
+    ],
+    "sources": [
+      "https://www.catalystathletics.com/article/2041/Jumping-Backward-in-the-Snatch-Clean-When-How-to-Fix-It/",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC3990899"
+    ],
+    "implement_first_rank": null
+  },
+  {
+    "id": "early_heel_rise",
+    "name": "Feet leave the floor too soon",
+    "phase": "second_pull",
+    "looks_like": "Heels lift and feet start moving before the hips and knees finish extending.",
+    "root_causes": [
+      "Rushing the pull under",
+      "Balance forward on toes"
+    ],
+    "downstream": [
+      "Less leg drive",
+      "Bar ends up behind base",
+      "Unstable landing"
+    ],
+    "measurable_side_on": "partial",
+    "signal": "Ankle keypoint vertical rise (or heel keypoint if model has it) relative to time of peak knee angle.",
+    "threshold": {
+      "value": "ankle rise > 3 cm more than 40 ms before peak knee extension",
+      "units": "cm / ms",
+      "source": "heuristic, not from a source (unverified); Everett (premature lift of the feet)"
+    },
+    "priority": 1,
+    "cues": [
+      "Push the floor until you finish",
+      "Heels down until the hips open",
+      "Legs drive, then feet move",
+      "Stay grounded longer",
+      "Feet quiet until you are tall"
+    ],
+    "why": [
+      "Your feet are your connection to the floor; lift them early and the push stops."
+    ],
+    "drills": [
+      "Snatch pulls",
+      "No-feet snatch"
+    ],
+    "sources": [
+      "https://catalystathletics.com/article/1884/Missing-Snatches-Behind-Diagnosis-Correction",
+      "https://www.catalystathletics.com/article/2041/Jumping-Backward-in-the-Snatch-Clean-When-How-to-Fix-It/"
+    ],
+    "implement_first_rank": null
+  },
+  {
+    "id": "insufficient_bar_height",
+    "name": "Bar does not go high enough",
+    "phase": "second_pull",
+    "looks_like": "Bar peaks low (around the belly) and the lifter has to catch very deep and fast or misses.",
+    "root_causes": [
+      "Weak second pull",
+      "Incomplete extension",
+      "Load too heavy for current power"
+    ],
+    "downstream": [
+      "Crash",
+      "Miss forward",
+      "Riding the catch"
+    ],
+    "measurable_side_on": "partial",
+    "signal": "Peak plate-centre height / lifter standing height (lifter height from setup or a standing frame). Interpret with load: heavier loads lower the ratio.",
+    "threshold": {
+      "value": "peak bar height < 65% of lifter height on a squat snatch",
+      "units": "% body height",
+      "source": "Elite ~72% vs district 76% (Kauhanen 1984 via Cissik); Campos & Rabade claim < 71.9% predicts no-lift (secondary, UNVERIFIED); 65% cutoff heuristic, not from a source (unverified)"
+    },
+    "priority": 1,
+    "cues": [
+      "Finish the jump harder",
+      "Drive the bar up with your legs",
+      "Elbows high after you finish",
+      "Make the bar float",
+      "Push the floor hard at the top"
+    ],
+    "why": [
+      "More height gives you more time to get under. Elite lifters still need only ~70% of their height."
+    ],
+    "drills": [
+      "Snatch high pulls",
+      "Hang power snatch"
+    ],
+    "sources": [
+      "https://cissik.com/blog/?p=447",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC6628121/"
+    ],
+    "implement_first_rank": null
+  },
+  {
+    "id": "slow_turnover",
+    "name": "Slow turnover / late getting under",
+    "phase": "turnover",
+    "looks_like": "Bar reaches peak and stalls or starts falling before the lifter is locked out underneath.",
+    "root_causes": [
+      "Late start to the pull under",
+      "Arms passive in third pull",
+      "Over-extending",
+      "Weak acceleration before turnover"
+    ],
+    "downstream": [
+      "Crash",
+      "Soft elbows",
+      "Forward or backward miss"
+    ],
+    "measurable_side_on": "yes",
+    "signal": "Time from peak hip/knee extension frame to the catch frame (bar vertical velocity ~0 after the drop with elbow angle > 160 deg). Needs >= 60 fps; 120-240 fps preferred.",
+    "threshold": {
+      "value": "turnover > 0.40 s",
+      "units": "s",
+      "source": "Torokhtiy: 0.25-0.30 s for pros, 0.4-0.7 s for beginners; JSSM table: 0.235 +/- 0.02 s (men and women)"
+    },
+    "priority": 3,
+    "cues": [
+      "Pull yourself under fast",
+      "Finish, then attack under",
+      "Elbows up and out, fast",
+      "Punch up as you drop",
+      "Meet the bar, don't wait",
+      "Feet fast, arms faster",
+      "Get under, not up"
+    ],
+    "why": [
+      "The bar is weightless for a split second at the top. That is when you must get under it."
+    ],
+    "drills": [
+      "Tall snatch",
+      "Snatch from power position",
+      "Three-position snatch"
+    ],
+    "sources": [
+      "https://torokhtiy.com/blogs/guides/the-snatch-turnover-theory",
+      "https://www.jssm.org/tablejssm-11-162.xml/table002.xml",
+      "https://catalystathletics.com/article/2195/Ask-Greg-Slow-Snatch-Turnover/",
+      "https://www.crossfit.com/pro-coach/ask-a-coach-missing-bar-forward-snatch"
+    ],
+    "implement_first_rank": 5
+  },
+  {
+    "id": "bar_crash",
+    "name": "Bar crashes into the catch",
+    "phase": "turnover",
+    "looks_like": "Large free fall between peak and catch; the bar slams onto locked arms and the lifter is driven down.",
+    "root_causes": [
+      "Letting go of the bar in the third pull",
+      "Slow turnover",
+      "Pulling under too early"
+    ],
+    "downstream": [
+      "Elbow/shoulder strain",
+      "Soft elbows",
+      "Lost position, miss"
+    ],
+    "measurable_side_on": "yes",
+    "signal": "Bar drop distance Dy3 = peak plate height minus plate height at catch (plate scale). Also peak downward plate velocity before catch.",
+    "threshold": {
+      "value": "drop > 25 cm (squat snatch)",
+      "units": "cm",
+      "source": "Nagao 2019: successful 0.17 +/- 0.04 m vs unsuccessful 0.18 m (p<0.001); Carlson 2001 women ~20.8 cm; cutoff heuristic, not from a source (unverified)"
+    },
+    "priority": 2,
+    "cues": [
+      "Meet the bar",
+      "Hold the bar the whole way",
+      "Pull yourself down to it",
+      "Punch into the bar",
+      "Stay connected to the bar",
+      "Lock out as you land"
+    ],
+    "why": [
+      "The less the bar falls, the softer and safer the catch.",
+      "Successful elite snatches drop less than missed ones."
+    ],
+    "drills": [
+      "Tall snatch",
+      "Drop snatch",
+      "Muscle snatch"
+    ],
+    "sources": [
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC6628121/",
+      "https://ojs.ub.uni-konstanz.de/cpa/article/view/3792/3512",
+      "https://catalystathletics.com/article/2195/Ask-Greg-Slow-Snatch-Turnover/"
+    ],
+    "implement_first_rank": null
+  },
+  {
+    "id": "bar_forward_at_catch",
+    "name": "Bar caught too far forward",
+    "phase": "catch",
+    "looks_like": "At the catch the bar is ahead of the lifter's midfoot/ahead of the starting line; lifter is pulled forward onto toes.",
+    "root_causes": [
+      "Bar swing in second pull",
+      "Not bringing bar back in third pull",
+      "Lazy lockout",
+      "Ankle mobility"
+    ],
+    "downstream": [
+      "Forward miss (most common miss)",
+      "Stumble forward"
+    ],
+    "measurable_side_on": "yes",
+    "signal": "Plate-centre x at catch relative to (a) plate x at lift-off and (b) ankle keypoint x. Elite successful lifts bring the bar back further (DxL).",
+    "threshold": {
+      "value": "catch bar ahead of start line by > 2 cm, OR DxL < 5 cm",
+      "units": "cm",
+      "source": "Nagao 2019: DxL successful 0.11 +/- 0.05 m vs unsuccessful 0.10 m; 65.8% of elite misses were frontward drops; cutoffs heuristic, not from a source (unverified)"
+    },
+    "priority": 3,
+    "cues": [
+      "Pull the bar back over you",
+      "Bar over the back of your neck",
+      "Punch up and back",
+      "Catch it over midfoot",
+      "Head through the window",
+      "Shoulders under the bar"
+    ],
+    "why": [
+      "Elite lifters miss forward far more than backward; bringing the bar back over your heels saves lifts."
+    ],
+    "drills": [
+      "Snatch balance",
+      "Overhead squat",
+      "Snatch high pull"
+    ],
+    "sources": [
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC6628121/",
+      "https://catalystathletics.com/article/1902/Jumping-Forward-in-the-Snatch-or-Clean-Error-Correction/",
+      "https://www.crossfit.com/pro-coach/ask-a-coach-missing-bar-forward-snatch",
+      "https://open-exam-prep.com/study-guides/crossfit-l1/chapter-6-additional-movements/weightlifting-snatch"
+    ],
+    "implement_first_rank": 3
+  },
+  {
+    "id": "bar_behind_at_catch",
+    "name": "Bar caught too far behind",
+    "phase": "catch",
+    "looks_like": "Bar passes behind the head/shoulders at the catch; lifter falls back or dumps behind.",
+    "root_causes": [
+      "Grip too wide",
+      "Excess forward trunk lean in squat (poor overhead structure)",
+      "Diving head/chest",
+      "Over-extension"
+    ],
+    "downstream": [
+      "Miss behind"
+    ],
+    "measurable_side_on": "partial",
+    "signal": "Plate-centre x vs shoulder keypoint x and vs ankle keypoint at catch.",
+    "threshold": {
+      "value": "plate > 10 cm behind shoulder keypoint at catch",
+      "units": "cm",
+      "source": "heuristic, not from a source (unverified); 25.1% of elite misses were backward (Nagao 2019)"
+    },
+    "priority": 2,
+    "cues": [
+      "Bar over the back of your neck",
+      "Sit straight down under it",
+      "Stay upright in the catch",
+      "Lock out, stop the bar",
+      "Elbows up and out, not back"
+    ],
+    "why": [
+      "The bar only stays up if it ends over your feet."
+    ],
+    "drills": [
+      "Snatch balance",
+      "Overhead squat with pause",
+      "Snatch push press"
+    ],
+    "sources": [
+      "https://catalystathletics.com/article/1884/Missing-Snatches-Behind-Diagnosis-Correction",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC6628121/"
+    ],
+    "implement_first_rank": null
+  },
+  {
+    "id": "soft_elbows_press_out",
+    "name": "Soft elbows / press-out",
+    "phase": "catch",
+    "looks_like": "Arms not locked when the bar lands; elbows then extend under load (press-out). A no-lift in competition.",
+    "root_causes": [
+      "Slow turnover",
+      "Bar crash",
+      "Weak overhead position",
+      "Low confidence in bottom"
+    ],
+    "downstream": [
+      "No-lift",
+      "Shoulder/elbow risk"
+    ],
+    "measurable_side_on": "partial",
+    "signal": "Near-side elbow angle at the catch frame and its change over the next ~300 ms while the bar is not rising. Near arm is visible side-on but the plate may occlude it; overhead elbow error ~10 deg.",
+    "threshold": {
+      "value": "elbow angle < 160 deg at catch, then increases > 10 deg",
+      "units": "deg",
+      "source": "heuristic, not from a source (unverified); fault definition from CF L3 and Performance Menu; 9.1% of elite failures were press-out or quit (Nagao 2019)"
+    },
+    "priority": 3,
+    "cues": [
+      "Punch the bar up",
+      "Lock your arms as you land",
+      "Squeeze the bar apart",
+      "Arms straight before feet land",
+      "Push up into the bar",
+      "Hard elbows"
+    ],
+    "why": [
+      "Bent elbows have to press the bar, and pressing is a no-lift."
+    ],
+    "drills": [
+      "Bottoms-up snatch balance",
+      "Snatch push press",
+      "Muscle snatch"
+    ],
+    "sources": [
+      "https://www.performancemenu.com/article/1186/Bottoms-Up-Snatch-Balance-Combating-Soft-Elbows-in-the-Snatc/",
+      "https://open-exam-prep.com/study-guides/crossfit-l3/training-seeing/training-faults-olympic-gymnastics",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC6628121/"
+    ],
+    "implement_first_rank": null
+  },
+  {
+    "id": "jump_forward",
+    "name": "Jumping forward",
+    "phase": "catch",
+    "looks_like": "Feet land clearly in front of where they started; lifter chases the bar forward.",
+    "root_causes": [
+      "Weight on toes in first pull",
+      "Hips rising early",
+      "Bar moving straight up past knees",
+      "Bar swinging forward in second/third pull",
+      "Not bringing bar back"
+    ],
+    "downstream": [
+      "Unstable catch",
+      "Forward miss"
+    ],
+    "measurable_side_on": "yes",
+    "signal": "Ankle keypoint x at catch minus ankle x at setup (average both feet if visible); compare to plate x change to see whether body and bar moved together.",
+    "threshold": {
+      "value": "ankle moves forward > 8 cm",
+      "units": "cm",
+      "source": "heuristic, not from a source (unverified) (margin for ~5 cm ankle error); Everett: mat a few inches in front of toes as deterrent"
+    },
+    "priority": 2,
+    "cues": [
+      "Land where you started",
+      "Jump straight up, not forward",
+      "Drive through your heels",
+      "Feet back under you",
+      "Stay behind the line",
+      "Pull the bar into you"
+    ],
+    "why": [
+      "Jumping forward means the bar went forward first; fix the bar and the feet follow."
+    ],
+    "drills": [
+      "Mat or tape line in front of toes",
+      "Halting snatch deadlift + snatch",
+      "Snatch high pull"
+    ],
+    "sources": [
+      "https://catalystathletics.com/article/1902/Jumping-Forward-in-the-Snatch-or-Clean-Error-Correction/",
+      "https://www.crossfit.com/pro-coach/ask-a-coach-missing-bar-forward-snatch",
+      "https://open-exam-prep.com/study-guides/crossfit-l1/chapter-6-additional-movements/weightlifting-snatch",
+      "https://open-exam-prep.com/study-guides/crossfit-l3/training-seeing/training-faults-olympic-gymnastics"
+    ],
+    "implement_first_rank": 8
+  },
+  {
+    "id": "jump_back_excessive",
+    "name": "Jumping back away from the bar",
+    "phase": "catch",
+    "looks_like": "Feet slide back further than the bar does; lifter ends up behind the bar or with the bar pulling them forward.",
+    "root_causes": [
+      "Over-extending",
+      "Weight too far back on heels",
+      "Bar pushed too far back",
+      "Opening hips too soon"
+    ],
+    "downstream": [
+      "Bar ends in front of the base",
+      "Forward miss"
+    ],
+    "measurable_side_on": "yes",
+    "signal": "Ankle backward displacement minus plate backward displacement from setup to catch. Equal backward movement is fine (Everett rules).",
+    "threshold": {
+      "value": "feet move back > 8 cm more than the bar",
+      "units": "cm",
+      "source": "heuristic, not from a source (unverified); Everett: OK only if body, feet and bar move back equally; elite rearward foot displacement of 10-18 cm reported and not detrimental (Schilling 2002)"
+    },
+    "priority": 1,
+    "cues": [
+      "Plant your feet under the bar",
+      "Knees up, feet flat",
+      "Push the floor until you finish",
+      "Move with the bar, not away",
+      "Stay over the bar longer"
+    ],
+    "why": [
+      "A little hop back is fine if the bar comes with you. Feet running away from the bar is not."
+    ],
+    "drills": [
+      "Drop snatch",
+      "Snatch from power position",
+      "Mat behind heels"
+    ],
+    "sources": [
+      "https://www.catalystathletics.com/article/2041/Jumping-Backward-in-the-Snatch-Clean-When-How-to-Fix-It/",
+      "https://www.bisp-surf.de/Record/PU201206004295"
+    ],
+    "implement_first_rank": null
+  },
+  {
+    "id": "feet_too_wide",
+    "name": "Landing too wide (starfish)",
+    "phase": "catch",
+    "looks_like": "Feet land far wider than squat stance, often on inner edges.",
+    "root_causes": [
+      "Throwing the feet out",
+      "No consistent receiving stance"
+    ],
+    "downstream": [
+      "Unstable bottom",
+      "Knees cave"
+    ],
+    "measurable_side_on": "no",
+    "signal": "Width is a frontal-plane measure; side-on cannot see stance width. Flag only via other angle.",
+    "threshold": {
+      "value": "none found (side-on)",
+      "units": "",
+      "source": "none found"
+    },
+    "priority": 1,
+    "cues": [
+      "Land in your squat stance",
+      "Feet move out, not away",
+      "Stomp under your hips",
+      "Same stance every rep",
+      "Land hip to shoulder width"
+    ],
+    "why": [
+      "Your catch stance should match your squat stance so you can stand up."
+    ],
+    "drills": [
+      "Snatch balance",
+      "Drop snatch",
+      "No-feet snatch"
+    ],
+    "sources": [
+      "https://catalystathletics.com/article/2138/Ask-Greg-Awkward-Foot-Position-when-Receiving-Snatch-Clean/",
+      "https://www.ironmind.com/articles/jim-schmitz-on-the-lifts/Jumping-the-Feet-Too-Wide"
+    ],
+    "implement_first_rank": null
+  },
+  {
+    "id": "catch_high_ride_down",
+    "name": "Catching high and riding it down",
+    "phase": "catch",
+    "looks_like": "On a squat snatch the bar is received with hips well above parallel, then lifter sinks under load.",
+    "root_causes": [
+      "Pulling under late",
+      "Not meeting the bar",
+      "Fear of the bottom"
+    ],
+    "downstream": [
+      "Loses tension in the catch",
+      "Soft elbows",
+      "Miss"
+    ],
+    "measurable_side_on": "yes",
+    "signal": "Hip keypoint height at the catch frame (elbow lock + bar velocity ~0) vs minimum hip height afterwards; also continued bar descent after catch.",
+    "threshold": {
+      "value": "hip descends > 15 cm after the catch frame",
+      "units": "cm",
+      "source": "heuristic, not from a source (unverified); fault from CF L3"
+    },
+    "priority": 1,
+    "cues": [
+      "Meet the bar at the bottom",
+      "Pull yourself all the way down",
+      "Fast to the bottom",
+      "Lock out and sit at once",
+      "Don't wait, get low"
+    ],
+    "why": [
+      "Catching high then sinking means you catch the bar twice."
+    ],
+    "drills": [
+      "Drop snatch",
+      "Snatch balance",
+      "Pause overhead squat"
+    ],
+    "sources": [
+      "https://open-exam-prep.com/study-guides/crossfit-l3/training-seeing/training-faults-olympic-gymnastics",
+      "https://catalystathletics.com/article/2195/Ask-Greg-Slow-Snatch-Turnover/"
+    ],
+    "implement_first_rank": null
+  },
+  {
+    "id": "excessive_torso_lean_catch",
+    "name": "Torso too far forward in the catch",
+    "phase": "catch",
+    "looks_like": "In the bottom the chest falls forward and the arms angle back to keep the bar over the feet.",
+    "root_causes": [
+      "Ankle mobility",
+      "Thoracic mobility",
+      "Weak overhead squat"
+    ],
+    "downstream": [
+      "Miss behind",
+      "Shoulder stress"
+    ],
+    "measurable_side_on": "partial",
+    "signal": "Torso angle from vertical (hip-shoulder line) in the bottom of the catch.",
+    "threshold": {
+      "value": "torso > 35 deg forward of vertical in the bottom",
+      "units": "deg",
+      "source": "heuristic, not from a source (unverified); Everett: only a very slight forward lean, bar over back of neck"
+    },
+    "priority": 2,
+    "cues": [
+      "Chest up in the bottom",
+      "Sit the hips down, not back",
+      "Tall torso under the bar",
+      "Bar over the back of the neck",
+      "Knees out, chest up"
+    ],
+    "why": [
+      "The more upright you are, the easier the bar balances over you."
+    ],
+    "drills": [
+      "Overhead squat",
+      "Pause snatch balance",
+      "Ankle mobility"
+    ],
+    "sources": [
+      "https://catalystathletics.com/article/1884/Missing-Snatches-Behind-Diagnosis-Correction"
+    ],
+    "implement_first_rank": null
+  },
+  {
+    "id": "diving_head_chest",
+    "name": "Diving the head and chest under",
+    "phase": "turnover",
+    "looks_like": "During the pull under the head and chest move forward and down to squeeze under the bar.",
+    "root_causes": [
+      "Pulling under early",
+      "Low confidence"
+    ],
+    "downstream": [
+      "Miss behind",
+      "Lean forward in catch"
+    ],
+    "measurable_side_on": "partial",
+    "signal": "Shoulder keypoint horizontal shift forward from peak extension to catch, relative to plate.",
+    "threshold": {
+      "value": "shoulder moves > 10 cm forward relative to plate during turnover",
+      "units": "cm",
+      "source": "heuristic, not from a source (unverified); Everett (missing behind)"
+    },
+    "priority": 1,
+    "cues": [
+      "Sit straight down under it",
+      "Stay upright as you drop",
+      "Elbows up and to the sides",
+      "Finish up, then go down",
+      "Head through, chest up"
+    ],
+    "why": [
+      "Diving forward pushes the bar behind you."
+    ],
+    "drills": [
+      "Snatch balance",
+      "Overhead squat",
+      "Tall snatch"
+    ],
+    "sources": [
+      "https://catalystathletics.com/article/1884/Missing-Snatches-Behind-Diagnosis-Correction"
+    ],
+    "implement_first_rank": null
+  },
+  {
+    "id": "on_toes_in_catch",
+    "name": "Landing on the toes",
+    "phase": "catch",
+    "looks_like": "Heels off the floor at the catch, weight on the front of the foot.",
+    "root_causes": [
+      "Jump forward",
+      "Ankle mobility",
+      "Bar forward"
+    ],
+    "downstream": [
+      "Forward miss",
+      "Unstable bottom"
+    ],
+    "measurable_side_on": "partial",
+    "signal": "Heel/ankle keypoint height vs its setup height at catch (requires visible heel or ankle).",
+    "threshold": {
+      "value": "ankle > 3 cm above setup height at catch",
+      "units": "cm",
+      "source": "heuristic, not from a source (unverified); CF L1 'landing forward on toes'"
+    },
+    "priority": 1,
+    "cues": [
+      "Land flat footed",
+      "Heels down when you catch",
+      "Stomp the whole foot",
+      "Drive through the heels",
+      "Whole foot on the floor"
+    ],
+    "why": [
+      "Flat feet give you a base to stand the bar up from."
+    ],
+    "drills": [
+      "Drop snatch",
+      "Ankle mobility work",
+      "Snatch balance"
+    ],
+    "sources": [
+      "https://open-exam-prep.com/study-guides/crossfit-l1/chapter-6-additional-movements/weightlifting-snatch"
+    ],
+    "implement_first_rank": null
+  },
+  {
+    "id": "unstable_recovery",
+    "name": "Losing the bar in the recovery",
+    "phase": "recovery",
+    "looks_like": "After a good catch the bar drifts forward or the hips rise first on the stand, and the bar is lost or chased.",
+    "root_causes": [
+      "Weak overhead squat",
+      "Hips rise first",
+      "Rushing the stand"
+    ],
+    "downstream": [
+      "Miss after catch"
+    ],
+    "measurable_side_on": "yes",
+    "signal": "Plate horizontal travel and torso angle change from bottom of catch to standing.",
+    "threshold": {
+      "value": "bar travels > 8 cm horizontally during stand, OR torso leans forward > 15 deg on the stand",
+      "units": "cm / deg",
+      "source": "heuristic, not from a source (unverified)"
+    },
+    "priority": 1,
+    "cues": [
+      "Stand up with your chest",
+      "Stabilise, then stand",
+      "Push up through the bar",
+      "Keep the bar over midfoot",
+      "Hips and chest rise together"
+    ],
+    "why": [
+      "Pausing a beat in the bottom lets the bar settle before you stand."
+    ],
+    "drills": [
+      "Pause overhead squat",
+      "Snatch balance with pause"
+    ],
+    "sources": [
+      "https://catalystathletics.com/article/1884/Missing-Snatches-Behind-Diagnosis-Correction"
+    ],
+    "implement_first_rank": null
+  },
+  {
+    "id": "hang_dip_bar_leaves_thigh",
+    "name": "Hang: bar leaves the thigh in the dip",
+    "phase": "first_pull",
+    "looks_like": "In hang snatch, as the lifter hinges down to the start, the bar comes off the thighs or knees push forward.",
+    "root_causes": [
+      "Squatting instead of hinging",
+      "Shoulders behind the bar"
+    ],
+    "downstream": [
+      "Bar swings out",
+      "Early arm bend"
+    ],
+    "measurable_side_on": "yes",
+    "signal": "Plate x relative to hip/knee keypoints during the dip; plate away from the thigh line.",
+    "threshold": {
+      "value": "plate moves > 5 cm forward during the dip",
+      "units": "cm",
+      "source": "heuristic, not from a source (unverified)"
+    },
+    "priority": 1,
+    "cues": [
+      "Slide the bar down your thighs",
+      "Hinge, shoulders over the bar",
+      "Push the hips back in the dip",
+      "Bar stays on your legs",
+      "Knees soft, hips back"
+    ],
+    "why": [
+      "The hang only works if the bar stays on you during the hinge."
+    ],
+    "drills": [
+      "Hang snatch from mid-thigh with pause",
+      "Snatch-grip RDL"
+    ],
+    "sources": [
+      "https://catalystathletics.com/article/2195/Ask-Greg-Slow-Snatch-Turnover/"
+    ],
+    "implement_first_rank": null
+  },
+  {
+    "id": "power_snatch_received_too_low",
+    "name": "Power snatch received below parallel",
+    "phase": "catch",
+    "looks_like": "On a power snatch the lifter's hips go below the knees (it became a squat snatch).",
+    "root_causes": [
+      "Bar not high enough",
+      "Load too heavy for a power"
+    ],
+    "downstream": [
+      "Not a power snatch; may indicate weak second pull"
+    ],
+    "measurable_side_on": "yes",
+    "signal": "Hip keypoint height vs knee keypoint height at the lowest point of the catch.",
+    "threshold": {
+      "value": "hip below knee height by > 5 cm at lowest point",
+      "units": "cm",
+      "source": "Power definition: received above parallel; margin heuristic, not from a source (unverified)"
+    },
+    "priority": 1,
+    "cues": [
+      "Catch it high",
+      "Finish harder for height",
+      "Land above parallel",
+      "Fast feet, high catch",
+      "Stop the bar above parallel"
+    ],
+    "why": [
+      "A power snatch catches above parallel. Going lower means the bar was not high enough."
+    ],
+    "drills": [
+      "Power snatch from hang",
+      "Snatch high pull"
+    ],
+    "sources": [
+      "https://open-exam-prep.com/study-guides/crossfit-l1/chapter-6-additional-movements/weightlifting-snatch"
+    ],
+    "implement_first_rank": null
+  },
+  {
+    "id": "grip_width_wrong",
+    "name": "Grip too narrow or too wide",
+    "phase": "setup",
+    "looks_like": "Narrow grip: bar contacts mid-thigh, lifter bends arms. Wide grip: bar travels behind easily, unstable overhead.",
+    "root_causes": [
+      "Copying someone else's grip",
+      "Shoulder mobility"
+    ],
+    "downstream": [
+      "Early arm bend (narrow)",
+      "Miss behind (wide)"
+    ],
+    "measurable_side_on": "partial",
+    "signal": "Width itself not visible side-on. Proxy: bar contact height vs hip keypoint when standing with arms straight at setup or end of pull.",
+    "threshold": {
+      "value": "bar > 10 cm below hip crease at full arm extension standing",
+      "units": "cm",
+      "source": "heuristic, not from a source (unverified); Everett: snatch bar should sit in hip crease at arm's length"
+    },
+    "priority": 1,
+    "cues": [
+      "Bar in the hip crease standing",
+      "Widen until the bar hits your hips",
+      "Narrow the grip a little",
+      "Change grip width slowly",
+      "Knuckles to hip crease when standing"
+    ],
+    "why": [
+      "Grip width sets where the bar hits you. The hip crease is the target."
+    ],
+    "drills": [
+      "Hip snatch",
+      "Snatch push press for wide-grip stability"
+    ],
+    "sources": [
+      "https://catalystathletics.com/article/1904/Arm-Bend-in-the-Snatch-Clean-Its-Still-Not-the-Solution-to-/",
+      "https://catalystathletics.com/article/1884/Missing-Snatches-Behind-Diagnosis-Correction"
+    ],
+    "implement_first_rank": null
+  },
+  {
+    "id": "miss_forward",
+    "name": "Missed forward (outcome)",
+    "phase": "miss",
+    "looks_like": "Bar is dropped in front of the lifter after reaching overhead or during the catch.",
+    "root_causes": [
+      "Bar swing forward",
+      "Jump forward",
+      "Hips rising early",
+      "Lazy lockout",
+      "Slow under the bar"
+    ],
+    "downstream": [
+      "Failed attempt"
+    ],
+    "measurable_side_on": "yes",
+    "signal": "Plate falls to the floor in front of the start line after reaching overhead height.",
+    "threshold": {
+      "value": "plate returns to floor > 10 cm in front of start x",
+      "units": "cm",
+      "source": "Outcome detection; 65.8% of elite failed snatches were frontward (Nagao 2019)"
+    },
+    "priority": 3,
+    "cues": [
+      "Bring the bar back over you",
+      "Jump up, not forward",
+      "Punch up and back",
+      "Keep the bar close",
+      "Shoulders over the bar longer"
+    ],
+    "why": [
+      "Most forward misses start in the first pull; fix the earliest fault first."
+    ],
+    "drills": [
+      "Snatch balance",
+      "Halting snatch deadlift + snatch"
+    ],
+    "sources": [
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC6628121/",
+      "https://www.crossfit.com/pro-coach/ask-a-coach-missing-bar-forward-snatch",
+      "https://catalystathletics.com/article/1902/Jumping-Forward-in-the-Snatch-or-Clean-Error-Correction/"
+    ],
+    "implement_first_rank": null
+  },
+  {
+    "id": "miss_behind",
+    "name": "Missed behind (outcome)",
+    "phase": "miss",
+    "looks_like": "Bar passes behind the head and is dumped backward.",
+    "root_causes": [
+      "Grip too wide",
+      "Excess torso lean in catch",
+      "Diving under",
+      "Over-extension"
+    ],
+    "downstream": [
+      "Failed attempt"
+    ],
+    "measurable_side_on": "yes",
+    "signal": "Plate falls to the floor behind the lifter's ankle/start line after overhead.",
+    "threshold": {
+      "value": "plate returns to floor behind ankle x",
+      "units": "cm",
+      "source": "Outcome detection; 25.1% of elite failed snatches were backward (Nagao 2019)"
+    },
+    "priority": 2,
+    "cues": [
+      "Stop the bar over your head",
+      "Sit straight down",
+      "Stay upright under it",
+      "Elbows up, not back",
+      "Narrow the grip a touch"
+    ],
+    "why": [
+      "Missing behind is often over-pulling or a grip that is too wide, not a lack of strength."
+    ],
+    "drills": [
+      "Snatch balance with pause",
+      "Overhead squat"
+    ],
+    "sources": [
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC6628121/",
+      "https://catalystathletics.com/article/1884/Missing-Snatches-Behind-Diagnosis-Correction"
+    ],
+    "implement_first_rank": null
+  }
+]
