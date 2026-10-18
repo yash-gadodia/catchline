@@ -174,3 +174,13 @@ describe('demo route', () => {
     expect(demo.getByTestId('demo-caption')).toHaveTextContent('Catchline finds the bar');
   });
 });
+
+describe('the demo caption', () => {
+  it('leaves room under the result screen, so its buttons are not hidden behind the caption', async () => {
+    const screen = await render(<DemoScreen start="cue" onImport={jest.fn()} onRecord={jest.fn()} />);
+    await act(async () => {
+      fireEvent(screen.getByTestId('demo-caption'), 'layout', { nativeEvent: { layout: { x: 0, y: 0, width: 360, height: 72 } } });
+    });
+    expect(screen.getByTestId('demo-stage').props.style.paddingBottom).toBe(84);
+  });
+});
