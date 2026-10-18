@@ -47,6 +47,7 @@ export const you = {
   'you.plan.free': 'Free',
   'you.plan.videosLeft': '{left} of {total} videos left',
   'you.plan.videosLeftMonth': '{left} of {total} videos left this month',
+  'you.plan.unlimited': 'unlimited videos',
   'you.plan.foundingMember': 'Founding member',
   'you.plan.forLife': 'for life',
   'you.plan.renews': 'renews {day} {month}',

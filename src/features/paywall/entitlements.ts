@@ -23,15 +23,17 @@ export function tierName(tier: Tier): string {
 
 // The organic app gives 3 videos for life; the ad funnel gives one, then the trial paywall.
 export const FREE_VIDEOS: Record<Variant, number> = { organic: 3, ad: 1 };
-export const MONTHLY_CAP: Record<PaidTier, number> = { hook: 12, pull: 40, platform: 100, founding: 40 };
+// Paid plans are unlimited; FAIR_USE is only an abuse guard, matched by plan_cap on the server.
+export const FAIR_USE = 1000;
+export const MONTHLY_CAP: Record<PaidTier, number> = { hook: 12, pull: FAIR_USE, platform: FAIR_USE, founding: FAIR_USE };
 
 // Prices in US cents. Store-localised price strings replace these once offerings load.
 export const PRICE_CENTS: Record<SubTier, Record<Period, number>> = {
   hook: { monthly: 499, annual: 2999 },
-  pull: { monthly: 999, annual: 5999 },
+  pull: { monthly: 299, annual: 1999 },
   platform: { monthly: 1499, annual: 9999 },
 };
-export const FOUNDING_PRICE_CENTS = 4999;
+export const FOUNDING_PRICE_CENTS = 2999;
 export const FOUNDING_SEATS_TOTAL = 500;
 export const TRIAL_DAYS = 7;
 
@@ -174,7 +176,7 @@ export function comparisonRows(): ComparisonRow[] {
   return [
     {
       label: t('paywall.compare.videos'),
-      cells: each((tier) => ({ kind: 'text', text: tier === 'free' ? String(FREE_VIDEOS.organic) : t('paywall.compare.perMonth', { count: MONTHLY_CAP[tier] }) })),
+      cells: each((tier) => ({ kind: 'text', text: tier === 'free' ? String(FREE_VIDEOS.organic) : t('paywall.compare.unlimited') })),
     },
     { label: t('paywall.compare.cuePlayer'), cells: each(() => ({ kind: 'dot' })) },
     {

@@ -10,6 +10,7 @@ import { useLibraryStore } from '../library/store';
 import { useOnboarding } from '../onboarding/store';
 import {
   FREE_VIDEOS as FREE_BY_VARIANT,
+  FAIR_USE,
   MONTHLY_CAP,
   videosRemaining,
   type Tier as LiveTier,
@@ -40,7 +41,7 @@ export const FREE_VIDEOS = 3;
 
 export const PRICES: Record<Exclude<Tier, 'free'>, Record<Billing, string>> = {
   hook: { monthly: '$4.99/mo', annual: '$29.99/yr' },
-  pull: { monthly: '$9.99/mo', annual: '$59.99/yr' },
+  pull: { monthly: '$2.99/mo', annual: '$19.99/yr' },
   platform: { monthly: '$14.99/mo', annual: '$99.99/yr' },
 };
 
@@ -91,6 +92,7 @@ export function appleLine(): string {
 export function livePlanLabel(tier: LiveTier, usage: Usage, variant: Variant, now: Date): string {
   const left = videosRemaining(tier, usage, now, variant);
   if (tier === 'free') return `${tierName('free')} · ${t('you.plan.videosLeft', { left, total: FREE_BY_VARIANT[variant] })}`;
+  if (MONTHLY_CAP[tier] >= FAIR_USE) return `${tierName(tier)} · ${t('you.plan.unlimited')}`;
   return `${tierName(tier)} · ${t('you.plan.videosLeftMonth', { left, total: MONTHLY_CAP[tier] })}`;
 }
 

@@ -45,15 +45,15 @@ describe('videosRemaining / canAnalyse', () => {
 
   it('paid tiers count this calendar month against their cap', () => {
     expect(videosRemaining('hook', used(10, 7), OCT)).toBe(5);
-    expect(videosRemaining('pull', used(43, 40), OCT)).toBe(0);
-    expect(videosRemaining('platform', used(120, 99), OCT)).toBe(1);
-    expect(videosRemaining('founding', used(3, 0), OCT)).toBe(40);
-    expect(canAnalyse('pull', used(43, 40), OCT)).toBe(false);
+    expect(videosRemaining('pull', used(43, 40), OCT)).toBe(960);
+    expect(videosRemaining('pull', used(1003, 1000), OCT)).toBe(0);
+    expect(videosRemaining('founding', used(3, 0), OCT)).toBe(1000);
+    expect(canAnalyse('pull', used(1003, 1000), OCT)).toBe(false);
   });
 
   it('a new month resets the paid cap', () => {
-    expect(videosRemaining('pull', used(43, 40, '2026-10'), NOV)).toBe(40);
-    expect(canAnalyse('pull', used(43, 40, '2026-10'), NOV)).toBe(true);
+    expect(videosRemaining('pull', used(1003, 1000, '2026-10'), NOV)).toBe(1000);
+    expect(canAnalyse('pull', used(1003, 1000, '2026-10'), NOV)).toBe(true);
   });
 });
 
@@ -88,7 +88,7 @@ describe('gateFor', () => {
 
   it('a paid tier at its cap hits the cap sheet', () => {
     expect(gateFor('hook', used(20, 12), OCT)).toBe('cap');
-    expect(gateFor('platform', used(200, 100), OCT)).toBe('cap');
+    expect(gateFor('pull', used(1200, 1000), OCT)).toBe('cap');
   });
 });
 
@@ -168,9 +168,9 @@ describe('chipState', () => {
   });
 
   it('paid tiers only show near the cap', () => {
-    expect(chipState('pull', used(10, 30), OCT)).toBeNull();
-    expect(chipState('pull', used(40, 35), OCT)).toEqual({ label: '5 left this month', tone: 'normal' });
-    expect(chipState('pull', used(40, 39), OCT)).toEqual({ label: '1 left this month', tone: 'last' });
+    expect(chipState('pull', used(40, 39), OCT)).toBeNull();
+    expect(chipState('hook', used(10, 7), OCT)).toEqual({ label: '5 left this month', tone: 'normal' });
+    expect(chipState('hook', used(40, 11), OCT)).toEqual({ label: '1 left this month', tone: 'last' });
     expect(chipState('hook', used(40, 12), OCT)).toEqual({ label: 'All 12 used this month', tone: 'used' });
   });
 });
@@ -190,8 +190,8 @@ describe('comparisonRows', () => {
     ]);
     expect(rows[0].cells).toEqual({
       free: { kind: 'text', text: '3' },
-      pull: { kind: 'text', text: '40/mo' },
-      founding: { kind: 'text', text: '40/mo' },
+      pull: { kind: 'text', text: 'Unlimited' },
+      founding: { kind: 'text', text: 'Unlimited' },
     });
     expect(rows[2].cells).toEqual({
       free: { kind: 'none' },
@@ -213,11 +213,11 @@ describe('money', () => {
   });
 
   it('annual saving on the USD table', () => {
-    expect(annualSavingPct('pull')).toBe(50);
+    expect(annualSavingPct('pull')).toBe(44);
   });
 
   it('annual per month', () => {
-    expect(annualPerMonthCents('pull')).toBe(500);
+    expect(annualPerMonthCents('pull')).toBe(167);
     expect(annualPerMonthCents('hook')).toBe(250);
   });
 });
