@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import type { Analysis, Failure, Movement } from '../analysis/types';
 import { putLiveAnalysis } from '../analysis/live';
 import { keyFrameForPhase, repByIndex } from '../analysis/timeline';
@@ -38,8 +39,17 @@ function workerFailure(row: LiftRow): Failure {
   return { reason, message: FAILURE_COPY[reason].title };
 }
 
-export function toLift(row: LiftRow, a: Analysis | undefined): Lift {
-  const status: LiftStatus = a?.failure ? 'failed' : liftStatus(row.status);
+// A lift row exists from create_lift on, so 'uploading' is a clip still on its way; one still uploading after
+// STALE_UPLOAD_MS never made it (the app was closed mid-upload) and is not the free-videos 'queued' state.
+const STALE_UPLOAD_MS = 15 * 60 * 1000;
+
+function stuckUpload(row: LiftRow, now: number): boolean {
+  return row.status === 'uploading' && now - Date.parse(row.created_at) > STALE_UPLOAD_MS;
+}
+
+export function toLift(row: LiftRow, a: Analysis | undefined, now: number = Date.now()): Lift {
+  const stuck = stuckUpload(row, now);
+  const status: LiftStatus = a?.failure || stuck ? 'failed' : row.status === 'uploading' ? 'processing' : liftStatus(row.status);
   return {
     id: row.id,
     movement: row.movement as Movement,
@@ -49,7 +59,7 @@ export function toLift(row: LiftRow, a: Analysis | undefined): Lift {
     status,
     analysisId: a && !a.failure ? a.id : undefined,
     thumb: catchImage(a),
-    failure: a?.failure ?? (status === 'failed' ? workerFailure(row) : undefined),
+    failure: a?.failure ?? (stuck ? { reason: 'unknown', message: t('library.detail.uploadStuck') } : status === 'failed' ? workerFailure(row) : undefined),
     headline: a?.cue?.evidence.caption,
     retestCueId: row.retest_cue_id ?? undefined,
   };

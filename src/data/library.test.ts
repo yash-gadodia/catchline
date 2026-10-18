@@ -39,7 +39,16 @@ describe('toLift for a lift the worker failed (no analysis row)', () => {
     const lift = toLift(row({ status: 'queued', error: 'unknown' }), undefined);
     expect(lift.status).toBe('processing');
     expect(lift.failure).toBeUndefined();
-    expect(toLift(row({ status: 'uploading', error: null }), undefined).status).toBe('queued');
+  });
+
+  // 'uploading' is a clip on its way (create_lift made the row), never the free-videos Unlock: Danielle's
+  // stuck bar muscle-up read "Queued · free videos used" on a paid plan.
+  it('shows an upload as processing, and one stuck past 15 min as an upload that did not finish', () => {
+    const at = Date.parse('2026-10-14T03:45:00Z');
+    expect(toLift(row({ status: 'uploading', error: null }), undefined, at + 60_000).status).toBe('processing');
+    const stuck = toLift(row({ status: 'uploading', error: null }), undefined, at + 16 * 60_000);
+    expect(stuck.status).toBe('failed');
+    expect(stuck.failure).toEqual({ reason: 'unknown', message: "Upload didn't finish · film or import it again" });
   });
 });
 

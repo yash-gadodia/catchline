@@ -19,6 +19,7 @@ export const library = {
   'library.weeks': { one: '{count} wk', other: '{count} wks' },
   'library.versionNote': 'Analysis improved on {date}; earlier lifts were measured by the older version.',
   'library.detail.processing': 'analysing',
+  'library.detail.uploadStuck': "Upload didn't finish · film or import it again",
   'library.inFlight.title': 'Analysing your {movement}',
   'library.detail.queued': 'Queued · free videos used',
   'library.detail.failed': "Couldn't analyse",
