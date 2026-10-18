@@ -100,6 +100,8 @@ export const library: Strings<typeof en> = {
   'library.chart.best': "melhor {value}",
   'library.cues.emptyTitle': "Sua primeira dica aparece aqui.",
   'library.cues.emptyBody': "Depois que você gravar um levantamento, a única coisa a corrigir fica nesta aba até fixar.",
+  'library.cues.cleanTitle': 'Nada para corrigir ainda.',
+  'library.cues.cleanBody': 'Nenhum levantamento cruzou um limite de falha. O primeiro que cruzar deixa sua dica nesta aba até ela pegar.',
   'library.cues.past': "Dicas anteriores",
   'library.cues.tryingKicker': "Testando · {movement}",
   'library.cues.sessionsAgo': "{counter} sessões · {ago}",

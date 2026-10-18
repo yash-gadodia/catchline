@@ -100,6 +100,8 @@ export const library: Strings<typeof en> = {
   'library.chart.best': "record {value}",
   'library.cues.emptyTitle': "Ta première consigne arrive ici.",
   'library.cues.emptyBody': "Après avoir filmé un mouvement, la seule chose à corriger reste dans cet onglet jusqu'à ce qu'elle soit acquise.",
+  'library.cues.cleanTitle': 'Rien à corriger pour le moment.',
+  'library.cues.cleanBody': 'Aucun mouvement n’a franchi un seuil de défaut. Le premier qui le fera posera sa consigne sur cet onglet jusqu’à ce qu’elle tienne.',
   'library.cues.past': "Consignes passées",
   'library.cues.tryingKicker': "En test · {movement}",
   'library.cues.sessionsAgo': "{counter} séances · {ago}",

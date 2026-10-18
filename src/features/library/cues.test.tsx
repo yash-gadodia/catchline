@@ -2,7 +2,7 @@ import { act, fireEvent, render } from '@testing-library/react-native';
 import CuesScreen from './CuesScreen';
 import { emptyLibrary } from './seed';
 import { useLibraryStore } from './store';
-import type { CueRecord, Session } from './types';
+import type { CueRecord, Lift, Session } from './types';
 
 jest.mock('../../data/backend', () => ({ backendEnabled: () => true }));
 jest.mock('../../data/library', () => ({ syncLibrary: jest.fn(() => Promise.resolve()) }));
@@ -42,8 +42,10 @@ const session = (id: string, movement: Session['movement'], date: string, jump: 
 });
 const SESSIONS = [session('lift-1', 'snatch', '2026-10-10', 9), session('lift-2', 'snatch', '2026-10-12', 7), session('lift-3', 'snatch', '2026-10-13', 5)];
 
-function load(over: { cues?: CueRecord[]; sessions?: Session[]; synced?: boolean }) {
-  useLibraryStore.getState().load({ ...emptyLibrary(), today: TODAY, cues: [], sessions: [], ...over });
+const lift = (id: string, date: string, status: Lift['status'] = 'done'): Lift => ({ id, movement: 'snatch', date, status, reps: 1 });
+
+function load(over: { cues?: CueRecord[]; sessions?: Session[]; lifts?: Lift[]; synced?: boolean }) {
+  useLibraryStore.getState().load({ ...emptyLibrary(), today: TODAY, cues: [], sessions: [], lifts: [], ...over });
 }
 
 beforeEach(() => {
@@ -113,5 +115,31 @@ describe('Cues tab on a real account', () => {
     expect(getByText('Brand new fault, cm.')).toBeOnTheScreen();
     expect(getByText('3 of 6 sessions · 4 days ago')).toBeOnTheScreen();
     expect(queryByTestId('cue-sparkline')).toBeNull();
+  });
+});
+
+// #18: a lifter whose lifts all came back clean was told "After you film a lift" — to go and do the thing they had just done.
+describe('Cues tab with lifts but no cue', () => {
+  it('says nothing has crossed a fault threshold once a lift is done', async () => {
+    load({ lifts: [lift('lift-1', '2026-10-13'), lift('lift-2', '2026-10-14')] });
+    const view = await render(<CuesScreen onOpen={jest.fn()} />);
+    expect(view.getByTestId('cues-empty')).toBeOnTheScreen();
+    expect(view.getByText('Nothing to fix yet.')).toBeOnTheScreen();
+    expect(view.getByText('No lift has crossed a fault threshold yet. The first one that does puts its cue on this tab until it sticks.')).toBeOnTheScreen();
+    expect(view.queryByText('Your first cue lands here.')).toBeNull();
+  });
+
+  it('still asks for a first lift when none has been filmed', async () => {
+    load({});
+    const view = await render(<CuesScreen onOpen={jest.fn()} />);
+    expect(view.getByText('Your first cue lands here.')).toBeOnTheScreen();
+    expect(view.getByText('After you film a lift, the one thing to fix lives on this tab until it sticks.')).toBeOnTheScreen();
+  });
+
+  it('still asks for a first lift while the only lift is still processing', async () => {
+    load({ lifts: [lift('lift-1', '2026-10-14', 'processing')] });
+    const view = await render(<CuesScreen onOpen={jest.fn()} />);
+    expect(view.getByText('Your first cue lands here.')).toBeOnTheScreen();
+    expect(view.queryByText('Nothing to fix yet.')).toBeNull();
   });
 });
