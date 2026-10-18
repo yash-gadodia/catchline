@@ -125,7 +125,7 @@ describe('cue copy', () => {
   };
 
   it('matches the worker cue text and why templates word for word', () => {
-    expect(Object.keys(rules.CUES)).toHaveLength(19);
+    expect(Object.keys(rules.CUES)).toHaveLength(22);
     for (const [id, text] of Object.entries(rules.CUES)) expect(en[`cue.text.${id}` as keyof typeof en]).toBe(text);
     for (const [id, why] of Object.entries(rules.WHY)) expect(en[`cue.why.${id}` as keyof typeof en]).toBe(why);
   });

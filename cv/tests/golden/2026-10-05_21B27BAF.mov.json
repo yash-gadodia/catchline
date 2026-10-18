@@ -744,6 +744,33 @@
     "note": "feet, lift-off to catch"
    },
    {
+    "id": "hips_too_low_at_start",
+    "label": "Hips above knees at the start",
+    "value": 7.8,
+    "unit": "cm",
+    "frame": 59,
+    "status": "normal",
+    "note": "hip height above the knees at lift-off"
+   },
+   {
+    "id": "shoulders_behind_bar_at_start",
+    "label": "Shoulders behind the bar at the start",
+    "value": -0.7,
+    "unit": "cm",
+    "frame": 59,
+    "status": "normal",
+    "note": "shoulders behind the bar at lift-off (+ = behind)"
+   },
+   {
+    "id": "jump_back_excessive",
+    "label": "Feet jumped back",
+    "value": -7.1,
+    "unit": "cm",
+    "frame": 90,
+    "status": "normal",
+    "note": "feet back, beyond the bar's own move back"
+   },
+   {
     "id": "bar_peak_height",
     "label": "Bar peak height",
     "value": 143.2,

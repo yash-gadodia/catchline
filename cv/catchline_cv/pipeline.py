@@ -344,6 +344,16 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
     depth_end = min(ev["recovered"], ev["hold_end"] - 1)
     depth_f, depth_px, catch_kind = catch_depth(-hip[:, 1], -knee_h[:, 1], knee_ang, ev["caught"], depth_end)
     vals_depth = cm(depth_px)
+    if kind == "snatch":
+        # fault catalogue (docs/catchline/fault-catalog/snatch.json) priority 1, heuristic thresholds, uncalibrated
+        vals["hips_too_low_at_start"] = cm(knee[lo, 1] - hip[lo, 1])
+        detail["hips_too_low_at_start"] = {"frame": lo, "from": knee[lo], "to": hip[lo]}
+        vals["shoulders_behind_bar_at_start"] = cm(fwd * (bar[lo, 0] - sho[lo, 0])) * foreshort
+        detail["shoulders_behind_bar_at_start"] = {"frame": lo, "from": bar[lo], "to": sho[lo]}
+        # feet back further than the bar came back: equal backward travel is fine (Everett)
+        bar_dx = cm(fwd * (bar[ev["caught"], 0] - bar[lo, 0])) * foreshort
+        vals["jump_back_excessive"] = -vals["jump_forward"] - max(0.0, -bar_dx)
+        detail["jump_back_excessive"] = {"frame": ev["caught"], "from": feet_from, "to": feet_to}
     peak_h = cm(bar[lo, 1] - bar[ev["peak"], 1])
     drop = cm(bar[ev["caught"], 1] - bar[ev["peak"], 1])
     turnover_s = (ev["caught"] - ev["second_ext"]) / fps
@@ -522,10 +532,13 @@ def check_scale(px_per_cm, method, plate_ok, scale_near, body_scale):
 
 LABELS = {"hips_rise_early": "Hips rose early", "bar_forward_off_hips": "Bar forward off hips",
           "jump_forward": "Jumped forward", "early_arm_bend": "Early arm bend", "slow_turnover": "Slow turnover",
-          "bar_crash": "Bar drop into the catch"}
+          "bar_crash": "Bar drop into the catch", "hips_too_low_at_start": "Hips above knees at the start",
+          "shoulders_behind_bar_at_start": "Shoulders behind the bar at the start", "jump_back_excessive": "Feet jumped back"}
 NOTES = {"hips_rise_early": "hips vs shoulders, floor to knee", "bar_forward_off_hips": "after hip contact",
          "jump_forward": "feet, lift-off to catch", "early_arm_bend": "elbows bent before the hips finished (+ = early)",
-         "slow_turnover": "full extension to elbow lockout", "bar_crash": "bar peak to elbow lockout"}
+         "slow_turnover": "full extension to elbow lockout", "bar_crash": "bar peak to elbow lockout",
+         "hips_too_low_at_start": "hip height above the knees at lift-off", "shoulders_behind_bar_at_start":
+         "shoulders behind the bar at lift-off (+ = behind)", "jump_back_excessive": "feet back, beyond the bar's own move back"}
 
 
 def build_cue(r, reps, best_rep, W, H):
@@ -601,7 +614,8 @@ def build_cue(r, reps, best_rep, W, H):
                    else f"bar · {vals[cue_id]:.0f} cm drop")
     else:
         frm, to = raw(d["from"], f), raw(d["to"], f)
-        caption = f"feet · {vals[cue_id]:.0f} cm fwd"
+        caption = {"hips_too_low_at_start": "hip · {v:.0f} cm above knee", "shoulders_behind_bar_at_start":
+                   "shoulders · {v:.0f} cm behind bar", "jump_back_excessive": "feet · {v:.0f} cm back"}.get(cue_id, "feet · {v:.0f} cm fwd").format(v=vals[cue_id])
     conf_text = f"Seen on {seen} of {len(reps)} reps"
     if off > 20:
         conf_text += f", filmed ~{off:.0f}° off side-on: film from the side to confirm"

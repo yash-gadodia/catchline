@@ -115,6 +115,25 @@
       "unit": "cm",
       "order": 2,
       "horizontal": false
+    },
+    "hips_too_low_at_start": {
+      "threshold": 5.0,
+      "unit": "cm",
+      "order": 0.5,
+      "horizontal": false,
+      "below": true
+    },
+    "shoulders_behind_bar_at_start": {
+      "threshold": 5.0,
+      "unit": "cm",
+      "order": 0.6,
+      "horizontal": true
+    },
+    "jump_back_excessive": {
+      "threshold": 8.0,
+      "unit": "cm",
+      "order": 3.1,
+      "horizontal": true
     }
   },
   "FAULTS": {
@@ -124,7 +143,10 @@
       "bar_forward_off_hips",
       "slow_turnover",
       "bar_crash",
-      "jump_forward"
+      "jump_forward",
+      "hips_too_low_at_start",
+      "shoulders_behind_bar_at_start",
+      "jump_back_excessive"
     ],
     "clean": [
       "hips_rise_early",
@@ -162,6 +184,9 @@
   "UNCALIBRATED_SNATCH": [
     "bar_crash",
     "early_arm_bend",
+    "hips_too_low_at_start",
+    "jump_back_excessive",
+    "shoulders_behind_bar_at_start",
     "slow_turnover"
   ],
   "CUES": {
@@ -183,7 +208,10 @@
     "hspu_kip_timing": "Knees to elbows, then kick the ceiling.",
     "hspu_banana": "Drive your heels up the wall.",
     "slow_turnover": "Pull yourself under the bar, fast.",
-    "bar_crash": "Meet the bar; lock out as you land."
+    "bar_crash": "Meet the bar; lock out as you land.",
+    "hips_too_low_at_start": "Hips a little higher than knees.",
+    "shoulders_behind_bar_at_start": "Armpits over the bar.",
+    "jump_back_excessive": "Plant your feet under the bar."
   },
   "WHY": {
     "early_arm_bend": "Your elbows bent {m} before your hips finished, so the bar lost leg speed.",
@@ -204,7 +232,10 @@
     "hspu_kip_timing": "Your knees stopped {m} above your hips before the kick, so the hips gave no drive.",
     "hspu_banana": "Your hips sat {m} off the wall at the top.",
     "slow_turnover": "It took {m} from full extension to locking out, so the bar was falling before you were under it.",
-    "bar_crash": "The bar fell {m} from its peak before your arms locked, so it landed on you."
+    "bar_crash": "The bar fell {m} from its peak before your arms locked, so it landed on you.",
+    "hips_too_low_at_start": "Your hips were only {m} above your knees at lift-off; a start that low turns into hips shooting up once the bar gets heavy.",
+    "shoulders_behind_bar_at_start": "Your shoulders started {m} behind the bar, so the bar moved away from you instead of back toward you.",
+    "jump_back_excessive": "Your feet landed {m} further back than the bar came, so you caught it reaching forward."
   },
   "GATES": [
     [
@@ -562,6 +593,48 @@
       {
         "text": "Pull under, don't fall under",
         "source": "clean/clean_bar_crash"
+      }
+    ],
+    "hips_too_low_at_start": [
+      {
+        "text": "Shoulders just over the bar",
+        "source": "snatch/hips_too_low_at_start"
+      },
+      {
+        "text": "Find tension, then lift",
+        "source": "snatch/hips_too_low_at_start"
+      },
+      {
+        "text": "Arms hang straight down to the bar",
+        "source": "snatch/hips_too_low_at_start"
+      }
+    ],
+    "shoulders_behind_bar_at_start": [
+      {
+        "text": "Lean over the bar a little",
+        "source": "snatch/shoulders_behind_bar_at_start"
+      },
+      {
+        "text": "Cover the bar with your shoulders",
+        "source": "snatch/shoulders_behind_bar_at_start"
+      },
+      {
+        "text": "Weight over midfoot, not heels",
+        "source": "snatch/shoulders_behind_bar_at_start"
+      }
+    ],
+    "jump_back_excessive": [
+      {
+        "text": "Knees up, feet flat",
+        "source": "snatch/jump_back_excessive"
+      },
+      {
+        "text": "Move with the bar, not away",
+        "source": "snatch/jump_back_excessive"
+      },
+      {
+        "text": "Stay over the bar longer",
+        "source": "snatch/jump_back_excessive"
       }
     ]
   }
