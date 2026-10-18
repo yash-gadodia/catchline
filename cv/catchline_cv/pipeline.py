@@ -532,8 +532,8 @@ def build_cue(r, reps, best_rep, W, H):
     vals, det, ref = r["values"], r["detail"], r["_ref"]
     off = r["off_side_deg"]
     angle_note = f"; corrected for a camera ~{off:.0f}° off side-on, so treat as an estimate" if off > 20 else ""
-    cue_id = rules.choose_cue(vals)
-    fired = rules.fired(vals)
+    cue_id = rules.choose_cue(rules.on_screen(vals, off))
+    fired = rules.fired(rules.on_screen(vals, off))
     s0 = ref["s0"]
     meas = []
     for fid in rules.FAULTS["snatch"]:
@@ -577,7 +577,7 @@ def build_cue(r, reps, best_rep, W, H):
         return meas, None
 
     sev = fired[cue_id]
-    seen = sum(1 for x in reps if cue_id in rules.fired(x["values"]))
+    seen = sum(1 for x in reps if cue_id in rules.fired(rules.on_screen(x["values"], x["off_side_deg"])))
     conf = cue_confidence(cue_id, sev, off, seen, len(reps), r["scale_ok"])
     unit = rules.RULES[cue_id]["unit"]
     d = det[cue_id]
@@ -621,6 +621,8 @@ def build_cue(r, reps, best_rep, W, H):
 
 def cue_confidence(cue_id, sev, off, seen, total, scale_ok):
     conf = rules.rep_confidence(rules.confidence(cue_id, sev, off), seen, total)
+    if conf == "low" and rules.confirmed_off_side(cue_id, sev, off):
+        conf = "worth_checking"
     if cue_id in rules.UNCALIBRATED_SNATCH and conf == "clear":
         conf = "worth_checking"
     if not scale_ok and rules.RULES[cue_id]["unit"] != "s":

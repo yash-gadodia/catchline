@@ -1,6 +1,7 @@
 """Fault rules (03-fault-taxonomy.md, 23-gymnastics.md) over measured values. Pure functions, no IO beyond loading
 rules.json, the data this module shares with the app's src/analysis/device/rules.ts so the two cannot drift."""
 import json
+import math
 from pathlib import Path
 
 _DATA = json.loads((Path(__file__).parent / "rules.json").read_text())
@@ -57,6 +58,29 @@ def fmt(value, unit):
 def severity(fid, v):
     thr = RULES[fid]["threshold"]
     return (1.0 + (thr - v) / thr) if RULES[fid].get("below") else v / thr
+
+
+def on_screen(values, off):
+    """Values for choosing the cue when filmed off side-on. A forward distance is stored corrected by 1/cos(off), but
+    its on-screen value can only read short of the truth, so a fault that fires on it is real (20-70 deg). Steeper
+    than 70 deg no forward distance is judged. Shown values stay corrected; only the choice uses these."""
+    if off is None or off <= 20:
+        return values
+    out = dict(values)
+    for fid, v in values.items():
+        r = RULES.get(fid)
+        if v is not None and r and r["horizontal"] and r["unit"] == "cm" and not r.get("below"):
+            out[fid] = v * math.cos(math.radians(off)) if off <= 70 else None
+    return out
+
+
+
+def confirmed_off_side(fid, sev, off):
+    """A forward distance that fired on its on-screen value (severity from on_screen) at 20-70 deg off side-on: real,
+    so worth checking rather than held back as low (e3b87054, 18 Oct: jump 8.2 cm on screen at 58 deg)."""
+    r = RULES[fid]
+    return (off is not None and 20 < off <= 70 and r["horizontal"] and r["unit"] == "cm" and not r.get("below")
+            and sev >= 1.0)
 
 
 def fired(values):
