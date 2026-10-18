@@ -174,3 +174,11 @@ def test_a_plate_angle_comes_only_from_plates_with_a_refined_fit():
               {"axes": (207.5, 207.5), "refined": False}]
     assert [round(a, 1) for a in ellipse_angles(plates)] == [60.0, 37.0]
     assert ellipse_angles(plates[2:]) == []
+
+
+def test_a_snatch_whose_bar_never_clears_the_shoulders_lost_the_bar_and_is_never_clean():
+    # IMG_7428 (18 Oct): the hands were lost overhead, the "peak" sat at chest height and every row read normal
+    m = meas()
+    assert withhold(None, {"bar_lost": True}, m) == (None, {"code": "bar_lost"})
+    assert withhold(cue("bar_forward_off_hips", "worth_checking"), {"bar_lost": True}, m) == (None, {"code": "bar_lost"})
+    assert "cue" not in [x["status"] for x in m]

@@ -397,7 +397,11 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
             if f <= ev["recovered"]]
 
     sp = speed.peak_up_speed(bar[:, 1], fps, px_per_cm, ev["liftoff"], ev["caught"])
+    # the bar is the wrist midpoint: a snatch whose "peak" never clears the shoulders lost the hands overhead, and
+    # everything measured from it reads normal (IMG_7428 called clean with the bar peaking at chest height)
+    bar_lost = bool(kind == "snatch" and bar[ev["peak"], 1] > sho[ev["peak"], 1])
     info = {
+        "bar_lost": bar_lost,
         "rep_no": rep_no, "start": g(phases[0]["startFrame"]), "end": g(ev["recovered"]), "made": made,
         "phases": [p | {"startFrame": g(p["startFrame"]), "endFrame": g(p["endFrame"])} for p in phases],
         "keys": {kk: g(v) for kk, v in key_frames(ev).items()},
@@ -577,6 +581,11 @@ def withhold(cue, r, meas):
     """(cue, noCueReason). The owner's rule (42 Q4): always show the path, phases and timing, cue only when confident.
     A low-confidence cue, or any cue on a rep the clip cut off, is held back with the reason, and the rows it rested
     on stop claiming to be the cue (off side-on, the horizontal ones are not judged at all)."""
+    if r.get("bar_lost"):
+        for m in meas:
+            if m["status"] == "cue":
+                m["status"] = "normal"
+        return None, {"code": "bar_lost"}
     if cue is None or (cue["confidence"] != "low" and not r.get("cut_off")):
         return cue, None
     fid = cue["faultId"]
