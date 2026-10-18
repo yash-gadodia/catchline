@@ -1,0 +1,2071 @@
+{
+  "kipping_pull_up": [
+    {
+      "id": "early_pull",
+      "movement": "kipping_pull_up",
+      "name": "Early pull / panic pull",
+      "phase": "kip swing -> pull",
+      "looks_like": "Elbows bend while the body is still in the arch or swinging forward; chin is yanked at the bar with the hips still behind or under it.",
+      "root_causes": [
+        "impatience / fear of missing the bar",
+        "not trusting the hip drive",
+        "kipping habit learned without a swing rhythm"
+      ],
+      "downstream_effect": "Kills momentum, turns the kip into a hard strict rep, extra shoulder load, early fatigue.",
+      "measurable_side_on": "yes",
+      "signal": "Elbow angle onset of flexion (first frame elbow < 150 deg) vs hip timing. Fault if elbow flexion starts before the hip angle has closed from its arch maximum (hip still extended past ~180 deg) or before the hips reach their most forward x relative to the wrist (bar) line. Wrist x/y is the bar proxy.",
+      "threshold": {
+        "value": "elbow < 150 deg while hip angle >= 175 deg (still in arch) or >100 ms before hip forward-x peak",
+        "units": "deg, ms",
+        "source": "heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 1,
+      "cues": [
+        "Hips first, then arms",
+        "Wait for the hollow, then pull",
+        "Kick down, then pull back",
+        "Snap the hips before you bend",
+        "Straight arms until the hips fire",
+        "Let the swing lift you, then pull",
+        "Pull when you feel weightless"
+      ],
+      "why": [
+        "The pull should start at the weightless moment at the front of the swing; pulling earlier means the arms lift dead weight.",
+        "Hip snap transfers swing energy upward; bent arms early cut that chain."
+      ],
+      "drills": [
+        "Straight-arm kip swings with a hip snap (no pull)",
+        "Kipping knee raise / kip to hollow, then add pull",
+        "Kip swing + hip pop to the bar with straight arms"
+      ],
+      "sources": [
+        "https://bullbarfit.com/blogs/q-as/how-do-i-perform-a-kipping-pull-up-correctly",
+        "https://bullbarfit.com/blogs/updates/kipping-pull-ups-without-the-blowback-a-strength-coach-s-guide-to-skill-stress-and-smart-volume",
+        "https://open-exam-prep.com/study-guides/crossfit-l3/training-seeing/training-faults-olympic-gymnastics",
+        "https://open-exam-prep.com/study-guides/crossfit-l1/chapter-6-additional-movements/gymnastics-kipping-muscle-up",
+        "https://wodprep.com/?p=10791"
+      ]
+    },
+    {
+      "id": "arms_bent_in_swing",
+      "movement": "kipping_pull_up",
+      "name": "Bent arms during the kip swing",
+      "phase": "kip swing",
+      "looks_like": "Elbows stay flexed through the arch and hollow, body hangs close under the bar with a shallow swing.",
+      "root_causes": [
+        "trying to stay close to the bar",
+        "weak active hang / grip",
+        "pre-pulling"
+      ],
+      "downstream_effect": "Shortens the pendulum, smaller swing, less height for the pull; tires the arms.",
+      "measurable_side_on": "yes",
+      "signal": "Elbow angle (shoulder-elbow-wrist) during the swing frames before the pull window (from start until hip forward-x peak).",
+      "threshold": {
+        "value": "min elbow angle < 160 deg during swing",
+        "units": "deg",
+        "source": "L3 study guide names the fault; numeric value is heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 2,
+      "cues": [
+        "Long arms in the swing",
+        "Lock the elbows, swing from the shoulders",
+        "Push the bar away as you swing",
+        "Hang long, swing big",
+        "Arms are ropes until the pull"
+      ],
+      "why": [
+        "The swing is driven from the shoulders and hips; straight arms keep the lever long so the swing stores more energy."
+      ],
+      "drills": [
+        "Active-hang kip swings, elbows locked",
+        "Beat swing holding arch/hollow for 5 rocks"
+      ],
+      "sources": [
+        "https://open-exam-prep.com/study-guides/crossfit-l3/training-seeing/training-faults-olympic-gymnastics",
+        "https://open-exam-prep.com/study-guides/crossfit-l1/chapter-6-additional-movements/gymnastics-kipping-muscle-up"
+      ]
+    },
+    {
+      "id": "bent_knees_crazy_legs",
+      "movement": "kipping_pull_up",
+      "name": "Bent knees / crazy legs",
+      "phase": "kip swing",
+      "looks_like": "Knees bend and kick during the swing, feet separate or pedal.",
+      "root_causes": [
+        "loss of body tension",
+        "using the legs to generate swing instead of the hips/shoulders"
+      ],
+      "downstream_effect": "Breaks the rigid lower-body lever, leaks energy, inconsistent swing, harder pull.",
+      "measurable_side_on": "yes",
+      "signal": "Knee angle (hip-knee-ankle) through swing and pull. Kipping is expected to show some knee motion (WKU: kipping produced greater knee angle change than strict), so flag only large flexion.",
+      "threshold": {
+        "value": "knee angle < 140 deg (>40 deg flexion) at any frame of the swing",
+        "units": "deg",
+        "source": "WKU study reports peak knee angle 56.5 +/- 11.3 deg in kipping (definition ambiguous in abstract); cut-off is heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 1,
+      "cues": [
+        "Squeeze the legs together",
+        "Glue your feet together",
+        "Straight legs, toes long",
+        "Point the toes, lock the knees",
+        "Legs follow the hips",
+        "One long line, hip to toe"
+      ],
+      "why": [
+        "Bending the knees breaks the rigid lower-body lever and loses kinetic energy (L1)."
+      ],
+      "drills": [
+        "Kip swings squeezing a towel or foam block between the knees",
+        "Floor hollow/arch rocks with locked knees"
+      ],
+      "sources": [
+        "https://wodprep.com/?p=10791",
+        "https://open-exam-prep.com/study-guides/crossfit-l1/chapter-6-additional-movements/gymnastics-kipping-muscle-up",
+        "https://join.ganbarumethod.com/beat-bar-muscle-up-bottlenecks/",
+        "https://digitalcommons.wku.edu/ijesab/vol8/iss5/61"
+      ]
+    },
+    {
+      "id": "leg_driven_kick_tarzan",
+      "movement": "kipping_pull_up",
+      "name": "Leg-driven kick / Tarzan swing",
+      "phase": "kip swing",
+      "looks_like": "Big knee drive or leg throw starts the swing; hips stay passive; swing is loose and uneven.",
+      "root_causes": [
+        "misunderstanding where the kip comes from",
+        "no lat push-down on the bar"
+      ],
+      "downstream_effect": "Uncontrolled swing amplitude, poor timing, inconsistent reps.",
+      "measurable_side_on": "partial",
+      "signal": "Ratio of knee angular velocity to hip angular velocity during the swing; plus swing amplitude (max ankle x excursion either side of bar) relative to shoulder-ankle length.",
+      "threshold": {
+        "value": "peak knee angular velocity > 2x peak hip angular velocity, or knee flexion > 40 deg while hip angle change < 25 deg",
+        "units": "deg/s ratio",
+        "source": "WKU average hip 76.8 deg/s, knee 127.2 deg/s in kipping (so knee > hip is normal); ratio cut-off is heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 2,
+      "cues": [
+        "Swing from the shoulders, not the legs",
+        "Push the bar down with your lats",
+        "Chest through, then heels back",
+        "Keep the legs quiet",
+        "Drive with the hips, not the knees"
+      ],
+      "why": [
+        "The swing must be driven from the shoulders and hips; leg kicks add noise and break timing."
+      ],
+      "drills": [
+        "Beat swing (small, tight)",
+        "Crescendo kip swing: grow amplitude while staying tight"
+      ],
+      "sources": [
+        "https://open-exam-prep.com/study-guides/crossfit-l1/chapter-6-additional-movements/gymnastics-kipping-muscle-up",
+        "https://bullbarfit.com/blogs/q-as/how-do-i-perform-a-kipping-pull-up-correctly",
+        "https://join.ganbarumethod.com/beat-bar-muscle-up-bottlenecks/",
+        "https://crossfitroots.com/?p=40538"
+      ]
+    },
+    {
+      "id": "no_hip_pop",
+      "movement": "kipping_pull_up",
+      "name": "No hip pop / static hollow",
+      "phase": "pull",
+      "looks_like": "Athlete holds one hollow shape through the whole rep; hips never snap open-to-closed; pull is all arms.",
+      "root_causes": [
+        "fear of the swing",
+        "not knowing the hip timing"
+      ],
+      "downstream_effect": "Arms do all the work; harder rep; early fatigue.",
+      "measurable_side_on": "yes",
+      "signal": "Hip angle (shoulder-hip-knee) range across the rep and peak hip angular velocity around the pull.",
+      "threshold": {
+        "value": "hip angle excursion < 30 deg across swing+pull, or peak hip angular velocity < 150 deg/s",
+        "units": "deg, deg/s",
+        "source": "WKU reports greater hip ROM in kipping (24.2 +/- 3.5 cm hip displacement, 48.8 +/- 6.8 deg peak hip angle); cut-offs are heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 1,
+      "cues": [
+        "Pop the hips to the bar",
+        "Snap the hips, then pull",
+        "Close the hips hard",
+        "Arch, then snap shut",
+        "Hips drive you up"
+      ],
+      "why": [
+        "Opening then closing the hip accelerates the body upward so the arms finish the job instead of starting it."
+      ],
+      "drills": [
+        "Straight-arm hip pops from the hang",
+        "Kip swing to kipping knee raise"
+      ],
+      "sources": [
+        "https://wodprep.com/?p=10791",
+        "https://bullbarfit.com/blogs/updates/kipping-pull-ups-without-the-blowback-a-strength-coach-s-guide-to-skill-stress-and-smart-volume",
+        "https://digitalcommons.wku.edu/ijesab/vol8/iss5/61"
+      ]
+    },
+    {
+      "id": "shallow_arch",
+      "movement": "kipping_pull_up",
+      "name": "Shallow arch / no back swing",
+      "phase": "kip swing",
+      "looks_like": "Chest never passes in front of the bar and feet never travel behind it; tiny swing.",
+      "root_causes": [
+        "missing the arch focus in anticipation of the pull",
+        "weak shoulder extension mobility"
+      ],
+      "downstream_effect": "Not enough stored energy for the hollow; pull starts from a dead position.",
+      "measurable_side_on": "yes",
+      "signal": "Max horizontal displacement of ankle behind the wrist vertical and of shoulder/chest in front of it during the arch, normalised by shoulder-ankle length (L_body).",
+      "threshold": {
+        "value": "ankle behind bar < 0.15 L_body and shoulder in front of bar < 0.05 L_body",
+        "units": "fraction of body length",
+        "source": "heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 2,
+      "cues": [
+        "Chest through the window",
+        "Heels back behind the bar",
+        "Big arch, then hollow",
+        "Open the shoulders in front",
+        "Push your chest through your arms"
+      ],
+      "why": [
+        "The arch is the load phase; without it the hollow has nothing to release."
+      ],
+      "drills": [
+        "Hanging arch holds (2-3 s)",
+        "Hollow/arch floor rocks",
+        "Arch-hollow beat swings"
+      ],
+      "sources": [
+        "https://open-exam-prep.com/study-guides/crossfit-l1/chapter-6-additional-movements/gymnastics-kipping-muscle-up",
+        "https://crossfitroots.com/?p=40538",
+        "https://crossfitroots.com/?p=40509"
+      ]
+    },
+    {
+      "id": "piked_broken_hollow",
+      "movement": "kipping_pull_up",
+      "name": "Broken hollow (pike or banana)",
+      "phase": "kip swing (hollow)",
+      "looks_like": "Hips pike sharply forward or the body bows loose in the hollow; legs swing up independent of the trunk.",
+      "root_causes": [
+        "weak midline",
+        "fatigue",
+        "confusing hollow with knee raise"
+      ],
+      "downstream_effect": "Loses the rigid pendulum; energy leaks and timing drifts.",
+      "measurable_side_on": "partial",
+      "signal": "Hip angle during the hollow phase (after swing reversal, before pull). Hollow is a mild hip flexion; a sharp pike shows as a much smaller angle.",
+      "threshold": {
+        "value": "hip angle < 130 deg during hollow before the pull starts",
+        "units": "deg",
+        "source": "fault named in L3 study guide; value heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 2,
+      "cues": [
+        "Ribs down, squeeze the glutes",
+        "Tight hollow, long body",
+        "Toes slightly forward, not up",
+        "Banana shape, no fold",
+        "Stay rigid like a plank"
+      ],
+      "why": [
+        "A rigid hollow keeps the body one pendulum so the swing energy goes upward."
+      ],
+      "drills": [
+        "Hollow body holds and rocks",
+        "Hanging hollow holds"
+      ],
+      "sources": [
+        "https://open-exam-prep.com/study-guides/crossfit-l3/training-seeing/training-faults-olympic-gymnastics",
+        "https://open-exam-prep.com/study-guides/crossfit-l1/chapter-6-additional-movements/gymnastics-kipping-muscle-up"
+      ]
+    },
+    {
+      "id": "no_push_away_dead_drop",
+      "movement": "kipping_pull_up",
+      "name": "No push-away / dead drop",
+      "phase": "descent",
+      "looks_like": "After the top the athlete drops straight down under the bar instead of pushing back into the arch.",
+      "root_causes": [
+        "not pushing away from the bar",
+        "fatigue",
+        "not strong enough for the push-away (CFHQ)"
+      ],
+      "downstream_effect": "Loses the swing for the next rep; hard on shoulders at the bottom.",
+      "measurable_side_on": "partial",
+      "signal": "After peak height: shoulder x travel away from the bar line (should move behind/away) vs vertical drop. Needs frames after the top of the rep.",
+      "threshold": {
+        "value": "shoulder horizontal travel away from bar < 0.05 L_body while dropping > 0.2 L_body",
+        "units": "fraction of body length",
+        "source": "heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 3,
+      "cues": [
+        "Push the bar away at the top",
+        "Throw yourself back to the arch",
+        "Push away, then swing",
+        "Lats push you away",
+        "Top, push, arch"
+      ],
+      "why": [
+        "The push-away guides the body back into the next swing so momentum carries over."
+      ],
+      "drills": [
+        "Kip pull-up singles focusing on push-away into arch",
+        "Kip to push-away without pulling high"
+      ],
+      "sources": [
+        "https://wodprep.com/?p=10791",
+        "https://open-exam-prep.com/study-guides/crossfit-l1/chapter-6-additional-movements/gymnastics-kipping-muscle-up",
+        "https://open-exam-prep.com/study-guides/crossfit-l3/training-seeing/training-faults-olympic-gymnastics",
+        "https://games.crossfit.com/video/teaching-pull-large-group-part-2"
+      ],
+      "notes": "CFHQ coach: push-away is only for athletes already clearing the bar; low priority for single-rep app."
+    },
+    {
+      "id": "chin_not_over_bar",
+      "movement": "kipping_pull_up",
+      "name": "Chin not over the bar (short top)",
+      "phase": "top / lockout",
+      "looks_like": "Peak height leaves the chin at or below bar level; head tilts back to reach.",
+      "root_causes": [
+        "weak pull",
+        "poor timing so the swing does not lift",
+        "fatigue"
+      ],
+      "downstream_effect": "No-rep under standards; reinforces short range.",
+      "measurable_side_on": "yes",
+      "signal": "At peak (max shoulder height), compare nose/chin keypoint y to wrist y (bar proxy). Nose is ~5-8 cm above chin; require nose clearly above bar.",
+      "threshold": {
+        "value": "nose y must be > wrist y + 5 cm (chin passes horizontal plane of bar)",
+        "units": "cm",
+        "source": "standard from CrossFit Open 2018.5 (chin over horizontal plane of bar); 5 cm margin is heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 1,
+      "cues": [
+        "Chin over, eyes over the bar",
+        "Pull the bar to your throat",
+        "Finish the pull",
+        "Elbows down to your ribs",
+        "Drive the elbows back"
+      ],
+      "why": [
+        "The standard is chin past the bar's horizontal plane; reps that miss do not count."
+      ],
+      "drills": [
+        "Strict pull-up volume",
+        "Jumping pull-up negatives"
+      ],
+      "sources": [
+        "https://games.crossfit.com/workouts/open/2018/5"
+      ]
+    },
+    {
+      "id": "chest_not_to_bar_c2b",
+      "movement": "kipping_pull_up",
+      "name": "Chest not to bar (C2B)",
+      "phase": "top / lockout",
+      "looks_like": "On chest-to-bar reps the chest stops short of the bar or contacts above the collarbone.",
+      "root_causes": [
+        "limited shoulder extension ROM",
+        "high volume degrading precision",
+        "pulling too vertical"
+      ],
+      "downstream_effect": "No-rep in C2B standards.",
+      "measurable_side_on": "partial",
+      "signal": "At peak, shoulder keypoint y vs wrist y and horizontal distance shoulder-to-wrist. Contact below collarbone means shoulders roughly at bar height and close to it.",
+      "threshold": {
+        "value": "shoulder y >= wrist y - 8 cm and shoulder-wrist horizontal distance < 15 cm",
+        "units": "cm",
+        "source": "standard (contact below collarbone) from CrossFit 2019 OQ; numeric proxy heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 2,
+      "cues": [
+        "Pull the bar to your chest",
+        "Eyes above the bar",
+        "Drive the elbows behind you",
+        "Lean back, pull to the sternum",
+        "Hips back, chest up"
+      ],
+      "why": [
+        "Contact below the collarbone needs the shoulders to rise to the bar and the elbows to go behind the torso."
+      ],
+      "drills": [
+        "Shoulder extension mobility before sessions",
+        "Break sets early (about 1/3 of max per set)"
+      ],
+      "sources": [
+        "https://games.crossfit.com/workouts/onlinequalifiers/2019/4",
+        "https://www.crossfit.com/pro-coach/how-to-manage-common-pain-points-of-the-crossfit-open-with-your-athletes"
+      ]
+    },
+    {
+      "id": "incomplete_bottom_extension",
+      "movement": "kipping_pull_up",
+      "name": "No full arm extension at the bottom",
+      "phase": "start / descent",
+      "looks_like": "Rep starts or re-starts with elbows bent.",
+      "root_causes": [
+        "rushing reps",
+        "fatigue"
+      ],
+      "downstream_effect": "No-rep; shorter swing.",
+      "measurable_side_on": "yes",
+      "signal": "Max elbow angle in the bottom hang phase (start of clip or between reps).",
+      "threshold": {
+        "value": "elbow < 160 deg at start (standard: arms fully extended; 10 deg allowance for keypoint error)",
+        "units": "deg",
+        "source": "standard from CrossFit Open 2018.5; tolerance heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 2,
+      "cues": [
+        "Lock the arms at the bottom",
+        "Full hang every rep",
+        "Start long",
+        "Elbows straight before the swing",
+        "Reset to straight arms"
+      ],
+      "why": [
+        "Standards require full extension; a bent-arm start also shortens the swing."
+      ],
+      "drills": [
+        "Active hang holds",
+        "Single kip reps from full hang"
+      ],
+      "sources": [
+        "https://games.crossfit.com/workouts/open/2018/5"
+      ]
+    },
+    {
+      "id": "passive_shoulders_bottom",
+      "movement": "kipping_pull_up",
+      "name": "Shrugged, passive shoulders at bottom of swing",
+      "phase": "kip swing (bottom)",
+      "looks_like": "Shoulders up by the ears in the hang/swing; body sinks into end range.",
+      "root_causes": [
+        "no active hang",
+        "fatigue",
+        "grip-only hanging"
+      ],
+      "downstream_effect": "Shoulder joint takes force passively; linked with shoulder irritation.",
+      "measurable_side_on": "partial",
+      "signal": "Shoulder-to-wrist distance vs arm length (shoulder-elbow + elbow-wrist) and ear-to-shoulder distance at the bottom of the swing. Passive hang = shoulder-wrist distance near maximal and ear-shoulder distance small.",
+      "threshold": {
+        "value": "ear-shoulder distance < 0.35 x upper-arm length at swing bottom",
+        "units": "ratio",
+        "source": "heuristic starting point (no published threshold found; tune on eval set); noisy under 5 cm error"
+      },
+      "priority": 2,
+      "cues": [
+        "Push the bar toward your hips",
+        "Shoulders away from your ears",
+        "Active hang, ribs down",
+        "Lats on before you swing",
+        "Don't hang on the joints"
+      ],
+      "why": [
+        "An active shoulder keeps force in the muscles instead of passive shoulder structures."
+      ],
+      "drills": [
+        "Scap pull-ups / active hang holds",
+        "Active hang to beat swing"
+      ],
+      "sources": [
+        "https://open-exam-prep.com/study-guides/crossfit-l3/training-seeing/training-faults-olympic-gymnastics",
+        "https://bullbarfit.com/blogs/updates/kipping-pull-ups-without-the-blowback-a-strength-coach-s-guide-to-skill-stress-and-smart-volume"
+      ]
+    },
+    {
+      "id": "late_pull",
+      "movement": "kipping_pull_up",
+      "name": "Late pull (after the swing peaks)",
+      "phase": "pull",
+      "looks_like": "Athlete waits too long, the body has started swinging back under the bar before the elbows bend.",
+      "root_causes": [
+        "timing confusion",
+        "fear of the bar"
+      ],
+      "downstream_effect": "Pulling against backward momentum; rep stalls.",
+      "measurable_side_on": "yes",
+      "signal": "Elbow flexion onset relative to the hips' forward-x peak (front of swing). Late if elbow flexion begins after hips have started moving back toward/behind the bar.",
+      "threshold": {
+        "value": "elbow flexion onset > 150 ms after hip forward-x peak",
+        "units": "ms",
+        "source": "heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 2,
+      "cues": [
+        "Pull as the hips peak",
+        "Pull at the top of the hollow",
+        "Don't wait, pull at weightless",
+        "Snap and pull together",
+        "Pull on the forward swing"
+      ],
+      "why": [
+        "The pull window is short: the weightless moment at the front of the swing."
+      ],
+      "drills": [
+        "Kip swing count drill: swing-swing-pull",
+        "Kip to hollow with a pause cue"
+      ],
+      "sources": [
+        "https://bullbarfit.com/blogs/q-as/how-do-i-perform-a-kipping-pull-up-correctly",
+        "https://open-exam-prep.com/study-guides/crossfit-l1/chapter-6-additional-movements/gymnastics-kipping-muscle-up",
+        "https://games.crossfit.com/video/kipping-pull-ups-new-clients"
+      ]
+    },
+    {
+      "id": "chin_reach_neck_crane",
+      "movement": "kipping_pull_up",
+      "name": "Chin reach / neck crane",
+      "phase": "top",
+      "looks_like": "Athlete throws the head back to get the chin over while shoulders stay well below the bar.",
+      "root_causes": [
+        "pull too short",
+        "chasing the standard"
+      ],
+      "downstream_effect": "Neck strain; masks a short pull.",
+      "measurable_side_on": "partial",
+      "signal": "At peak: nose above wrist line but shoulder y far below wrist y; head tilt (ear-nose vector) strongly upward.",
+      "threshold": {
+        "value": "nose over bar while shoulder y < wrist y - 0.6 x upper-arm length",
+        "units": "ratio",
+        "source": "heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 3,
+      "cues": [
+        "Chest to the bar, not chin",
+        "Keep the chin neutral",
+        "Pull higher, don't reach",
+        "Eyes forward at the top",
+        "Lead with the chest"
+      ],
+      "why": [
+        "Craning hides a short pull; get the shoulders higher instead."
+      ],
+      "drills": [
+        "Strict pull-up negatives",
+        "Chest-to-bar progressions"
+      ],
+      "sources": [
+        "https://games.crossfit.com/workouts/open/2018/5"
+      ],
+      "notes": "Derived fault; not named by a fetched source (unverified)."
+    },
+    {
+      "id": "butterfly_legs_behind_at_contact",
+      "movement": "kipping_pull_up",
+      "name": "Butterfly: legs under/behind at bar contact",
+      "phase": "pull (butterfly)",
+      "looks_like": "Chest meets the bar with the legs already bent underneath or behind; athlete feels they will hit their face.",
+      "root_causes": [
+        "kipping habit carried over (same end position)",
+        "scoop not finished"
+      ],
+      "downstream_effect": "Face-to-bar collisions, broken rhythm.",
+      "measurable_side_on": "yes",
+      "signal": "At peak height: ankle x relative to the bar vertical (wrist x). Correct: feet in front of the bar's vertical plane. Also knee angle at peak.",
+      "threshold": {
+        "value": "ankle x behind wrist x at peak shoulder height",
+        "units": "sign of horizontal offset (cm)",
+        "source": "WODprep butterfly article (feet in front of bar plane); sign test only"
+      },
+      "priority": 1,
+      "cues": [
+        "Toes forward, shoulders back",
+        "Feet in front of the bar",
+        "Chin up and away",
+        "Finish the scoop",
+        "Drive the toes up"
+      ],
+      "why": [
+        "Driving toes forward and shoulders back moves the body around the bar so the face clears it."
+      ],
+      "drills": [
+        "Reverse bicycle kicks with one foot on a box",
+        "Baby butterflies (small scoops)"
+      ],
+      "sources": [
+        "https://wodprep.com/?p=4388",
+        "https://invictusfitness.com/?p=49675"
+      ]
+    },
+    {
+      "id": "butterfly_short_scoop",
+      "movement": "kipping_pull_up",
+      "name": "Butterfly: short scoop / arm-dominant",
+      "phase": "kip swing (butterfly)",
+      "looks_like": "Leg and hip swing cut short; arms do most of the work; rhythm feels hard.",
+      "root_causes": [
+        "relying on arms",
+        "rhythm not learned"
+      ],
+      "downstream_effect": "Fatigues fast; reps feel harder than they should.",
+      "measurable_side_on": "partial",
+      "signal": "Ankle path loop size (vertical + horizontal extent of the ankle trajectory per cycle) and hip angle range per cycle; elbow flexion that precedes the scoop.",
+      "threshold": {
+        "value": "ankle trajectory height < 0.3 L_body per cycle or hip angle range < 40 deg",
+        "units": "fraction of body length, deg",
+        "source": "heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 2,
+      "cues": [
+        "Big scoop, then pull",
+        "Hips and legs do the work",
+        "Finish the circle",
+        "Swing the legs through",
+        "Let the legs lead"
+      ],
+      "why": [
+        "The butterfly is driven by a full hip-and-leg swing; cutting it short removes the power."
+      ],
+      "drills": [
+        "Baby butterflies",
+        "Reverse bicycle kicks"
+      ],
+      "sources": [
+        "https://wodprep.com/?p=4388"
+      ]
+    },
+    {
+      "id": "butterfly_no_back_swing",
+      "movement": "kipping_pull_up",
+      "name": "Butterfly/C2B: weak back swing",
+      "phase": "kip swing (butterfly)",
+      "looks_like": "No aggressive swing behind the bar; contact happens late on the way up.",
+      "root_causes": [
+        "timid swing",
+        "fatigue"
+      ],
+      "downstream_effect": "Misses the chest target; slower cycle.",
+      "measurable_side_on": "partial",
+      "signal": "Max ankle displacement behind the wrist line during the cycle.",
+      "threshold": {
+        "value": "ankle behind bar < 0.15 L_body",
+        "units": "fraction of body length",
+        "source": "heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 3,
+      "cues": [
+        "Aggressive back swing",
+        "Brush the bar at the top",
+        "Heels back hard",
+        "Swing, then hit the bar",
+        "Swing back behind the bar"
+      ],
+      "why": [
+        "CrossFit coaches cue an aggressive back swing with the bar brushed at the apex or on the descent."
+      ],
+      "drills": [
+        "Butterfly beat swings"
+      ],
+      "sources": [
+        "https://www.crossfit.com/pro-coach/how-to-manage-common-pain-points-of-the-crossfit-open-with-your-athletes"
+      ]
+    }
+  ],
+  "bar_muscle_up": [
+    {
+      "id": "early_arm_pull",
+      "movement": "bar_muscle_up",
+      "name": "Early arm pull (pulling into the bar)",
+      "phase": "pull",
+      "looks_like": "Elbows bend early like a chest-to-bar pull-up; athlete pulls into the bar instead of levering around it.",
+      "root_causes": [
+        "habit from C2B",
+        "weak hip drive",
+        "impatience"
+      ],
+      "downstream_effect": "Body ends up under the bar with no room to turn over; failed transition.",
+      "measurable_side_on": "yes",
+      "signal": "Elbow angle during the pull relative to hip height. Straight-arm lever expected until hips approach bar height.",
+      "threshold": {
+        "value": "elbow < 150 deg while hip y is still > 0.25 L_body below wrist y",
+        "units": "deg, fraction of body length",
+        "source": "heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 1,
+      "cues": [
+        "Straight arms, pull the bar to your hips",
+        "Pull around the bar, not to it",
+        "Push the bar down to your hips",
+        "Lever back, then pull",
+        "Arms long until the hips arrive",
+        "Hips to bar first"
+      ],
+      "why": [
+        "Straight-arm pulling moves the hips and shoulders behind the bar, creating room for the turnover."
+      ],
+      "drills": [
+        "Pull to stomp (straight-arm pull to box)",
+        "Hollow body med-ball slides",
+        "Banded lever pulls"
+      ],
+      "sources": [
+        "https://wodprep.teachable.com/courses/166555/lectures/2492262",
+        "https://join.ganbarumethod.com/beat-bar-muscle-up-bottlenecks/",
+        "https://www.crossfit.com/pro-coach/how-to-manage-common-pain-points-of-the-crossfit-open-with-your-athletes"
+      ]
+    },
+    {
+      "id": "no_hip_pop_hips_low",
+      "movement": "bar_muscle_up",
+      "name": "No hip pop / hips not to the bar",
+      "phase": "pull",
+      "looks_like": "Big kip but the hips never drive up to bar height.",
+      "root_causes": [
+        "weak hip extension",
+        "no glute squeeze",
+        "timing"
+      ],
+      "downstream_effect": "Not enough height to transition; athlete muscles it or misses.",
+      "measurable_side_on": "yes",
+      "signal": "Peak hip y relative to wrist y (bar) during the pull.",
+      "threshold": {
+        "value": "peak hip y below wrist y by > 0.15 L_body",
+        "units": "fraction of body length",
+        "source": "heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 1,
+      "cues": [
+        "Hips to the bar",
+        "Pop the hips hard",
+        "Squeeze the glutes and drive",
+        "Hips up, then over",
+        "Kick down, hips up"
+      ],
+      "why": [
+        "Hip extension supplies the upward speed that lets the hands turn over the bar."
+      ],
+      "drills": [
+        "Hip pops to the bar",
+        "Pull to pop",
+        "Glide kip in band chair"
+      ],
+      "sources": [
+        "https://wodprep.teachable.com/courses/166555/lectures/2492262",
+        "https://join.ganbarumethod.com/beat-bar-muscle-up-bottlenecks/"
+      ]
+    },
+    {
+      "id": "chicken_wing",
+      "movement": "bar_muscle_up",
+      "name": "Chicken wing (one arm over first)",
+      "phase": "transition / turnover",
+      "looks_like": "One elbow/shoulder clears the bar before the other; that arm pries the other over.",
+      "root_causes": [
+        "feet split in the kip rotating the torso",
+        "insufficient back-swing height",
+        "uneven pull"
+      ],
+      "downstream_effect": "Inefficient, fatiguing, possible shoulder injury; failed reps.",
+      "measurable_side_on": "partial",
+      "signal": "Side-on the far arm is often occluded. Use left vs right elbow and wrist keypoint height difference during turnover, plus apparent shoulder width change (torso rotation) and hip-shoulder twist.",
+      "threshold": {
+        "value": "left-right elbow y difference > 12 cm during turnover, or apparent shoulder width > 2x baseline",
+        "units": "cm, ratio",
+        "source": "heuristic starting point (no published threshold found; tune on eval set); low confidence side-on"
+      },
+      "priority": 2,
+      "cues": [
+        "Both elbows over together",
+        "Square shoulders to the bar",
+        "Feet together in the kip",
+        "Even pull, both arms",
+        "Knees up, get height"
+      ],
+      "why": [
+        "An uneven turnover puts one shoulder in a bad position and makes the press much harder."
+      ],
+      "drills": [
+        "Kip swings squeezing a sponge between the feet",
+        "Hips-to-rings or ring swings"
+      ],
+      "sources": [
+        "https://invictusfitness.com/blog/bar-muscle-up-chicken-wing/",
+        "https://www.crossfit.com/pro-coach/how-to-manage-common-pain-points-of-the-crossfit-open-with-your-athletes",
+        "https://wodprep.teachable.com/courses/166555/lectures/2492262"
+      ]
+    },
+    {
+      "id": "split_feet_kip",
+      "movement": "bar_muscle_up",
+      "name": "Feet split / scissor kick in the kip",
+      "phase": "kip swing",
+      "looks_like": "Legs separate front-back during the swing.",
+      "root_causes": [
+        "loss of tension",
+        "single-leg kicking"
+      ],
+      "downstream_effect": "Torso rotates; leads to chicken wing.",
+      "measurable_side_on": "partial",
+      "signal": "Horizontal separation of left vs right ankle (and knee) keypoints in the swing; side-on scissoring shows clearly, side-by-side split does not.",
+      "threshold": {
+        "value": "ankle x separation > 15 cm during swing",
+        "units": "cm",
+        "source": "heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 2,
+      "cues": [
+        "Feet together",
+        "Squeeze a sponge with your feet",
+        "Legs glued, one unit",
+        "Point both toes together",
+        "Heels touching the whole swing"
+      ],
+      "why": [
+        "Separate feet twist the torso, which rotates the turnover."
+      ],
+      "drills": [
+        "Kip swings squeezing a sponge",
+        "Hollow rocks legs together"
+      ],
+      "sources": [
+        "https://www.crossfit.com/pro-coach/how-to-manage-common-pain-points-of-the-crossfit-open-with-your-athletes",
+        "https://invictusfitness.com/blog/bar-muscle-up-chicken-wing/"
+      ]
+    },
+    {
+      "id": "arms_bent_in_swing_bmu",
+      "movement": "bar_muscle_up",
+      "name": "Bent arms in the kip swing",
+      "phase": "kip swing",
+      "looks_like": "Elbows flex during the arch/hollow before the pull.",
+      "root_causes": [
+        "pre-pulling",
+        "weak active hang"
+      ],
+      "downstream_effect": "Short lever, less height.",
+      "measurable_side_on": "yes",
+      "signal": "Min elbow angle during swing frames.",
+      "threshold": {
+        "value": "elbow < 160 deg before pull window",
+        "units": "deg",
+        "source": "heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 2,
+      "cues": [
+        "Long arms in the swing",
+        "Lock the elbows",
+        "Swing from the shoulders",
+        "Push the bar away",
+        "Hang long before you pull"
+      ],
+      "why": [
+        "Straight arms keep the pendulum long so the kip stores more energy."
+      ],
+      "drills": [
+        "Hanging arch/hollow holds",
+        "Beat swings"
+      ],
+      "sources": [
+        "https://join.ganbarumethod.com/beat-bar-muscle-up-bottlenecks/",
+        "https://open-exam-prep.com/study-guides/crossfit-l3/training-seeing/training-faults-olympic-gymnastics"
+      ]
+    },
+    {
+      "id": "bent_knees_swing_bmu",
+      "movement": "bar_muscle_up",
+      "name": "Bent knees in the swing",
+      "phase": "kip swing",
+      "looks_like": "Knees bend as the swing grows.",
+      "root_causes": [
+        "loss of tension",
+        "leg-driven kip"
+      ],
+      "downstream_effect": "Leaks power; inconsistent kip.",
+      "measurable_side_on": "yes",
+      "signal": "Knee angle during swing frames.",
+      "threshold": {
+        "value": "knee angle < 150 deg during beat/kip swing",
+        "units": "deg",
+        "source": "heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 2,
+      "cues": [
+        "Keep the legs long",
+        "Squeeze the knees",
+        "No knee bend in the swing",
+        "Toes pointed, legs locked",
+        "Swing from the hips, not knees"
+      ],
+      "why": [
+        "Ganbaru: there is no room for a knee bend in a beat swing."
+      ],
+      "drills": [
+        "Crescendo kip swing",
+        "Beat swing"
+      ],
+      "sources": [
+        "https://join.ganbarumethod.com/beat-bar-muscle-up-bottlenecks/"
+      ]
+    },
+    {
+      "id": "loose_tarzan_kip",
+      "movement": "bar_muscle_up",
+      "name": "Loose / Tarzan kip",
+      "phase": "kip swing",
+      "looks_like": "Large sloppy swings; shapes on the bar don't resemble the hollow and arch.",
+      "root_causes": [
+        "adding momentum before holding positions",
+        "low tension"
+      ],
+      "downstream_effect": "Not enough power, poor timing.",
+      "measurable_side_on": "partial",
+      "signal": "Swing amplitude (ankle x excursion) relative to hip angle change; large amplitude with small hip-angle change and large knee change signals a loose swing.",
+      "threshold": {
+        "value": "ankle excursion > 0.8 L_body with hip angle change < 30 deg",
+        "units": "fraction of body length, deg",
+        "source": "heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 2,
+      "cues": [
+        "Smaller, tighter swing",
+        "Hold your shapes",
+        "Long arch, long hollow",
+        "Tension before height",
+        "Stay rigid in the swing"
+      ],
+      "why": [
+        "Controlled shapes transmit force; a loose swing only looks big."
+      ],
+      "drills": [
+        "Hanging arch and hollow holds",
+        "Beat swing"
+      ],
+      "sources": [
+        "https://join.ganbarumethod.com/beat-bar-muscle-up-bottlenecks/",
+        "https://wodprep.teachable.com/courses/166555/lectures/2492262"
+      ]
+    },
+    {
+      "id": "shallow_back_swing",
+      "movement": "bar_muscle_up",
+      "name": "Low back swing / weak arch",
+      "phase": "kip swing",
+      "looks_like": "Feet barely travel behind the bar in the arch.",
+      "root_causes": [
+        "timid swing",
+        "mobility"
+      ],
+      "downstream_effect": "Insufficient height, compensations like the chicken wing.",
+      "measurable_side_on": "yes",
+      "signal": "Max ankle displacement behind wrist line, normalised by L_body.",
+      "threshold": {
+        "value": "ankle behind bar < 0.2 L_body",
+        "units": "fraction of body length",
+        "source": "heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 2,
+      "cues": [
+        "Big arch behind the bar",
+        "Heels back, chest through",
+        "Load the arch",
+        "Swing back high",
+        "Feet well behind the bar"
+      ],
+      "why": [
+        "Back-swing height feeds the hollow and hip drive."
+      ],
+      "drills": [
+        "Hanging arch holds",
+        "Crescendo kip swings"
+      ],
+      "sources": [
+        "https://www.crossfit.com/pro-coach/how-to-manage-common-pain-points-of-the-crossfit-open-with-your-athletes",
+        "https://join.ganbarumethod.com/beat-bar-muscle-up-bottlenecks/"
+      ]
+    },
+    {
+      "id": "rushing_out_of_arch",
+      "movement": "bar_muscle_up",
+      "name": "Rushing out of the arch",
+      "phase": "kip swing -> hollow",
+      "looks_like": "Athlete reverses from arch to hollow before the swing reaches its back peak.",
+      "root_causes": [
+        "forcing the timing"
+      ],
+      "downstream_effect": "Weak hollow, low hip drive.",
+      "measurable_side_on": "partial",
+      "signal": "Time of hip angle reversal (arch max -> closing) vs time of ankle peak behind the bar.",
+      "threshold": {
+        "value": "hip closing starts > 100 ms before ankle back-x peak",
+        "units": "ms",
+        "source": "heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 3,
+      "cues": [
+        "Wait for the swing",
+        "Let the arch finish",
+        "Ride the arch, then snap",
+        "Patience in the back swing",
+        "Don't force the hollow",
+        "Swing back fully first"
+      ],
+      "why": [
+        "Momentum should dictate the change; early reversal throws the stored energy away."
+      ],
+      "drills": [
+        "Kipping BMU from boxes"
+      ],
+      "sources": [
+        "https://join.ganbarumethod.com/beat-bar-muscle-up-bottlenecks/"
+      ]
+    },
+    {
+      "id": "toes_low_in_reversal",
+      "movement": "bar_muscle_up",
+      "name": "Toes don't reach chest height",
+      "phase": "kip -> hip drive",
+      "looks_like": "In the hollow/reversal the toes stay low, so the hips can't drive toward the bar.",
+      "root_causes": [
+        "weak compression",
+        "no knee/toe lift before hip drive"
+      ],
+      "downstream_effect": "No room to open the hips into the bar.",
+      "measurable_side_on": "yes",
+      "signal": "Peak ankle y relative to shoulder/chest y in the hollow before hip extension; or minimum hip angle.",
+      "threshold": {
+        "value": "peak ankle y below hip y, or min hip angle > 110 deg before hip extension",
+        "units": "deg",
+        "source": "Ganbaru: toes should reach chest height; numeric proxy heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 1,
+      "cues": [
+        "Toes to the ceiling, then hips",
+        "Knees up for height",
+        "Toes to chest, then snap",
+        "Lift the legs before the pop",
+        "Bring the feet up fast"
+      ],
+      "why": [
+        "Raising the toes first loads the hip so its extension drives the body up to the bar."
+      ],
+      "drills": [
+        "Glide kip in band chair",
+        "Single-leg BMU jump to support"
+      ],
+      "sources": [
+        "https://join.ganbarumethod.com/beat-bar-muscle-up-bottlenecks/",
+        "https://invictusfitness.com/blog/bar-muscle-up-chicken-wing/"
+      ]
+    },
+    {
+      "id": "weak_hip_extension",
+      "movement": "bar_muscle_up",
+      "name": "Incomplete hip extension at the drive",
+      "phase": "hip drive / turnover",
+      "looks_like": "Hips don't open fully toward the bar before the turnover.",
+      "root_causes": [
+        "weak glutes",
+        "early arm pull"
+      ],
+      "downstream_effect": "Low catch, muscled transition.",
+      "measurable_side_on": "yes",
+      "signal": "Max hip angle during the drive window (after toes peak, before shoulders pass bar).",
+      "threshold": {
+        "value": "max hip angle < 160 deg during drive",
+        "units": "deg",
+        "source": "heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 2,
+      "cues": [
+        "Open the hips hard",
+        "Squeeze the glutes",
+        "Long powerful arch",
+        "Hips into the bar",
+        "Drive the hips up hard"
+      ],
+      "why": [
+        "Full hip extension adds the last upward speed."
+      ],
+      "drills": [
+        "Pull to pop",
+        "Hip pops to the bar"
+      ],
+      "sources": [
+        "https://join.ganbarumethod.com/beat-bar-muscle-up-bottlenecks/"
+      ]
+    },
+    {
+      "id": "slow_transition",
+      "movement": "bar_muscle_up",
+      "name": "Slow, unaggressive transition",
+      "phase": "transition / turnover",
+      "looks_like": "Athlete gets to the bar but stalls before the shoulders roll over; drifts and sinks.",
+      "root_causes": [
+        "hesitation",
+        "weak hand turnover",
+        "no false/pseudo-false grip"
+      ],
+      "downstream_effect": "Stalls at the hardest point; missed reps.",
+      "measurable_side_on": "yes",
+      "signal": "Time from hip peak height (or max elbow flexion near bar) to shoulders crossing in front of the wrist line.",
+      "threshold": {
+        "value": "> 0.35 s from hip peak to shoulder x passing wrist x",
+        "units": "s",
+        "source": "heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 2,
+      "cues": [
+        "Snap the chest over",
+        "Fast hands over the bar",
+        "Look down, fast head",
+        "Throw the chest forward",
+        "Elbows up and over, quick"
+      ],
+      "why": [
+        "The turnover must be quick while the body is still weightless at the top."
+      ],
+      "drills": [
+        "Low-bar transitions from feet",
+        "Banded BMU as a tactile cue"
+      ],
+      "sources": [
+        "https://open-exam-prep.com/study-guides/crossfit-l3/training-seeing/training-faults-olympic-gymnastics",
+        "https://open-exam-prep.com/study-guides/crossfit-l1/chapter-6-additional-movements/gymnastics-kipping-muscle-up",
+        "https://wodprep.teachable.com/courses/166555/lectures/2492262"
+      ]
+    },
+    {
+      "id": "incomplete_pull_low_transition",
+      "movement": "bar_muscle_up",
+      "name": "Transition attempted too low",
+      "phase": "transition",
+      "looks_like": "Athlete tries to turn over with the bar still around the chest or higher.",
+      "root_causes": [
+        "incomplete pull",
+        "low hip height"
+      ],
+      "downstream_effect": "Grinds or fails into the dip.",
+      "measurable_side_on": "yes",
+      "signal": "At the start of forward torso rotation (shoulders moving over wrist x), compare wrist y to torso: bar should be near the lower ribs/hips.",
+      "threshold": {
+        "value": "wrist y above (shoulder y - 0.4 x shoulder-hip length) at turnover start",
+        "units": "fraction of torso length",
+        "source": "L3 names incomplete pull; numeric proxy heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 1,
+      "cues": [
+        "Pull the bar to your hips",
+        "Get the bar to your belly",
+        "Finish the pull, then turn",
+        "Bar to the stomach first",
+        "Turn over at the hips"
+      ],
+      "why": [
+        "The bar should meet the stomach/hip area so the shoulders can move forward over it."
+      ],
+      "drills": [
+        "Pull to stomp",
+        "Hip pops to the box"
+      ],
+      "sources": [
+        "https://open-exam-prep.com/study-guides/crossfit-l3/training-seeing/training-faults-olympic-gymnastics",
+        "https://www.strengthlog.com/bar-muscle-up/",
+        "https://join.ganbarumethod.com/beat-bar-muscle-up-bottlenecks/"
+      ]
+    },
+    {
+      "id": "catch_low_deep_dip",
+      "movement": "bar_muscle_up",
+      "name": "Catching low / deep dip",
+      "phase": "catch / press",
+      "looks_like": "After the turnover the athlete sinks into a deep dip below the bar before pressing.",
+      "root_causes": [
+        "losing downward pressure on the bar",
+        "low transition"
+      ],
+      "downstream_effect": "Harder press, shoulder stress, fatigue.",
+      "measurable_side_on": "yes",
+      "signal": "Minimum elbow angle after shoulders pass over the bar and shoulder y vs wrist y in the dip.",
+      "threshold": {
+        "value": "min elbow angle < 70 deg after turnover, or shoulder y below wrist y",
+        "units": "deg",
+        "source": "heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 2,
+      "cues": [
+        "Keep pressing into the bar",
+        "Catch high",
+        "Push the bar away the whole time",
+        "Stay on top of the bar",
+        "Short dip, fast press"
+      ],
+      "why": [
+        "Constant pressure into the bar keeps the catch high so the press is short."
+      ],
+      "drills": [
+        "Glide kip in band chair",
+        "Bar dips"
+      ],
+      "sources": [
+        "https://join.ganbarumethod.com/beat-bar-muscle-up-bottlenecks/"
+      ]
+    },
+    {
+      "id": "no_lockout_support",
+      "movement": "bar_muscle_up",
+      "name": "No lockout / shoulders behind bar at top",
+      "phase": "press / lockout",
+      "looks_like": "Rep finishes with elbows soft or shoulders behind the bar.",
+      "root_causes": [
+        "weak dip",
+        "rushing down"
+      ],
+      "downstream_effect": "No-rep under standards.",
+      "measurable_side_on": "yes",
+      "signal": "Max elbow angle at top and shoulder x vs wrist x (shoulders must be over or in front of bar when viewed from side).",
+      "threshold": {
+        "value": "elbow < 165 deg (allow 10 deg error -> flag < 160) or shoulder x behind wrist x by > 5 cm",
+        "units": "deg, cm",
+        "source": "CrossFit 2025 Open standard (arms fully extended, shoulders over or slightly in front of bar viewed from side); tolerances heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 1,
+      "cues": [
+        "Lock out at the top",
+        "Shoulders over the bar",
+        "Lean forward and press",
+        "Drive the palms down",
+        "Finish tall, arms straight"
+      ],
+      "why": [
+        "The rep only counts at full lockout with shoulders over the bar."
+      ],
+      "drills": [
+        "Straight-bar dips",
+        "Support holds on the bar"
+      ],
+      "sources": [
+        "https://games.crossfit.com/workouts/open/2025/2?division=9",
+        "https://games.crossfit.com/workouts/onlinequalifiers/2020/4",
+        "https://open-exam-prep.com/study-guides/crossfit-l1/chapter-6-additional-movements/gymnastics-kipping-muscle-up"
+      ]
+    },
+    {
+      "id": "feet_above_bar_kip",
+      "movement": "bar_muscle_up",
+      "name": "Feet above the bar during kip",
+      "phase": "kip swing",
+      "looks_like": "Feet rise above the bar during the kip (no-rep in Open standard).",
+      "root_causes": [
+        "over-swinging",
+        "piking"
+      ],
+      "downstream_effect": "No-rep; uncontrolled swing.",
+      "measurable_side_on": "yes",
+      "signal": "Any frame where an ankle/foot keypoint y exceeds wrist y.",
+      "threshold": {
+        "value": "ankle y > wrist y",
+        "units": "sign test",
+        "source": "CrossFit 2025 Open no-rep list"
+      },
+      "priority": 3,
+      "cues": [
+        "Kick down, not up",
+        "Toes to chest, not over the bar",
+        "Control the legs",
+        "Drive hips, not feet",
+        "Keep the feet below the bar"
+      ],
+      "why": [
+        "Feet above the bar is a no-rep and wastes the kip."
+      ],
+      "drills": [
+        "Controlled kip swings"
+      ],
+      "sources": [
+        "https://games.crossfit.com/workouts/open/2025/2?division=9"
+      ]
+    },
+    {
+      "id": "no_full_extension_start_bmu",
+      "movement": "bar_muscle_up",
+      "name": "No full hang at start",
+      "phase": "start",
+      "looks_like": "Rep starts with bent arms.",
+      "root_causes": [
+        "rushing"
+      ],
+      "downstream_effect": "No-rep; shortened kip.",
+      "measurable_side_on": "yes",
+      "signal": "Elbow angle at start of rep.",
+      "threshold": {
+        "value": "elbow < 160 deg at start",
+        "units": "deg",
+        "source": "standard (full extension from hang); tolerance heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 3,
+      "cues": [
+        "Start from a full hang",
+        "Lock the arms first",
+        "Long arms before the kip",
+        "Full hang every rep",
+        "Straight arms, then kip"
+      ],
+      "why": [
+        "Standard requires a full hang; it also makes the kip longer."
+      ],
+      "drills": [
+        "Active hang holds"
+      ],
+      "sources": [
+        "https://games.crossfit.com/workouts/open/2025/2?division=9"
+      ]
+    }
+  ],
+  "kipping_hspu": [
+    {
+      "id": "incomplete_lockout",
+      "movement": "kipping_hspu",
+      "name": "Incomplete lockout (arms)",
+      "phase": "press / lockout",
+      "looks_like": "Rep ends with soft elbows at the top.",
+      "root_causes": [
+        "weak press",
+        "fatigue",
+        "head not pushed through"
+      ],
+      "downstream_effect": "No-rep; reinforces short ROM.",
+      "measurable_side_on": "yes",
+      "signal": "Max elbow angle at the top of the rep (body inverted, so shoulder-elbow-wrist below head).",
+      "threshold": {
+        "value": "elbow < 165 deg at top (flag < 160 with 10 deg error)",
+        "units": "deg",
+        "source": "standard (arms fully extended) CrossFit 2024 QF/2020 Open; tolerance heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 1,
+      "cues": [
+        "Lock the elbows at the top",
+        "Push your head through",
+        "Push the floor away",
+        "Finish tall in the handstand",
+        "Press until the arms are straight"
+      ],
+      "why": [
+        "Arms locked with hips open is the finish standard; pushing the head through adds lockout power."
+      ],
+      "drills": [
+        "Wall handstand holds",
+        "Seated DB press lockouts"
+      ],
+      "sources": [
+        "https://games.crossfit.com/workouts/onlinequalifiers/2024/3",
+        "https://games.crossfit.com/workouts/open/2020/3?division=1",
+        "https://wodprep.com/?p=1249",
+        "https://open-exam-prep.com/study-guides/crossfit-l3/training-seeing/training-faults-olympic-gymnastics"
+      ]
+    },
+    {
+      "id": "hips_not_open_top",
+      "movement": "kipping_hspu",
+      "name": "Hips not extended at the top (piked finish)",
+      "phase": "press / lockout",
+      "looks_like": "Finishes with hips bent, butt on the wall, only feet high.",
+      "root_causes": [
+        "kip finishing late",
+        "hands too close to wall"
+      ],
+      "downstream_effect": "No-rep; heels may miss the wall.",
+      "measurable_side_on": "yes",
+      "signal": "Hip angle (shoulder-hip-knee) and knee angle at top.",
+      "threshold": {
+        "value": "hip angle < 160 deg or knee angle < 160 deg at top",
+        "units": "deg",
+        "source": "standard (hips open, body in line with arms); tolerance heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 1,
+      "cues": [
+        "Open the hips at the top",
+        "Squeeze the glutes, legs long",
+        "Heels to the ceiling",
+        "Finish in one straight line",
+        "Hips over the shoulders"
+      ],
+      "why": [
+        "Rep finish needs arms locked and hips open."
+      ],
+      "drills": [
+        "Wall handstand holds with glutes squeezed"
+      ],
+      "sources": [
+        "https://games.crossfit.com/workouts/onlinequalifiers/2024/3",
+        "https://games.crossfit.com/workouts/open/2020/3?division=1",
+        "https://www.nike.com/sg/a/how-to-do-handstand-pushups"
+      ]
+    },
+    {
+      "id": "uncontrolled_descent_crash",
+      "movement": "kipping_hspu",
+      "name": "No eccentric control / crashing onto head",
+      "phase": "descent",
+      "looks_like": "Head drops fast into the floor; descent is a controlled fall.",
+      "root_causes": [
+        "fatigue",
+        "kipping before strict strength",
+        "no shoulder tension"
+      ],
+      "downstream_effect": "Neck loading; the most dangerous HSPU fault per L3; preprint found head forces above bodyweight.",
+      "measurable_side_on": "yes",
+      "signal": "Descent duration (top lockout to head-floor contact) and head/shoulder vertical velocity just before contact. Floor plane = wrist y.",
+      "threshold": {
+        "value": "descent < 0.35 s or head vertical speed > 1.0 m/s in the last 5 cm",
+        "units": "s, m/s",
+        "source": "heuristic starting point (no published threshold found; tune on eval set); Bove 2023 preprint: peak head force during kip usually > 1x bodyweight (403 on full text, abstract only)"
+      },
+      "priority": 1,
+      "cues": [
+        "Lower with control",
+        "Slow down, then kip",
+        "Don't crash, land soft",
+        "Arms carry you down",
+        "Two-count down to the head"
+      ],
+      "why": [
+        "Crashing dumps load on the neck; controlled lowering keeps the arms carrying the weight."
+      ],
+      "drills": [
+        "Handstand negatives (3-4 s lowers)",
+        "Box HSPU tempo lowers"
+      ],
+      "sources": [
+        "https://open-exam-prep.com/study-guides/crossfit-l3/training-seeing/training-faults-olympic-gymnastics",
+        "https://wodprep.com/?p=1249",
+        "https://crossfitsouthbrooklyn.com/workout-of-the-day/2022/02/09/thursday-2-10-22.html",
+        "https://preprints.org/manuscript/202309.0271/v1/download"
+      ]
+    },
+    {
+      "id": "short_rom_head_not_down",
+      "movement": "kipping_hspu",
+      "name": "Head doesn't reach the floor/target",
+      "phase": "descent / bottom",
+      "looks_like": "Athlete turns around before the head touches.",
+      "root_causes": [
+        "weak bottom position",
+        "fear"
+      ],
+      "downstream_effect": "No-rep.",
+      "measurable_side_on": "partial",
+      "signal": "Lowest head keypoint (nose/ear, offset to head top) vs floor (wrist y). COCO has no head-top keypoint so add an offset of ~10-12 cm from ear.",
+      "threshold": {
+        "value": "estimated head-top > 3 cm above wrist y at bottom",
+        "units": "cm",
+        "source": "standard (head contacts floor/target); margin heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 2,
+      "cues": [
+        "Head to the floor every rep",
+        "Touch, then go",
+        "Full depth, then kip",
+        "Tap the head down",
+        "Go all the way down"
+      ],
+      "why": [
+        "Head contact is required for the rep."
+      ],
+      "drills": [
+        "Ab-mat scaled HSPU removing mats over time"
+      ],
+      "sources": [
+        "https://games.crossfit.com/workouts/open/2020/3?division=1",
+        "https://wodprep.com/?p=6774",
+        "https://wodprep.com/?p=1249"
+      ]
+    },
+    {
+      "id": "kip_timing_press_early",
+      "movement": "kipping_hspu",
+      "name": "Press before the kip (arms before legs)",
+      "phase": "kip / press",
+      "looks_like": "Elbows start extending before the hips/knees snap open; kip is wasted.",
+      "root_causes": [
+        "treating it as two moves",
+        "rushing"
+      ],
+      "downstream_effect": "Arms do the work; stall mid-press.",
+      "measurable_side_on": "yes",
+      "signal": "Onset of elbow extension vs onset of knee/hip extension from the tuck. Kipping HSPU is an inverted push press: legs drive, arms follow.",
+      "threshold": {
+        "value": "elbow extension onset > 80 ms before knee extension onset",
+        "units": "ms",
+        "source": "heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 1,
+      "cues": [
+        "Legs first, then press",
+        "Kick, then push",
+        "Snap the legs, then lock out",
+        "Let the hips lift you",
+        "Drive heels, then arms"
+      ],
+      "why": [
+        "Closing then opening the hip creates momentum that assists the press; pressing first loses it."
+      ],
+      "drills": [
+        "Kip-only reps (kick to headstand, no press)",
+        "Tuck-to-kick drills against the wall"
+      ],
+      "sources": [
+        "https://crossfitsouthbrooklyn.com/workout-of-the-day/2022/02/09/thursday-2-10-22.html",
+        "https://fitbod.me/exercises/kipping-handstand-push-up"
+      ]
+    },
+    {
+      "id": "kip_timing_press_late",
+      "movement": "kipping_hspu",
+      "name": "Press too late (legs fire, arms wait)",
+      "phase": "kip / press",
+      "looks_like": "Legs kick up, body rises slightly, then arms start pressing after momentum has gone.",
+      "root_causes": [
+        "poor coordination",
+        "fatigue"
+      ],
+      "downstream_effect": "Momentum lost; grinding press or fall-off.",
+      "measurable_side_on": "yes",
+      "signal": "Gap between peak knee/hip extension velocity and elbow extension onset.",
+      "threshold": {
+        "value": "elbow extension onset > 200 ms after peak knee extension velocity",
+        "units": "ms",
+        "source": "heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 2,
+      "cues": [
+        "Press as the legs snap",
+        "Push with the kick",
+        "Kick and press together",
+        "Punch the floor as you kick",
+        "Don't wait after the kick"
+      ],
+      "why": [
+        "The arms must catch the lift the legs create, like a push press drive."
+      ],
+      "drills": [
+        "Kipping HSPU singles with a press-on-kick cue"
+      ],
+      "sources": [
+        "https://crossfitsouthbrooklyn.com/workout-of-the-day/2022/02/09/thursday-2-10-22.html",
+        "https://wodprep.com/?p=1249"
+      ]
+    },
+    {
+      "id": "insufficient_tuck",
+      "movement": "kipping_hspu",
+      "name": "Shallow tuck / weak kip",
+      "phase": "kip (load)",
+      "looks_like": "Knees barely come down, so the kick is small.",
+      "root_causes": [
+        "shoulder fatigue",
+        "fear of falling"
+      ],
+      "downstream_effect": "Can't get out of the bottom.",
+      "measurable_side_on": "yes",
+      "signal": "Minimum hip angle and knee angle in the bottom tuck; knee y relative to hip y.",
+      "threshold": {
+        "value": "min hip angle > 100 deg (knees not dropped toward parallel)",
+        "units": "deg",
+        "source": "WODprep: let knees drop below parallel when fatigued; numeric proxy heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 2,
+      "cues": [
+        "Knees down to the chest",
+        "Bigger tuck, bigger kick",
+        "Drop the knees low",
+        "Load the hips, then kick",
+        "Kick harder when tired"
+      ],
+      "why": [
+        "A deeper tuck lengthens the kick so the legs provide more lift."
+      ],
+      "drills": [
+        "Tuck-and-kick to wall drills",
+        "Kip-only reps"
+      ],
+      "sources": [
+        "https://wodprep.com/?p=6774",
+        "https://fitbod.me/exercises/kipping-handstand-push-up",
+        "https://crossfitsouthbrooklyn.com/workout-of-the-day/2022/02/09/thursday-2-10-22.html"
+      ]
+    },
+    {
+      "id": "hands_too_close_wall",
+      "movement": "kipping_hspu",
+      "name": "Hands too close to the wall",
+      "phase": "setup / kip",
+      "looks_like": "Butt hits the wall during hip extension and bucks the athlete off.",
+      "root_causes": [
+        "setup habit from strict HSPU"
+      ],
+      "downstream_effect": "Lost balance; heels may come off the wall.",
+      "measurable_side_on": "partial",
+      "signal": "Wall usually not keypointed. Proxy: at the bottom, hip x passes beyond the wrist line on the wall side by a large margin, then is pushed back abruptly during the kick (hip x velocity reversal).",
+      "threshold": {
+        "value": "hip x beyond wrist x by > 0.35 L_body at bottom with abrupt reversal",
+        "units": "fraction of body length",
+        "source": "WODprep: hands about a hand and a half from the wall; ~12 in for kipping vs ~6 in strict (search snippet); proxy heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 2,
+      "cues": [
+        "Hands farther from the wall",
+        "Give your hips room",
+        "Move back a hand-length",
+        "Set up a hand and a half out",
+        "Hips need space to open"
+      ],
+      "why": [
+        "The hips need room to open; too close and the wall pushes you off."
+      ],
+      "drills": [
+        "Experiment with hand distance, mark a line"
+      ],
+      "sources": [
+        "https://wodprep.com/?p=6774"
+      ]
+    },
+    {
+      "id": "hands_too_far_wall",
+      "movement": "kipping_hspu",
+      "name": "Hands too far from the wall / body not vertical",
+      "phase": "setup / lockout",
+      "looks_like": "Body leans away from vertical; awkward lockout; falling into the wall.",
+      "root_causes": [
+        "setup"
+      ],
+      "downstream_effect": "Hard lockout; balance loss.",
+      "measurable_side_on": "yes",
+      "signal": "Angle of the wrist-to-ankle (or shoulder-ankle) line from vertical at lockout.",
+      "threshold": {
+        "value": "body line > 15 deg from vertical at lockout",
+        "units": "deg",
+        "source": "heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 2,
+      "cues": [
+        "Hands closer to the wall",
+        "Stack shoulders over hands",
+        "Stand tall upside down",
+        "Ribs in, body vertical",
+        "Shorten the setup a bit"
+      ],
+      "why": [
+        "A vertical stack lets the arms press straight up."
+      ],
+      "drills": [
+        "Wall handstand holds with hand marks"
+      ],
+      "sources": [
+        "https://wodprep.com/?p=6774"
+      ]
+    },
+    {
+      "id": "heels_miss_wall",
+      "movement": "kipping_hspu",
+      "name": "Kick misses / heels off the wall",
+      "phase": "kip / lockout",
+      "looks_like": "Kick goes straight up or away; heels don't stick to the wall at the top.",
+      "root_causes": [
+        "kicking straight up",
+        "weak hip extension"
+      ],
+      "downstream_effect": "No-rep (heels must touch wall at start/end).",
+      "measurable_side_on": "partial",
+      "signal": "Ankle x trajectory: at top the ankles should return to the wall-side extreme seen at the start lockout. Flag if final ankle x is short of the start lockout ankle x.",
+      "threshold": {
+        "value": "top ankle x short of start-lockout ankle x by > 8 cm",
+        "units": "cm",
+        "source": "heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 2,
+      "cues": [
+        "Heels to where wall meets ceiling",
+        "Kick back into the wall",
+        "Stick the heels",
+        "Drive the heels up and back",
+        "Kick to the wall, not up"
+      ],
+      "why": [
+        "Driving heels toward the wall-ceiling corner makes them shoot back and stick; feet not touching wall is a common no-rep."
+      ],
+      "drills": [
+        "Kick-to-wall drills from tuck"
+      ],
+      "sources": [
+        "https://invictusfitness.com/?p=78175",
+        "https://games.crossfit.com/workouts/onlinequalifiers/2024/3"
+      ],
+      "notes": "Invictus cue taken from a search snippet; page fetched only the homepage (unverified)."
+    },
+    {
+      "id": "arched_lockout_banana",
+      "movement": "kipping_hspu",
+      "name": "Arched lockout / lumbar hyperextension",
+      "phase": "lockout",
+      "looks_like": "Lower back over-arched at the top, belly toward the wall, abs off.",
+      "root_causes": [
+        "weak core",
+        "kicking up with back to wall"
+      ],
+      "downstream_effect": "Inefficient position; low back stress.",
+      "measurable_side_on": "partial",
+      "signal": "Shoulder-hip-ankle angle at lockout (deviation of hip from the shoulder-ankle line, toward the front/away from wall).",
+      "threshold": {
+        "value": "shoulder-hip-ankle angle < 165 deg with hip displaced away from the wall",
+        "units": "deg",
+        "source": "heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 2,
+      "cues": [
+        "Ribs down, squeeze the glutes",
+        "Squeeze your core",
+        "Tuck the ribs",
+        "One straight line, no banana",
+        "Tight belly upside down"
+      ],
+      "why": [
+        "An arched lockout is not a strong position; a straight line stacks the joints."
+      ],
+      "drills": [
+        "Hollow hold progressions",
+        "Wall handstand holds, ribs tucked"
+      ],
+      "sources": [
+        "https://www.nike.com/sg/a/how-to-do-handstand-pushups",
+        "https://www.rocktape.ca/?p=12661"
+      ]
+    },
+    {
+      "id": "head_extension_neck",
+      "movement": "kipping_hspu",
+      "name": "Neck extension at the bottom / kip",
+      "phase": "bottom / kip",
+      "looks_like": "Athlete cranes the neck (head tilts back) while on the head during the kip.",
+      "root_causes": [
+        "looking for the floor",
+        "tripod set too far forward"
+      ],
+      "downstream_effect": "Preprint: participants reporting pain after kipping HSPUs moved their head into extension.",
+      "measurable_side_on": "partial",
+      "signal": "Head pitch from ear-nose vector relative to the torso (shoulder-hip) line during the bottom phase. Upside-down face keypoints are less reliable.",
+      "threshold": {
+        "value": "head pitch > 25 deg extension relative to torso during head contact",
+        "units": "deg",
+        "source": "heuristic starting point (no published threshold found; tune on eval set); Bove 2023 preprint (abstract) links extension with pain"
+      },
+      "priority": 2,
+      "cues": [
+        "Neutral neck on the floor",
+        "Top of head, not forehead",
+        "Eyes between the hands",
+        "Keep the neck long",
+        "Chin slightly tucked",
+        "Don't look at the wall"
+      ],
+      "why": [
+        "Head extension under load is linked with pain reports after kipping HSPUs."
+      ],
+      "drills": [
+        "Headstand holds with neutral neck",
+        "Strict HSPU before kipping"
+      ],
+      "sources": [
+        "https://preprints.org/manuscript/202309.0271/v1/download",
+        "https://fitbod.me/exercises/kipping-handstand-push-up",
+        "https://wodprep.com/?p=1249"
+      ]
+    },
+    {
+      "id": "tripod_lost_head_placement",
+      "movement": "kipping_hspu",
+      "name": "Head placement off (tripod lost)",
+      "phase": "bottom",
+      "looks_like": "Head lands in line with or behind the hands instead of forming a tripod in front of them; or tripod collapses partway.",
+      "root_causes": [
+        "hand setup",
+        "elbow path"
+      ],
+      "downstream_effect": "Unstable bottom; poor press angle.",
+      "measurable_side_on": "partial",
+      "signal": "Horizontal offset of the head (ear/nose) from the wrist x at bottom, normalised by forearm length.",
+      "threshold": {
+        "value": "head offset outside 0.3-1.0 x forearm length in front of the wrists",
+        "units": "ratio",
+        "source": "heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 3,
+      "cues": [
+        "Make a triangle with your head",
+        "Head slightly in front of the hands",
+        "Keep the tripod",
+        "Elbows over the wrists",
+        "Hold the triangle all set",
+        "Land head in front of hands"
+      ],
+      "why": [
+        "The tripod (two hands + head) is the base; many athletes lose it mid-set."
+      ],
+      "drills": [
+        "Tripod headstand holds",
+        "Negatives into the tripod"
+      ],
+      "sources": [
+        "https://www.nike.com/sg/a/how-to-do-handstand-pushups"
+      ],
+      "notes": "Sources conflict: Nike/CrossFit coaches cue a tripod for kipping; strict-HSPU sources cue head between hands. Treat as movement-variant dependent."
+    },
+    {
+      "id": "rest_on_head_dead_stop",
+      "movement": "kipping_hspu",
+      "name": "Resting on the head (strict: dead stop)",
+      "phase": "bottom",
+      "looks_like": "Pause on the head with tension lost; press out of a dead stop.",
+      "root_causes": [
+        "fatigue",
+        "habit"
+      ],
+      "downstream_effect": "Hard to press out; slower sets. (Allowed to relax in kipping per WODprep, fault for strict.)",
+      "measurable_side_on": "yes",
+      "signal": "Time the head stays at its minimum height (velocity ~0) before pressing.",
+      "threshold": {
+        "value": "> 0.5 s stationary at bottom on strict reps",
+        "units": "s",
+        "source": "heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 3,
+      "cues": [
+        "Touch and go",
+        "Stay tight at the bottom",
+        "Tap the head, press",
+        "Keep the shoulders on",
+        "No pause on the head",
+        "Bounce-free, quick touch"
+      ],
+      "why": [
+        "Losing shoulder and chest tension makes the press from a dead stop much harder."
+      ],
+      "drills": [
+        "Tap-and-go strict HSPU"
+      ],
+      "sources": [
+        "https://invictusfitness.com/blog/handstand-push-up-problems",
+        "https://wodprep.com/?p=6774"
+      ]
+    },
+    {
+      "id": "head_down_on_press",
+      "movement": "kipping_hspu",
+      "name": "Head drops / no 'head through' at lockout",
+      "phase": "press / lockout",
+      "looks_like": "Head stays tucked or looks down at the floor at the top; awkward lockout.",
+      "root_causes": [
+        "poor head position"
+      ],
+      "downstream_effect": "Weaker lockout; shoulders not stacked.",
+      "measurable_side_on": "partial",
+      "signal": "At the top, ear x position relative to the shoulder-wrist line (head should be between the arms).",
+      "threshold": {
+        "value": "ear forward of shoulder-wrist line by > 6 cm at lockout",
+        "units": "cm",
+        "source": "heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 3,
+      "cues": [
+        "Push your head through",
+        "Look through the window",
+        "Ears between the arms",
+        "Head neutral at the top",
+        "Head between the arms",
+        "Push tall at the top"
+      ],
+      "why": [
+        "Pushing the head through stacks arms and shoulders for a stronger lockout."
+      ],
+      "drills": [
+        "Wall handstand holds with head-through cue"
+      ],
+      "sources": [
+        "https://wodprep.com/?p=6774",
+        "https://wodprep.com/?p=1249"
+      ]
+    },
+    {
+      "id": "hips_drift_from_wall_strict",
+      "movement": "kipping_hspu",
+      "name": "Hips drift away from the wall (strict)",
+      "phase": "press",
+      "looks_like": "Hips sag away from the wall during the press; body bends.",
+      "root_causes": [
+        "weak midline",
+        "hands too far"
+      ],
+      "downstream_effect": "Poor press angle; heel contact lost.",
+      "measurable_side_on": "partial",
+      "signal": "Hip x movement away from the wall side during the press relative to start.",
+      "threshold": {
+        "value": "hip x moves > 10 cm away from wall during press",
+        "units": "cm",
+        "source": "heuristic starting point (no published threshold found; tune on eval set)"
+      },
+      "priority": 3,
+      "cues": [
+        "Hips stay on the wall",
+        "Squeeze glutes, hips in",
+        "Stay stacked",
+        "Press straight up",
+        "Keep the belly tight"
+      ],
+      "why": [
+        "Hips sagging off the wall breaks the line the press needs."
+      ],
+      "drills": [
+        "Wall handstand holds",
+        "Strict HSPU negatives"
+      ],
+      "sources": [
+        "https://open-exam-prep.com/study-guides/crossfit-l3/training-seeing/training-faults-olympic-gymnastics"
+      ]
+    },
+    {
+      "id": "start_without_lockout",
+      "movement": "kipping_hspu",
+      "name": "Start not locked out",
+      "phase": "start",
+      "looks_like": "First rep begins from the bottom or with soft arms/heels off wall.",
+      "root_causes": [
+        "misunderstanding the standard"
+      ],
+      "downstream_effect": "No-rep.",
+      "measurable_side_on": "yes",
+      "signal": "Elbow angle and body line in the first frames of the clip.",
+      "threshold": {
+        "value": "elbow < 160 deg at start",
+        "units": "deg",
+        "source": "WODprep and CrossFit standards (start locked out, heels on wall)"
+      },
+      "priority": 3,
+      "cues": [
+        "Lock out before you start",
+        "Start tall on the wall",
+        "Heels on, arms locked, go",
+        "Lock out first, then lower",
+        "Arms straight before rep one"
+      ],
+      "why": [
+        "Reps begin and end locked out with heels on the wall."
+      ],
+      "drills": [
+        "Kick-up to lockout hold before each set"
+      ],
+      "sources": [
+        "https://wodprep.com/?p=6774",
+        "https://games.crossfit.com/workouts/onlinequalifiers/2024/3"
+      ]
+    },
+    {
+      "id": "hands_too_wide",
+      "movement": "kipping_hspu",
+      "name": "Hands too wide",
+      "phase": "setup",
+      "looks_like": "Hands set wide; pressing angle wrecked.",
+      "root_causes": [
+        "chasing shorter ROM"
+      ],
+      "downstream_effect": "Weaker press, shoulder stress.",
+      "measurable_side_on": "no",
+      "signal": "Not visible side-on (frontal plane). Would need a front view; skip.",
+      "threshold": {
+        "value": null,
+        "units": null,
+        "source": "none found"
+      },
+      "priority": 3,
+      "cues": [
+        "Hands just outside shoulders",
+        "Narrow the hands a little",
+        "Stack wrists under shoulders",
+        "Hands under the shoulders",
+        "Thumbs shoulder-width apart"
+      ],
+      "why": [
+        "Too wide shortens ROM but wrecks the pressing angle."
+      ],
+      "drills": [
+        "Wall holds with taped hand marks"
+      ],
+      "sources": [
+        "https://open-exam-prep.com/study-guides/crossfit-l3/training-seeing/training-faults-olympic-gymnastics"
+      ]
+    },
+    {
+      "id": "elbows_flare",
+      "movement": "kipping_hspu",
+      "name": "Elbows flare (strict)",
+      "phase": "descent / press",
+      "looks_like": "Elbows splay out sideways.",
+      "root_causes": [
+        "weak triceps",
+        "wide hands"
+      ],
+      "downstream_effect": "Shoulder stress.",
+      "measurable_side_on": "no",
+      "signal": "Frontal-plane fault; not measurable side-on.",
+      "threshold": {
+        "value": null,
+        "units": null,
+        "source": "none found (push-up source: elbows past ~45 deg from body push the shoulder forward)"
+      },
+      "priority": 3,
+      "cues": [
+        "Elbows back, not out",
+        "Squeeze the elbows in",
+        "Elbows over wrists",
+        "Track elbows to the wall",
+        "Keep forearms vertical"
+      ],
+      "why": [
+        "Flared elbows reduce shoulder space and load the elbow tendons."
+      ],
+      "drills": [
+        "Pike push-ups elbows tucked"
+      ],
+      "sources": [
+        "https://antranik.org/push-ups/"
+      ]
+    }
+  ],
+  "top6": {
+    "kipping_pull_up": [
+      "early_pull",
+      "bent_knees_crazy_legs",
+      "no_hip_pop",
+      "chin_not_over_bar",
+      "butterfly_legs_behind_at_contact",
+      "arms_bent_in_swing"
+    ],
+    "bar_muscle_up": [
+      "early_arm_pull",
+      "no_hip_pop_hips_low",
+      "incomplete_pull_low_transition",
+      "toes_low_in_reversal",
+      "no_lockout_support",
+      "slow_transition"
+    ],
+    "kipping_hspu": [
+      "uncontrolled_descent_crash",
+      "kip_timing_press_early",
+      "incomplete_lockout",
+      "hips_not_open_top",
+      "insufficient_tuck",
+      "hands_too_far_wall"
+    ]
+  },
+  "conventions": {
+    "bar_proxy": "wrist keypoints (hands on bar); floor proxy for HSPU = wrist y",
+    "L_body": "shoulder-to-ankle length measured in the hang/lockout",
+    "angles": "interior joint angles, 180 = straight",
+    "threshold_note": "Almost no published numeric thresholds exist for these faults; values tagged heuristic are starting points to tune on the eval set. Only movement standards (CrossFit) and WKU kinematics are sourced numbers."
+  }
+}

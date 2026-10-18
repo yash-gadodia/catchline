@@ -1,0 +1,2345 @@
+{
+ "clean": [
+  {
+   "id": "clean_hips_shoot_up_first_pull",
+   "movement": "clean",
+   "variants": [
+    "squat",
+    "power"
+   ],
+   "name": "Hips shoot up off the floor",
+   "phase": "first pull (floor to knee)",
+   "looks_like": "Right after the bar breaks the floor the hips rise fast while the bar and shoulders barely move; back angle tips toward horizontal.",
+   "root_causes": [
+    "rushing/yanking the bar off the floor with slack in the body",
+    "quads weak at small knee angles relative to hips",
+    "believing the back angle must change"
+   ],
+   "downstream_effect": "Balance shifts forward onto toes, early second pull, lower bar speed and height, bar swings forward later.",
+   "measurable_side_on": "yes",
+   "signal": "Trunk angle (hip->shoulder vs horizontal) change and hip vs shoulder vertical rise between bar lift-off and bar at knee height. Ratio hip_rise/shoulder_rise from keypoints; bar height from plate centre.",
+   "threshold": {
+    "value": "trunk angle drops >15 deg toward horizontal before bar reaches knee, OR hip_rise/shoulder_rise >1.5 over floor-to-knee",
+    "source": "heuristic; Catalyst says back angle should stay 'fairly constant' (no number)",
+    "verified": false
+   },
+   "priority": 1,
+   "cues": [
+    "Push the floor away with your legs",
+    "Chest and hips rise together",
+    "Keep your back angle off the floor",
+    "Squeeze the slack out before you pull",
+    "Lift your chest as the bar leaves",
+    "Smooth off the floor, then faster"
+   ],
+   "why": [
+    "Pull speed is bar speed: hips racing up while the bar stalls makes the pull slower, not faster.",
+    "Keeping the back angle lets the legs do the first pull so the hips are saved for the second."
+   ],
+   "drills": [
+    "Pause clean deadlift (just off floor and at knee)",
+    "Clean deadlift on riser",
+    "Slow-eccentric clean deadlift"
+   ],
+   "sources": [
+    "https://catalystathletics.com/article/2215/Fix-the-Hips-Shooting-Up-in-the-Snatch-Clean",
+    "https://www.catalystathletics.com/article/2019/Snatch-and-Clean-Extension-Be-Patient",
+    "https://qwa.org/common-errors-in-the-clean-and-jerk"
+   ]
+  },
+  {
+   "id": "clean_bar_forward_first_pull",
+   "movement": "clean",
+   "variants": [
+    "squat",
+    "power",
+    "hang"
+   ],
+   "name": "Bar drifts forward off the floor",
+   "phase": "first pull",
+   "looks_like": "Plate moves away from the shins/toes instead of straight up or slightly back toward the lifter.",
+   "root_causes": [
+    "bar starts over the toes",
+    "weight shifts onto toes before bar passes knee",
+    "pushing knees back too early"
+   ],
+   "downstream_effect": "Lifter chases the bar forward, second pull pushes it further away, jump forward, missed catch in front.",
+   "measurable_side_on": "yes",
+   "signal": "Bar (plate centre) horizontal displacement relative to its start x, from lift-off until bar passes knee height. Scale px->cm via 45 cm plate diameter.",
+   "threshold": {
+    "value": "bar >3 cm forward of start x at knee height (ideal: 0 to slightly back)",
+    "source": "heuristic; Kuhn 2001 measured first-pull horizontal displacement -3 to +8 cm (women, snatch); Petrizzo 2016 start tweak cut clean HD ~3.2 cm",
+    "verified": false
+   },
+   "priority": 1,
+   "cues": [
+    "Sweep the bar back to your shins",
+    "Keep the bar brushing your legs",
+    "Weight to mid-foot as it rises",
+    "Pull the bar into you, not up",
+    "Lats tight, bar close",
+    "Let the knees move out of the way"
+   ],
+   "why": [
+    "Every centimetre the bar travels forward has to be pulled back later, usually by jumping forward or catching out front."
+   ],
+   "drills": [
+    "Clean lift-off",
+    "Halting clean deadlift",
+    "Segment clean deadlift"
+   ],
+   "sources": [
+    "https://catalystathletics.com/article/1902/Jumping-Forward-in-the-Snatch-or-Clean-Error-Correction/",
+    "https://qwa.org/common-errors-in-the-clean-and-jerk",
+    "https://ojs.ub.uni-konstanz.de/cpa/article/view/3795",
+    "https://www.asep.org/asep/asep/JEPonlineJUNE2016_Petrizzo.pdf"
+   ]
+  },
+  {
+   "id": "clean_bar_start_over_toes",
+   "movement": "clean",
+   "variants": [
+    "squat",
+    "power"
+   ],
+   "name": "Bar too far forward at setup",
+   "phase": "setup",
+   "looks_like": "In the start position the bar sits over the toes with steep shins; ankle angle small.",
+   "root_causes": [
+    "setting up with bar away from shins",
+    "poor ankle mobility",
+    "copying a deadlift setup"
+   ],
+   "downstream_effect": "Forces the bar forward in the first pull; bar lifted too far from the body.",
+   "measurable_side_on": "partial",
+   "signal": "Bar x at rest vs ankle and toe keypoints (foot keypoints noisy). Shin angle (knee->ankle) at setup.",
+   "threshold": {
+    "value": "bar x more than ~4 cm ahead of the ball-of-foot estimate (ankle x + 0.6 * foot length); QWA: ankle angle should not go below ~60-70 deg",
+    "source": "QWA (ankle angle 60-70 deg); bar-over-foot offset is heuristic",
+    "verified": false
+   },
+   "priority": 2,
+   "cues": [
+    "Bar over the balls of your feet",
+    "Shins close to the bar",
+    "Shoulders just ahead of the bar",
+    "Set the bar closer before you pull",
+    "Arms long and vertical",
+    "Find your balance, then lift"
+   ],
+   "why": [
+    "Starting closer means the bar doesn't have to be dragged back mid-pull."
+   ],
+   "drills": [
+    "Clean lift-off",
+    "Start-position holds with PVC"
+   ],
+   "sources": [
+    "https://qwa.org/common-errors-in-the-clean-and-jerk",
+    "https://www.asep.org/asep/asep/JEPonlineJUNE2016_Petrizzo.pdf",
+    "https://www.catalystathletics.com/article/2019/Snatch-and-Clean-Extension-Be-Patient"
+   ]
+  },
+  {
+   "id": "clean_hips_open_early",
+   "movement": "clean",
+   "variants": [
+    "squat",
+    "power",
+    "hang"
+   ],
+   "name": "Shoulders behind the bar too early",
+   "phase": "transition (knee to mid-thigh)",
+   "looks_like": "Torso becomes upright while the bar is still at or just above the knees; shoulders behind the bar before the hips are reached.",
+   "root_causes": [
+    "impatience to start the second pull",
+    "weak hamstrings/back in the over-bar position",
+    "cue to 'stay upright' overdone"
+   ],
+   "downstream_effect": "Bar hits or swings around the knees, early arm bend, weak and short second pull, bar looped forward.",
+   "measurable_side_on": "yes",
+   "signal": "Shoulder keypoint x vs bar x while bar is between knee and mid-thigh (mid-thigh = midpoint of knee and hip keypoints).",
+   "threshold": {
+    "value": "shoulder >5 cm behind bar x before bar reaches mid-thigh",
+    "source": "heuristic; Catalyst: shoulders over/slightly ahead of bar until mid-to-upper thigh",
+    "verified": false
+   },
+   "priority": 1,
+   "cues": [
+    "Stay over the bar longer",
+    "Shoulders over the bar to mid-thigh",
+    "Be patient, then explode",
+    "Push with the legs, don't lean back",
+    "Bar to the hips before you open",
+    "Keep your chest over the bar"
+   ],
+   "why": [
+    "Opening early spends hip extension before the bar is in position, so the explosion happens with the bar low on the thigh."
+   ],
+   "drills": [
+    "Halting clean deadlift to mid-thigh",
+    "Segment clean (pause at knee and mid-thigh)",
+    "Clean from blocks at knee"
+   ],
+   "sources": [
+    "https://www.catalystathletics.com/article/2019/Snatch-and-Clean-Extension-Be-Patient",
+    "https://catalystathletics.com/article/1904/Arm-Bend-in-the-Snatch-Clean-Its-Still-Not-the-Solution-to-/",
+    "https://catalystathletics.com/article/2025/Does-it-Matter-When-You-Jump-in-the-Snatch-or-Clean/"
+   ]
+  },
+  {
+   "id": "clean_bar_hits_knees",
+   "movement": "clean",
+   "variants": [
+    "squat",
+    "power"
+   ],
+   "name": "Bar swings around or hits the knees",
+   "phase": "transition",
+   "looks_like": "Bar path bows forward around knee height, or the lifter's knees clip the bar.",
+   "root_causes": [
+    "knees not moved back during first pull",
+    "shoulders behind bar",
+    "bar too far back at start / dragging"
+   ],
+   "downstream_effect": "Bar loses speed, path bends forward, timing breaks.",
+   "measurable_side_on": "partial",
+   "signal": "Local forward bulge of bar x around knee keypoint height; abrupt vertical deceleration of bar near knee (contact).",
+   "threshold": {
+    "value": "forward bulge >3 cm around knee height or bar vertical velocity dropping >30% for <100 ms at knee height",
+    "source": "heuristic",
+    "verified": false
+   },
+   "priority": 2,
+   "cues": [
+    "Knees back as the bar rises",
+    "Shoulders over, bar close",
+    "Let the bar hang from straight arms",
+    "Keep pushing through mid-foot",
+    "Smooth past the knees",
+    "Move your knees, not the bar"
+   ],
+   "why": [
+    "Knees need to move back so the bar can travel straight; swinging around them adds a forward loop."
+   ],
+   "drills": [
+    "Clean segment pull",
+    "Clean lift-off to knee"
+   ],
+   "sources": [
+    "https://www.catalystathletics.com/article/2019/Snatch-and-Clean-Extension-Be-Patient",
+    "https://catalystathletics.com/article/1902/Jumping-Forward-in-the-Snatch-or-Clean-Error-Correction/"
+   ]
+  },
+  {
+   "id": "clean_early_second_pull",
+   "movement": "clean",
+   "variants": [
+    "squat",
+    "power",
+    "hang"
+   ],
+   "name": "Jumping from too low on the thigh",
+   "phase": "second pull timing",
+   "looks_like": "Explosive hip extension starts with the bar at or just above the knee instead of upper thigh/hip.",
+   "root_causes": [
+    "impatience",
+    "narrow grip placing bar low",
+    "forward balance"
+   ],
+   "downstream_effect": "Bar is hit forward off the thigh, power is wasted, forward jump.",
+   "measurable_side_on": "yes",
+   "signal": "Timing of peak hip-angle extension velocity vs bar height. Bar height normalised between knee (0) and hip (1) keypoints at that frame.",
+   "threshold": {
+    "value": "peak hip extension velocity occurs with bar <0.6 of knee-to-hip distance (aim 0.8-1.0, upper thigh/hip)",
+    "source": "heuristic; Garza (Catalyst) says jump only once bar reaches hip 'explode' position",
+    "verified": false
+   },
+   "priority": 2,
+   "cues": [
+    "Wait for the bar at your hips",
+    "Stay over it, then jump",
+    "Bar high on the thigh first",
+    "Patience through the knees",
+    "Explode at the top",
+    "Don't jump from the knees"
+   ],
+   "why": [
+    "The legs and hips are strongest pushing upward once the bar is high on the thigh; starting earlier pushes it forward."
+   ],
+   "drills": [
+    "Segment clean",
+    "Clean from mid-thigh blocks",
+    "Halting deadlift + clean"
+   ],
+   "sources": [
+    "https://catalystathletics.com/article/2025/Does-it-Matter-When-You-Jump-in-the-Snatch-or-Clean/",
+    "https://catalystathletics.com/article/1904/Arm-Bend-in-the-Snatch-Clean-Its-Still-Not-the-Solution-to-/",
+    "https://www.catalystathletics.com/article/2019/Snatch-and-Clean-Extension-Be-Patient"
+   ]
+  },
+  {
+   "id": "clean_bar_loop_forward",
+   "movement": "clean",
+   "variants": [
+    "squat",
+    "power",
+    "hang"
+   ],
+   "name": "Bar swings away after hip contact",
+   "phase": "second pull / third pull",
+   "looks_like": "After the hips/thighs contact the bar, the plate arcs forward away from the body before the catch (big forward loop).",
+   "root_causes": [
+    "hips thrust forward instead of up",
+    "weak/short leg drive",
+    "driving wrists instead of elbows",
+    "bar drifts before hip contact",
+    "bar banged with the pelvis"
+   ],
+   "downstream_effect": "Lifter must jump forward to catch, bar received in front, chest drops, misses forward.",
+   "measurable_side_on": "yes",
+   "signal": "Bar x forward excursion from its most-rearward point (around hip contact) to max forward point before rack. Plate-calibrated cm.",
+   "threshold": {
+    "value": "forward excursion >6 cm (heavier lifters/taller allow ~+2 cm); >10 cm almost always a miss risk",
+    "source": "heuristic; Kuhn 2001 reported -14 to +14 cm in second pull, -3 to +21 cm after peak (women snatch); no clean-specific cutoff found",
+    "verified": false
+   },
+   "priority": 1,
+   "cues": [
+    "Hips up, not forward",
+    "Keep the bar close after contact",
+    "Elbows up and out",
+    "Brush the bar, don't bang it",
+    "Drive straight up through the floor",
+    "Pull yourself under, bar stays home",
+    "Finish tall, bar tight"
+   ],
+   "why": [
+    "The bar should travel up and slightly back; thrusting the hips forward hits it out in front.",
+    "Elbows lifting up and out keep the bar close while you pull under."
+   ],
+   "drills": [
+    "Clean high-pull",
+    "Muscle clean / tall clean",
+    "Dip clean"
+   ],
+   "sources": [
+    "https://catalystathletics.com/article/1902/Jumping-Forward-in-the-Snatch-or-Clean-Error-Correction/",
+    "https://qwa.org/common-errors-in-the-clean-and-jerk",
+    "https://torokhtiy.com/blogs/guides/4-mistakes-in-arms-work",
+    "https://ojs.ub.uni-konstanz.de/cpa/article/view/3795"
+   ]
+  },
+  {
+   "id": "clean_incomplete_extension",
+   "movement": "clean",
+   "variants": [
+    "squat",
+    "power",
+    "hang"
+   ],
+   "name": "Cutting the pull short",
+   "phase": "second pull",
+   "looks_like": "Lifter starts dropping under before hips and knees straighten; never reaches tall, slightly-back finish.",
+   "root_causes": [
+    "rushing to the catch",
+    "weight too heavy",
+    "poor leg/hip/trunk coordination",
+    "fear of the catch"
+   ],
+   "downstream_effect": "Low bar height and speed, crash on the shoulders, weak power cleans.",
+   "measurable_side_on": "yes",
+   "signal": "Max hip angle (shoulder-hip-knee) and max knee angle (hip-knee-ankle) reached before hip vertical velocity turns negative. Also bar peak vertical velocity.",
+   "threshold": {
+    "value": "max hip angle <160 deg OR max knee angle <155 deg before descent (full extension ~175-180 deg; margin for 10 deg error)",
+    "source": "heuristic; QWA and CrossFit L1 list incomplete extension as a fault but give no angle",
+    "verified": false
+   },
+   "priority": 1,
+   "cues": [
+    "Finish tall before you drop",
+    "Stand all the way up fast",
+    "Hips through, legs straight",
+    "Extend, then pull under",
+    "Push the floor until you're tall",
+    "Complete the jump"
+   ],
+   "why": [
+    "The bar gets most of its upward speed in the last few centimetres of extension; skipping it leaves the bar low."
+   ],
+   "drills": [
+    "Clean pull",
+    "Clean high-pull",
+    "Clean from blocks (finish focus)"
+   ],
+   "sources": [
+    "https://qwa.org/common-errors-in-the-clean-and-jerk",
+    "https://www.crossfit.com/essentials/foundational-movement-clean-what-is-a-clean",
+    "https://www.slideshare.net/slideshow/olympic-weightlifting-the-clean/153584847"
+   ]
+  },
+  {
+   "id": "clean_early_arm_bend",
+   "movement": "clean",
+   "variants": [
+    "squat",
+    "power",
+    "hang"
+   ],
+   "name": "Bending the arms early",
+   "phase": "first/second pull",
+   "looks_like": "Elbows visibly bend while the bar is still below the hips, like an upright row into the hips.",
+   "root_causes": [
+    "grip too narrow",
+    "forward imbalance",
+    "early second pull",
+    "long arms/short torso",
+    "arms tight from setup"
+   ],
+   "downstream_effect": "Bar crashes on shoulders, force leaks through bent elbows, slow third pull, bar pulled backward.",
+   "measurable_side_on": "yes",
+   "signal": "Elbow angle (shoulder-elbow-wrist) while bar is below hip keypoint height (before peak extension).",
+   "threshold": {
+    "value": "elbow angle <150 deg while bar below hip height (straight ~170-180 deg; margin for 10 deg error)",
+    "source": "heuristic; PLT4M/Catalyst: arms bend only after hip extension",
+    "verified": false
+   },
+   "priority": 1,
+   "cues": [
+    "Long arms until the hips",
+    "Arms are ropes, legs do it",
+    "Elbows loose, arms straight",
+    "Jump first, then pull",
+    "Relax your arms in the pull",
+    "Hips open, then elbows bend"
+   ],
+   "why": [
+    "Bent arms soak up the leg drive; the arms only connect the bar to the body until extension is done."
+   ],
+   "drills": [
+    "Halting clean deadlift",
+    "Segment pull",
+    "Clean pull (straight arms)"
+   ],
+   "sources": [
+    "https://catalystathletics.com/article/1904/Arm-Bend-in-the-Snatch-Clean-Its-Still-Not-the-Solution-to-/",
+    "https://torokhtiy.com/blogs/guides/4-mistakes-in-arms-work",
+    "https://www.crossfit.com/essentials/foundational-movement-clean-what-is-a-clean"
+   ]
+  },
+  {
+   "id": "clean_excessive_layback",
+   "movement": "clean",
+   "variants": [
+    "squat",
+    "power",
+    "hang"
+   ],
+   "name": "Leaning back too far at the finish",
+   "phase": "second pull finish",
+   "looks_like": "At peak extension the torso is far behind vertical, shoulders well behind hips.",
+   "root_causes": [
+    "over-cueing 'finish'",
+    "shoulders pulled back with arms",
+    "head thrown back"
+   ],
+   "downstream_effect": "Bar pulled backward, lifter falls/jumps back, slow pull-under.",
+   "measurable_side_on": "yes",
+   "signal": "Trunk angle vs vertical at peak extension (hip->shoulder).",
+   "threshold": {
+    "value": "trunk >25 deg behind vertical at peak extension",
+    "source": "heuristic",
+    "verified": false
+   },
+   "priority": 3,
+   "cues": [
+    "Finish up, not back",
+    "Stand tall, then go under",
+    "Shoulders over hips at the top",
+    "Jump straight up",
+    "Keep your eyes forward",
+    "Tall, not leaning"
+   ],
+   "why": [
+    "Leaning back moves the bar backward and makes you travel farther to get under."
+   ],
+   "drills": [
+    "Tall clean",
+    "Clean high-pull to vertical"
+   ],
+   "sources": [
+    "https://qwa.org/common-errors-in-the-clean-and-jerk"
+   ]
+  },
+  {
+   "id": "clean_jump_forward",
+   "movement": "clean",
+   "variants": [
+    "squat",
+    "power",
+    "hang"
+   ],
+   "name": "Jumping forward",
+   "phase": "pull-under / landing",
+   "looks_like": "Feet land noticeably in front of where they started.",
+   "root_causes": [
+    "forward start balance",
+    "no sweep back in first pull",
+    "hips thrust forward",
+    "bar swings forward and lifter chases it"
+   ],
+   "downstream_effect": "Catch in front, chest collapse, missed or unstable clean.",
+   "measurable_side_on": "yes",
+   "signal": "Ankle/toe keypoint x at landing vs start x (median of standing frames). Plate gives cm scale.",
+   "threshold": {
+    "value": "feet land >5 cm forward of start",
+    "source": "heuristic; Everett notes common forward jump of ~3 in (7.6 cm) and coach-mat correction; overcorrect by jumping back ~0.5 in",
+    "verified": false
+   },
+   "priority": 1,
+   "cues": [
+    "Land where you started",
+    "Jump back, not forward",
+    "Push the floor straight down",
+    "Stay over your heels at the top",
+    "Bar back, feet stay home",
+    "Finish over mid-foot"
+   ],
+   "why": [
+    "Your feet go where the bar went: landing forward means the bar went forward."
+   ],
+   "drills": [
+    "Coach mat / tape line in front of toes",
+    "Clean pull + clean",
+    "Slow-pull clean"
+   ],
+   "sources": [
+    "https://catalystathletics.com/article/1902/Jumping-Forward-in-the-Snatch-or-Clean-Error-Correction/",
+    "https://catalystathletics.com/article/2025/Does-it-Matter-When-You-Jump-in-the-Snatch-or-Clean/"
+   ]
+  },
+  {
+   "id": "clean_jump_back_excessive",
+   "movement": "clean",
+   "variants": [
+    "squat",
+    "power",
+    "hang"
+   ],
+   "name": "Feet kick back / land far behind",
+   "phase": "pull-under / landing",
+   "looks_like": "Feet land well behind start or one kicks back (donkey kick).",
+   "root_causes": [
+    "leaning back at finish",
+    "bar pulled backward",
+    "overcorrecting forward jump"
+   ],
+   "downstream_effect": "Lifter falls backward in the catch, unstable recovery.",
+   "measurable_side_on": "yes",
+   "signal": "Ankle/toe x at landing vs start.",
+   "threshold": {
+    "value": "feet land >8 cm behind start",
+    "source": "heuristic",
+    "verified": false
+   },
+   "priority": 3,
+   "cues": [
+    "Land flat under the bar",
+    "Jump up, not back",
+    "Feet move out, not back",
+    "Stay balanced over mid-foot",
+    "Quiet feet",
+    "Finish tall then drop"
+   ],
+   "why": [
+    "Some small backward jump is fine; a big one means the bar went too far back."
+   ],
+   "drills": [
+    "No-jump power clean (feet stay planted)",
+    "Tall clean"
+   ],
+   "sources": [
+    "https://qwa.org/common-errors-in-the-clean-and-jerk",
+    "https://catalystathletics.com/article/1902/Jumping-Forward-in-the-Snatch-or-Clean-Error-Correction/"
+   ]
+  },
+  {
+   "id": "clean_slow_turnover",
+   "movement": "clean",
+   "variants": [
+    "squat",
+    "power",
+    "hang"
+   ],
+   "name": "Slow pull-under / turnover",
+   "phase": "third pull",
+   "looks_like": "Long gap between full extension and the bar landing in the rack; lifter seems to wait then drop.",
+   "root_causes": [
+    "passive third pull",
+    "grip released early",
+    "fear of the catch",
+    "poor elbow speed"
+   ],
+   "downstream_effect": "Bar crashes, lifter caught out of position, harder recovery and jerk.",
+   "measurable_side_on": "yes",
+   "signal": "Time from peak extension (max hip angle frame) to rack fixation (bar vertical velocity ~0 and bar within ~8 cm of shoulder keypoint). Needs >=60 fps.",
+   "threshold": {
+    "value": "turnover >0.45 s (snatch literature drop-under ~0.30-0.38 s)",
+    "source": "heuristic from snatch drop-under times (Kuhn et al. literature review); no clean-specific number",
+    "verified": false
+   },
+   "priority": 2,
+   "cues": [
+    "Pull yourself under fast",
+    "Fast elbows",
+    "Meet the bar",
+    "Feet fast, elbows faster",
+    "Don't wait for it, go get it",
+    "Punch the elbows through"
+   ],
+   "why": [
+    "The bar is only weightless for a fraction of a second; get under before it starts falling."
+   ],
+   "drills": [
+    "Tall clean",
+    "Clean pull-under",
+    "Muscle clean"
+   ],
+   "sources": [
+    "https://www.catalystathletics.com/article/122/Ask-Greg-Cleans-Crashing-at-Heavier-Weights",
+    "https://www.catalystathletics.com/article/1851/Catching-Cleans/",
+    "https://doaj.org/article/308920d9615d4f939dba3b4ce108fb44"
+   ]
+  },
+  {
+   "id": "clean_bar_crash",
+   "movement": "clean",
+   "variants": [
+    "squat",
+    "power",
+    "hang"
+   ],
+   "name": "Bar crashes onto the shoulders",
+   "phase": "catch",
+   "looks_like": "Bar falls a long way and slams into the shoulders; elbows/torso jolt down at impact.",
+   "root_causes": [
+    "dropping straight down instead of meeting the bar",
+    "releasing grip early",
+    "incomplete extension",
+    "early arm bend"
+   ],
+   "downstream_effect": "Loss of rack, collapse, sternum/clavicle pain, missed recovery.",
+   "measurable_side_on": "yes",
+   "signal": "Bar drop: bar max height minus bar height at rack contact; bar downward velocity at the contact frame relative to the shoulder keypoint.",
+   "threshold": {
+    "value": "bar drop >12 cm from peak to rack, or bar-minus-shoulder downward velocity >0.8 m/s at contact",
+    "source": "heuristic; 2019 elite snatch study: smaller catch-phase drop separated successful lifts; women snatch average drop 20.8 cm",
+    "verified": false
+   },
+   "priority": 1,
+   "cues": [
+    "Meet the bar where it is",
+    "Hold your grip longer",
+    "Pull under, don't fall under",
+    "Catch it high and ride it",
+    "Elbows up as it lands",
+    "Stay connected to the bar"
+   ],
+   "why": [
+    "A bar that falls far gathers speed; meeting it early means you absorb less."
+   ],
+   "drills": [
+    "Tall clean",
+    "Muscle clean",
+    "Clean pull-under"
+   ],
+   "sources": [
+    "https://www.catalystathletics.com/article/1851/Catching-Cleans/",
+    "https://catalystathletics.com/article/1851/Stay-Connected-to-the-Bar-Snatch-Clean-Turnover/",
+    "https://doaj.org/article/308920d9615d4f939dba3b4ce108fb44"
+   ]
+  },
+  {
+   "id": "clean_low_elbows_rack",
+   "movement": "clean",
+   "variants": [
+    "squat",
+    "power",
+    "hang"
+   ],
+   "name": "Low elbows in the catch",
+   "phase": "catch / rack",
+   "looks_like": "Elbows point down at the floor, bar rolling forward off the shoulders.",
+   "root_causes": [
+    "slow turnover",
+    "tight grip / poor wrist-lat mobility",
+    "lats/upper back weak"
+   ],
+   "downstream_effect": "Bar rolls forward, chest drops, elbows hit knees, missed recovery.",
+   "measurable_side_on": "partial",
+   "signal": "Upper-arm angle (shoulder->elbow) vs horizontal at rack fixation; elbow often occluded by knee in deep squat.",
+   "threshold": {
+    "value": "upper arm >45 deg below horizontal at catch",
+    "source": "heuristic",
+    "verified": false
+   },
+   "priority": 2,
+   "cues": [
+    "Elbows up fast",
+    "Point elbows forward",
+    "Fingers loose, elbows high",
+    "Lift your elbows to the wall",
+    "Shoulders up, bar in the shelf",
+    "Whip the elbows through"
+   ],
+   "why": [
+    "High elbows keep the torso upright and the bar on the shoulders, not in the hands."
+   ],
+   "drills": [
+    "Front squat with elbow-height focus",
+    "Tall clean",
+    "Front rack mobility"
+   ],
+   "sources": [
+    "https://catalystathletics.com/article/1874/Fixing-Droopy-Elbows-in-the-Jerk",
+    "https://qwa.org/common-errors-in-the-clean-and-jerk",
+    "https://barbend.com/6-reasons-why-you-may-be-collapsing-in-the-clean"
+   ]
+  },
+  {
+   "id": "clean_elbows_touch_knees",
+   "movement": "clean",
+   "variants": [
+    "squat"
+   ],
+   "name": "Elbows touch knees",
+   "phase": "catch",
+   "looks_like": "In the bottom, elbows rest on or hit the thighs/knees.",
+   "root_causes": [
+    "torso too far forward",
+    "elbows not rotated",
+    "bar not on the clavicles",
+    "slow descent"
+   ],
+   "downstream_effect": "No lift in competition (IWF), injury risk, collapse.",
+   "measurable_side_on": "partial",
+   "signal": "Elbow keypoint distance to knee keypoint at the bottom of the squat clean (frequent occlusion).",
+   "threshold": {
+    "value": "elbow-knee distance <5 cm at bottom",
+    "source": "heuristic (joint error ~5 cm limits reliability)",
+    "verified": false
+   },
+   "priority": 3,
+   "cues": [
+    "Elbows high in the hole",
+    "Chest up, elbows up",
+    "Get the bar on your shoulders",
+    "Sit tall in the bottom",
+    "Elbows away from knees",
+    "Keep your torso upright"
+   ],
+   "why": [
+    "Elbow-knee contact means the torso has folded; it's also a red light."
+   ],
+   "drills": [
+    "Front squat pause",
+    "Clean from blocks"
+   ],
+   "sources": [
+    "https://qwa.org/common-errors-in-the-clean-and-jerk",
+    "https://barbend.com/6-reasons-why-you-may-be-collapsing-in-the-clean"
+   ]
+  },
+  {
+   "id": "clean_forward_lean_catch",
+   "movement": "clean",
+   "variants": [
+    "squat",
+    "power",
+    "hang"
+   ],
+   "name": "Chest collapses forward in the catch",
+   "phase": "catch / bottom",
+   "looks_like": "Torso pitches forward in the receive; bar ends up over the toes.",
+   "root_causes": [
+    "bar swung forward",
+    "weak front squat / upper back",
+    "low elbows",
+    "catching soft and late"
+   ],
+   "downstream_effect": "Bar dumped in front, good-morning recovery, missed clean.",
+   "measurable_side_on": "yes",
+   "signal": "Trunk angle vs vertical at the lowest hip frame; bar x vs mid-foot (ankle + 0.4 * foot length).",
+   "threshold": {
+    "value": "trunk >45 deg from vertical, OR bar >8 cm ahead of mid-foot in the receive",
+    "source": "heuristic",
+    "verified": false
+   },
+   "priority": 1,
+   "cues": [
+    "Chest up as you land",
+    "Catch it tall",
+    "Bar over mid-foot",
+    "Elbows up, chest proud",
+    "Sit down, not forward",
+    "Big breath, brace, receive"
+   ],
+   "why": [
+    "An upright torso keeps the bar over your feet so your legs can stand it up."
+   ],
+   "drills": [
+    "Front squat (pause)",
+    "Clean from blocks",
+    "Tall clean"
+   ],
+   "sources": [
+    "https://qwa.org/common-errors-in-the-clean-and-jerk",
+    "https://barbend.com/6-reasons-why-you-may-be-collapsing-in-the-clean"
+   ]
+  },
+  {
+   "id": "clean_power_caught_too_low",
+   "movement": "clean",
+   "variants": [
+    "power",
+    "hang"
+   ],
+   "name": "Power clean received below parallel",
+   "phase": "catch",
+   "looks_like": "Intended power clean but hip crease drops below the knee (turns into a squat clean).",
+   "root_causes": [
+    "insufficient pull height",
+    "slow turnover",
+    "load too heavy for a power"
+   ],
+   "downstream_effect": "Not a power clean by definition; informative for load selection.",
+   "measurable_side_on": "yes",
+   "signal": "Hip keypoint y vs knee keypoint y at the lowest point (hip below knee = below parallel).",
+   "threshold": {
+    "value": "hip y below knee y (thighs below horizontal) when variant=power",
+    "source": "Everett: power clean = received with thighs above horizontal",
+    "verified": true
+   },
+   "priority": 3,
+   "cues": [
+    "Pull higher, catch higher",
+    "Meet it above parallel",
+    "Fast feet, high catch",
+    "Finish the pull first",
+    "Catch strong, not deep",
+    "Lighter load, crisp pull"
+   ],
+   "why": [
+    "Power cleans train a higher pull; if you have to squat it, the pull or load is off."
+   ],
+   "drills": [
+    "Power clean from blocks",
+    "Clean high-pull"
+   ],
+   "sources": [
+    "https://pm.catalystathletics.com/article/433/Greg-Everett",
+    "https://www.crossfit.com/essentials/foundational-movement-clean-what-is-a-clean"
+   ]
+  },
+  {
+   "id": "clean_double_dip_catch",
+   "movement": "clean",
+   "variants": [
+    "squat"
+   ],
+   "name": "Catch high then fall into the squat",
+   "phase": "catch",
+   "looks_like": "Lifter lands in a partial squat, stops, then drops into the full squat (two-stage receive).",
+   "root_causes": [
+    "landing passively",
+    "fear of the bottom",
+    "bar too low for a power"
+   ],
+   "downstream_effect": "Bar crashes on the second drop; loses elastic rebound.",
+   "measurable_side_on": "yes",
+   "signal": "Hip vertical position/velocity during the receive: two distinct descent phases separated by a near-zero-velocity pause >80 ms.",
+   "threshold": {
+    "value": "pause >80 ms between two descending hip phases",
+    "source": "heuristic",
+    "verified": false
+   },
+   "priority": 2,
+   "cues": [
+    "Ride it all the way down",
+    "One smooth catch",
+    "Meet it and sit",
+    "Don't land then drop",
+    "Keep tension as you receive",
+    "Feet down, then sit straight in"
+   ],
+   "why": [
+    "One continuous ride lets you absorb the bar and use the bounce; stopping halfway lets it crash."
+   ],
+   "drills": [
+    "Tall clean",
+    "Clean pull-under",
+    "Pause front squat"
+   ],
+   "sources": [
+    "https://www.catalystathletics.com/article/1851/Catching-Cleans/",
+    "https://catalystathletics.com/article/1851/Stay-Connected-to-the-Bar-Snatch-Clean-Turnover/"
+   ]
+  },
+  {
+   "id": "clean_heels_up_catch",
+   "movement": "clean",
+   "variants": [
+    "squat",
+    "power",
+    "hang"
+   ],
+   "name": "Catching on the toes",
+   "phase": "catch",
+   "looks_like": "Heels stay off the floor in the receive; weight on balls of the feet.",
+   "root_causes": [
+    "bar forward",
+    "jumping onto toes",
+    "ankle mobility"
+   ],
+   "downstream_effect": "Forward instability, collapse.",
+   "measurable_side_on": "partial",
+   "signal": "Heel keypoint (if model has it) height above floor vs toe keypoint at the receive.",
+   "threshold": {
+    "value": "heel >3 cm above floor at rack fixation",
+    "source": "heuristic (foot keypoints noisy)",
+    "verified": false
+   },
+   "priority": 3,
+   "cues": [
+    "Land flat-footed",
+    "Heels down in the catch",
+    "Stomp the whole foot",
+    "Weight in mid-foot",
+    "Sit into your heels",
+    "Feet flat, chest up"
+   ],
+   "why": [
+    "Full-foot contact gives a stable base to stand the bar up."
+   ],
+   "drills": [
+    "Front squat",
+    "Tall clean"
+   ],
+   "sources": [
+    "https://qwa.org/common-errors-in-the-clean-and-jerk",
+    "https://www.catalystathletics.com/article/1851/Catching-Cleans/"
+   ]
+  },
+  {
+   "id": "clean_hips_first_recovery",
+   "movement": "clean",
+   "variants": [
+    "squat"
+   ],
+   "name": "Hips rise first out of the squat",
+   "phase": "recovery",
+   "looks_like": "Coming up from the bottom, hips rise faster than shoulders (good-morning recovery).",
+   "root_causes": [
+    "quad weakness",
+    "loose upper back / poor bracing",
+    "low elbows",
+    "fatigue"
+   ],
+   "downstream_effect": "Bar rolls forward, missed recovery, tired for the jerk.",
+   "measurable_side_on": "yes",
+   "signal": "Trunk angle change and hip vs shoulder rise during first 1/3 of recovery.",
+   "threshold": {
+    "value": "trunk angle tips >15 deg forward during first third of recovery",
+    "source": "heuristic; squat literature notes small change is normal",
+    "verified": false
+   },
+   "priority": 1,
+   "cues": [
+    "Chest and hips together",
+    "Drive up through your chest",
+    "Elbows up as you stand",
+    "Push the floor, chest leads",
+    "Stay tall out of the hole",
+    "Show me your chest"
+   ],
+   "why": [
+    "Letting the hips lead turns a squat into a good morning and pulls the bar forward."
+   ],
+   "drills": [
+    "Front squat (pause)",
+    "Clean + front squat complex"
+   ],
+   "sources": [
+    "https://squatuniversity.com/2017/12/01/the-top-3-squat-problems-how-to-fix-them",
+    "https://barbend.com/6-reasons-why-you-may-be-collapsing-in-the-clean",
+    "https://www.catalystathletics.com/article/122/Ask-Greg-Cleans-Crashing-at-Heavier-Weights"
+   ]
+  },
+  {
+   "id": "clean_recovery_balance_forward",
+   "movement": "clean",
+   "variants": [
+    "squat"
+   ],
+   "name": "Bar drifts forward in recovery",
+   "phase": "recovery",
+   "looks_like": "While standing up, the bar moves ahead of mid-foot and the lifter steps forward.",
+   "root_causes": [
+    "chest collapse",
+    "hips first",
+    "received forward"
+   ],
+   "downstream_effect": "Stumbles, missed clean, bad jerk setup.",
+   "measurable_side_on": "yes",
+   "signal": "Bar x vs mid-foot during recovery; any ankle x step.",
+   "threshold": {
+    "value": "bar >8 cm ahead of mid-foot or a forward step >10 cm during recovery",
+    "source": "heuristic",
+    "verified": false
+   },
+   "priority": 2,
+   "cues": [
+    "Stand straight up",
+    "Bar over mid-foot",
+    "Elbows up, stand up",
+    "Push through the whole foot",
+    "No stepping, just stand",
+    "Tall and balanced"
+   ],
+   "why": [
+    "The bar should rise vertically over your feet so the legs, not the back, finish it."
+   ],
+   "drills": [
+    "Front squat",
+    "Pause front squat"
+   ],
+   "sources": [
+    "https://qwa.org/common-errors-in-the-clean-and-jerk"
+   ]
+  },
+  {
+   "id": "clean_bar_pulled_back",
+   "movement": "clean",
+   "variants": [
+    "squat",
+    "power",
+    "hang"
+   ],
+   "name": "Bar pulled excessively backward",
+   "phase": "second pull",
+   "looks_like": "Bar travels far behind the start line and lifter falls back in the catch.",
+   "root_causes": [
+    "early weight shift to heels",
+    "early arm bend",
+    "shoulders and head thrown back"
+   ],
+   "downstream_effect": "Falls backward, misses behind.",
+   "measurable_side_on": "yes",
+   "signal": "Bar x at catch relative to start x.",
+   "threshold": {
+    "value": "bar >10 cm behind start x at rack fixation AND lifter steps back",
+    "source": "heuristic; Kuhn ranges -3 to -14 cm in snatch",
+    "verified": false
+   },
+   "priority": 3,
+   "cues": [
+    "Balance through the whole foot",
+    "Elbows up, not back",
+    "Keep the head neutral",
+    "Up, not back",
+    "Stay over the bar longer",
+    "Finish tall, eyes forward"
+   ],
+   "why": [
+    "A little backward travel is normal; too much drags you off balance."
+   ],
+   "drills": [
+    "Clean from blocks",
+    "Clean from mid-thigh, light"
+   ],
+   "sources": [
+    "https://qwa.org/common-errors-in-the-clean-and-jerk",
+    "https://ojs.ub.uni-konstanz.de/cpa/article/view/3795"
+   ]
+  },
+  {
+   "id": "clean_hang_no_rebend",
+   "movement": "clean",
+   "variants": [
+    "hang"
+   ],
+   "name": "Hang: no knee rebend (RDL hang)",
+   "phase": "hang start / countermovement",
+   "looks_like": "From the hang, the lifter hinges with locked knees then swings the hips; knees never come forward under the bar.",
+   "root_causes": [
+    "misunderstanding hang position",
+    "hamstring-only pull"
+   ],
+   "downstream_effect": "Weak drive, bar banged forward with hips, early arm pull.",
+   "measurable_side_on": "yes",
+   "signal": "Knee angle at the bottom of the hang countermovement; hip x movement during the countermovement.",
+   "threshold": {
+    "value": "knee angle >165 deg at bottom of hang countermovement",
+    "source": "heuristic",
+    "verified": false
+   },
+   "priority": 2,
+   "cues": [
+    "Soft knees in the hang",
+    "Shoulders over the bar",
+    "Knees under, then jump",
+    "Hinge with bent knees",
+    "Bar at mid-thigh, then drive",
+    "Push the floor, don't swing"
+   ],
+   "why": [
+    "The legs need a bend to push from; locked knees leave only a hip swing."
+   ],
+   "drills": [
+    "Hang clean pull",
+    "Hang clean from mid-thigh with pause"
+   ],
+   "sources": [
+    "https://www.catalystathletics.com/article/2019/Snatch-and-Clean-Extension-Be-Patient",
+    "https://catalystathletics.com/article/2025/Does-it-Matter-When-You-Jump-in-the-Snatch-or-Clean/"
+   ]
+  },
+  {
+   "id": "clean_hang_shoulders_behind",
+   "movement": "clean",
+   "variants": [
+    "hang"
+   ],
+   "name": "Hang: shoulders behind the bar",
+   "phase": "hang start",
+   "looks_like": "In the hang position the torso is upright and shoulders are behind the bar before the jump.",
+   "root_causes": [
+    "fear of leaning",
+    "copying a front squat posture"
+   ],
+   "downstream_effect": "Hips can't load; bar swung forward; early arm bend.",
+   "measurable_side_on": "yes",
+   "signal": "Shoulder keypoint x vs bar x in the hang (static frames before jump).",
+   "threshold": {
+    "value": "shoulder >4 cm behind bar x in hang",
+    "source": "heuristic",
+    "verified": false
+   },
+   "priority": 2,
+   "cues": [
+    "Shoulders over the bar",
+    "Lean over it a bit",
+    "Bar on your thighs, chest over",
+    "Load the hips, then jump",
+    "Arms long, shoulders forward",
+    "Hang like a coat hanger"
+   ],
+   "why": [
+    "Shoulders over the bar let the hips extend into the bar instead of hitting it away."
+   ],
+   "drills": [
+    "Hang clean pull",
+    "Segment hang clean"
+   ],
+   "sources": [
+    "https://www.catalystathletics.com/article/2019/Snatch-and-Clean-Extension-Be-Patient",
+    "https://catalystathletics.com/article/1904/Arm-Bend-in-the-Snatch-Clean-Its-Still-Not-the-Solution-to-/"
+   ]
+  },
+  {
+   "id": "clean_low_pull_height",
+   "movement": "clean",
+   "variants": [
+    "power",
+    "hang"
+   ],
+   "name": "Not enough bar height",
+   "phase": "second/third pull",
+   "looks_like": "Bar barely rises above the belt before the lifter has to receive it.",
+   "root_causes": [
+    "incomplete extension",
+    "weak legs",
+    "early arm bend"
+   ],
+   "downstream_effect": "Deep crash, missed power cleans.",
+   "measurable_side_on": "yes",
+   "signal": "Bar peak height normalised by lifter height H (standing frame or plate-scaled).",
+   "threshold": {
+    "value": "power clean bar peak <0.58 H (literature clean displacement ~55-65% of height)",
+    "source": "Costley summary of Garhammer/Winchester/Storey (unverified secondary)",
+    "verified": false
+   },
+   "priority": 3,
+   "cues": [
+    "Drive higher",
+    "Finish the jump",
+    "Extend fully, fast",
+    "Push the floor harder",
+    "Make the bar float",
+    "Patience then pop"
+   ],
+   "why": [
+    "Bar height comes from finishing the extension, not from the arms."
+   ],
+   "drills": [
+    "Clean high-pull",
+    "Clean pull from blocks"
+   ],
+   "sources": [
+    "https://www.slideshare.net/slideshow/olympic-weightlifting-the-clean/153584847"
+   ]
+  },
+  {
+   "id": "clean_rounded_back_setup",
+   "movement": "clean",
+   "variants": [
+    "squat",
+    "power"
+   ],
+   "name": "Rounded back at setup",
+   "phase": "setup / first pull",
+   "looks_like": "Upper or lower back flexes in the start or as the bar leaves the floor.",
+   "root_causes": [
+    "weak back",
+    "hips too low",
+    "poor bracing"
+   ],
+   "downstream_effect": "Hips rise first, load on lower back, bar forward.",
+   "measurable_side_on": "partial",
+   "signal": "Only gross check: shoulder-hip-ear alignment; spine curvature is not captured by keypoints.",
+   "threshold": {
+    "value": "none found",
+    "source": "none found",
+    "verified": false
+   },
+   "priority": 3,
+   "cues": [
+    "Chest out, back set",
+    "Squeeze your shoulder blades",
+    "Brace before you pull",
+    "Proud chest off the floor",
+    "Long, flat back",
+    "Big air, then lift"
+   ],
+   "why": [
+    "A rounded back leaks force and makes the hips shoot up."
+   ],
+   "drills": [
+    "Clean deadlift",
+    "Pause clean deadlift"
+   ],
+   "sources": [
+    "https://qwa.org/common-errors-in-the-clean-and-jerk",
+    "https://catalystathletics.com/article/2215/Fix-the-Hips-Shooting-Up-in-the-Snatch-Clean"
+   ]
+  },
+  {
+   "id": "clean_feet_landing_width",
+   "movement": "clean",
+   "variants": [
+    "squat",
+    "power",
+    "hang"
+   ],
+   "name": "Feet land too wide or narrow",
+   "phase": "landing",
+   "looks_like": "Feet slam out much wider than squat stance, or stay narrow.",
+   "root_causes": [
+    "unrehearsed footwork",
+    "excessive jump"
+   ],
+   "downstream_effect": "Unstable bottom, knee strain.",
+   "measurable_side_on": "no",
+   "signal": "Front view needed; side-on cannot see width.",
+   "threshold": {
+    "value": "none found",
+    "source": "none found",
+    "verified": false
+   },
+   "priority": 3,
+   "cues": [
+    "Land in your squat stance",
+    "Quick, small foot move",
+    "Feet out, not wide",
+    "Lift and replace your feet",
+    "Same stance every time",
+    "Fast, short feet"
+   ],
+   "why": [
+    "The catch stance should match your front squat stance."
+   ],
+   "drills": [
+    "Drop to squat stance drill",
+    "Tall clean"
+   ],
+   "sources": [
+    "https://qwa.org/common-errors-in-the-clean-and-jerk"
+   ]
+  }
+ ],
+ "jerk": [
+  {
+   "id": "jerk_dip_torso_forward",
+   "movement": "jerk",
+   "variants": null,
+   "name": "Chest drops / torso tips in the dip",
+   "phase": "dip",
+   "looks_like": "Torso pitches forward during the dip; bar moves ahead of the shoulders.",
+   "root_causes": [
+    "dipping onto the toes",
+    "weak trunk",
+    "hinging at hips instead of knees",
+    "heavy load"
+   ],
+   "downstream_effect": "Bar driven forward, lifter chases it, missed jerk forward.",
+   "measurable_side_on": "yes",
+   "signal": "Trunk angle (hip->shoulder) vs vertical: change from rack stance to bottom of dip.",
+   "threshold": {
+    "value": "trunk tips >12 deg forward of its rack-stance angle at dip bottom",
+    "source": "heuristic; Catalyst/QWA require an upright trunk but give no angle",
+    "verified": false
+   },
+   "priority": 1,
+   "cues": [
+    "Dip straight down",
+    "Chest tall in the dip",
+    "Knees forward, torso vertical",
+    "Stay tall, bend the knees",
+    "Elbows up as you dip",
+    "Dip through your heels"
+   ],
+   "why": [
+    "Any forward tilt in the dip turns into a forward bar path in the drive."
+   ],
+   "drills": [
+    "Jerk dip squat (pause)",
+    "Push press",
+    "Jerk drive"
+   ],
+   "sources": [
+    "https://qwa.org/common-errors-in-the-clean-and-jerk",
+    "https://catalystathletics.com/video/1794/Why-A-Vertical-Dip-in-the-Jerk-Knees-Only-No-Hips/",
+    "https://coachway.io/articles/oleksiy-torokhtiy-split-jerk-for-coaches/"
+   ]
+  },
+  {
+   "id": "jerk_hips_back_dip",
+   "movement": "jerk",
+   "variants": null,
+   "name": "Hips push back in the dip",
+   "phase": "dip",
+   "looks_like": "The dip looks like a hinge: butt sticks back, knees stay behind.",
+   "root_causes": [
+    "thinking 'sit back'",
+    "weak quads",
+    "poor rack"
+   ],
+   "downstream_effect": "Bar falls forward off the shoulders, forward drive.",
+   "measurable_side_on": "yes",
+   "signal": "Hip keypoint x shift relative to ankle x from stance to dip bottom (backwards = fault).",
+   "threshold": {
+    "value": "hip moves >5 cm backward during the dip",
+    "source": "heuristic; Catalyst: dip is knees only, no hips",
+    "verified": false
+   },
+   "priority": 2,
+   "cues": [
+    "Knees forward, hips under",
+    "Bend only the knees",
+    "Hips stay stacked",
+    "Slide down a wall",
+    "Don't sit back",
+    "Knees out over toes"
+   ],
+   "why": [
+    "Hinging tips the torso and the bar falls forward; a knee-only dip keeps the bar over the feet."
+   ],
+   "drills": [
+    "Jerk dip with back against wall",
+    "Pause jerk dip"
+   ],
+   "sources": [
+    "https://catalystathletics.com/video/1794/Why-A-Vertical-Dip-in-the-Jerk-Knees-Only-No-Hips/",
+    "https://barbend.com/?p=11375"
+   ]
+  },
+  {
+   "id": "jerk_dip_too_deep",
+   "movement": "jerk",
+   "variants": null,
+   "name": "Dip too deep",
+   "phase": "dip",
+   "looks_like": "Bar sinks far, often slowly; looks like a quarter squat or deeper.",
+   "root_causes": [
+    "trying to get more drive",
+    "weak trunk letting depth creep",
+    "strength-style jerker overdoing it"
+   ],
+   "downstream_effect": "Leg drive fades out of the bottom, low bar height, torso collapse.",
+   "measurable_side_on": "yes",
+   "signal": "Bar vertical drop from rack height to lowest dip point, normalised by lifter height H (from standing frame keypoints or plate scale).",
+   "threshold": {
+    "value": ">13% of height (coaching range 8-12%; Soviet ~11%)",
+    "source": "Soviet data via Breaking Muscle (~11% H), Catalyst ~10%, Encyclopedia 8-12%; Grabe & Widule 1988 ~13% (secondary)",
+    "verified": false
+   },
+   "priority": 1,
+   "cues": [
+    "Short, sharp dip",
+    "Dip less, drive harder",
+    "Quick dip, quick drive",
+    "Bend just a little",
+    "Bounce off the bottom",
+    "Ankles to hips, short bend"
+   ],
+   "why": [
+    "Beyond about a tenth of your height, the legs stop adding speed and the torso starts to sag."
+   ],
+   "drills": [
+    "Jerk dip squat to box/target",
+    "Jerk drive"
+   ],
+   "sources": [
+    "https://breakingmuscle.com/the-fundamental-aspects-of-the-dip-perfecting-your-jerk/",
+    "https://catalystathletics-org.catalystathletics.com/video/1704/Jerk-Dip-Depth/",
+    "https://plume.deuxfleurs.fr/~/OlympicWeightlifting@fediverse.blog/Olympic%20Weightlifting%20Encyclopedia%2031",
+    "https://breakingmuscle.com/want-a-bigger-jerk-its-all-about-the-2-phase-dip/"
+   ]
+  },
+  {
+   "id": "jerk_dip_too_shallow",
+   "movement": "jerk",
+   "variants": null,
+   "name": "Dip too shallow",
+   "phase": "dip",
+   "looks_like": "Barely any knee bend before the drive; almost a press.",
+   "root_causes": [
+    "fear of losing position",
+    "rushing"
+   ],
+   "downstream_effect": "Not enough leg drive, bar doesn't reach lockout height, press out.",
+   "measurable_side_on": "yes",
+   "signal": "Same dip-depth signal as above.",
+   "threshold": {
+    "value": "<6% of height",
+    "source": "heuristic below the 8-12% coaching range",
+    "verified": false
+   },
+   "priority": 2,
+   "cues": [
+    "Use your legs",
+    "Bend the knees first",
+    "Dip, then drive",
+    "Load the legs",
+    "Feel the bounce",
+    "Dip like a jump"
+   ],
+   "why": [
+    "The dip loads the legs like a spring; too little and the arms have to do it."
+   ],
+   "drills": [
+    "Jerk drive",
+    "Push press"
+   ],
+   "sources": [
+    "https://breakingmuscle.com/the-fundamental-aspects-of-the-dip-perfecting-your-jerk/",
+    "https://plume.deuxfleurs.fr/~/OlympicWeightlifting@fediverse.blog/Olympic%20Weightlifting%20Encyclopedia%2031"
+   ]
+  },
+  {
+   "id": "jerk_dip_slow_or_pause",
+   "movement": "jerk",
+   "variants": null,
+   "name": "Slow dip or pause at the bottom",
+   "phase": "dip / transition",
+   "looks_like": "Lifter sinks slowly or stops at the bottom before driving.",
+   "root_causes": [
+    "anxiety",
+    "strength-style habit",
+    "weak braking"
+   ],
+   "downstream_effect": "Loses stretch reflex and bar whip, forces more arm work, press out.",
+   "measurable_side_on": "yes",
+   "signal": "Dip duration (rack to bottom) and time at bar vertical velocity ~0 (<0.05 m/s) at the bottom. Needs >=60 fps.",
+   "threshold": {
+    "value": "bottom pause >0.10 s or dip duration >0.5 s (Soviet: ~0.3 s accel + ~0.1 s brake, pause 0.03-0.06 s)",
+    "source": "Soviet timings via Breaking Muscle (secondary)",
+    "verified": false
+   },
+   "priority": 1,
+   "cues": [
+    "Quick dip, instant drive",
+    "Bounce out of the dip",
+    "Change direction fast",
+    "Down-up, no pause",
+    "Snap the bottom",
+    "Dip and drive as one"
+   ],
+   "why": [
+    "The bar flexes and your legs stretch in the dip; pausing wastes both."
+   ],
+   "drills": [
+    "Rebound jerk / jerk springs",
+    "Jerk drive",
+    "Countermovement jumps"
+   ],
+   "sources": [
+    "https://breakingmuscle.com/the-fundamental-aspects-of-the-dip-perfecting-your-jerk/",
+    "https://www.catalystathletics.com/article/1981/Finding-Your-Jerk-Drive-Stance",
+    "https://qwa.org/common-errors-in-the-clean-and-jerk"
+   ]
+  },
+  {
+   "id": "jerk_rack_lost_in_dip",
+   "movement": "jerk",
+   "variants": null,
+   "name": "Bar leaves the shoulders / elbows drop",
+   "phase": "dip",
+   "looks_like": "Bar separates from the shoulders or elbows sag during the dip.",
+   "root_causes": [
+    "bar resting on top of shoulders",
+    "tight grip",
+    "slouched upper back"
+   ],
+   "downstream_effect": "Drive force leaks, bar forward.",
+   "measurable_side_on": "partial",
+   "signal": "Vertical gap between bar and shoulder keypoint during dip; elbow keypoint drop relative to shoulder.",
+   "threshold": {
+    "value": "bar-shoulder gap increases >4 cm or elbow drops >5 cm relative to shoulder during dip",
+    "source": "heuristic",
+    "verified": false
+   },
+   "priority": 2,
+   "cues": [
+    "Keep the bar on your shoulders",
+    "Elbows stay put",
+    "Loose grip, solid shelf",
+    "Shoulders up and forward",
+    "Drive through the bar",
+    "Ride the bar down"
+   ],
+   "why": [
+    "The bar must move with your body in the dip, or the drive hits empty air."
+   ],
+   "drills": [
+    "Pause push press",
+    "Jerk dip squats"
+   ],
+   "sources": [
+    "https://catalystathletics.com/article/1874/Fixing-Droopy-Elbows-in-the-Jerk",
+    "https://barbend.com/?p=11375",
+    "https://qwa.org/common-errors-in-the-clean-and-jerk"
+   ]
+  },
+  {
+   "id": "jerk_heels_up_early",
+   "movement": "jerk",
+   "variants": null,
+   "name": "Dipping or driving on the toes",
+   "phase": "dip / drive",
+   "looks_like": "Heels rise during the dip or before the drive finishes.",
+   "root_causes": [
+    "forward balance",
+    "rushing the drive"
+   ],
+   "downstream_effect": "Forward drive and short split.",
+   "measurable_side_on": "partial",
+   "signal": "Heel keypoint height during dip and early drive vs standing.",
+   "threshold": {
+    "value": "heel >2 cm above floor before knee angle reaches ~160 deg in drive",
+    "source": "heuristic",
+    "verified": false
+   },
+   "priority": 2,
+   "cues": [
+    "Dip through your heels",
+    "Whole foot down",
+    "Push through mid-foot",
+    "Heels last to leave",
+    "Stay flat, then drive",
+    "Balance on whole foot"
+   ],
+   "why": [
+    "Rising onto the toes early tips your balance forward and pushes the bar forward."
+   ],
+   "drills": [
+    "Pause jerk dip",
+    "Push press flat-footed"
+   ],
+   "sources": [
+    "https://qwa.org/common-errors-in-the-clean-and-jerk",
+    "https://catalystathletics.com/article/1874/Fixing-Droopy-Elbows-in-the-Jerk"
+   ]
+  },
+  {
+   "id": "jerk_bar_forward_drive",
+   "movement": "jerk",
+   "variants": null,
+   "name": "Bar driven forward",
+   "phase": "drive",
+   "looks_like": "Bar travels forward of the rack position rather than straight up or slightly back.",
+   "root_causes": [
+    "weight forward in dip",
+    "rack position changes",
+    "chest/head dives forward"
+   ],
+   "downstream_effect": "Lifter must chase it; bar lands in front; missed jerk (most common elite miss per Sportivny/Prassas).",
+   "measurable_side_on": "yes",
+   "signal": "Bar x from rack start to lockout, plate-calibrated; also lockout bar x vs rack x.",
+   "threshold": {
+    "value": "bar ends >3 cm forward of rack x (Catalyst: path should go slightly back)",
+    "source": "heuristic; Prassas & Fulton 1994: failed lift had substantially more forward bar travel (no cm)",
+    "verified": false
+   },
+   "priority": 1,
+   "cues": [
+    "Drive it back over your head",
+    "Bar up and back",
+    "Head through at the top",
+    "Push the bar behind your ears",
+    "Dip straight, drive straight",
+    "Get your face out of the way"
+   ],
+   "why": [
+    "A straight-up bar is already too far forward; aim slightly back so it lands over the base."
+   ],
+   "drills": [
+    "Behind-the-neck push press",
+    "Behind-the-neck jerk",
+    "Jerk balance"
+   ],
+   "sources": [
+    "https://catalystathletics-org.catalystathletics.com/article/106/Correcting-Jerk-Weaknesses/",
+    "https://www.catalystathletics.com/video/1470/",
+    "https://ojs.ub.uni-konstanz.de/cpa/article/view/2597",
+    "https://plume.deuxfleurs.fr/~/OlympicWeightlifting@fediverse.blog/Olympic%20Weightlifting%20Encyclopedia%2034"
+   ]
+  },
+  {
+   "id": "jerk_bar_not_over_base",
+   "movement": "jerk",
+   "variants": null,
+   "name": "Bar locked out in front of the base",
+   "phase": "receive",
+   "looks_like": "At lockout the bar is ahead of the lifter's base of support, over the front foot or toes.",
+   "root_causes": [
+    "forward drive",
+    "diving head forward",
+    "short split"
+   ],
+   "downstream_effect": "Bar falls forward, steps, misses.",
+   "measurable_side_on": "yes",
+   "signal": "Bar x at lockout vs base centre: split = midpoint of front ankle and back toe (approx); power/push = mid-foot.",
+   "threshold": {
+    "value": "bar >8 cm ahead of base centre at lockout",
+    "source": "heuristic; Everett: bar over mid-to-rear foot",
+    "verified": false
+   },
+   "priority": 1,
+   "cues": [
+    "Bar over your hips",
+    "Lock it over the base",
+    "Hips under the bar",
+    "Head through, bar back",
+    "Push up and back",
+    "Stack wrist, shoulder, hip"
+   ],
+   "why": [
+    "Only a bar over your base is stable; anything in front pulls you after it."
+   ],
+   "drills": [
+    "Jerk balance",
+    "Behind-the-neck split jerk"
+   ],
+   "sources": [
+    "https://performancemenu.com/article/397/Greg-Everett",
+    "https://coachway.io/articles/oleksiy-torokhtiy-split-jerk-for-coaches/",
+    "https://plume.deuxfleurs.fr/~/OlympicWeightlifting@fediverse.blog/Olympic%20Weightlifting%20Encyclopedia%2034"
+   ]
+  },
+  {
+   "id": "jerk_bar_in_front_of_head",
+   "movement": "jerk",
+   "variants": null,
+   "name": "Head not through",
+   "phase": "receive",
+   "looks_like": "At lockout the bar is in front of the face/ear line; head not pushed through the arms.",
+   "root_causes": [
+    "poor shoulder mobility",
+    "not pulling head back during drive",
+    "forward bar path"
+   ],
+   "downstream_effect": "Weak overhead support, forward miss.",
+   "measurable_side_on": "yes",
+   "signal": "Bar x at lockout vs ear (or nose) keypoint x.",
+   "threshold": {
+    "value": "bar >3 cm ahead of ear keypoint at lockout",
+    "source": "heuristic; Everett/Invictus: bar behind ears",
+    "verified": false
+   },
+   "priority": 2,
+   "cues": [
+    "Head through the window",
+    "Bar behind your ears",
+    "Pull the head back, then through",
+    "Push the bar back",
+    "Arms by your ears",
+    "Look through the window"
+   ],
+   "why": [
+    "Moving your head out of the way lets the bar go straight up, then you push it back over your spine."
+   ],
+   "drills": [
+    "Behind-the-neck jerk",
+    "Overhead holds"
+   ],
+   "sources": [
+    "https://performancemenu.com/article/397/Greg-Everett",
+    "https://crossfitinvictus.com/?p=74499"
+   ]
+  },
+  {
+   "id": "jerk_early_arm_press",
+   "movement": "jerk",
+   "variants": null,
+   "name": "Pressing before the legs finish",
+   "phase": "drive",
+   "looks_like": "Elbows start extending while knees are still bent in the drive.",
+   "root_causes": [
+    "weak/slow leg drive",
+    "strength jerker over-pressing",
+    "impatience"
+   ],
+   "downstream_effect": "Low bar height, slow drop, press out.",
+   "measurable_side_on": "partial",
+   "signal": "Timing: elbow angle increase >20 deg before knee angle reaches ~165 deg in the drive.",
+   "threshold": {
+    "value": "elbow extension >20 deg before knee reaches 165 deg",
+    "source": "heuristic; Catalyst: elastic jerkers engage arms earlier, so style-dependent",
+    "verified": false
+   },
+   "priority": 2,
+   "cues": [
+    "Legs finish, then punch",
+    "Drive with the legs first",
+    "Jump the bar up",
+    "Snap tall, then go under",
+    "Legs, then arms",
+    "Punch yourself under"
+   ],
+   "why": [
+    "The legs should launch the bar; the arms push you under it."
+   ],
+   "drills": [
+    "Jerk drive",
+    "Push press",
+    "Tall jerk"
+   ],
+   "sources": [
+    "https://www.catalystathletics.com/article/1981/Finding-Your-Jerk-Drive-Stance",
+    "https://qwa.org/common-errors-in-the-clean-and-jerk"
+   ]
+  },
+  {
+   "id": "jerk_weak_drive_height",
+   "movement": "jerk",
+   "variants": null,
+   "name": "Weak drive / low bar height",
+   "phase": "drive",
+   "looks_like": "Bar barely lifts off the shoulders before the lifter drops; catches very low.",
+   "root_causes": [
+    "slow deep dip",
+    "weak legs",
+    "soft trunk"
+   ],
+   "downstream_effect": "Lifter drops too low into split, press out.",
+   "measurable_side_on": "yes",
+   "signal": "Bar rise from dip bottom to peak, normalised by H; bar peak vertical velocity.",
+   "threshold": {
+    "value": "bar rise from dip bottom to peak <12% of height",
+    "source": "heuristic; Grabe & Widule ~18% H vertical bar displacement (secondary)",
+    "verified": false
+   },
+   "priority": 2,
+   "cues": [
+    "Drive harder through the floor",
+    "Jump the bar up",
+    "Snap your legs straight",
+    "Push the floor away",
+    "Explode tall",
+    "Drive, then drop"
+   ],
+   "why": [
+    "Every centimetre of drive is a centimetre you don't have to drop."
+   ],
+   "drills": [
+    "Jerk drive",
+    "Jump squat",
+    "Push press"
+   ],
+   "sources": [
+    "https://qwa.org/common-errors-in-the-clean-and-jerk",
+    "https://catalystathletics-org.catalystathletics.com/article/106/Correcting-Jerk-Weaknesses/",
+    "https://ojs.ub.uni-konstanz.de/cpa/article/view/3027"
+   ]
+  },
+  {
+   "id": "jerk_press_out",
+   "movement": "jerk",
+   "variants": null,
+   "name": "Press out",
+   "phase": "receive",
+   "looks_like": "Arms keep extending after the lifter has reached the low point of the split/squat.",
+   "root_causes": [
+    "late punch",
+    "weak drive",
+    "shoulder mobility"
+   ],
+   "downstream_effect": "No lift under IWF rules; unstable lockout.",
+   "measurable_side_on": "yes",
+   "signal": "Elbow angle at frame of lowest hip position vs max elbow angle afterwards.",
+   "threshold": {
+    "value": "elbow angle rises >12 deg after lowest hip point (rule: any pressing after low point is a fault; margin for 10 deg error)",
+    "source": "IWF rule 2.5.1.4 (via SportsEdTV); numeric margin heuristic",
+    "verified": false
+   },
+   "priority": 1,
+   "cues": [
+    "Punch and lock as you land",
+    "Lock it at the bottom",
+    "Fast feet, fast arms",
+    "Arms straight as feet hit",
+    "Snap the elbows",
+    "Punch under, not up"
+   ],
+   "why": [
+    "The arms should be locked as your feet land; pushing after that is a red light."
+   ],
+   "drills": [
+    "Jerk support / recovery from pins",
+    "Overhead lockouts",
+    "Tall jerk"
+   ],
+   "sources": [
+    "https://sportsedtv.com/blog/press-out-what-the-rules-say-what-the-jury-says/",
+    "https://www.ironmind.com/articles/jim-schmitz-on-the-lifts/Correcting-Press-out-in-the-Jerk/"
+   ]
+  },
+  {
+   "id": "jerk_rebend_elbows",
+   "movement": "jerk",
+   "variants": null,
+   "name": "Elbows re-bend in recovery",
+   "phase": "recovery",
+   "looks_like": "After lockout, an elbow softens then straightens again.",
+   "root_causes": [
+    "weak overhead support",
+    "loose lockout",
+    "bad recovery"
+   ],
+   "downstream_effect": "No lift under IWF rules.",
+   "measurable_side_on": "partial",
+   "signal": "Elbow angle drop after lockout then re-rise.",
+   "threshold": {
+    "value": "elbow drops >15 deg after lockout then re-extends",
+    "source": "IWF rule 2.5.1.5 via Ironmind; numeric margin heuristic",
+    "verified": false
+   },
+   "priority": 2,
+   "cues": [
+    "Lock the elbows",
+    "Hold it tight",
+    "Push up into the bar",
+    "Elbows stay locked",
+    "Squeeze the bar",
+    "Stay strong up there"
+   ],
+   "why": [
+    "Locked arms are steadier, and a re-bend is a red light."
+   ],
+   "drills": [
+    "Jerk supports",
+    "Overhead holds",
+    "Jerk recoveries"
+   ],
+   "sources": [
+    "https://www.ironmind.com/articles/jim-schmitz-on-the-lifts/Correcting-Press-out-in-the-Jerk/",
+    "https://sportsedtv.com/blog/press-out-what-the-rules-say-what-the-jury-says/"
+   ]
+  },
+  {
+   "id": "jerk_split_short",
+   "movement": "jerk",
+   "variants": null,
+   "name": "Short split",
+   "phase": "split receive",
+   "looks_like": "Feet barely separate; back knee under or ahead of the hips.",
+   "root_causes": [
+    "weak drive/timing",
+    "fear",
+    "stepping instead of driving feet"
+   ],
+   "downstream_effect": "Can't get under, bar forward, lifter pushed back/forward.",
+   "measurable_side_on": "yes",
+   "signal": "Back knee keypoint x vs hip x in split; front ankle to back ankle distance / H.",
+   "threshold": {
+    "value": "back knee not >=5 cm behind hip x, OR ankle-to-ankle distance <0.35 H",
+    "source": "Catalyst: back knee should be behind the hips; length ratio heuristic",
+    "verified": false
+   },
+   "priority": 1,
+   "cues": [
+    "Step longer with the front foot",
+    "Back knee behind your hips",
+    "Split wide, front and back",
+    "Punch your feet out",
+    "Drive your front foot through",
+    "Bigger split, stable base"
+   ],
+   "why": [
+    "A longer split lets you drop under without falling forward or back."
+   ],
+   "drills": [
+    "Drop/jump/step to split",
+    "Jerk balance",
+    "Push jerk in split"
+   ],
+   "sources": [
+    "https://catalystathletics.com/article/2050/How-to-Quit-Short-Stepping-Your-Split-Jerks",
+    "https://catalystathletics.com/article/1977/Improving-Your-Footwork-in-the-Split-Jerk/",
+    "https://qwa.org/common-errors-in-the-clean-and-jerk"
+   ]
+  },
+  {
+   "id": "jerk_front_knee_forward",
+   "movement": "jerk",
+   "variants": null,
+   "name": "Front knee forward of ankle",
+   "phase": "split receive",
+   "looks_like": "Front shin angles forward with knee past the toes.",
+   "root_causes": [
+    "short split",
+    "forward drive",
+    "diving forward"
+   ],
+   "downstream_effect": "Unstable, knee strain, bar forward.",
+   "measurable_side_on": "yes",
+   "signal": "Front shin angle (knee->ankle) vs vertical in receive.",
+   "threshold": {
+    "value": "front shin >15 deg forward of vertical",
+    "source": "Everett: shin vertical, knee over or slightly behind ankle; degree cutoff heuristic",
+    "verified": false
+   },
+   "priority": 1,
+   "cues": [
+    "Front shin vertical",
+    "Knee over the ankle",
+    "Reach the front foot further",
+    "Step out, not down",
+    "Heel down on the front foot",
+    "Push the knee back"
+   ],
+   "why": [
+    "A vertical front shin braces against the forward push of the bar."
+   ],
+   "drills": [
+    "Step to split",
+    "Jerk balance"
+   ],
+   "sources": [
+    "https://performancemenu.com/article/397/Greg-Everett",
+    "https://catalystathletics.com/article/2050/How-to-Quit-Short-Stepping-Your-Split-Jerks",
+    "https://coachway.io/articles/oleksiy-torokhtiy-split-jerk-for-coaches/"
+   ]
+  },
+  {
+   "id": "jerk_split_too_long",
+   "movement": "jerk",
+   "variants": null,
+   "name": "Over-stepping the split",
+   "phase": "split receive",
+   "looks_like": "Front foot shoots very far; front shin leans back and hips drop very low.",
+   "root_causes": [
+    "overcorrecting short split",
+    "weak drive making lifter dive low"
+   ],
+   "downstream_effect": "Hard recovery, hips stuck behind.",
+   "measurable_side_on": "yes",
+   "signal": "Front shin backward angle; front thigh angle to floor.",
+   "threshold": {
+    "value": "front shin >15 deg behind vertical OR front thigh <15 deg to floor (Everett 20-40 deg)",
+    "source": "Everett 20-40 deg thigh angle; cutoff heuristic",
+    "verified": false
+   },
+   "priority": 2,
+   "cues": [
+    "Split just enough",
+    "Front knee over ankle",
+    "Land under, not lunging",
+    "Shorter, faster feet",
+    "Hips under the bar",
+    "Recover the front foot first"
+   ],
+   "why": [
+    "Too long a split drops you lower than you need and makes recovery a struggle."
+   ],
+   "drills": [
+    "Drop to split",
+    "Jerk balance"
+   ],
+   "sources": [
+    "https://performancemenu.com/article/397/Greg-Everett",
+    "https://qwa.org/common-errors-in-the-clean-and-jerk"
+   ]
+  },
+  {
+   "id": "jerk_back_knee_locked",
+   "movement": "jerk",
+   "variants": null,
+   "name": "Straight back leg / too bent",
+   "phase": "split receive",
+   "looks_like": "Back knee locked straight, or bent close to 90 deg with knee near floor.",
+   "root_causes": [
+    "short split (locked)",
+    "overstep (too bent)"
+   ],
+   "downstream_effect": "Locked: hyperextension, hips can't drop; bent: hips too low, unstable.",
+   "measurable_side_on": "yes",
+   "signal": "Back knee angle (hip-knee-ankle) in receive.",
+   "threshold": {
+    "value": ">170 deg (locked) or <110 deg (too bent)",
+    "source": "Everett: back knee bent; Catalyst: ~90 deg excessive; cutoffs heuristic",
+    "verified": false
+   },
+   "priority": 2,
+   "cues": [
+    "Soft back knee",
+    "Back heel up, knee bent",
+    "Unlock the back leg",
+    "Slight bend behind you",
+    "Back knee down a bit",
+    "Not a lunge, a split"
+   ],
+   "why": [
+    "A slightly bent back knee keeps the heel up and lets the hips sit under the bar."
+   ],
+   "drills": [
+    "Split holds",
+    "Jerk balance"
+   ],
+   "sources": [
+    "https://performancemenu.com/article/397/Greg-Everett",
+    "https://catalystathletics.com/article/2050/How-to-Quit-Short-Stepping-Your-Split-Jerks"
+   ]
+  },
+  {
+   "id": "jerk_front_foot_first",
+   "movement": "jerk",
+   "variants": null,
+   "name": "Front foot lands first",
+   "phase": "split receive",
+   "looks_like": "Front foot hits noticeably before the back foot.",
+   "root_causes": [
+    "forward balance",
+    "weak drive",
+    "chest dives forward"
+   ],
+   "downstream_effect": "Hips behind bar, bar forward.",
+   "measurable_side_on": "partial",
+   "signal": "Foot contact frames (ankle vertical velocity ~0) for front and back feet; need >=60 fps.",
+   "threshold": {
+    "value": "front contact >50 ms before back contact",
+    "source": "heuristic; Catalyst notes back foot should be slightly first but often imperceptible",
+    "verified": false
+   },
+   "priority": 3,
+   "cues": [
+    "Back foot drives in first",
+    "Push off the back leg",
+    "Hips under, feet together",
+    "Punch both feet",
+    "Back foot fast",
+    "Land both feet together"
+   ],
+   "why": [
+    "Driving the back foot keeps the hips moving under the bar."
+   ],
+   "drills": [
+    "Jump to split",
+    "Jerk balance"
+   ],
+   "sources": [
+    "https://catalystathletics.com/video/1738/Front-Foot-Landing-First-in-the-Split-Jerk"
+   ]
+  },
+  {
+   "id": "jerk_hips_behind_bar_split",
+   "movement": "jerk",
+   "variants": null,
+   "name": "Hips stuck behind / diving forward",
+   "phase": "split receive",
+   "looks_like": "In the split, torso leans forward and hips sit behind the bar.",
+   "root_causes": [
+    "diving head and chest forward",
+    "jerking from front changes torso position"
+   ],
+   "downstream_effect": "Bar ahead of base, lifter falls forward.",
+   "measurable_side_on": "yes",
+   "signal": "Hip x vs bar x at lockout; trunk angle vs vertical.",
+   "threshold": {
+    "value": "hip >8 cm behind bar x OR trunk >15 deg forward at lockout",
+    "source": "heuristic",
+    "verified": false
+   },
+   "priority": 1,
+   "cues": [
+    "Hips under the bar",
+    "Bar back, not head forward",
+    "Torso stays vertical",
+    "Split straight down",
+    "Drop your hips under",
+    "Front foot forward, bar back"
+   ],
+   "why": [
+    "Your hips need to land under the bar; diving forward leaves them behind."
+   ],
+   "drills": [
+    "Behind-the-neck split jerk",
+    "Jerk balance"
+   ],
+   "sources": [
+    "https://catalystathletics-org.catalystathletics.com/article/106/Correcting-Jerk-Weaknesses/",
+    "https://catalystathletics.com/video/1536/Bar-Back-Not-Head-Forward/",
+    "https://catalystathletics.com/article/1977/Improving-Your-Footwork-in-the-Split-Jerk/"
+   ]
+  },
+  {
+   "id": "jerk_power_too_deep",
+   "movement": "jerk",
+   "variants": null,
+   "name": "Power/push jerk caught too deep",
+   "phase": "receive",
+   "looks_like": "Lifter drops into a half squat or deeper to catch.",
+   "root_causes": [
+    "weak drive",
+    "late punch",
+    "press out risk"
+   ],
+   "downstream_effect": "Hard recovery, unstable overhead.",
+   "measurable_side_on": "yes",
+   "signal": "Min knee angle in receive.",
+   "threshold": {
+    "value": "knee angle <90 deg in receive (power jerk is typically partial squat)",
+    "source": "heuristic; Torokhtiy describes power jerk catch as partial/half squat",
+    "verified": false
+   },
+   "priority": 3,
+   "cues": [
+    "Catch higher",
+    "Drive more, drop less",
+    "Lock it in a quarter squat",
+    "Fast feet, firm catch",
+    "Punch earlier",
+    "Legs first, then lock"
+   ],
+   "why": [
+    "A deep power jerk usually means the drive was short."
+   ],
+   "drills": [
+    "Power jerk from blocks",
+    "Jerk drive"
+   ],
+   "sources": [
+    "https://torokhtiy.com/blogs/guides/split-vs-power-jerk-vs-push-jerk",
+    "https://qwa.org/common-errors-in-the-clean-and-jerk"
+   ]
+  },
+  {
+   "id": "jerk_feet_move_push_jerk",
+   "movement": "jerk",
+   "variants": null,
+   "name": "Feet move in push jerk",
+   "phase": "receive",
+   "looks_like": "In a push jerk the feet leave the floor or slide.",
+   "root_causes": [
+    "habit from power jerk",
+    "jumping the feet"
+   ],
+   "downstream_effect": "It's a power jerk; informational label.",
+   "measurable_side_on": "yes",
+   "signal": "Ankle x displacement or ankle lift during receive.",
+   "threshold": {
+    "value": "ankle moves >5 cm or lifts >3 cm",
+    "source": "heuristic",
+    "verified": false
+   },
+   "priority": 3,
+   "cues": [
+    "Feet stay planted",
+    "Drive and stay rooted",
+    "Bend the knees, don't jump",
+    "Root your feet",
+    "Drop with your knees",
+    "Quiet feet"
+   ],
+   "why": [
+    "The push jerk keeps the feet still so you learn to drop with the knees."
+   ],
+   "drills": [
+    "Push jerk",
+    "Jerk dip"
+   ],
+   "sources": [
+    "https://torokhtiy.com/blogs/guides/split-vs-power-jerk-vs-push-jerk"
+   ]
+  },
+  {
+   "id": "jerk_recovery_back_foot_first",
+   "movement": "jerk",
+   "variants": null,
+   "name": "Recovering back foot first",
+   "phase": "recovery",
+   "looks_like": "From the split, the back foot steps forward first.",
+   "root_causes": [
+    "habit",
+    "front foot overstepped"
+   ],
+   "downstream_effect": "Bar moves forward horizontally, unstable recovery.",
+   "measurable_side_on": "yes",
+   "signal": "Order of ankle x motion after split stabilises.",
+   "threshold": {
+    "value": "back ankle moves >5 cm before front ankle moves",
+    "source": "Catalyst recommends front foot first",
+    "verified": false
+   },
+   "priority": 2,
+   "cues": [
+    "Front foot back first",
+    "Step back, then forward",
+    "Front foot, then back",
+    "Short steps in",
+    "Bar stays still as you recover",
+    "Recover with control"
+   ],
+   "why": [
+    "Stepping the front foot back first keeps the bar over the strongest post."
+   ],
+   "drills": [
+    "Jerk recoveries from pins",
+    "Split holds"
+   ],
+   "sources": [
+    "https://catalystathletics.com/article/1968/Why-Do-We-Recover-Front-Foot-First-in-the-Split-Jerk/",
+    "https://www.ironmind.com/articles/jim-schmitz-on-the-lifts/Correcting-Press-out-in-the-Jerk/"
+   ]
+  },
+  {
+   "id": "jerk_unstable_overhead",
+   "movement": "jerk",
+   "variants": null,
+   "name": "Walking with the bar overhead",
+   "phase": "receive / recovery",
+   "looks_like": "Lifter shuffles or takes several steps to save the bar.",
+   "root_causes": [
+    "bar not over base",
+    "uneven split",
+    "head position"
+   ],
+   "downstream_effect": "Missed or ugly lift.",
+   "measurable_side_on": "yes",
+   "signal": "Ankle x displacement total after first foot contact until stable.",
+   "threshold": {
+    "value": ">15 cm total foot travel after receive",
+    "source": "heuristic",
+    "verified": false
+   },
+   "priority": 2,
+   "cues": [
+    "Stick the landing",
+    "Bar over the base",
+    "Freeze it, then recover",
+    "Feet planted, then move",
+    "Hold it for two seconds",
+    "Land balanced"
+   ],
+   "why": [
+    "If you have to walk, the bar landed off the base."
+   ],
+   "drills": [
+    "Jerk balance",
+    "Split jerk with 2-3 s hold"
+   ],
+   "sources": [
+    "https://qwa.org/common-errors-in-the-clean-and-jerk",
+    "https://catalystathletics.com/article/1977/Improving-Your-Footwork-in-the-Split-Jerk/"
+   ]
+  },
+  {
+   "id": "jerk_split_width_narrow",
+   "movement": "jerk",
+   "variants": null,
+   "name": "Feet on a tightrope",
+   "phase": "split receive",
+   "looks_like": "Feet line up like a tightrope, too narrow side-to-side.",
+   "root_causes": [
+    "drilling split in a line",
+    "habit"
+   ],
+   "downstream_effect": "Lateral wobble.",
+   "measurable_side_on": "no",
+   "signal": "Front view needed.",
+   "threshold": {
+    "value": "none found (Everett: width ~squat stance)",
+    "source": "Everett",
+    "verified": false
+   },
+   "priority": 3,
+   "cues": [
+    "Split on railroad tracks",
+    "Hip-width feet in the split",
+    "Feet apart side-to-side",
+    "Wider base",
+    "Front foot slightly in",
+    "Land on two lines"
+   ],
+   "why": [
+    "Side-to-side width matters as much as length for balance."
+   ],
+   "drills": [
+    "Step to split on tape lines"
+   ],
+   "sources": [
+    "https://performancemenu.com/article/397/Greg-Everett",
+    "https://crossfitinvictus.com/?p=74499"
+   ]
+  }
+ ],
+ "top8": {
+  "clean": [
+   "clean_bar_loop_forward",
+   "clean_jump_forward",
+   "clean_hips_shoot_up_first_pull",
+   "clean_early_arm_bend",
+   "clean_incomplete_extension",
+   "clean_bar_crash",
+   "clean_forward_lean_catch",
+   "clean_hips_first_recovery"
+  ],
+  "jerk": [
+   "jerk_bar_forward_drive",
+   "jerk_bar_not_over_base",
+   "jerk_dip_torso_forward",
+   "jerk_dip_too_deep",
+   "jerk_dip_slow_or_pause",
+   "jerk_press_out",
+   "jerk_split_short",
+   "jerk_front_knee_forward"
+  ]
+ },
+ "notes": {
+  "scale": "Use the 45 cm plate diameter for px->cm and standing-frame keypoints for lifter height H.",
+  "pose_error_context": "Theia3D vs Vicon in snatch: joint centres ~4.7-5.7 cm off, sagittal joint angles RMSD ~13.6 deg; thresholds include margins for that.",
+  "pose_error_source": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC11728585/",
+  "verified_flag": "verified=true only where the number comes from a primary rule/source; most thresholds are heuristic starting points to tune on the eval set."
+ }
+}
