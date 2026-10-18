@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AppState } from 'react-native';
 import PoseCoreML from '../../modules/pose-coreml';
 import { analyzeClipPose, POSE_ATTEMPT_KEY, POSE_DISABLED_KEY, shouldRunDevicePose } from './onDevicePose';
 import { supabase } from '../lib/supabase';
@@ -54,5 +55,29 @@ describe('on-device pose guards', () => {
     analyzePose.mockRejectedValueOnce(new Error('model'));
     expect(await analyzeClipPose('file:///clip.mp4', () => undefined)).toBeNull();
     expect(await AsyncStorage.getItem(POSE_ATTEMPT_KEY)).toBeNull();
+  });
+
+  it('leaving the app mid-model clears the attempt, so hiding it never turns phone pose off', async () => {
+    let change: ((s: string) => void) | undefined;
+    jest.spyOn(AppState, 'addEventListener').mockImplementation(((_: string, fn: (s: string) => void) => {
+      change = fn;
+      return { remove: jest.fn() };
+    }) as unknown as typeof AppState.addEventListener);
+    let release: () => void = () => undefined;
+    analyzePose.mockImplementationOnce(() => new Promise((r) => (release = () => r({ fps: 30, width: 720, height: 1280, frames: [] }))));
+    const run = analyzeClipPose('file:///clip.mp4', () => undefined);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(await AsyncStorage.getItem(POSE_ATTEMPT_KEY)).toBe('1');
+    change?.('background');
+    await new Promise((r) => setTimeout(r, 0));
+    expect(await AsyncStorage.getItem(POSE_ATTEMPT_KEY)).toBeNull();
+    expect(await shouldRunDevicePose()).toBe(true);
+    release();
+    await run;
+  });
+
+  it('a phone the old guard latched starts fresh on the v2 keys', async () => {
+    await AsyncStorage.setItem('catchline-pose-disabled', '1');
+    expect(await shouldRunDevicePose()).toBe(true);
   });
 });
