@@ -254,10 +254,13 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
     body_scale = scale_from_body(kw)
     scale_ok = True
     for i, pl in enumerate(plates):
-        axes, diameter, refined = plate_diameter([s[i] for s in [plates] + samples
-                                                  if len(s) == len(plates) and s[i]["side"] == pl["side"]], body_scale)
+        fits = [s[i] for s in [plates] + samples if len(s) == len(plates) and s[i]["side"] == pl["side"]]
+        axes, diameter, refined = plate_diameter(fits, body_scale)
         pl["axes"] = axes or pl["axes"]
         pl["diameter_px"] = diameter or max(pl["axes"])
+        # an outline held in some setup frame (before the scale band, which is the near plate's: the far plate sits
+        # further back and reads smaller)
+        pl["refined"] = any("fit_inliers" in q for q in fits)
         scale_ok = scale_ok and (refined or i > 0)  # the far plate only refines the scale; a coarse one was always used
     near = plates[0]
     scale_near = near["diameter_px"] / PLATE_CM
@@ -266,15 +269,20 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
         scale_far = far["diameter_px"] / PLATE_CM
         px_per_cm = 2 / (1 / scale_near + 1 / scale_far)
         span_cm = np.linalg.norm(near["centre"] - far["centre"]) / px_per_cm
-        # three estimates of how far the camera sits off side-on: bar span, and each plate's ellipse (minor/major = cos)
-        est = [np.arcsin(np.clip(span_cm / PLATE_SPAN_CM, 0, 1))] + [np.arccos(min(1.0, p["axes"][1] / p["axes"][0])) for p in (near, far)]
-        off_est = [float(np.degrees(e)) for e in est]
-        off_side = float(np.median(off_est))
+        # up to three estimates of how far the camera sits off side-on: bar span (both plates refined: a coarse centre
+        # can be floor clutter), and each refined plate's ellipse
+        span_off = [float(np.degrees(np.arcsin(np.clip(span_cm / PLATE_SPAN_CM, 0, 1))))] if near["refined"] and far["refined"] else []
+        off_est = span_off + ellipse_angles(plates)
         scale_method = "harmonic mean of near and far plates"
     else:
         span_cm = None
-        off_est = [float(np.degrees(np.arccos(min(1.0, near["axes"][1] / near["axes"][0]))))]
-        off_side = off_est[0]
+        off_est = ellipse_angles(plates)
+    if not off_est:
+        # no plate outline held: the coarse search's ratio grid (0.5-1.0) is not an angle, so the body's is used
+        from .lifts import off_side_pose
+        pose_off = off_side_pose(kw)
+        off_est = [pose_off] if pose_off is not None else []
+    off_side = float(np.median(off_est)) if off_est else 0.0
     foreshort = 1 / np.cos(np.radians(off_side))
     plate_raw, plate_score = track_plate(fr, seed, near)
     plate_ref = to_ref(plate_raw, Ms)
@@ -287,10 +295,8 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
         if knee_pass is not None and not ev["double_knee_bend"]:
             phases, ev = segment_snatch(up(bar[:, 1]), knee_ang, fps, knee_pass=knee_pass, elbow=elbow, catch_mask=rack,
                                         liftoff=plate_lo)
-    # not a lift: the hands went overhead but the plate stayed down, or the person walked up to the camera
     shin = np.nanmean([np.linalg.norm(kw[:, a] - kw[:, b], axis=1) for a, b in ((L_KNEE, L_ANK), (R_KNEE, R_ANK))], axis=0)
-    if (plate_follows_bar(plate_ref[:, 1], bar[:, 1], lo, ev["peak"], near["diameter_px"]) is False
-            or approaches_camera(shin, lo, ev["peak"])):
+    if not_a_lift(near, plate_ref[:, 1], bar[:, 1], shin, lo, ev["peak"]):
         return False
     depth_ratio = None
     if far is None:
@@ -410,6 +416,23 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
                  "kraw": kw, "elbow": elbow, "ks": ks[s0:e0], "contact": contact, "knee_pass": knee_pass, "lo": lo},
     }
     return info
+
+
+def not_a_lift(near, plate_y, bar_y, shin, liftoff, peak):
+    """The hands went overhead but the plate stayed down, the person walked up to the camera, or the bar never rose
+    from lift-off (1fec9d79: the lifter at the phone, keypoint scores 0.04-0.16, peak = lift-off). The plate test
+    only counts with a near plate whose outline held in a setup frame (refined): a plate only the coarse search found
+    can be floor clutter that never moves (e4fe6d08, filmed ~70 deg off side-on with the real plates near edge-on:
+    0 of 3 setup fits refined, rose 0.17 of the hands). IMG_0074's cap fix had 4 of 9 refined and still reads as no lift."""
+    return bool((near.get("refined") and plate_follows_bar(plate_y, bar_y, liftoff, peak, near["diameter_px"]) is False)
+                or approaches_camera(shin, liftoff, peak) or peak <= liftoff)
+
+
+def ellipse_angles(plates):
+    """Camera angle off side-on (degrees) from each plate with at least one refined fit: minor/major = cos. A plate
+    only the coarse search found has its ratio from find_plates' 0.5-1.0 grid, so its 60 or 0 degrees is a grid step
+    (or a person's body taken for a plate), not a measurement."""
+    return [float(np.degrees(np.arccos(min(1.0, p["axes"][1] / p["axes"][0])))) for p in plates if p.get("refined")]
 
 
 def plate_diameter(fits, body_scale=None):
