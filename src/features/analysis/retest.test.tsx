@@ -160,3 +160,20 @@ describe('capture for a retest', () => {
     expect(screen.queryByTestId('retest-target')).toBeNull();
   });
 });
+
+describe('capture free-video count', () => {
+  it('shows the free videos the library says are used, as the Lifts chip does', async () => {
+    useLibraryStore.getState().load({ ...emptyLibrary(), plan: 'free', freeVideosUsed: 1 });
+    mockParams.current = { still: '1' };
+    const screen = await render(<CaptureRoute />);
+    expect(screen.getByTestId('free-count')).toHaveTextContent('1 / 3');
+    expect(screen.getByTestId('free-count').props.accessibilityLabel).toBe('1 of 3 free videos used');
+  });
+
+  it('shows no free-video count on a paid plan', async () => {
+    useLibraryStore.getState().load({ ...emptyLibrary(), plan: 'paid', freeVideosUsed: 2 });
+    mockParams.current = { still: '1' };
+    const screen = await render(<CaptureRoute />);
+    expect(screen.queryByTestId('free-count')).toBeNull();
+  });
+});
