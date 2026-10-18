@@ -4,7 +4,7 @@ import { isKey, t } from '../../i18n';
 
 export type FailureReason = Failure['reason'];
 
-export type FailureAction = 'retake' | 'import' | 'keep' | 'partial' | 'pickA' | 'pickB' | 'reanalyse' | 'later' | 'label';
+export type FailureAction = 'retake' | 'import' | 'keep' | 'partial' | 'pickA' | 'pickB' | 'reanalyse' | 'later';
 
 export type FailureCopy = {
   kicker: string;
@@ -63,15 +63,15 @@ function copyFor(reason: FailureReason): FailureCopy {
       };
     case 'unsupported_movement':
       return {
-        kicker: t('library.failure.unsupported_movement.kicker'),
+        kicker: couldnt,
         title: t('library.failure.unsupported_movement.title'),
         body: t('library.failure.unsupported_movement.body'),
-        primary: { label: t('library.failure.unsupported_movement.primary'), action: 'label', outline: true },
+        primary: different,
         links: [
           { label: t('library.failure.unsupported_movement.link0'), action: 'reanalyse' },
           { label: t('library.failure.unsupported_movement.link1'), action: 'keep' },
         ],
-        readout: t('library.failure.unsupported_movement.readout'),
+        readout: '',
         image: IMAGE[reason],
       };
     case 'low_frame_rate':
@@ -118,7 +118,7 @@ const IMAGE: Record<FailureReason, string> = {
   too_shaky: 'asset:snatch/3-hip',
   multiple_lifters: 'asset:snatch/1-setup',
   clip_cut_off: 'asset:snatch/5-turnover',
-  unsupported_movement: 'library:hs-2',
+  unsupported_movement: '',
   low_frame_rate: 'asset:snatch/3-hip',
   clip_unreadable: 'asset:snatch/1-setup',
   unknown: 'asset:snatch/6-catch',

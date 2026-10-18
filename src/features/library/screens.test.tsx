@@ -252,6 +252,20 @@ describe('FailureScreen', () => {
     expect(within(block).getByText(FAILURE_COPY[reason].body)).toBeOnTheScreen();
   });
 
+  it('describes the refused lift with its own refusal line, never a canned movement', async () => {
+    const { getByTestId, queryByText } = await render(
+      <FailureScreen reason="unsupported_movement" header="Snatch" refCode="x" detail="No floor-to-overhead lift found in this clip." onAction={jest.fn()} />
+    );
+    expect(getByTestId('failure-readout')).toHaveTextContent('No floor-to-overhead lift found in this clip.');
+    expect(queryByText(/wall walk/i)).toBeNull();
+  });
+
+  it('shows no readout for a refused lift with nothing real to say', async () => {
+    const { queryByTestId, queryByText } = await render(<FailureScreen reason="unsupported_movement" header="" refCode="x" onAction={jest.fn()} />);
+    expect(queryByTestId('failure-readout')).toBeNull();
+    expect(queryByText(/wall walk/i)).toBeNull();
+  });
+
   it('lets the lifter pick between two people', async () => {
     const onAction = jest.fn();
     const { getByTestId } = await render(<FailureScreen reason="multiple_lifters" header="Snatch" refCode="x" onAction={onAction} />);
