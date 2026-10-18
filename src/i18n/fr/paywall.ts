@@ -97,6 +97,8 @@ export const paywall: Strings<typeof en> = {
   'paywall.notNowQueued': "Pas maintenant, garde-le en file",
   'paywall.notNow': "Pas maintenant",
   'paywall.restore': "Restaurer",
+  'paywall.terms': "Conditions d'utilisation",
+  'paywall.privacy': "Politique de confidentialité",
   'paywall.cap.title': "Tu as utilisé tes {count} de ce mois-ci.",
   'paywall.cap.body': "Remise à zéro le {date}. Ce clip est enregistré et passera à ce moment-là. Filmer et tout ce que tu as déjà analysé continuent de fonctionner.",
   'paywall.cap.queue': "En file jusqu'au {date}",

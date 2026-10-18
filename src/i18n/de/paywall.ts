@@ -97,6 +97,8 @@ export const paywall: Strings<typeof en> = {
   'paywall.notNowQueued': "Nicht jetzt, in der Warteschlange lassen",
   'paywall.notNow': "Nicht jetzt",
   'paywall.restore': "Wiederherstellen",
+  'paywall.terms': "Nutzungsbedingungen",
+  'paywall.privacy': "Datenschutzerklärung",
   'paywall.cap.title': "Du hast deine {count} für diesen Monat genutzt.",
   'paywall.cap.body': "Wird am {date} zurückgesetzt. Dieser Clip ist gespeichert und wird dann analysiert. Filmen und alles, was du schon analysiert hast, funktioniert weiter.",
   'paywall.cap.queue': "Bis {date} einreihen",

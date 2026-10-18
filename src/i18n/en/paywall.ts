@@ -94,6 +94,8 @@ export const paywall = {
   'paywall.notNowQueued': "Not now, keep it queued",
   'paywall.notNow': "Not now",
   'paywall.restore': "Restore",
+  'paywall.terms': "Terms of Use",
+  'paywall.privacy': "Privacy Policy",
   'paywall.cap.title': "You've used your {count} this month.",
   'paywall.cap.body': "Resets on {date}. This clip is saved and goes through then. Filming and everything you've already analysed keep working.",
   'paywall.cap.queue': "Queue until {date}",

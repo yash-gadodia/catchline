@@ -1,5 +1,5 @@
 import { useCallback, useState, type ReactNode } from 'react';
-import { Image, Pressable, Text, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
+import { Image, Linking, Pressable, Text, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Btn from '../../components/Btn';
 import { colors, shape, space } from '../../design/tokens';
@@ -7,6 +7,7 @@ import { display, type } from '../../design/typography';
 import { success as hapticSuccess } from '../../lib/haptics';
 import type { PurchaseStatus } from '../purchases/usePurchases';
 import { t } from '../../i18n';
+import { PRIVACY_URL, TERMS_URL } from '../../lib/links';
 import type { ChipState, StorePlatform } from './entitlements';
 import { failedBody, offlineBody, failedTitle, purchasingLine, purchasingTitle, successBody } from './copy';
 import type { CueStatus } from './proofCues';
@@ -65,6 +66,20 @@ export function SheetTitle({ children, size = 30 }: { children: string; size?: n
 
 export function Body({ children, color = colors.text2 }: { children: string; color?: string }) {
   return <Text style={{ color, ...type.callout }}>{children}</Text>;
+}
+
+export function LegalLinks() {
+  return (
+    <Text style={{ color: colors.text2, ...type.small, textAlign: 'center' }}>
+      <Text onPress={() => Linking.openURL(TERMS_URL)} accessibilityRole="link" testID="link-terms">
+        {t('paywall.terms')}
+      </Text>
+      {' · '}
+      <Text onPress={() => Linking.openURL(PRIVACY_URL)} accessibilityRole="link" testID="link-privacy">
+        {t('paywall.privacy')}
+      </Text>
+    </Text>
+  );
 }
 
 export function Fine({ children, center }: { children: string; center?: boolean }) {
