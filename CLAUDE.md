@@ -29,6 +29,7 @@ Design source of truth: `~/dev/liftcheck-research/design/` (`Catchline Design Sy
 - Realtime needs the table in `supabase_realtime`; supabase-js `never` inference → documented `// @ts-expect-error`, never `as any`.
 - No `any` / `@ts-ignore`. Keep it simple, no drive-by refactors.
 - **OTA safety**: every OTA reaches every binary on runtime `expo.version`, so no native change (native package version, `modules/`, `app.json`) lands without a version bump. `scripts/check-native-surface.ts` (in `npm run check`) diffs against the store build in `scripts/store-build.json`; update that file after each store build.
+- **OTA releases** go through `scripts/ota.sh publish "<msg>" [--rollout N] --go` (checks, the eas.json env block, live manifest check) and `scripts/ota.sh rollback <group> --go`; without `--go` it is a dry run.
 
 ## Testing
 - Co-located `*.test.ts(x)`, exact assertions, real `render()` (`.claude/rules/testing.md`). Global mocks in `jest-setup.ts`; API tests mock `src/lib/supabase`.
