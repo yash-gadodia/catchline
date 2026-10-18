@@ -22,6 +22,7 @@ export const library: Strings<typeof en> = {
   'library.weeks': { one: "{count} sem", other: "{count} sem" },
   'library.versionNote': "L'analyse s'est améliorée le {date} ; les mouvements précédents ont été mesurés par l'ancienne version.",
   'library.detail.processing': "analyse",
+  'library.detail.uploadStuck': "Envoi pas terminé · refilme ou réimporte-le",
   'library.inFlight.title': "Analyse de ton {movement}",
   'library.detail.queued': "En attente · vidéos gratuites utilisées",
   'library.detail.failed': "Analyse impossible",
