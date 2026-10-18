@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { fmt, movementLabel } from '../../src/analysis/format';
 import FailureScreen from '../../src/features/library/FailureScreen';
-import { FAILURE_COPY, type FailureAction, type FailureReason } from '../../src/features/library/failures';
+import { FAILURE_COPY, failureMessage, type FailureAction, type FailureReason } from '../../src/features/library/failures';
 import { useLift } from '../../src/features/library/repository';
 import { submitDraft } from '../../src/features/capture/submit';
 import { t } from '../../src/i18n';
@@ -21,6 +21,8 @@ export default function FailureRoute() {
     : __DEV__
       ? 'Snatch · 62.5 kg'
       : '';
+  const stored = lift?.failure?.reason === r ? failureMessage(lift.failure) : undefined;
+  const detail = stored && stored !== FAILURE_COPY[r].title ? stored : undefined;
   const partial = lift?.analysisId ?? (__DEV__ ? 'snatch-mock' : null);
   const onAction = (a: FailureAction) => {
     if (a === 'retake') router.push('/capture' as Href);
@@ -30,5 +32,5 @@ export default function FailureRoute() {
     } else if (a === 'partial' && partial) router.replace({ pathname: '/analysis/player', params: { fixture: partial } });
     else back();
   };
-  return <FailureScreen reason={r} header={header} refCode={(id ?? '').slice(0, 7)} onAction={onAction} />;
+  return <FailureScreen reason={r} header={header} refCode={(id ?? '').slice(0, 7)} detail={detail} onAction={onAction} />;
 }

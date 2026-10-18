@@ -5,6 +5,7 @@ import { usePurchases } from '../purchases/usePurchases';
 import { useUsage } from '../paywall/usageStore';
 import { startLift } from '../../data/pipeline';
 import FailureRoute from '../../../app/failure/[id]';
+import { useLibraryStore } from './store';
 
 const params: { current: Record<string, string> } = { current: {} };
 
@@ -86,4 +87,17 @@ describe('dev build', () => {
 
     expect(view.getByText('Snatch · 62.5 kg')).toBeOnTheScreen();
   });
+});
+
+// #23: a refused snatch read "looks like: wall walk" with a wall-walk stage, canned for every refusal.
+it('a refused lift shows its own refusal line, not a canned movement', async () => {
+  useLibraryStore.setState({
+    lifts: [{ id: 'lift-9', movement: 'snatch', date: '2026-10-18', status: 'failed',
+      failure: { reason: 'unsupported_movement', code: 'no_reps', message: 'No floor-to-overhead lift found in this clip.' } }],
+  });
+  params.current = { id: 'lift-9' };
+  const view = await render(<FailureRoute />);
+
+  expect(view.getByTestId('failure-readout')).toHaveTextContent('No floor-to-overhead lift found in this clip.');
+  expect(view.queryByText(/wall walk/i)).toBeNull();
 });

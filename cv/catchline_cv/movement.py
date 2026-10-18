@@ -55,16 +55,27 @@ def signals(k, fps):
         spread = lambda p: 2 * np.nanpercentile(np.linalg.norm(p[on] - np.nanmedian(p[on], axis=0), axis=1), 90)
         hand, foot = spread(wri_xy), spread(ank_xy)
         hang = bool(foot > 0.5 * t and foot > 2.0 * hand)
+    # or: the hands stay overhead for most of the clip while the body travels under them. A swing filmed 30-45 deg
+    # off side-on barely moves the feet in the picture, but the shoulders still rise to the bar. Path lengths with the
+    # per-frame step capped, so a lifter-tracking jump or camera drift does not count as hand travel. Barbell clips on
+    # the public set: overhead at most 70% of the clip (long jerk holds), and the hands move with the shoulders there
+    over = np.where(overhead)[0]
+    if not hang and len(over) >= 0.75 * len(k):
+        smooth = lambda p: np.stack([lowpass(p[:, 0], fps), lowpass(p[:, 1], fps)], 1)[over]
+        step = lambda p: np.minimum(np.linalg.norm(np.diff(p, axis=0), axis=1), 0.15 * t)[np.diff(over) == 1].sum()
+        hands, shoulders = smooth(wri_xy), smooth(mid(k, L_SHO, R_SHO))
+        hang = bool(step(hands - shoulders) > 1.2 * step(hands))
     floor_lift = bool(((wri < knee) & ~inverted).any() and (wri > hip + 0.3 * t).any())
     at_sho = (np.abs(wri - sho) < 0.35 * t) & ~inverted
     return {"inverted_s": float(inverted.sum() / fps), "overhead_s": float(overhead.sum() / fps), "hanging": bool(hang),
-            "floor_lift": floor_lift, "at_shoulders_s": float(at_sho.sum() / fps), "torso_px": t}
+            "floor_lift": floor_lift, "at_shoulders_s": float(at_sho.sum() / fps), "torso_px": t, "seconds": len(k) / fps}
 
 
 def family(sig):
     if sig is None:
         return None
-    if sig["inverted_s"] >= 1.0:
+    # a second of upside-down pose in a long barbell clip is a pose error, not a handstand
+    if sig["inverted_s"] >= max(1.0, 0.1 * sig["seconds"]):
         return "inverted"
     if sig["hanging"]:
         return "hanging"

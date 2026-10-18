@@ -20,11 +20,14 @@ export default function FailureScreen({
   reason: rawReason,
   header,
   refCode,
+  detail,
   onAction,
 }: {
   reason: FailureReason;
   header: string;
   refCode: string;
+  // The lift's own refusal line from the worker, shown on the stage in place of a canned readout.
+  detail?: string;
   onAction: (a: FailureAction) => void;
 }) {
   const insets = useSafeAreaInsets();
@@ -39,7 +42,7 @@ export default function FailureScreen({
           {header}
         </Text>
       </View>
-      <FailureStage reason={reason} width={width} height={stageH} />
+      <FailureStage reason={reason} detail={detail} width={width} height={stageH} />
       {/* The longest body needs more lines than the gap between the stage and the pinned actions, which
           used to overflow and be painted under the buttons (#17). Scrolling keeps every line reachable. */}
       <ScrollView
@@ -83,7 +86,7 @@ export default function FailureScreen({
   );
 }
 
-function FailureStage({ reason, width, height }: { reason: FailureReason; width: number; height: number }) {
+function FailureStage({ reason, detail, width, height }: { reason: FailureReason; detail?: string; width: number; height: number }) {
   const copy = FAILURE_COPY[reason];
   const overlay = (children: ReactNode) => (
     <Svg width={width} height={height} viewBox="0 0 390 420" preserveAspectRatio="none" style={{ position: 'absolute', left: 0, top: 0 }} pointerEvents="none">
@@ -217,7 +220,11 @@ function FailureStage({ reason, width, height }: { reason: FailureReason; width:
           {copy.readout}
         </Text>
       ) : null}
-      {reason === 'unsupported_movement' ? readout({ left: 24, bottom: 16 }) : null}
+      {reason === 'unsupported_movement' && detail ? (
+        <Readout style={{ position: 'absolute', left: 24, bottom: 16, right: 24 }} testID="failure-readout">
+          {detail}
+        </Readout>
+      ) : null}
     </View>
   );
 }

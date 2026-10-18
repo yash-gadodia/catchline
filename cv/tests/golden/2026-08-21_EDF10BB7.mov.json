@@ -18,8 +18,8 @@
   "measurements": [],
   "failure": {
    "reason": "unsupported_movement",
-   "code": "movement_mismatch",
-   "message": "This clip looks like a barbell lift, not a bar muscle-up. Pick the movement you filmed and try again."
+   "code": "no_reps",
+   "message": "No muscle-up reps found in this clip."
   },
   "detectedMovement": {
    "movement": "unknown",
