@@ -84,6 +84,7 @@ export const paywall = {
   'paywall.quiz.step': "{step} of {total}",
   'paywall.quiz.next': "Next",
   'paywall.sheet.title': "Your {count} free videos are done. Keep the cues coming.",
+  'paywall.sheet.titleLeft': "Keep the cues coming.",
   'paywall.monthly': "Monthly",
   'paywall.annual': "Annual",
   'paywall.annualSave': "Annual · save {pct}%",

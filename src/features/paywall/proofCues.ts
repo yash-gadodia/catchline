@@ -1,18 +1,28 @@
+import { useMemo } from 'react';
 import { t } from '../../i18n';
+import { sessionsDone } from '../library/derive';
+import { useLibrary } from '../library/repository';
+import type { CueRecord, Session } from '../library/types';
 
 export type CueStatus = 'stuck' | 'trying' | 'didnt' | 'dropped';
 export type ProofCue = { text: string; status: CueStatus; tries?: number; of?: number };
 
-// The lifter's own cues, shown as proof on the paywall. Local stand-in for the
-// cue-memory store until Phase 3; the order is the order they were earned.
-const LOCAL: ProofCue[] = [
-  { text: 'Finish the pull before you drop', status: 'stuck' },
-  { text: 'Stay over the bar longer', status: 'trying', tries: 3, of: 6 },
-  { text: 'Hips to the bar on the MU', status: 'trying', tries: 1, of: 6 },
-];
+// The lifter's own cues, newest first, shown as proof on the paywall. A lifter with no
+// cues yet gets no rows: the sheet never shows someone else's cues as theirs.
+export function proofCuesFrom(cues: CueRecord[], sessions: Session[]): ProofCue[] {
+  return [...cues]
+    .sort((a, b) => (a.givenAt < b.givenAt ? 1 : a.givenAt > b.givenAt ? -1 : 0))
+    .slice(0, 3)
+    .map((c) =>
+      c.status === 'trying'
+        ? { text: c.text, status: 'trying', tries: sessionsDone(c, sessions), of: c.sessionsTarget }
+        : { text: c.text, status: c.status === 'didnt_stick' ? 'didnt' : c.status }
+    );
+}
 
-export function getProofCues(): ProofCue[] {
-  return LOCAL;
+export function useProofCues(): ProofCue[] {
+  const { cues, sessions } = useLibrary();
+  return useMemo(() => proofCuesFrom(cues, sessions), [cues, sessions]);
 }
 
 export function cueStatusLabel(cue: ProofCue): string {

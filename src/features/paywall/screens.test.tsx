@@ -7,10 +7,15 @@ import PaywallSheet from './PaywallSheet';
 import PlansScreen from './PlansScreen';
 import QuizScreen from './QuizScreen';
 import TrialPaywall from './TrialPaywall';
-import { getProofCues } from './proofCues';
+import type { ProofCue } from './proofCues';
 import { ART, FreeVideosChip, artFrame } from './ui';
 
 const NOW = new Date(2026, 9, 11);
+const CUES: ProofCue[] = [
+  { text: 'Finish the pull before you drop', status: 'stuck' },
+  { text: 'Stay over the bar longer', status: 'trying', tries: 3, of: 6 },
+  { text: 'Hips to the bar on the MU', status: 'trying', tries: 1, of: 6 },
+];
 const SEATS = { total: 500, remaining: 137 };
 const press = async (el: Parameters<typeof fireEvent.press>[0]) => {
   await act(async () => {
@@ -52,7 +57,8 @@ describe('PaywallSheet', () => {
   const renderPaywall = (h: ReturnType<typeof handlers>, extra: Partial<Parameters<typeof PaywallSheet>[0]> = {}) =>
     render(
       <PaywallSheet
-        cues={getProofCues()}
+        cues={CUES}
+        freeLeft={0}
         seats={SEATS}
         platform="ios"
         now={NOW}
@@ -293,7 +299,7 @@ describe('Backdrop art', () => {
       'PaywallSheet',
       'catch',
       () => (
-        <PaywallSheet cues={[]} seats={SEATS} platform="ios" now={NOW} purchase={jest.fn()} onNotNow={jest.fn()} onRestore={jest.fn()} onWatch={jest.fn()} />
+        <PaywallSheet cues={[]} freeLeft={0} seats={SEATS} platform="ios" now={NOW} purchase={jest.fn()} onNotNow={jest.fn()} onRestore={jest.fn()} onWatch={jest.fn()} />
       ),
     ],
   ] as const)('%s shows the %s silhouette once the sheet top is known, never the photo cutout', async (_, name, ui) => {

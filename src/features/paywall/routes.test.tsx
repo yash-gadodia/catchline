@@ -99,3 +99,24 @@ describe('not now / queue keep the draft and queue nothing', () => {
     expect(useCapture.getState().draft?.uri).toBe('file:///clip.mov');
   });
 });
+
+// #13: the organic paywall (You -> Plan -> See plans) claimed the lifter's free videos were
+// done while all 3 were still in hand, and showed stand-in cues as if they were their own.
+describe('organic paywall with free videos left', () => {
+  const DONE = 'Your 3 free videos are done. Keep the cues coming.';
+
+  it('does not say the free videos are done, and shows no cues for a lifter with none', async () => {
+    const view = await render(<PaywallRoute />);
+
+    expect(view.queryByText(DONE)).toBeNull();
+    expect(view.getByText('Keep the cues coming.')).toBeOnTheScreen();
+    expect(view.queryByTestId('proof-cues')).toBeNull();
+  });
+
+  it('still says they are done once all 3 are used', async () => {
+    useUsage.setState({ usage: { lifetime: 3, month: '', thisMonth: 0 } });
+    const view = await render(<PaywallRoute />);
+
+    expect(view.getByText(DONE)).toBeOnTheScreen();
+  });
+});
