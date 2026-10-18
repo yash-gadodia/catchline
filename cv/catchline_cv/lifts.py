@@ -77,12 +77,12 @@ def rack_mask(k, bar, fps):
     return sm
 
 
-def clean_pull_values(ksm, hip_ang, knee_ang, lo, ev, fps):
+def clean_pull_values(ksm, hip_ang, knee_ang, lo, ev, fps, elbow_deg=160.0):
     """Early arm bend (03 MVP #4, 160 deg for the clean) and cut pull (MVP #6) over lift-off .. bar peak.
     Both elbows must bend (max of the two angles) so an occluded far arm cannot fake a bend."""
     el = np.fmax(*elbows(ksm))
     peak = ev["peak"]
-    brk = gym.sustained_below(el, 160.0, lo, peak)
+    brk = gym.sustained_below(el, elbow_deg, lo, peak)
     brk = peak if brk is None else brk
     hip_full = lo + int(np.nanargmax(hip_ang[lo:peak + 1]))
     vals = {"early_arm_bend": (hip_full - brk) / fps, "incomplete_extension": 170.0 - float(np.nanmax(hip_ang[lo:peak + 1]))}

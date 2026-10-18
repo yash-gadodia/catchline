@@ -9,9 +9,16 @@ RULES = {
     # 03's lenient 5 cm plus ~3 cm of foot-point noise: a made power snatch whose heel landed on its start line read
     # 5.3 cm (original) and 6.3 cm (app transcode), and at 5 cm the jump outranked every other fault
     "jump_forward": {"threshold": 8.0, "unit": "cm", "order": 3, "horizontal": True},
-    # clean: 03 MVP #4 (early arm bend, 160 deg for the clean) and #6 (cut pull); 0.1 s = 3 frames at 30 fps
+    # clean: 03 MVP #4 (early arm bend, 160 deg for the clean) and #6 (cut pull); 0.1 s = 3 frames at 30 fps.
+    # The snatch bends at 150 deg, 03's 165 less a margin for ~10 deg of elbow keypoint error (CF L1, Everett)
     "early_arm_bend": {"threshold": 0.1, "unit": "s", "order": 1.5, "horizontal": True},
     "incomplete_extension": {"threshold": 8.0, "unit": "deg", "order": 1.8, "horizontal": True},
+    # snatch S6, full knee extension to elbow lockout: 03 flags > 450 ms; elite 235 +- 20 ms (JSSM 11:162 table 2),
+    # beginners 0.4-0.7 s (Torokhtiy). Horizontal: the lockout frame is a 2D elbow angle, read late off side-on
+    "slow_turnover": {"threshold": 0.45, "unit": "s", "order": 2.5, "horizontal": True},
+    # snatch S6 drop, bar peak to elbow lockout: Nagao 2019 elite 17 +- 4 cm (made) vs 18 cm (missed), 03's novice
+    # flag > 25 cm. Horizontal for the same reason: a late lockout frame reads as a longer drop
+    "bar_crash": {"threshold": 25.0, "unit": "cm", "order": 2.7, "horizontal": True},
     # jerk: 03 MVP #8, #7, #9, #10 (thresholds a notch above the taxonomy's for phone noise)
     "forward_dip": {"threshold": 4.0, "unit": "cm", "order": 1, "horizontal": True},
     "press_out": {"threshold": 15.0, "unit": "deg", "order": 2, "horizontal": True},
@@ -29,7 +36,7 @@ RULES = {
 }
 
 FAULTS = {
-    "snatch": ["hips_rise_early", "bar_forward_off_hips", "jump_forward"],
+    "snatch": ["hips_rise_early", "early_arm_bend", "bar_forward_off_hips", "slow_turnover", "bar_crash", "jump_forward"],
     "clean": ["hips_rise_early", "early_arm_bend", "incomplete_extension", "bar_forward_off_hips", "jump_forward"],
     "jerk": ["forward_dip", "press_out", "chest_dive", "bar_forward_overhead"],
     "kipping_pull_up": ["leg_kip", "early_arm_pull", "no_push_away"],
@@ -38,6 +45,8 @@ FAULTS = {
 }
 # gymnastics reports the earliest fault in the causal chain (23 section 6.1); the barbell lifts the most severe
 CAUSAL = {"kipping_pull_up", "bar_muscle_up", "kipping_hspu"}
+# snatch rules no coach label has calibrated yet: never "clear" until one does
+UNCALIBRATED_SNATCH = {"early_arm_bend", "slow_turnover", "bar_crash"}
 
 # 25-cue-library.md section 4: the primary cue per fault (under 8 words, external focus)
 CUES = {
@@ -58,6 +67,8 @@ CUES = {
     "chicken_wing": "Send both elbows over at once.",
     "hspu_kip_timing": "Knees to elbows, then kick the ceiling.",
     "hspu_banana": "Drive your heels up the wall.",
+    "slow_turnover": "Pull yourself under the bar, fast.",
+    "bar_crash": "Meet the bar; lock out as you land.",
 }
 # section 4 why templates, {m} = the measurement in plain units (section 5: integers, 1 cm, 2 deg, 10 ms)
 WHY = {
@@ -79,6 +90,8 @@ WHY = {
     "chicken_wing": "Your {side} elbow crossed the bar {m} behind the other.",
     "hspu_kip_timing": "Your knees stopped {m} above your hips before the kick, so the hips gave no drive.",
     "hspu_banana": "Your hips sat {m} off the wall at the top.",
+    "slow_turnover": "It took {m} from full extension to locking out, so the bar was falling before you were under it.",
+    "bar_crash": "The bar fell {m} from its peak before your arms locked, so it landed on you.",
 }
 # causal gating (25 section 4, 03 section 6): when both fire, the cause is cued, not the effect
 GATES = [("bar_forward_off_hips", "jump_forward"), ("hips_rise_early", "early_arm_bend"),

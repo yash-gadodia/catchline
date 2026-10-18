@@ -699,6 +699,15 @@
     "note": "hips vs shoulders, floor to knee"
    },
    {
+    "id": "early_arm_bend",
+    "label": "Early arm bend",
+    "value": -0.17,
+    "unit": "s",
+    "frame": 87,
+    "status": "normal",
+    "note": "elbows bent before the hips finished (+ = early)"
+   },
+   {
     "id": "bar_forward_off_hips",
     "label": "Bar forward off hips",
     "value": 2.1,
@@ -706,6 +715,24 @@
     "frame": 85,
     "status": "normal",
     "note": "after hip contact"
+   },
+   {
+    "id": "slow_turnover",
+    "label": "Slow turnover",
+    "value": 0.2,
+    "unit": "s",
+    "frame": 90,
+    "status": "normal",
+    "note": "full extension to elbow lockout"
+   },
+   {
+    "id": "bar_crash",
+    "label": "Bar drop into the catch",
+    "value": 0,
+    "unit": "cm",
+    "frame": 29,
+    "status": "not_seen",
+    "note": "could not measure"
    },
    {
     "id": "jump_forward",

@@ -303,4 +303,10 @@ export const library = {
   'library.metric.bar_peak_height.label': 'Bar peak height',
   'library.metric.bar_peak_height.short': 'peak',
   'library.metric.bar_peak_height.caption': 'Bar peak height above lift-off, cm.',
+  'library.metric.slow_turnover.label': 'Slow turnover',
+  'library.metric.slow_turnover.short': 'turnover',
+  'library.metric.slow_turnover.caption': 'Full extension to elbow lockout, seconds.',
+  'library.metric.bar_crash.label': 'Bar drop into the catch',
+  'library.metric.bar_crash.short': 'drop',
+  'library.metric.bar_crash.caption': 'Bar drop from its peak to elbow lockout, cm.',
 } as const;

@@ -76,6 +76,30 @@ export const DRILLS: Record<string, Drill> = {
     why: 'The high pull rehearses opening the hips all the way before you go under, the hip angle we measured short of straight.',
     draft: true,
   },
+  slow_turnover: {
+    faultId: 'slow_turnover',
+    name: 'Tall snatch',
+    steps: [
+      'Stand tall on flat feet, bar at the hips, snatch grip.',
+      'Shrug and pull yourself straight down into the overhead squat as fast as you can.',
+      'Lock out at the bottom and hold 2 s.',
+    ],
+    dose: '4 x 3, light',
+    why: 'Starting from standing leaves no leg drive, so all the speed comes from pulling under, the time we measured from extension to lockout.',
+    draft: true,
+  },
+  bar_crash: {
+    faultId: 'bar_crash',
+    name: 'Muscle snatch',
+    steps: [
+      'Pull as normal to full extension, feet staying flat.',
+      'Keep the elbows going up and out and turn the bar over without dropping under it.',
+      'Punch to lockout while the bar is still moving up.',
+    ],
+    dose: '4 x 3, light',
+    why: 'The arms keep hold of the bar through the turnover, so it has no time to fall onto you, the drop we measured.',
+    draft: true,
+  },
   forward_dip: {
     faultId: 'forward_dip',
     name: 'Pause jerk dip squat',
