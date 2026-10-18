@@ -78,6 +78,7 @@ export default function CuesScreen({ onOpen }: { onOpen: (cue: CueRecord) => voi
       testID="cues"
     >
       <Title>{t('library.tabs.cues')}</Title>
+      {trying.length > 0 ? <Text style={{ color: colors.text2, ...type.callout }}>{t('library.cues.howTo')}</Text> : null}
       {trying.map((c) => (
         <ActiveCue key={c.id} cue={c} sessions={sessions} today={today} onOpen={() => onOpen(c)} />
       ))}

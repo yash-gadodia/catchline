@@ -103,6 +103,11 @@ export async function getLift(liftId: string): Promise<Lift | null> {
   return data;
 }
 
+export async function deleteLift(liftId: string): Promise<void> {
+  const { error } = await supabase.from('lifts').delete().eq('id', liftId);
+  if (error) throw toApiError(error);
+}
+
 export async function listLifts(opts: { limit?: number; before?: string } = {}): Promise<Lift[]> {
   let q = supabase.from('lifts').select('*').order('created_at', { ascending: false }).limit(opts.limit ?? 50);
   if (opts.before) q = q.lt('created_at', opts.before);

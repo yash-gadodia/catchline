@@ -50,7 +50,7 @@ describe('a partial in the library', () => {
     expect(liftDetail(lift, [])).toBe('analysed · no cue');
     expect(liftLink(lift)).toEqual({ pathname: '/analysis/cue', params: { fixture: 'snatch-mock-partial' } });
     useLibraryStore.getState().load({ ...emptyLibrary(), today: '2026-10-17', lifts: [lift] });
-    const nav = { onOpen: jest.fn(), onRetake: jest.fn(), onUnlock: jest.fn(), onRecord: jest.fn(), onImport: jest.fn(), onDemo: jest.fn(), onCue: jest.fn() };
+    const nav = { onOpen: jest.fn(), onRetake: jest.fn(), onUnlock: jest.fn(), onRecord: jest.fn(), onImport: jest.fn(), onDemo: jest.fn(), onCue: jest.fn(), onDelete: jest.fn() };
     const screen = await render(<LiftsScreen nav={nav} />);
     expect(screen.getByTestId('lift-lp')).toHaveTextContent('Snatch · 3 reps · 60 kganalysed · no cue');
     expect(screen.queryByTestId('retake-lp')).toBeNull();

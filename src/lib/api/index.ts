@@ -5,6 +5,7 @@ export {
   enqueueLift,
   getLift,
   liftsAhead,
+  deleteLift,
   listLifts,
   getAnalysis,
   listAnalyses,
