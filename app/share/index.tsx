@@ -1,4 +1,3 @@
-import { Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAnalysis } from '../../src/analysis/useAnalysis';
 import AnalysisPlaceholder from '../../src/features/analysis/AnalysisPlaceholder';
@@ -24,7 +23,7 @@ export default function ShareRoute() {
       analysis={analysis}
       pro={p.tier ? p.tier === 'pro' : isPro}
       clip={clip}
-      canRenderVideo={Platform.OS === 'ios'}
+      canRenderVideo={false}
       initialAspect={SHARE_ASPECTS.find((a) => a === p.aspect) ?? '9:16'}
       onBack={back}
     />
