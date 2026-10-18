@@ -69,7 +69,7 @@ describe('lift list', () => {
   it('summarises each row state from the same numbers the trend uses', () => {
     expect(liftDetail(lift('l-snatch-today'), lib.sessions)).toBe('drift 6 cm · best 2 cm');
     expect(liftDetail(lift('l-mu'), lib.sessions)).toBe('hip to bar 8 cm · best 3 cm');
-    expect(liftDetail(lift('l-clean'), lib.sessions)).toBe('analysing · about 20 s');
+    expect(liftDetail(lift('l-clean'), lib.sessions)).toBe('analysing');
     expect(liftDetail(lift('l-jerk'), lib.sessions)).toBe("Couldn't see the bar at the catch");
     expect(liftDetail(lift('l-snatch-queued'), lib.sessions)).toBe('Queued · free videos used');
     expect(liftDetail(lift('l-snatch-low'), lib.sessions)).toBe('possible · bar drifting at the knee');

@@ -50,7 +50,7 @@ describe('LiftsScreen', () => {
     expect(getByText('TODAY · SUN 11 OCT')).toBeOnTheScreen();
     expect(getAllByText('Snatch · 3 reps · 62.5 kg')).toHaveLength(2);
     expect(getByText('drift 6 cm · best 2 cm')).toBeOnTheScreen();
-    expect(getByText('analysing · about 20 s')).toBeOnTheScreen();
+    expect(getByText('analysing')).toBeOnTheScreen();
     expect(getByText("Couldn't see the bar at the catch")).toBeOnTheScreen();
     expect(getByText('Queued · free videos used')).toBeOnTheScreen();
     expect(getByTestId('dot-l-snatch-today-trying')).toBeOnTheScreen();
