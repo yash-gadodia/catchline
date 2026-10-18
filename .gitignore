@@ -48,3 +48,4 @@ supabase/.temp/
 .gstack/
 deno.lock
 modules/pose-coreml/ios/models/
+worker/REVISION
