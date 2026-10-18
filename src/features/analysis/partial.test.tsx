@@ -16,6 +16,7 @@ jest.mock('expo-router', () => ({
   __esModule: true,
   router: mockRouter,
   useRouter: () => mockRouter,
+  useNavigation: () => ({ setOptions: () => {}, getParent: () => undefined }),
   useLocalSearchParams: () => mockParams.current,
 }));
 

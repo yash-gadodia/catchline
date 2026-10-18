@@ -1,4 +1,4 @@
-import type { Analysis, KeyFrame, Phase, Point, Rep, TracePoint } from './types';
+import type { Analysis, KeyFrame, Measurement, Phase, PhaseName, Point, Rep, TracePoint } from './types';
 
 export function repByIndex(analysis: Analysis, index: number): Rep {
   return analysis.reps.find((r) => r.index === index) ?? analysis.reps[0];
@@ -104,4 +104,25 @@ export function phaseRail(rep: Rep): { name: Phase['name']; weight: number }[] {
 export function liftPath(rep: Rep): TracePoint[] {
   const end = rep.keyFrames.find((k) => k.phase === 'catch')?.frame ?? rep.endFrame;
   return pathUpTo(rep.path, end);
+}
+
+// A keyframe can sit on the last frame of the phase before it (the catch keyframe ends the
+// turnover), so a keyframe names its own phase before the frame ranges do.
+export function phaseOfFrame(rep: Rep, frame: number): PhaseName | null {
+  return rep.keyFrames.find((k) => k.frame === frame)?.phase ?? phaseAt(rep, frame)?.name ?? null;
+}
+
+export function phaseFrame(rep: Rep, name: PhaseName): number {
+  return keyFrameForPhase(rep, name)?.frame ?? rep.phases.find((p) => p.name === name)?.startFrame ?? rep.startFrame;
+}
+
+export function measurementsByPhase(rep: Rep, measurements: Measurement[]): Partial<Record<PhaseName, Measurement[]>> {
+  const out: Partial<Record<PhaseName, Measurement[]>> = {};
+  for (const m of measurements) {
+    if (m.frame < rep.startFrame || m.frame > rep.endFrame) continue;
+    const name = phaseOfFrame(rep, m.frame);
+    if (name) (out[name] ??= []).push(m);
+  }
+  for (const list of Object.values(out)) list?.sort((a, b) => Number(b.status === 'cue') - Number(a.status === 'cue'));
+  return out;
 }

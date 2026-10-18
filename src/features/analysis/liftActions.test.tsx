@@ -13,6 +13,7 @@ const mockParams: { current: Record<string, string> } = { current: {} };
 jest.mock('expo-router', () => ({
   __esModule: true,
   useRouter: () => mockRouter,
+  useNavigation: () => ({ setOptions: () => {}, getParent: () => undefined }),
   useLocalSearchParams: () => mockParams.current,
 }));
 jest.mock('expo-linking', () => ({ __esModule: true, openURL: jest.fn(async () => true) }));

@@ -22,6 +22,7 @@ jest.mock('expo-router', () => {
     __esModule: true,
     router: r,
     useRouter: () => r,
+    useNavigation: () => ({ setOptions: () => {}, getParent: () => undefined }),
     useLocalSearchParams: () => params.current,
     Redirect: ({ href }: { href: string }) => React.createElement(Text, { testID: 'redirect' }, href),
   };

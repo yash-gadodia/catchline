@@ -105,12 +105,12 @@ describe('PlayerScreen draw mode', () => {
     expect(view.getByTestId('stage-press')).toBeDisabled();
     await drag(view.getByTestId('draw-surface'), [100, 100], [100, 300]);
     const { width, height } = Dimensions.get('window');
-    const box = { width, height: Math.round(Math.min(width * 1.25, height * 0.45)) };
+    const box = { width, height: Math.round(Math.min(width * 1.25, height * 0.4)) };
     const fit = coverFit(snatchMock.video, box, { x: 0.5, y: 0.3 });
     const cm = (200 * snatchMock.video.height) / fit.height / (snatchMock.pxPerCm ?? 1);
     expect(view.getByTestId('draw-label-0')).toHaveTextContent(`${cm.toFixed(1)} cm`);
 
-    await press(view.getByTestId('step-forward'));
+    await press(view.getByTestId('phase-next'));
     expect(view.queryByTestId('draw-surface')).toBeNull();
     expect(view.getByTestId('toggle-draw')).not.toBeChecked();
     expect(view.getByTestId('draw-shape-0')).toBeOnTheScreen();

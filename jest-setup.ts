@@ -155,7 +155,9 @@ jest.mock('expo-router', () => {
   Stack.Screen = () => null;
   const Tabs: any = passthrough;
   Tabs.Screen = () => null;
+  const navigation = { setOptions: jest.fn(), getParent: () => undefined };
   return {
+    useNavigation: () => navigation,
     __esModule: true,
     useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn(), navigate: jest.fn(), dismiss: jest.fn() }),
     useLocalSearchParams: () => ({}),

@@ -5,9 +5,12 @@ import {
   frameAtProgress,
   keyFrameAt,
   liftPath,
+  measurementsByPhase,
   pathFrom,
   pathUpTo,
   phaseAt,
+  phaseFrame,
+  phaseOfFrame,
   phaseRail,
   phaseSeconds,
   phaseTicks,
@@ -140,5 +143,32 @@ describe('liftPath', () => {
     const withCatch: Rep = { ...rep, keyFrames: [...rep.keyFrames, { phase: 'catch', frame: 170 }] };
     expect(liftPath(withCatch).map((p) => p.frame)).toEqual([100, 140, 170]);
     expect(liftPath(rep).map((p) => p.frame)).toEqual([100, 140, 200]);
+  });
+});
+
+describe('phaseOfFrame', () => {
+  it('names the phase whose keyframe sits on the frame, else the phase the frame is in', () => {
+    const r: Rep = { ...rep, keyFrames: [...rep.keyFrames, { phase: 'transition', frame: 149 }] };
+    expect(phaseOfFrame(r, 149)).toBe('transition');
+    expect(phaseOfFrame(r, 148)).toBe('first_pull');
+    expect(phaseOfFrame(r, 99)).toBeNull();
+  });
+});
+
+describe('phaseFrame', () => {
+  it('lands on the phase keyframe, or its first frame without one', () => {
+    expect(phaseFrame(rep, 'first_pull')).toBe(140);
+    expect(phaseFrame({ ...rep, keyFrames: [] }, 'first_pull')).toBe(120);
+  });
+});
+
+describe('measurementsByPhase', () => {
+  const m = (id: string, frame: number, status: 'cue' | 'normal' = 'normal') => ({ id, label: id, value: 1, unit: 'cm' as const, frame, status, note: '' });
+
+  it("groups the rep's measurements by phase, the cue first, and drops frames outside the rep", () => {
+    const grouped = measurementsByPhase(rep, [m('a', 125), m('b', 130, 'cue'), m('c', 105), m('d', 300)]);
+    expect(grouped.first_pull?.map((x) => x.id)).toEqual(['b', 'a']);
+    expect(grouped.setup?.map((x) => x.id)).toEqual(['c']);
+    expect(Object.keys(grouped).sort()).toEqual(['first_pull', 'setup']);
   });
 });

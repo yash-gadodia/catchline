@@ -1,4 +1,5 @@
-import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
+import { useEffect } from 'react';
+import { useLocalSearchParams, useNavigation, useRouter, type Href } from 'expo-router';
 import { useAnalysis } from '../../src/analysis/useAnalysis';
 import AnalysisPlaceholder from '../../src/features/analysis/AnalysisPlaceholder';
 import PlayerScreen from '../../src/features/analysis/PlayerScreen';
@@ -8,6 +9,13 @@ import { captureHref } from '../../src/features/paywall/hooks';
 export default function PlayerRoute() {
   const { fixture, frame, retest } = useLocalSearchParams<{ fixture?: string; frame?: string; retest?: string }>();
   const router = useRouter();
+  const navigation = useNavigation();
+  // iOS 26 makes back a full-screen swipe, which would swallow the video's swipe between phases; back stays on the edge.
+  useEffect(() => {
+    const stacks = [navigation, navigation.getParent()];
+    stacks.forEach((n) => n?.setOptions({ fullScreenGestureEnabled: false }));
+    return () => stacks.forEach((n) => n?.setOptions({ fullScreenGestureEnabled: undefined }));
+  }, [navigation]);
   const load = useAnalysis(fixture);
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
   if (load.status !== 'ready') return <AnalysisPlaceholder status={load.status} onBack={back} />;
