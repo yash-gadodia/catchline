@@ -70,6 +70,11 @@ describe('coach link page logic', () => {
       ok: false,
       error: 'Add your name so they know who it is from.',
     });
+    expect(coach.buildPayload('note', '7f3a', { analysisId: 'x', coachName: 'Dani', text: 'z'.repeat(4001) })).toEqual({
+      ok: false,
+      error: 'That is too long to send. Keep it under 4,000 characters.',
+    });
+    expect(coach.buildPayload('note', '7f3a', { analysisId: 'x', coachName: 'Dani', text: 'z'.repeat(4000) }).ok).toBe(true);
     expect(coach.buildPayload('refilm', '7f3a', { analysisId: 'x', coachName: 'Dani', reasons: ['Film side-on'] })).toEqual({
       ok: true,
       body: { kind: 'refilm', linkId: '7f3a', analysisId: 'x', coachName: 'Dani', reasons: ['Film side-on'] },

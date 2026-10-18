@@ -158,6 +158,7 @@
     if (kind === 'override' && !text) return { ok: false, error: 'Write the cue you want them to try.' };
     if (kind === 'note' && !text) return { ok: false, error: 'Write a note first.' };
     if (kind === 'refilm' && !(fields.reasons && fields.reasons.length)) return { ok: false, error: 'Pick what to change.' };
+    if (kind !== 'refilm' && text.length > 4000) return { ok: false, error: 'That is too long to send. Keep it under 4,000 characters.' };
     var body = { kind: kind, linkId: linkId, analysisId: fields.analysisId, coachName: coach };
     if (kind === 'refilm') body.reasons = fields.reasons.slice();
     else body.text = text;

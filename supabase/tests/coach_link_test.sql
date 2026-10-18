@@ -3,7 +3,7 @@
 -- revoked. Nobody else can mint one, and anon can never read the table.
 begin;
 create extension if not exists pgtap;
-select plan(20);
+select plan(23);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at)
 values
@@ -58,6 +58,12 @@ select is(public.save_coach_feedback((select token from t_link), '{"agree": true
 select is(public.get_coach_link((select token from t_link)) ->> 'notes', 'Good bar path', 'Feedback notes come back');
 select is(public.get_coach_link((select token from t_link)) -> 'overrides' ->> 'agree', 'true', 'Feedback overrides come back');
 select is(public.save_coach_feedback('not-a-real-token', null, 'x'), false, 'Feedback with a wrong token is rejected');
+select throws_ok(format('select public.save_coach_feedback(%L, null, %L)', (select token from t_link), repeat('z', 4001)),
+  'P0001', 'notes_too_long', 'An oversized note is refused by name, not with the raw row');
+select throws_ok(format('select public.save_coach_feedback(%L, %L::jsonb)', (select token from t_link),
+  jsonb_build_object('big', repeat('z', 20000))), 'P0001', 'overrides_too_large', 'An oversized override is refused by name');
+select is(public.save_coach_feedback((select token from t_link), null, repeat('z', 4000)), true, 'A note at the 4000-char limit saves');
+select public.save_coach_feedback((select token from t_link), null, 'Good bar path');
 select throws_ok($$select * from public.coach_links$$, '42501', null, 'anon cannot read the coach_links table');
 reset role;
 
