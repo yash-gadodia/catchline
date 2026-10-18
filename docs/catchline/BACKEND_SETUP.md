@@ -140,7 +140,7 @@ supabase functions deploy delete-account --project-ref slowxjhvrdswdabjfydk --us
 Smoke: sign in with Apple on a build that has this app change, then `select user_id, created_at from public.apple_tokens;` shows the row; delete a throwaway Apple account in the app and check the function log for no "apple revoke failed", and that the app is gone from Settings -> Apple ID -> Sign in with Apple.
 
 ## Known gaps (not built here)
-- **Face blur.** Bystanders are blurred from pose boxes and head keypoints are dropped (CV v2). The lifter's face is not yet blurred in exports/coach links (`14-legal-privacy.md` s.9.2); do it before the coach link is public.
+- **Face blur.** Dropped 18-10-2026 (owner decision): stills and share videos are the lifter's own footage, unblurred. Head keypoints are still dropped before storage.
 - **Coach page.** `get_coach_link` returns the analysis, but keyframe images are private storage paths; the public page needs an edge function that mints signed URLs for a valid token. No page exists yet.
 - **Movements.** CV v2 (worker at a8b790c) analyses all six v1 movements; jerk and kipping HSPU are validated on synthetic data only.
 - **Claude cue phrasing** (Haiku) is not wired; the cue text is the rules engine's canned text.
