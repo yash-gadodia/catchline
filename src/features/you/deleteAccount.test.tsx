@@ -90,3 +90,26 @@ describe('DeleteAccountSheet against the backend', () => {
     expect(liveAnalysis('snatch-mock')).toBe(ANALYSES['snatch-mock']);
   });
 });
+
+describe('DeleteAccountSheet and the keyboard', () => {
+  it('rides above the keyboard while DELETE is typed, and settles back when it closes', async () => {
+    const { Keyboard } = require('react-native');
+    const handlers: Record<string, (e?: unknown) => void> = {};
+    const spy = jest.spyOn(Keyboard, 'addListener').mockImplementation((name: unknown, fn: unknown) => {
+      handlers[name as string] = fn as (e?: unknown) => void;
+      return { remove: jest.fn() } as never;
+    });
+    const screen = await render(<DeleteAccountSheet onKeep={jest.fn()} onDeleted={jest.fn()} />);
+    const sheetBottom = () => {
+      let node = screen.getByTestId('delete-everything');
+      while (node && !(node.props.style && JSON.stringify(node.props.style).includes('"position":"absolute"'))) node = node.parent as never;
+      return (Array.isArray(node.props.style) ? Object.assign({}, ...node.props.style.flat()) : node.props.style).bottom;
+    };
+    expect(sheetBottom()).toBe(0);
+    await act(async () => handlers.keyboardWillShow({ endCoordinates: { height: 336 } }));
+    expect(sheetBottom()).toBe(336);
+    await act(async () => handlers.keyboardWillHide());
+    expect(sheetBottom()).toBe(0);
+    spy.mockRestore();
+  });
+});

@@ -35,11 +35,13 @@ export default function DemoScreen({
 }) {
   const insets = useSafeAreaInsets();
   const { step, skip } = useDemo(start);
+  const [captionHeight, setCaptionHeight] = useState(0);
   if (step === 'end') return <TryYours analysis={analysis} onImport={onImport} onRecord={onRecord} />;
   const index = DEMO_STEPS.findIndex((s) => s.step === step);
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }} testID={`demo-${step}`}>
-      <View style={{ flex: 1 }} pointerEvents="none">
+      {/* The caption is pinned to the bottom; the screen ends above it so the screen's own buttons stay visible. */}
+      <View style={{ flex: 1, paddingBottom: step === 'processing' ? 0 : captionHeight }} pointerEvents="none" testID="demo-stage">
         {step === 'processing' ? <DemoProcessing analysis={analysis} clip={clip} /> : null}
         {step === 'reveal' ? <RevealScreen analysis={analysis} onDone={noop} /> : null}
         {step === 'cue' ? <CueScreen analysis={analysis} nav={{ onTry: noop, onNotForMe: noop, onBack: noop, onFilmAgain: noop }} /> : null}
@@ -68,6 +70,7 @@ export default function DemoScreen({
       <View
         pointerEvents="none"
         testID="demo-caption"
+        onLayout={(e) => setCaptionHeight(e.nativeEvent.layout.height + space.s3)}
         style={{
           position: 'absolute',
           left: space.gutter,

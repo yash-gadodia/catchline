@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Keyboard, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import Btn from '../../components/Btn';
 import Sheet from '../../components/Sheet';
 import { colors, shape, space } from '../../design/tokens';
@@ -27,6 +27,17 @@ export default function DeleteAccountSheet({
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
   const ok = confirmed(text) && !busy;
+  // The sheet sits on the bottom edge, so the keyboard would cover the delete button while the word is typed.
+  const [keyboard, setKeyboard] = useState(0);
+  useEffect(() => {
+    const ios = Platform.OS === 'ios';
+    const show = Keyboard.addListener(ios ? 'keyboardWillShow' : 'keyboardDidShow', (e) => setKeyboard(e.endCoordinates.height));
+    const hide = Keyboard.addListener(ios ? 'keyboardWillHide' : 'keyboardDidHide', () => setKeyboard(0));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
 
   const del = async () => {
     setBusy(true);
@@ -44,7 +55,7 @@ export default function DeleteAccountSheet({
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }} testID="delete-account">
       <Pressable style={{ flex: 1 }} onPress={onKeep} accessibilityLabel={t('you.close')} />
-      <Sheet gap={16}>
+      <Sheet gap={16} style={keyboard ? { bottom: keyboard, paddingBottom: space.s4 } : undefined}>
         <SheetTitle>{t('you.delete.title')}</SheetTitle>
         <Body>
           {t('you.delete.body')}
@@ -58,6 +69,7 @@ export default function DeleteAccountSheet({
             onChangeText={setText}
             autoCapitalize="characters"
             autoCorrect={false}
+            returnKeyType="done"
             testID="delete-confirm-input"
             style={{
               height: 52,
