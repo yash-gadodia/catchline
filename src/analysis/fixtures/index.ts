@@ -22,7 +22,7 @@ export const snatchSideon = parseAnalysis(
 );
 
 // The owner's own squat snatch (20 Sep 2026, rep 2), run through the CV
-// pipeline; the bystander at the left edge is blurred. It detects a snatch (0.9)
+// pipeline. It detects a snatch (0.9)
 // but scores the cue low confidence (filmed ~37° off side-on); the demo shows
 // the standard result, still labelled AI estimate.
 export const DEMO_ID = 'demo-best';

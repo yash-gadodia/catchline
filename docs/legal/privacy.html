@@ -45,7 +45,7 @@
     <h2>What we collect</h2>
     <ul>
       <li><strong>The clip you send.</strong> The video you film or import, the movement you picked and the load you entered. The clip is uploaded once over an encrypted connection to a storage bucket the app can only write to, never read back.</li>
-      <li><strong>What we keep from the clip.</strong> Body positions and bar path as numbers, kept so your history improves when the analysis does; deleted with your account. Head keypoints are dropped before anything is stored, and no video is kept. We also keep the measurements behind the cue and five still frames per lift for the strobe and the evidence crop. People in the background of those stills are blurred.</li>
+      <li><strong>What we keep from the clip.</strong> Body positions and bar path as numbers, kept so your history improves when the analysis does; deleted with your account. Head keypoints are dropped before anything is stored, and no video is kept. We also keep the measurements behind the cue and five still frames per lift for the strobe and the evidence crop.</li>
       <li><strong>Cues and whether they stuck.</strong> Text and dates.</li>
       <li><strong>Your consent choices.</strong> A log of what you agreed to in the app, with the version and the date.</li>
       <li><strong>A usage count.</strong> How many videos you have analysed, so the free allowance and plan caps work.</li>
@@ -57,7 +57,6 @@
     <ul>
       <li>A pose-estimation model on our analysis worker measures your joint positions and the bar position frame by frame. Head keypoints are discarded before storage. No face detection or face recognition model is used anywhere.</li>
       <li>Rule tables written for weightlifting and gymnastics decide which fault matters most and which cue to show. The cue text comes from those rules. Your video, stills and measurements are not sent to any AI language model or to any AI vendor.</li>
-      <li>Five still frames are kept. Anyone in them who is not the lifter is blurred using their body outline, with a blur strong enough that the original cannot be recovered.</li>
       <li>As soon as the analysis finishes (or finally fails), the worker deletes the original clip and records the deletion. A scheduled sweep runs every ten minutes and removes any clip older than 24 hours, so no original video outlives a day on our servers.</li>
       <li>We never log, copy or store your clip anywhere else.</li>
     </ul>

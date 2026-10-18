@@ -93,7 +93,7 @@ export const you: Strings<typeof en> = {
   // REVIEW: machine-drafted, needs a native speaker
   'you.stored.positions.body': 'Posições do corpo e trajetória da barra como números, não vídeo, guardadas para que seu histórico melhore quando a análise melhorar. Sem pontos do rosto; os pontos da cabeça são descartados antes de guardar. Apagadas com sua conta.',
   'you.stored.frames.title': 'Quadros-chave',
-  'you.stored.frames.body': 'Cinco imagens por levantamento para o estroboscópio e o recorte de evidência. Pessoas ao fundo ficam desfocadas.',
+  'you.stored.frames.body': 'Cinco imagens por levantamento para o estroboscópio e o recorte de evidência.',
   'you.stored.cues.title': 'Dicas e se elas funcionaram',
   'you.stored.cues.body': 'Texto e datas.',
   'you.stored.kept': 'guardado',

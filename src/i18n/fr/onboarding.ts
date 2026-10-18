@@ -52,7 +52,6 @@ export const onboarding: Strings<typeof en> = {
   'onboarding.privacy.title': "Ce qui arrive à ta vidéo",
   'onboarding.privacy.faces': "On mesure des positions, pas des visages.",
   'onboarding.privacy.deleted': "La vidéo brute est supprimée sous 24 heures. Le tracé et les chiffres restent.",
-  'onboarding.privacy.blurred': "Les personnes à l'arrière-plan sont floutées.",
   'onboarding.privacy.estimate': "La consigne est une estimation IA, pas un avis médical.",
   'onboarding.privacy.agree': "J'ai lu ceci et j'ai plus de 16 ans.",
   'onboarding.privacy.required': "Obligatoire.",

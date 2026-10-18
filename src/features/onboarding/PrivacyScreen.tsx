@@ -11,7 +11,6 @@ export function privacyPoints(): string[] {
   return [
     t('onboarding.privacy.faces'),
     t('onboarding.privacy.deleted'),
-    t('onboarding.privacy.blurred'),
     t('onboarding.privacy.estimate'),
   ];
 }

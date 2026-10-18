@@ -167,7 +167,7 @@ export const library = {
   'library.failure.too_shaky.readout': 'the wall moved 14 px during the lift',
   'library.failure.multiple_lifters.kicker': 'One more thing',
   'library.failure.multiple_lifters.title': 'Two people lifting. Which one is you?',
-  'library.failure.multiple_lifters.body': "I'll track the one you pick and blur the other.",
+  'library.failure.multiple_lifters.body': "I'll track the one you pick and ignore the other.",
   'library.failure.multiple_lifters.primary': 'A, in white',
   'library.failure.multiple_lifters.alt': 'B, in black',
   'library.failure.multiple_lifters.link0': 'Retake alone',

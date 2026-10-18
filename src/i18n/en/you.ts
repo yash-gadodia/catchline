@@ -89,7 +89,7 @@ export const you = {
   'you.stored.positions.title': 'Positions and bar path',
   'you.stored.positions.body': 'Body positions and bar path as numbers, not video, kept so your history improves when the analysis does. No face points; head keypoints are dropped before storage. Deleted with your account.',
   'you.stored.frames.title': 'Key frames',
-  'you.stored.frames.body': 'Five stills per lift for the strobe and the evidence crop. Background people blurred.',
+  'you.stored.frames.body': 'Five stills per lift for the strobe and the evidence crop.',
   'you.stored.cues.title': 'Cues and whether they stuck',
   'you.stored.cues.body': 'Text and dates.',
   'you.stored.kept': 'kept',

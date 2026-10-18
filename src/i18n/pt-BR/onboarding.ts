@@ -52,7 +52,6 @@ export const onboarding: Strings<typeof en> = {
   'onboarding.privacy.title': "O que acontece com seu vídeo",
   'onboarding.privacy.faces': "Medimos posições, não rostos.",
   'onboarding.privacy.deleted': "O vídeo original é apagado em até 24 horas. A sobreposição e os números ficam.",
-  'onboarding.privacy.blurred': "Pessoas ao fundo ficam desfocadas.",
   'onboarding.privacy.estimate': "A dica é uma estimativa da IA, não um conselho médico.",
   'onboarding.privacy.agree': "Li isto e tenho mais de 16 anos.",
   'onboarding.privacy.required': "Obrigatório.",

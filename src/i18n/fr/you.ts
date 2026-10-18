@@ -93,7 +93,7 @@ export const you: Strings<typeof en> = {
   // REVIEW: machine-drafted, needs a native speaker
   'you.stored.positions.body': "Positions du corps et trajectoire de la barre sous forme de chiffres, pas de vidéo, conservées pour que ton historique s'améliore quand l'analyse s'améliore. Aucun point du visage, les points de la tête sont retirés avant stockage. Supprimées avec ton compte.",
   'you.stored.frames.title': 'Images clés',
-  'you.stored.frames.body': "Cinq images par mouvement pour la chronophotographie et le recadrage de preuve. Les personnes à l'arrière-plan sont floutées.",
+  'you.stored.frames.body': 'Cinq images par mouvement pour la chronophotographie et le recadrage de preuve.',
   'you.stored.cues.title': 'Consignes et si elles ont tenu',
   'you.stored.cues.body': 'Texte et dates.',
   'you.stored.kept': 'conservé',

@@ -172,7 +172,7 @@ export const library: Strings<typeof en> = {
   'library.failure.too_shaky.readout': "die Wand hat sich während des Lifts um 14 px bewegt",
   'library.failure.multiple_lifters.kicker': "Noch eine Sache",
   'library.failure.multiple_lifters.title': "Zwei Personen heben. Wer bist du?",
-  'library.failure.multiple_lifters.body': "Ich verfolge die Person, die du auswählst, und mache die andere unscharf.",
+  'library.failure.multiple_lifters.body': 'Ich verfolge die Person, die du auswählst, und ignoriere die andere.',
   'library.failure.multiple_lifters.primary': "A, in Weiß",
   'library.failure.multiple_lifters.alt': "B, in Schwarz",
   'library.failure.multiple_lifters.link0': "Allein neu aufnehmen",

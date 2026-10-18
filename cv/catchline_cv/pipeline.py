@@ -20,7 +20,6 @@ from .phases import (SNATCH_PHASES, approaches_camera, catch_depth, find_reps, k
                      plate_liftoff, segment_snatch)
 from .pose import (L_ANK, L_BIGTOE, L_ELB, L_HEEL, R_ELB, L_HIP, L_KNEE, L_SHO, L_WRI, R_ANK, R_BIGTOE, R_HEEL,
                    R_HIP, R_KNEE, R_SHO, R_WRI, run_pose, strip_head)
-from .privacy import blur_bystanders, bystanders
 from .track import (camera_path, find_plates, foreground_mask, from_ref, refine_plate, stabilise, to_ref, to_world,
                     track_plate)
 from .video import ClipUnreadable, frames, probe
@@ -191,19 +190,12 @@ def read_frame(clip, f, fps, height=KEYFRAME_H):
 
 
 def export_keyframes(ctx, jobs):
-    """Keyframe JPEGs, one per (frame, path), with every person but the lifter blurred (privacy.blur_bystanders).
-    The frames are seeked and decoded in parallel: each is its own ffmpeg process."""
+    """Keyframe JPEGs, one per (frame, path). The frames are seeked and decoded in parallel: each is its own ffmpeg
+    process."""
     fs = [int(min(max(f, 0), ctx["n"] - 1)) for f, _ in jobs]
     with ThreadPoolExecutor(4) as ex:
         imgs = list(ex.map(lambda f: read_frame(ctx["clip"], f, ctx["fps"]), fs))
-    tracked = np.where(np.isfinite(ctx["boxes"][:, 0]))[0]
-    for f, img, (_, path) in zip(fs, imgs, jobs):
-        # a frame the tracker left empty (no detection matched the lifter) still must not blur the lifter: match the
-        # nearest tracked box
-        near = tracked[np.argmin(np.abs(tracked - f))] if len(tracked) else f
-        others = bystanders(ctx["people"][f], ctx["boxes"][near] if abs(near - f) <= 5 else ctx["boxes"][f])
-        lifter = (ctx["boxes"][f], ctx["k"][f], ctx["ks"][f]) if np.isfinite(ctx["boxes"][f]).all() else None
-        img = blur_bystanders(img, others, lifter, scale=img.shape[0] / ctx["H"])
+    for img, (_, path) in zip(imgs, jobs):
         cv2.imwrite(path, img, [cv2.IMWRITE_JPEG_QUALITY, 85])
 
 
