@@ -1,9 +1,13 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { act, fireEvent, render } from '@testing-library/react-native';
 import * as Speech from 'expo-speech';
+import PoseCoreML from '../../../modules/pose-coreml';
+import * as analytics from '../../lib/analytics';
 import { checkHint, fixedChecker, stubChecker } from './checks';
 import { demoClip } from './demo';
 import ImportScreen from './ImportScreen';
 import ReviewScreen from './ReviewScreen';
+import { newClip } from './store';
 import TrimScreen from './TrimScreen';
 import ViewfinderScreen from './ViewfinderScreen';
 
@@ -200,6 +204,86 @@ describe('Review', () => {
     expect(screen.getByTestId('review-meta')).toHaveTextContent('00:11 · 30 fps');
     expect(screen.getByText('Looks like a handstand push-up. Right?')).toBeOnTheScreen();
     expect(screen.getByText('30 fps clip · timing will be rougher than 60')).toBeOnTheScreen();
+  });
+});
+
+describe('Review framing check', () => {
+  const analyzePose = PoseCoreML!.analyzePose as jest.Mock;
+  // A standing lifter in a 720 x 1280 frame, torso 200 px; shoSep / hipSep in torso lengths.
+  const lifter = (shoSep: number, hipSep: number, anklesY = 1000) => {
+    const kp: ([number, number, number] | null)[] = Array(26).fill(null);
+    for (let j = 5; j < 26; j++) if (j !== 17) kp[j] = [300, 700, 0.8];
+    kp[5] = [300 - shoSep * 100, 400, 0.8];
+    kp[6] = [300 + shoSep * 100, 400, 0.8];
+    kp[11] = [300 - hipSep * 100, 600, 0.8];
+    kp[12] = [300 + hipSep * 100, 600, 0.8];
+    kp[15] = [290, anklesY, 0.8];
+    kp[16] = [320, anklesY, 0.8];
+    const frames = Array.from({ length: 15 }, (_, i) => ({ t: i / 10, people: [{ box: [200, 350, 420, 1050], kp }], lifter: 0 }));
+    return { fps: 10, width: 720, height: 1280, frames };
+  };
+  const filmed = () => newClip({ uri: 'file:///clip.mov', durationS: 8, fps: 60, source: 'camera', movement: 'snatch' });
+  const handlers = () => ({ onWeight: jest.fn(), onMovement: jest.fn(), onRetake: jest.fn(), onTrim: jest.fn(), onAnalyse: jest.fn() });
+
+  beforeEach(async () => {
+    await AsyncStorage.clear();
+    analyzePose.mockClear();
+  });
+  afterEach(() => jest.restoreAllMocks());
+
+  it('filmed front-on: says the angle, Film again retakes, Analyse anyway still analyses, and logs it', async () => {
+    const tracked = jest.spyOn(analytics, 'track');
+    analyzePose.mockResolvedValueOnce(lifter(0.7 * Math.sin(Math.PI / 4), 0.5 * Math.sin(Math.PI / 4)));
+    const h = handlers();
+    const screen = await render(<ReviewScreen clip={filmed()} units="kg" weight="" {...h} />);
+    expect(await screen.findByTestId('framing-note')).toHaveTextContent(
+      "Filmed about 45° from the sideForward and back faults can't be judged from here. Film again from the side, phone at hip height."
+    );
+    await press(screen.getByText('Film again'));
+    expect(h.onRetake).toHaveBeenCalledTimes(1);
+    await press(screen.getByText('Analyse anyway'));
+    expect(h.onAnalyse).toHaveBeenCalledTimes(1);
+    expect(tracked.mock.calls).toEqual([
+      ['framing_checked', { result: 'side_on', off_deg: 45, movement: 'snatch', source: 'camera', ms: expect.any(Number) }],
+    ]);
+  });
+
+  it('feet below the frame: asks for the whole body', async () => {
+    analyzePose.mockResolvedValueOnce(lifter(0, 0, 1400));
+    const screen = await render(<ReviewScreen clip={filmed()} units="kg" weight="" {...handlers()} />);
+    expect(await screen.findByTestId('framing-note')).toHaveTextContent(
+      'Hands or feet out of frameWe need the whole body in the shot to judge the lift. Move the phone back until your hands and feet are both in frame.'
+    );
+    expect(screen.getByTestId('review-film-again')).toBeOnTheScreen();
+  });
+
+  it('side-on and in frame: no card, plain Analyse', async () => {
+    const tracked = jest.spyOn(analytics, 'track');
+    analyzePose.mockResolvedValueOnce(lifter(0, 0));
+    const screen = await render(<ReviewScreen clip={filmed()} units="kg" weight="" {...handlers()} />);
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    expect(analyzePose).toHaveBeenCalledTimes(1);
+    expect(tracked.mock.calls).toEqual([['framing_checked', { result: 'ok', off_deg: 0, movement: 'snatch', source: 'camera', ms: expect.any(Number) }]]);
+    expect(screen.queryByTestId('framing-note')).toBeNull();
+    expect(screen.getByTestId('review-analyse')).toHaveTextContent('Analyse');
+  });
+
+  it('a pose failure fails open: no card, logged as skipped', async () => {
+    const tracked = jest.spyOn(analytics, 'track');
+    analyzePose.mockRejectedValueOnce(new Error('Could not read body pose'));
+    const screen = await render(<ReviewScreen clip={filmed()} units="kg" weight="" {...handlers()} />);
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    expect(tracked.mock.calls).toEqual([['framing_checked', { result: 'skipped', movement: 'snatch', source: 'camera', ms: expect.any(Number) }]]);
+    expect(screen.queryByTestId('framing-note')).toBeNull();
+  });
+
+  it('the bundled sample has no file to check', async () => {
+    await render(<ReviewScreen clip={demoClip('ok')} units="kg" weight="" {...handlers()} />);
+    expect(analyzePose).not.toHaveBeenCalled();
   });
 });
 

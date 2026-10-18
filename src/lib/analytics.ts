@@ -9,6 +9,7 @@ export const EVENTS = {
   PAYWALL_VIEWED: 'paywall_viewed',
   PURCHASE_COMPLETED: 'purchase_completed',
   ACCOUNT_DELETED: 'account_deleted',
+  FRAMING_CHECKED: 'framing_checked',
 } as const;
 
 export type EventName = (typeof EVENTS)[keyof typeof EVENTS];

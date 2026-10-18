@@ -1,15 +1,19 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Movement } from '../../analysis/types';
+import type { PoseResult } from '../../../modules/pose-coreml';
 import Btn from '../../components/Btn';
+import { framingPose } from '../../data/framingCheck';
 import { colors, shape, space, stroke } from '../../design/tokens';
 import { fontFamily, type } from '../../design/typography';
+import { EVENTS, track } from '../../lib/analytics';
 import { liftById } from '../onboarding/lifts';
 import type { Units } from '../onboarding/store';
 import { GateBtn, Note } from '../onboarding/ui';
 import { CHECK_ORDER, checkOverride } from './checks';
 import ClipPlayer from './ClipPlayer';
+import { assessFraming, roundedDeg, type Framing } from './framing';
 import { Header, LiftChip, Meta, Underlined } from './hud';
 import LiftSheet from './LiftSheet';
 import { clock } from './session';
@@ -21,6 +25,42 @@ export function clipMeta(clip: Clip): string {
   if (clip.fps) parts.push(t('capture.review.fps', { fps: clip.fps }));
   if (clip.repsFound) parts.push(t('capture.review.repsFound', { count: clip.repsFound }));
   return parts.join(' · ');
+}
+
+// The setup frames of the clip, checked for camera angle and a whole body before upload. null while it runs,
+// when it is off or fails, or when the clip has no file (the bundled sample).
+export function useFraming(clip: Clip): Framing | null {
+  const [pose, setPose] = useState<PoseResult | null>(null);
+  useEffect(() => {
+    setPose(null);
+    if (!clip.uri) return;
+    let live = true;
+    const started = Date.now();
+    void framingPose(clip.uri, clip.trim.start, clip.trim.end).then((p) => {
+      if (!live) return;
+      setPose(p);
+      const f = p ? assessFraming(p, clip.movement) : null;
+      track(EVENTS.FRAMING_CHECKED, {
+        result: f ? f.kind : 'skipped',
+        ...(f && 'offDeg' in f && f.offDeg != null ? { off_deg: Math.round(f.offDeg) } : {}),
+        movement: clip.movement,
+        source: clip.source,
+        ms: Date.now() - started,
+      });
+    });
+    return () => {
+      live = false;
+    };
+  }, [clip.uri, clip.trim.start]);
+  return useMemo(() => (pose ? assessFraming(pose, clip.movement) : null), [pose, clip.movement]);
+}
+
+export function framingNote(f: Framing): { title: string; body: string } | null {
+  if (f.kind === 'cut_off') return { title: t('capture.review.framing.cutOffTitle'), body: t('capture.review.framing.cutOffBody') };
+  if (f.kind === 'side_on') {
+    return { title: t('capture.review.framing.angleTitle', { deg: roundedDeg(f.offDeg) }), body: t('capture.review.framing.angleBody') };
+  }
+  return null;
 }
 
 export default function ReviewScreen({
@@ -47,6 +87,8 @@ export default function ReviewScreen({
   const [picking, setPicking] = useState(false);
   const cutOff = clip.cutOffFrame != null;
   const override = CHECK_ORDER.find((c) => clip.overridden.includes(c));
+  const framing = useFraming(clip);
+  const refilm = !cutOff && framing ? framingNote(framing) : null;
   const shared = clip.source === 'share';
   const stageH = Math.min(Math.round(width * 1.25), 488);
 
@@ -58,7 +100,7 @@ export default function ReviewScreen({
     >
       <Header
         left={shared ? <Meta>{t('capture.review.from', { app: clip.from ?? t('capture.review.anotherApp') })}</Meta> : <Underlined onPress={onRetake} testID="review-retake">{t('capture.review.retake')}</Underlined>}
-        right={<Meta testID="review-meta">{shared || cutOff || override ? clipMeta({ ...clip, repsFound: null }) : clipMeta(clip)}</Meta>}
+        right={<Meta testID="review-meta">{shared || cutOff || override || refilm ? clipMeta({ ...clip, repsFound: null }) : clipMeta(clip)}</Meta>}
       />
       <ClipPlayer uri={clip.uri} trim={clip.trim} durationS={clip.durationS} width={width} height={stageH} progress={!cutOff}>
         {cutOff ? (
@@ -73,6 +115,10 @@ export default function ReviewScreen({
       {cutOff ? (
         <Note blocked title={t('capture.review.cutOffTitle')} testID="cut-off-note" style={{ marginTop: space.s4, marginHorizontal: space.gutter }}>
           {t('capture.review.cutOffBody')}
+        </Note>
+      ) : refilm ? (
+        <Note blocked title={refilm.title} testID="framing-note" style={{ marginTop: space.s4, marginHorizontal: space.gutter }}>
+          {refilm.body}
         </Note>
       ) : override ? (
         <Note title={checkOverride(override).title} testID="override-note" style={{ marginTop: space.s4, marginHorizontal: space.gutter }}>
@@ -110,6 +156,15 @@ export default function ReviewScreen({
             <GateBtn disabled onPress={onAnalyse} testID="review-analyse">
               {t('capture.review.analyse')}
             </GateBtn>
+          </>
+        ) : refilm ? (
+          <>
+            <Btn onPress={onRetake} testID="review-film-again">
+              {t('capture.review.framing.filmAgain')}
+            </Btn>
+            <Btn kind="secondary" onPress={onAnalyse} testID="review-analyse">
+              {t('capture.review.analyseAnyway')}
+            </Btn>
           </>
         ) : override ? (
           <>
