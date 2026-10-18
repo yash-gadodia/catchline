@@ -1,4 +1,5 @@
 """Fault rules (03-fault-taxonomy.md, 23-gymnastics.md) over measured values. Pure functions, no IO."""
+import math
 
 # fault id -> threshold, unit, lift order (where in the lift the fault starts; the causal chain for gymnastics).
 # horizontal = projection-sensitive (horizontal distance or a 2D joint angle), so capped off side-on.
@@ -27,6 +28,13 @@ RULES = {
     "hspu_banana": {"threshold": 10.0, "unit": "cm", "order": 1, "horizontal": True},
     "hspu_kip_timing": {"threshold": 10.0, "unit": "cm", "order": 2, "horizontal": False},
 }
+# horizontal faults whose value is a forward/back distance the pipeline scales by 1/cos(angle off side-on); the 2D
+# joint angles and timings are not corrected, so they stay capped off side-on
+CORRECTED = {"bar_forward_off_hips", "jump_forward", "forward_dip", "bar_forward_overhead", "no_push_away", "hspu_banana"}
+# up to here the 1/cos correction is trusted one confidence notch down: a 5 deg angle error moves a corrected distance
+# up to 6% at 30 deg and 10% at 45 deg, but 15% at 55 deg and 18% at 60 deg
+GRADED_MAX_DEG = 45.0
+ANGLE_ERR_DEG = 5.0
 
 FAULTS = {
     "snatch": ["hips_rise_early", "bar_forward_off_hips", "jump_forward"],
@@ -171,12 +179,25 @@ def notes(movement, reps, cue, limit=3):
 
 
 def confidence(fault_id, severity, side_on_off_deg):
-    """Camera angle caps confidence: horizontal distances are foreshortened off side-on; vertical ones survive."""
-    if side_on_off_deg is None or side_on_off_deg <= 20:
+    """Camera angle caps confidence: horizontal distances are foreshortened off side-on; vertical ones survive. Up to
+    GRADED_MAX_DEG a corrected forward/back distance drops one notch: clear becomes worth checking, and a fault just
+    over its threshold stays worth checking only if it would still fire with the angle read ANGLE_ERR_DEG wrong."""
+    off = side_on_off_deg
+    if off is None or off <= 20:
         return "clear" if severity >= 1.5 else "worth_checking"
-    if RULES[fault_id]["horizontal"]:
+    if not RULES[fault_id]["horizontal"]:
+        return "worth_checking" if severity >= 1.5 else "low"
+    if fault_id not in CORRECTED or off > GRADED_MAX_DEG:
         return "low"
-    return "worth_checking" if severity >= 1.5 else "low"
+    if severity >= 1.5:
+        return "worth_checking"
+    # value = raw / cos(off); were the true angle off - err (off + err for a below fault) the value would scale by k
+    if RULES[fault_id].get("below"):
+        k = math.cos(math.radians(off)) / math.cos(math.radians(off + ANGLE_ERR_DEG))
+        worst = 2.0 - (2.0 - severity) * k
+    else:
+        worst = severity * math.cos(math.radians(off)) / math.cos(math.radians(off - ANGLE_ERR_DEG))
+    return "worth_checking" if worst >= 1.0 else "low"
 
 
 def rep_confidence(conf, seen, total):

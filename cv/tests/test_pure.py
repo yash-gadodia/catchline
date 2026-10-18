@@ -185,7 +185,7 @@ def test_rules_gate_the_jump_behind_the_bar_swing_and_cap_confidence_off_side_on
     # the jump is more severe, but the swing comes first and causes it (25 section 4 causal gating)
     assert rules.choose_cue(vals) == "bar_forward_off_hips"
     assert rules.choose_cue({"hips_rise_early": -3.0, "bar_forward_off_hips": 2.0, "jump_forward": 11.0}) == "jump_forward"
-    assert rules.confidence("jump_forward", 1.4, 36.0) == "low"
+    assert rules.confidence("jump_forward", 1.4, 36.0) == "worth_checking"
     assert rules.confidence("hips_rise_early", 1.6, 36.0) == "worth_checking"
     assert rules.confidence("jump_forward", 1.6, 5.0) == "clear"
     assert rules.choose_cue({"hips_rise_early": 1.0, "bar_forward_off_hips": None, "jump_forward": 0.0}) is None
@@ -195,6 +195,31 @@ def test_rules_gate_the_jump_behind_the_bar_swing_and_cap_confidence_off_side_on
         "Your back angle dropped 14 deg between the floor and the knee, which put the bar in front of you.")
     assert rules.why_sentence("early_arm_bend", {"early_arm_bend": 0.137}) == (
         "Your elbows bent 140 ms before your hips finished, so the bar lost leg speed.")
+
+
+@pytest.mark.parametrize("fid, sev, off, want", [
+    # side-on: unchanged
+    ("jump_forward", 1.6, 15.0, "clear"), ("jump_forward", 1.1, 15.0, "worth_checking"),
+    ("hips_rise_early", 1.6, 15.0, "clear"), ("hips_rise_early", 1.1, 15.0, "worth_checking"),
+    # 20-45 deg: a corrected distance drops one notch; just over threshold it must survive a 5 deg angle error
+    ("jump_forward", 1.6, 30.0, "worth_checking"), ("jump_forward", 1.1, 30.0, "worth_checking"),
+    ("jump_forward", 1.03, 30.0, "low"), ("bar_forward_off_hips", 1.6, 44.0, "worth_checking"),
+    ("bar_forward_off_hips", 1.1, 44.0, "worth_checking"), ("bar_forward_off_hips", 1.05, 44.0, "low"),
+    ("forward_dip", 1.6, 30.0, "worth_checking"), ("jump_forward", 1.6, 45.0, "worth_checking"),
+    # a below fault is overstated by an angle read too small
+    ("no_push_away", 1.1, 30.0, "worth_checking"), ("no_push_away", 1.04, 30.0, "low"),
+    # 2D joint angles are not corrected for the angle: still capped
+    ("press_out", 2.0, 30.0, "low"), ("incomplete_extension", 2.0, 44.0, "low"),
+    # vertical faults: unchanged off side-on
+    ("hips_rise_early", 1.6, 30.0, "worth_checking"), ("hips_rise_early", 1.1, 30.0, "low"),
+    ("hips_rise_early", 1.6, 44.0, "worth_checking"), ("hips_rise_early", 1.1, 44.0, "low"),
+    ("hips_rise_early", 1.6, 60.0, "worth_checking"), ("hips_rise_early", 1.1, 60.0, "low"),
+    # past 45 deg: horizontal is low whatever the severity
+    ("jump_forward", 1.6, 45.5, "low"), ("jump_forward", 3.0, 60.0, "low"), ("bar_forward_off_hips", 1.1, 60.0, "low"),
+])
+def test_confidence_is_graded_by_camera_angle(fid, sev, off, want):
+    assert rules.confidence(fid, sev, off) == want
+    assert rules.rep_confidence(rules.confidence(fid, sev, off), 3, 3) == want
 
 
 def synthetic_power_snatch(fps=30):
