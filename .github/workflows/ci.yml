@@ -16,6 +16,12 @@ jobs:
     runs-on: [self-hosted, catchline-mini]
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history, so gitleaks scans every commit.
+          fetch-depth: 0
+      # The repo is public: a secret in any commit is a leak, so scan the whole history every run.
+      - name: Secret scan
+        run: gitleaks git --no-banner --redact .
       - uses: actions/setup-node@v4
         with:
           node-version: 20

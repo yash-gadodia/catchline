@@ -1,0 +1,4 @@
+# Reviewed false positives (gitleaks fingerprints). An App Store Connect issuer id is not a secret,
+# and the audit row is prose about a key, not the key.
+bac2a4f7eaa1d1fafeb1c950be91dea249e56d0d:eas.json:generic-api-key:40
+39e3189d3671605061cbcede9f23aab7cf058963:docs/reference/audit-current-state-2026-07-02.md:generic-api-key:27
