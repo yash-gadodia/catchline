@@ -24,12 +24,13 @@ const liftsNav = () => ({
   onRecord: jest.fn(),
   onImport: jest.fn(),
   onDemo: jest.fn(),
-  onCue: jest.fn(),
+  onCue: jest.fn(), onDelete: jest.fn(),
 });
 
 beforeEach(() => {
   jest.clearAllMocks();
   loadLibrary('seeded');
+  require('../paywall/usageStore').useUsage.setState({ usage: { lifetime: 0, month: '', thisMonth: 0 } });
 });
 
 describe('LiftsScreen', () => {
@@ -42,6 +43,7 @@ describe('LiftsScreen', () => {
   });
 
   it('shows every row state with the counter chip and the current cue', async () => {
+    require('../paywall/usageStore').useUsage.setState({ usage: { lifetime: 3, month: '', thisMonth: 0 } });
     const nav = liftsNav();
     const { getByText, getAllByText, getByTestId } = await render(<LiftsScreen nav={nav} />);
     expect(getByText('Free videos used')).toBeOnTheScreen();
@@ -304,5 +306,35 @@ describe('YouTab', () => {
     });
     expect(onOpen).toHaveBeenCalledTimes(1);
     expect(onDev).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('LiftsScreen with the backend on', () => {
+  const backend = require('../../data/backend');
+  const { usePurchases } = require('../purchases/usePurchases');
+  const { useUsage } = require('../paywall/usageStore');
+  beforeEach(() => jest.spyOn(backend, 'backendEnabled').mockReturnValue(true));
+  afterEach(() => {
+    jest.restoreAllMocks();
+    usePurchases.setState({ tier: 'free' });
+  });
+
+  it('the free-videos chip follows a purchase without a library sync', async () => {
+    useUsage.setState({ usage: { lifetime: 2, month: '', thisMonth: 0 } });
+    const { getByText, queryByTestId } = await render(<LiftsScreen nav={liftsNav()} />);
+    expect(getByText('1 free video left')).toBeOnTheScreen();
+    await act(async () => {
+      usePurchases.setState({ tier: 'pull' });
+    });
+    expect(queryByTestId('free-chip')).toBeNull();
+  });
+
+  it('a long press asks to delete the lift', async () => {
+    const nav = liftsNav();
+    const { getByTestId } = await render(<LiftsScreen nav={nav} />);
+    await act(async () => {
+      fireEvent(getByTestId('lift-l-snatch-today'), 'longPress');
+    });
+    expect(nav.onDelete).toHaveBeenCalledWith(expect.objectContaining({ id: 'l-snatch-today' }));
   });
 });

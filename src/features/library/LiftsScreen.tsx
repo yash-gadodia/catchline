@@ -1,3 +1,6 @@
+import { backendEnabled } from '../../data/backend';
+import { usePurchases } from '../purchases/usePurchases';
+import { useUsage } from '../paywall/usageStore';
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -42,6 +45,7 @@ export type LiftsNav = {
   onImport: () => void;
   onDemo: () => void;
   onCue: (id: string) => void;
+  onDelete: (lift: Lift) => void;
 };
 
 export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
@@ -49,7 +53,10 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
   const lib = useLibrary();
   const [group, setGroup] = useState<Group>('all');
   const [movement, setMovement] = useState<Movement | null>(null);
-  const chip = freeVideosLabel(lib);
+  const tier = usePurchases((s) => s.tier);
+  const used = useUsage((s) => s.usage.lifetime);
+  // With a backend, the live plan, so a purchase shows at once, not after the next library sync.
+  const chip = freeVideosLabel(backendEnabled() ? { plan: tier === 'free' ? 'free' : 'paid', freeVideosUsed: used } : lib);
   const header = (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
       <Title>{t('library.tabs.lifts')}</Title>
@@ -204,7 +211,7 @@ function LiftRow({ lift, sessions, cues, newest, nav }: { lift: Lift; sessions: 
       <Frame image={lift.thumb} width={48} height={56} gray opacity={muted ? 0.4 : 1} path={thumbPath(lift)} />
     );
   return (
-    <Row onPress={() => nav.onOpen(lift)} testID={`lift-${lift.id}`} divider="top" style={{ gap: space.s4, paddingVertical: space.s3 }}>
+    <Row onPress={() => nav.onOpen(lift)} onLongPress={() => nav.onDelete(lift)} testID={`lift-${lift.id}`} divider="top" style={{ gap: space.s4, paddingVertical: space.s3 }}>
       {thumb}
       <View style={{ flex: 1, gap: 2 }}>
         <Text style={{ color: muted ? colors.text2 : colors.text, ...type.button }}>
