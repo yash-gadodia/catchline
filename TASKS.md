@@ -183,3 +183,9 @@ Build 26: Cues crashed and Trends was empty on a real account. Root cause: the C
 - [ ] (Yash) Deploy order: `supabase db push` (0014) -> deploy `delete-account` -> redeploy the worker (it starts saving traces) -> app build for the re-analysed line. Run `rerun --dry-run` first; lifts analysed before the worker deploy have no trace and are counted as `no_trace`
 - Gotcha: a replay makes no JPEGs, so a re-run keyframe that names a still the lift does not have takes the nearest existing still. When new cv code asks the trace for a window or plate frame it never recorded, the nearest recorded value stands in and the lift counts as `approximate`
 - [ ] (Yash) Decide: `cv/tests/fixtures/2026-10-05_21B27BAF.mp4.pose.json.gz` (committed earlier, public repo) is every person's pose from a clip INDEX.md lists as another athlete (teal tee), not the owner. Its trace was committed on the same footing; the other athletes' traces were kept off the repo
+
+## Full on-device analysis, no Modal / Mini (planned 18 Oct, ships as 3.1)
+- Plan, phases, decisions and risks: `docs/catchline/on-device-plan.md` (~4-6 weeks to switch the servers off; plate detector after)
+- [ ] (Yash) Phase 0: time `catchline://dev-pose` on your iPhone (and an older one) and answer the 7 decisions in the plan
+- [x] (Claude) Rules + cues in TS (PR #53, 0c899e8)
+- [ ] (Claude) First, separately: the "no cue when filmed off side-on" fix (`fix/angle-cue`), helps every user now
