@@ -187,3 +187,34 @@ def test_a_snatch_whose_bar_never_clears_the_shoulders_lost_the_bar_and_is_never
 def test_nothing_fired_off_side_on_is_not_clean():
     # the horizontal rules read short at 37-56 deg, so a lift with no cue there is unjudged, not clean
     assert withhold(None, {"off_side_deg": 44.4}, meas()) == (None, {"code": "off_side_on", "offSideDeg": 44})
+
+
+
+# e3b87054 (18 Oct), filmed ~58 deg off side-on; distances stored corrected by 1/cos(58 deg)
+E3B8 = {"hips_rise_early": -6.0, "early_arm_bend": -0.47, "bar_forward_off_hips": 11.2, "slow_turnover": 0.43,
+        "bar_crash": None, "jump_forward": 15.5}
+
+
+def test_off_side_on_the_cue_is_chosen_from_on_screen_distances():
+    from catchline_cv import rules
+    # on screen the jump is 8.2 cm (over 8): it fires on its own; the swing (5.9 of 10 cm) is over half its threshold,
+    # so it is cued as the jump's cause at the jump's severity, which clears 1.0 and so is not held back
+    on = rules.on_screen(E3B8, 58.0)
+    assert set(rules.fired({**on, "bar_forward_off_hips": None})) == {"jump_forward"}
+    assert rules.choose_cue(on) == "bar_forward_off_hips"
+    assert rules.fired(on)["bar_forward_off_hips"] == pytest.approx(8.214 / 8.0, abs=1e-3)
+    assert rules.on_screen(E3B8, 58.0)["jump_forward"] == pytest.approx(8.214, abs=1e-3)
+    assert rules.on_screen(E3B8, 15.0) is E3B8
+
+
+def test_a_distance_fault_over_threshold_on_screen_is_worth_checking_not_held_back():
+    from catchline_cv.pipeline import cue_confidence
+    assert cue_confidence("jump_forward", 8.214 / 8.0, 58.0, 1, 1, True) == "worth_checking"
+
+
+def test_timing_faults_and_steep_angles_stay_unjudged_off_side_on():
+    from catchline_cv import rules
+    from catchline_cv.pipeline import cue_confidence
+    assert cue_confidence("slow_turnover", 2.0, 40.0, 1, 1, True) == "low"
+    assert rules.on_screen(E3B8, 75.0)["jump_forward"] is None
+    assert rules.on_screen(E3B8, 75.0)["slow_turnover"] == 0.43

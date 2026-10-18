@@ -166,17 +166,18 @@ LABELS = {
 
 def build(movement, reps, best_rep, W, H):
     """Measurements and the set-level cue for the non-snatch movements."""
-    cue_id, seen = rules.choose_set_cue(movement, [r["values"] for r in reps])
-    cue_rep = max(reps, key=lambda r: rules.fired(r["values"]).get(cue_id, 0.0)) if cue_id else best_rep
+    seen_vals = lambda x: rules.on_screen(x["values"], x["off_side_deg"])
+    cue_id, seen = rules.choose_set_cue(movement, [seen_vals(r) for r in reps])
+    cue_rep = max(reps, key=lambda r: rules.fired(seen_vals(r)).get(cue_id, 0.0)) if cue_id else best_rep
     missed = next((x for x in reps if x.get("outcome", "make") not in ("make", "unknown")), None)
     if missed is not None:
         # a miss gets its own card (26 section 8.1); its cause is the earliest window that fired (section 3)
         cue_rep = missed
-        f_ = rules.gate(set(rules.fired(missed["values"])))
+        f_ = rules.gate(set(rules.fired(seen_vals(missed))))
         cue_id = min(f_, key=lambda k: rules.RULES[k]["order"]) if f_ else None
-        seen = sum(1 for x in reps if cue_id in rules.fired(x["values"])) if cue_id else 0
+        seen = sum(1 for x in reps if cue_id in rules.fired(seen_vals(x))) if cue_id else 0
     r = cue_rep
-    fired = rules.fired(r["values"])
+    fired = rules.fired(seen_vals(r))
     off = r["off_side_deg"]
     angle_note = f"; filmed ~{off:.0f}° off side-on, so treat as an estimate" if off is not None and off > 20 else ""
     meas = []
@@ -208,6 +209,8 @@ def build(movement, reps, best_rep, W, H):
         return meas, None, cue_rep
     sev = fired[cue_id]
     conf = rules.rep_confidence(rules.confidence(cue_id, sev, off), seen, len(reps)) if r.get("scale_ok", True) else "low"
+    if conf == "low" and r.get("scale_ok", True) and rules.confirmed_off_side(cue_id, sev, off):
+        conf = "worth_checking"
     d = r["detail"][cue_id]
     f = int(d["frame"])
     ref = r["_ref"]
