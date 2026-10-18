@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { Pressable, Text, View, useWindowDimensions } from 'react-native';
+import { Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -40,11 +40,17 @@ export default function FailureScreen({
         </Text>
       </View>
       <FailureStage reason={reason} width={width} height={stageH} />
-      <View style={{ flex: 1, paddingTop: space.s5, paddingHorizontal: space.gutter, gap: 10 }}>
+      {/* The longest body needs more lines than the gap between the stage and the pinned actions, which
+          used to overflow and be painted under the buttons (#17). Scrolling keeps every line reachable. */}
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingTop: space.s5, paddingHorizontal: space.gutter, gap: 10 }}
+        testID="failure-copy"
+      >
         <SmallCaps>{copy.kicker}</SmallCaps>
         <Text style={[display(36), { color: colors.text }]}>{copy.title}</Text>
         <Text style={{ color: colors.text2, ...type.callout }}>{copy.body}</Text>
-      </View>
+      </ScrollView>
       <View style={{ paddingTop: space.s4, paddingHorizontal: space.gutter, paddingBottom: Math.max(insets.bottom, space.s7), gap: space.s3 }}>
         {copy.alt ? (
           <View style={{ flexDirection: 'row', gap: space.s2 }}>
