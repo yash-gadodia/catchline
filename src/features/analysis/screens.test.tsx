@@ -2,7 +2,7 @@ import { loadLibrary } from '../library/repository';
 import { act, fireEvent, render, within } from '@testing-library/react-native';
 import * as Haptics from 'expo-haptics';
 import { useVideoPlayer } from 'expo-video';
-import { COMPARE_TARGETS, demoBest, snatchMock, snatchMockLow, snatchMockMiss, snatchSample } from '../../analysis/fixtures';
+import { COMPARE_TARGETS, demoBest, snatchMock, snatchMockLow, snatchMockMiss, snatchReal, snatchSample } from '../../analysis/fixtures';
 import { StyleSheet } from 'react-native';
 import EvidenceStage from './EvidenceStage';
 import CueScreen from './CueScreen';
@@ -234,67 +234,90 @@ describe('CueScreen', () => {
 describe('PlayerScreen', () => {
   const props = { onBack: noop, onCompare: jest.fn(), onShare: noop };
 
-  it('opens on the evidence frame in its phase', async () => {
+  it("opens on the cue's phase with the cue, its keyframe and its readout", async () => {
     const { getByTestId, getByText } = await render(<PlayerScreen analysis={snatchMock} {...props} />);
     expect(getByText('Snatch · 62.5 kg · rep 2')).toBeOnTheScreen();
-    expect(getByTestId('frame-number')).toHaveTextContent('422');
-    expect(getByTestId('chip-transition')).toBeSelected();
+    expect(getByTestId('player-readout')).toHaveTextContent('422 · transition · 1.03 s');
+    expect(getByTestId('frame-transition')).toBeSelected();
+    expect(getByTestId('phase-name')).toHaveTextContent('Transition');
     expect(getByTestId('stage-layer-asset:snatch/3-hip')).toBeOnTheScreen();
+    expect(getByTestId('player-cue')).toHaveTextContent(`The cue · AI estimate${snatchMock.cue!.text}`, { exact: false });
+  });
+
+  it('opens on Setup when there is no cue', async () => {
+    const { getByTestId, queryByTestId } = await render(<PlayerScreen analysis={{ ...snatchMock, cue: null }} {...props} />);
+    expect(getByTestId('frame-setup')).toBeSelected();
+    expect(getByTestId('player-readout')).toHaveTextContent('388 · setup · 0.47 s');
+    expect(queryByTestId('player-cue')).toBeNull();
   });
 
   it('keeps the peak bar speed hidden until it is validated against a sensor', async () => {
-    const { queryByTestId } = await render(<PlayerScreen analysis={snatchMock} {...props} />);
-    expect(queryByTestId('bar-speed')).toBeNull();
+    const { getByTestId, queryByTestId } = await render(<PlayerScreen analysis={snatchMock} {...props} />);
+    await press(getByTestId('frame-second_pull'));
+    expect(queryByTestId('measure-bar_speed')).toBeNull();
+    expect(getByTestId('phase-empty')).toHaveTextContent('Nothing measured in this phase. Lasted 0.18 s.');
   });
 
-  it('jumps to a phase keyframe from its chip with a rigid tick', async () => {
-    const { getByTestId } = await render(<PlayerScreen analysis={snatchMock} {...props} />);
-    await act(async () => {
-      fireEvent.press(getByTestId('chip-turnover'));
-    });
-    expect(getByTestId('frame-number')).toHaveTextContent('446');
+  it('jumps to a phase from its filmstrip frame with a rigid tick', async () => {
+    const { getByTestId, queryByTestId } = await render(<PlayerScreen analysis={snatchMock} {...props} />);
+    await press(getByTestId('frame-turnover'));
+    expect(getByTestId('player-readout')).toHaveTextContent('446 · turnover · 1.43 s');
+    expect(getByTestId('frame-turnover')).toBeSelected();
     expect(getByTestId('stage-layer-asset:snatch/5-turnover')).toBeOnTheScreen();
+    expect(getByTestId('measure-turnover_time')).toHaveTextContent('Turnover time0.21 sbest rep 0.19 s');
+    expect(queryByTestId('player-cue')).toBeNull();
     expect(Haptics.impactAsync).toHaveBeenCalledWith('rigid');
   });
 
-  it('toggles overlays and speed', async () => {
+  it('steps phase to phase from the chevrons and stops at the ends', async () => {
+    const { getByTestId } = await render(<PlayerScreen analysis={snatchMock} {...props} />);
+    await press(getByTestId('phase-next'));
+    expect(getByTestId('frame-second_pull')).toBeSelected();
+    expect(getByTestId('player-readout')).toHaveTextContent('436 · 2nd pull · 1.27 s');
+    for (let i = 0; i < 3; i++) await press(getByTestId('phase-prev'));
+    expect(getByTestId('frame-setup')).toBeSelected();
+    expect(getByTestId('phase-prev')).toBeDisabled();
+    expect(getByTestId('phase-next')).toBeEnabled();
+  });
+
+  it('marks the cue phase with a dot and the phase it follows from with a ring', async () => {
+    const { getByTestId } = await render(<PlayerScreen analysis={snatchReal} {...props} />);
+    expect(getByTestId('frame-catch')).toBeSelected();
+    expect(getByTestId('frame-catch')).toContainElement(getByTestId('frame-mark-cue'));
+    expect(getByTestId('frame-turnover')).toContainElement(getByTestId('frame-mark-follows'));
+  });
+
+  it("lists the phase's measurements, the cue first, with the best rep", async () => {
+    const { getByTestId } = await render(<PlayerScreen analysis={snatchReal} {...props} />);
+    expect(getByTestId('measure-jump_forward')).toHaveTextContent('Jumped forwardcue7.4 cm', { exact: false });
+    expect(getByTestId('measure-jump_forward')).toHaveTextContent('best rep 4.4 cm', { exact: false });
+    expect(getByTestId('measure-bar_peak_height')).toHaveTextContent('Bar peak height125.2 cm', { exact: false });
+    await press(getByTestId('frame-turnover'));
+    expect(getByTestId('measure-bar_forward_off_hips')).toHaveTextContent('Bar forward off hipsleads to cue13.3 cm', { exact: false });
+  });
+
+  it('says when a phase has nothing measured', async () => {
+    const { getByTestId } = await render(<PlayerScreen analysis={snatchReal} {...props} />);
+    await press(getByTestId('frame-setup'));
+    expect(getByTestId('phase-empty')).toHaveTextContent('Nothing measured in this phase.');
+    expect(getByTestId('phase-head')).toHaveTextContent('Setupf 822–851');
+  });
+
+  it('toggles overlays and cycles one speed pill', async () => {
     const { getByTestId, queryByTestId } = await render(<PlayerScreen analysis={snatchMock} {...props} />);
     expect(getByTestId('path-done')).toBeOnTheScreen();
-    await act(async () => {
-      fireEvent.press(getByTestId('toggle-path'));
-    });
+    await press(getByTestId('toggle-path'));
     expect(queryByTestId('path-done')).toBeNull();
-    await act(async () => {
-      fireEvent.press(getByTestId('toggle-strobe'));
-    });
+    await press(getByTestId('toggle-strobe'));
     expect(getByTestId('toggle-strobe')).toBeChecked();
     expect(getByTestId('stage-layer-asset:snatch/1-setup')).toBeOnTheScreen();
-    await act(async () => {
-      fireEvent.press(getByTestId('speed-0.5'));
-    });
-    expect(getByTestId('speed-readout')).toHaveTextContent('0.5×');
-  });
-
-  it('shows a timing on timed phase chips', async () => {
-    const { getByTestId } = await render(<PlayerScreen analysis={snatchMock} {...props} />);
-    expect(getByTestId('chip-first_pull')).toHaveTextContent('1ST PULL0.42');
-    expect(getByTestId('chip-setup')).toHaveTextContent('SETUP');
-  });
-
-  it('steps one frame at a time from the buttons and names the phase the frame is in', async () => {
-    const { getByTestId } = await render(<PlayerScreen analysis={snatchMock} {...props} />);
-    expect(getByTestId('frame-phase')).toHaveTextContent('hip');
-    await press(getByTestId('step-forward'));
-    expect(getByTestId('frame-number')).toHaveTextContent('423');
-    await press(getByTestId('step-back'));
-    await press(getByTestId('step-back'));
-    expect(getByTestId('frame-number')).toHaveTextContent('421');
-    expect(Haptics.impactAsync).toHaveBeenLastCalledWith('light');
-    for (let i = 0; i < 7; i++) await press(getByTestId('step-forward'));
-    expect(getByTestId('frame-number')).toHaveTextContent('428');
-    await press(getByTestId('step-forward'));
-    expect(getByTestId('frame-number')).toHaveTextContent('429');
-    expect(getByTestId('frame-phase')).toHaveTextContent('2nd');
+    expect(getByTestId('speed')).toHaveTextContent('0.25×');
+    await press(getByTestId('speed'));
+    expect(getByTestId('speed')).toHaveTextContent('0.5×');
+    await press(getByTestId('speed'));
+    expect(getByTestId('speed')).toHaveTextContent('1×');
+    await press(getByTestId('speed'));
+    expect(getByTestId('speed')).toHaveTextContent('0.25×');
   });
 
   it('says how confident the cue is, with the reason when not high', async () => {
@@ -304,11 +327,12 @@ describe('PlayerScreen', () => {
     expect(low.getByTestId('player-confidence')).toHaveTextContent('Confidence: medium · bar partly hidden, seen on 2 of 3 reps');
   });
 
-  it('stepping pauses playback', async () => {
+  it('tapping the video plays and pauses, and stepping a phase pauses', async () => {
     const { getByTestId } = await render(<PlayerScreen analysis={snatchMock} {...props} />);
     await press(getByTestId('stage-press'));
     expect(getByTestId('stage-press')).toHaveProp('accessibilityLabel', 'Pause');
-    await press(getByTestId('step-back'));
+    expect(getByTestId('player-play')).toHaveProp('accessibilityLabel', 'Pause');
+    await press(getByTestId('phase-prev'));
     expect(getByTestId('stage-press')).toHaveProp('accessibilityLabel', 'Play');
   });
 });
