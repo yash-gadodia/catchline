@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from catchline_cv.phases import approaches_camera, plate_follows_bar
-from catchline_cv.pipeline import withhold
+from catchline_cv.pipeline import ellipse_angles, not_a_lift, withhold
 
 
 def meas():
@@ -138,3 +138,39 @@ def test_img_0074_counts_its_two_snatches_not_the_cap_fix_or_the_walk_to_the_pho
     a = res if isinstance(res, dict) else res[0]
     assert [(r["startFrame"], r["endFrame"], r["made"]) for r in a["reps"]] == [(678, 841, True), (2005, 2168, True)]
     assert (a["cue"], a["noCueReason"], a["failure"]) == (None, {"code": "off_side_on", "offSideDeg": 46}, None)
+
+
+def near(refined, diameter=207.5):
+    return {"refined": refined, "diameter_px": diameter}
+
+
+SHIN = np.full(120, 134.0)
+
+
+def test_a_coarse_plate_that_never_moves_does_not_veto_a_real_snatch():
+    # e4fe6d08 (owner's snatch, phone pose, ~70 deg off side-on): the near "plate" was floor clutter none of whose 3
+    # setup fits refined. It rose 76 px while the hands rose 449 px from lift-off (52) to the peak (89): 0.17 < 0.25
+    hands = rise(120, 828, 449, 37)
+    clutter = rise(120, 808, 76, 37)
+    assert plate_follows_bar(clutter, hands, 10, 47, 207.5) is False
+    assert not_a_lift(near(False), clutter, hands, SHIN, 10, 47) is False
+
+
+def test_a_refined_plate_left_on_the_floor_still_vetoes():
+    # IMG_0074 cap fix: 4 of 9 setup fits refined, the plate rose 0.07 of the hands
+    assert not_a_lift(near(True, 249.6), rise(80, 900, 23, 63), rise(80, 700, 353, 63), SHIN[:80], 10, 73) is True
+
+
+def test_a_rep_whose_bar_never_rose_from_lift_off_is_not_a_lift():
+    # 1fec9d79 "rep 1": the lifter at the phone, keypoint scores 0.04-0.16, segmented with lift-off = peak = 0
+    flat = np.full(101, 700.0)
+    assert not_a_lift(near(False, 1491.4), flat, flat, np.full(101, 178.8), 0, 0) is True
+
+
+def test_a_plate_angle_comes_only_from_plates_with_a_refined_fit():
+    # eed83127: near plate 1 of 7 fits refined (median 252.1 x 126.0, the coarse grid's 0.5 floor = 60 deg), far plate
+    # 7 of 7 (143.8 x 114.8 = 37 deg). e4fe6d08's seed "plate", 207.5 x 207.5 and never refined, would read 0 deg
+    plates = [{"axes": (252.1, 126.0), "refined": True}, {"axes": (143.8, 114.8), "refined": True},
+              {"axes": (207.5, 207.5), "refined": False}]
+    assert [round(a, 1) for a in ellipse_angles(plates)] == [60.0, 37.0]
+    assert ellipse_angles(plates[2:]) == []
