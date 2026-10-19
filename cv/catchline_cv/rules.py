@@ -41,6 +41,8 @@ GATES = [tuple(g) for g in _DATA["GATES"]]
 # a cause measured at half its threshold still explains a fired effect: the jump threshold sits under the 10 cm swing
 # one, so a 6 cm swing that throws the feet 9 cm forward was being cued as the jump
 PRESENT = _DATA["PRESENT"]
+# the camera angle off side-on reads within 10 deg of the labelled angle (tests/test_camera_angle.py)
+ANGLE_ERR_DEG = 10.0
 
 
 def gate(fired_ids):
@@ -61,16 +63,19 @@ def severity(fid, v):
 
 
 def on_screen(values, off):
-    """Values for choosing the cue when filmed off side-on. A forward distance is stored corrected by 1/cos(off), but
-    its on-screen value can only read short of the truth, so a fault that fires on it is real (20-70 deg). Steeper
-    than 70 deg no forward distance is judged. Shown values stay corrected; only the choice uses these."""
+    """Values for choosing the cue when filmed off side-on. A forward distance is stored corrected by 1/cos(off); for
+    the choice it is corrected only for off less ANGLE_ERR_DEG, the most the angle estimate can be over, so it still
+    cannot read past the truth and a fault that fires on it is real (20-70 deg). Correcting by nothing (the raw
+    on-screen value) held back e97d83bb (19 Oct, 48 deg): bar 9.2 cm forward on screen, 13.7 corrected, at least
+    11.6 within the estimate's error. Steeper than 70 deg no forward distance is judged. Shown values stay corrected."""
     if off is None or off <= 20:
         return values
     out = dict(values)
+    k = math.cos(math.radians(off)) / math.cos(math.radians(off - ANGLE_ERR_DEG))
     for fid, v in values.items():
         r = RULES.get(fid)
         if v is not None and r and r["horizontal"] and r["unit"] == "cm" and not r.get("below"):
-            out[fid] = v * math.cos(math.radians(off)) if off <= 70 else None
+            out[fid] = v * k if off <= 70 else None
     return out
 
 

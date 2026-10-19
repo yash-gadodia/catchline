@@ -152,6 +152,16 @@ def plate_follows_bar(plate_y, bar_y, start, end, diameter, min_ratio=0.25):
     return bool(y[start] - np.nanmin(y[start: last + 1]) >= min_ratio * hands)
 
 
+def plate_on_bar(plate_y, hands_y, diameter):
+    """Whether a plate found at setup is on the bar the lifter holds: the hands hold the bar, which runs through the
+    plate's centre, so the two sit at one height (a 45 cm plate's diameter covers the wrists above the bar and a near
+    plate's perspective drop). 2d294d90 (19 Oct, a clean) tracked another plate on the floor 219 px under the hands,
+    79 px across, which never moved while the hands rose 251 px. Image y; True when either is unknown."""
+    if not (np.isfinite(plate_y) and np.isfinite(hands_y)):
+        return True
+    return bool(abs(plate_y - hands_y) <= diameter)
+
+
 def approaches_camera(shin_px, start, end, ratio=1.5):
     """The person walked toward the camera between lift-off and the peak: their shin (knee to ankle, close to the same
     length through every phase of a lift) came out over `ratio` times longer. IMG_0074 ends with the lifter walking

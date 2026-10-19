@@ -17,7 +17,7 @@ from . import speed
 from .geometry import angle, bar_from_wrists, lowpass, normalise, rise_ratio, trunk_angle
 from .lifter import select_lifter
 from .phases import (SNATCH_PHASES, approaches_camera, catch_depth, find_reps, key_frames, plate_follows_bar,
-                     plate_liftoff, segment_snatch)
+                     plate_liftoff, plate_on_bar, segment_snatch)
 from .pose import (L_ANK, L_BIGTOE, L_ELB, L_HEEL, R_ELB, L_HIP, L_KNEE, L_SHO, L_WRI, R_ANK, R_BIGTOE, R_HEEL,
                    R_HIP, R_KNEE, R_SHO, R_WRI, run_pose, strip_head)
 from .track import (camera_path, find_plates, foreground_mask, from_ref, refine_plate, stabilise, to_ref, to_world,
@@ -262,6 +262,12 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
         # further back and reads smaller)
         pl["refined"] = any("fit_inliers" in q for q in fits)
         scale_ok = scale_ok and (refined or i > 0)  # the far plate only refines the scale; a coarse one was always used
+    stray = not plate_on_bar(plates[0]["centre"][1], mid(kw, L_WRI, R_WRI)[seed, 1], plates[0]["diameter_px"])
+    if stray:
+        # another plate on the floor: it judges nothing (angle, follows-the-bar) and sizes nothing, the body does
+        for pl in plates:
+            pl["refined"] = False
+        scale_ok = False
     near = plates[0]
     scale_near = near["diameter_px"] / PLATE_CM
     far = plates[1] if len(plates) > 1 else None
@@ -307,6 +313,8 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
         depth_ratio = rise_ratio(plate_ref[lo: pull_end + 1, 1], bar[lo: pull_end + 1, 1]) if rise > 0.5 * near["axes"][0] else None
         px_per_cm, scale_method = near_bar_scale(scale_near, depth_ratio, body_scale)
     px_per_cm, scale_method, scale_ok = check_scale(px_per_cm, scale_method, scale_ok, scale_near, body_scale)
+    if stray and body_scale:
+        px_per_cm, scale_method = body_scale, "body segments (plate not on the lifter's bar)"
 
     # forward = direction the toes point at setup
     toe = mid(ksm, L_BIGTOE, R_BIGTOE)[lo] - mid(ksm, L_HEEL, R_HEEL)[lo]
@@ -461,7 +469,22 @@ def turnover_values(ev, elbow, drop_cm, fps, max_s=1.0):
            "bar_crash": {"frame": ev["caught"], "from_frame": ev["peak"]}}
     if not elbow[ev["caught"]] >= 150 or ev["second_ext"] - ev["rebend"] < MIN_PHASE or ev["peak"] - ev["second_ext"] < MIN_PHASE:
         return vals, det
-    t = (ev["caught"] - ev["second_ext"]) / fps
+    # the arms can lock while the bar still rises (a power snatch punched up), so the catch, the first lockout after
+    # the bar's peak, is not always the turnover's end: that is the first lockout after the elbows' deepest bend under
+    # the bar. e97d83bb (19 Oct) locked 0.37 s after full extension, 8 frames before the peak, and read 0.63 s. The
+    # bend is read over 3-frame medians: a one-frame wrist flip (9fb313e4: 6 deg at frame 73, the real pull-under
+    # at 84-88) is not the bend
+    lock = ev["caught"]
+    a = ev["second_ext"]
+    if a >= 1 and lock > a + 1:
+        seg = np.asarray(elbow[a - 1: lock + 1], float)
+        bend = np.median(np.stack([seg[:-2], seg[1:-1], seg[2:]]), axis=0)
+        deepest = a + int(np.argmin(bend))
+        relock = np.where(np.asarray(elbow[deepest:lock]) >= 150)[0]
+        if bend.min() < 150 and len(relock):
+            lock = deepest + int(relock[0])
+            det["slow_turnover"]["frame"] = lock
+    t = (lock - a) / fps
     if t <= max_s:
         vals["slow_turnover"] = t
     if ev["caught"] - ev["peak"] >= MIN_PHASE:

@@ -208,9 +208,8 @@ def build(movement, reps, best_rep, W, H):
     if cue_id is None:
         return meas, None, cue_rep
     sev = fired[cue_id]
-    conf = rules.rep_confidence(rules.confidence(cue_id, sev, off), seen, len(reps)) if r.get("scale_ok", True) else "low"
-    if conf == "low" and r.get("scale_ok", True) and rules.confirmed_off_side(cue_id, sev, off):
-        conf = "worth_checking"
+    from .pipeline import cue_confidence
+    conf = cue_confidence(cue_id, sev, off, seen, len(reps), r.get("scale_ok", True))
     d = r["detail"][cue_id]
     f = int(d["frame"])
     ref = r["_ref"]
