@@ -252,7 +252,9 @@ def find_jerk_reps(at_shoulders, overhead, fps, min_s=0.3, max_gap_s=3.0):
     racks = runs(at_shoulders, k)
     reps = []
     for a, b in runs(overhead, k):
-        before = [r for r in racks if r[1] < a and a - r[1] <= max_gap_s * fps]
+        # runs end inclusive, and a drive straight from the rack takes the wrists from one band into the other, so the
+        # shoulder run can end on or just past the overhead run's first frame (2c7d6090, 45a85340: "no jerk found")
+        before = [r for r in racks if r[0] < a and r[1] <= a + k and a - r[1] <= max_gap_s * fps]
         if not before:
             continue
         start = before[-1][0]
