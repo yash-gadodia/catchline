@@ -197,19 +197,29 @@ E3B8 = {"hips_rise_early": -6.0, "early_arm_bend": -0.47, "bar_forward_off_hips"
 
 def test_off_side_on_the_cue_is_chosen_from_on_screen_distances():
     from catchline_cv import rules
-    # on screen the jump is 8.2 cm (over 8): it fires on its own; the swing (5.9 of 10 cm) is over half its threshold,
-    # so it is cued as the jump's cause at the jump's severity, which clears 1.0 and so is not held back
+    # corrected only for 48 deg (58 less the estimate's 10 deg error) the jump is 12.3 cm (over 8): it fires on its own;
+    # the swing (8.9 of 10 cm) is over half its threshold, so it is cued as the jump's cause at the jump's severity
     on = rules.on_screen(E3B8, 58.0)
     assert set(rules.fired({**on, "bar_forward_off_hips": None})) == {"jump_forward"}
     assert rules.choose_cue(on) == "bar_forward_off_hips"
-    assert rules.fired(on)["bar_forward_off_hips"] == pytest.approx(8.214 / 8.0, abs=1e-3)
-    assert rules.on_screen(E3B8, 58.0)["jump_forward"] == pytest.approx(8.214, abs=1e-3)
+    assert rules.fired(on)["bar_forward_off_hips"] == pytest.approx(12.275 / 8.0, abs=1e-3)
+    assert rules.on_screen(E3B8, 58.0)["jump_forward"] == pytest.approx(12.275, abs=1e-3)
     assert rules.on_screen(E3B8, 15.0) is E3B8
+
+
+def test_a_drift_under_threshold_on_screen_but_over_it_within_the_angle_error_is_cued():
+    from catchline_cv import rules
+    # e97d83bb (19 Oct, 48 deg): bar 13.7 cm forward corrected, 9.2 on screen, 11.6 corrected for 38 deg
+    vals = {"hips_rise_early": -0.9, "early_arm_bend": -0.7, "bar_forward_off_hips": 13.7, "slow_turnover": 0.37,
+            "bar_crash": None, "jump_forward": 4.9}
+    on = rules.on_screen(vals, 48.0)
+    assert on["bar_forward_off_hips"] == pytest.approx(11.633, abs=1e-3)
+    assert rules.choose_cue(on) == "bar_forward_off_hips"
 
 
 def test_a_distance_fault_over_threshold_on_screen_is_worth_checking_not_held_back():
     from catchline_cv.pipeline import cue_confidence
-    assert cue_confidence("jump_forward", 8.214 / 8.0, 58.0, 1, 1, True) == "worth_checking"
+    assert cue_confidence("jump_forward", 12.275 / 8.0, 58.0, 1, 1, True) == "worth_checking"
 
 
 def test_timing_faults_and_steep_angles_stay_unjudged_off_side_on():
@@ -218,3 +228,34 @@ def test_timing_faults_and_steep_angles_stay_unjudged_off_side_on():
     assert cue_confidence("slow_turnover", 2.0, 40.0, 1, 1, True) == "low"
     assert rules.on_screen(E3B8, 75.0)["jump_forward"] is None
     assert rules.on_screen(E3B8, 75.0)["slow_turnover"] == 0.43
+
+
+def test_a_plate_far_below_the_hands_at_setup_is_not_on_the_lifters_bar():
+    from catchline_cv.phases import plate_on_bar
+    # 2d294d90 (19 Oct, a clean): a 79 px plate on the floor 219 px under the hands
+    assert plate_on_bar(1018.0, 799.0, 79.0) is False
+    # the lifter's own plate: the wrists sit a few cm above its centre
+    assert plate_on_bar(900.0, 860.0, 168.0) is True
+    assert plate_on_bar(np.nan, 860.0, 168.0) is True
+
+
+def test_turnover_ends_at_the_relock_after_the_pull_under_not_at_a_later_bar_peak():
+    from catchline_cv.pipeline import turnover_values
+    # e97d83bb (19 Oct): full extension at 73, elbows deepest at 79, locked at 84; the bar peaked at 92
+    elbow = np.full(140, 170.0)
+    elbow[73:93] = [155, 131, 117, 79, 61, 35, 23, 97, 122, 131, 142, 154, 161, 165, 167, 167, 169, 171, 171, 170]
+    ev = {"rebend": 60, "second_ext": 73, "peak": 92, "caught": 92}
+    vals, det = turnover_values(ev, elbow, 0.0, 30.0)
+    assert vals["slow_turnover"] == pytest.approx(11 / 30)
+    assert det["slow_turnover"]["frame"] == 84
+
+
+def test_a_one_frame_elbow_glitch_is_not_the_pull_under():
+    from catchline_cv.pipeline import turnover_values
+    # 9fb313e4: a one-frame 6 deg read at 73, the real pull-under at 84-88, relocked at 90 (0.77 s, a real slow turnover)
+    elbow = np.full(140, 165.0)
+    elbow[67:98] = [158, 140, 121, 100, 109, 101, 6, 98, 142, 159, 141, 148, 162, 173, 169, 162, 164, 42, 31, 33, 43,
+                    68, 135, 172, 171, 170, 168, 165, 159, 149, 141]
+    ev = {"rebend": 55, "second_ext": 67, "peak": 85, "caught": 90}
+    vals, _ = turnover_values(ev, elbow, 23.5, 29.97)
+    assert vals["slow_turnover"] == pytest.approx(23 / 29.97)

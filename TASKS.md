@@ -189,3 +189,10 @@ Build 26: Cues crashed and Trends was empty on a real account. Root cause: the C
 - [ ] (Yash) Phase 0: time `catchline://dev-pose` on your iPhone (and an older one) and answer the 7 decisions in the plan
 - [x] (Claude) Rules + cues in TS (PR #53, 0c899e8)
 - [ ] (Claude) First, separately: the "no cue when filmed off side-on" fix (`fix/angle-cue`), helps every user now
+
+## Clean no-reps + angled snatch cue (19 Oct, `fix/clean-angle`)
+- [x] (Claude) Clean 2d294d90/4fa57cd4 (same clip, tester) no longer "no reps": the tracked plate sat 219 px under the hands at setup, 79 px across, never moved; `plate_on_bar` drops a plate more than a diameter from the hands (no follows-the-bar test, no angle, body scale). Clean cues now use the snatch's `cue_confidence`, so a timing fault (early arm bend) is not held back for a missing plate scale
+- [x] (Claude) Off side-on, `on_screen` corrects forward distances for off less 10 deg (the angle estimate's error) instead of not at all: e97d83bb (48 deg) and 742f6bde (43 deg) get "Brush the bar up"
+- [x] (Claude) Slow turnover ends at the first relock after the elbows' deepest bend (3-frame medians), not the first lockout after a late bar peak: e97d83bb read 0.63 s, really 0.37 s. Gotcha: raw argmin picked 9fb313e4's one-frame 6 deg wrist flip and dropped its real 0.77 s slow turnover
+- Replays: all 10 golden traces byte-identical; of 22 prod traces only these 4 lifts change. E0DF8887 golden is red on origin/catchline too (pre-existing)
+- [ ] (Claude) Mirror `on_screen`/`confirmed_off_side`/ANGLE_ERR_DEG in `src/analysis/device/rules.ts` when the device port resumes
