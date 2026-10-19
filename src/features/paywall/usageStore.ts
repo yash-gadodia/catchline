@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { EMPTY_USAGE, recordAnalysis, type Tier, type Usage, type Variant } from './entitlements';
+import { EMPTY_USAGE, monthKey, recordAnalysis, type Tier, type Usage, type Variant } from './entitlements';
+import type { Allowance } from '../../lib/api';
 
 export type QueuedClip = { id: string; movement: string };
 
@@ -14,6 +15,7 @@ type UsageState = {
   warnedAt: number | null;
   warnLastFree: () => void;
   record: (tier: Tier, now: Date) => void;
+  adopt: (allowance: Allowance, now: Date) => void;
   queueClip: (clip: QueuedClip) => void;
   takeQueued: () => QueuedClip | null;
   setVariant: (variant: Variant) => void;
@@ -29,6 +31,18 @@ export const useUsage = create<UsageState>()(
       warnedAt: null,
       warnLastFree: () => set({ warnedAt: get().usage.lifetime }),
       record: (tier, now) => set({ usage: recordAnalysis(get().usage, tier, now) }),
+      // The server's count is the truth: the local one drifted (a lift reopened from
+      // the library counted twice) and paywalled a lifter with a free video left.
+      adopt: (allowance, now) => {
+        const used = Math.max(0, allowance.used - allowance.bonus);
+        const usage = get().usage;
+        set({
+          usage:
+            allowance.period === 'lifetime'
+              ? { ...usage, lifetime: used }
+              : { lifetime: Math.max(usage.lifetime, used), month: monthKey(now), thisMonth: used },
+        });
+      },
       queueClip: (clip) => {
         if (get().queue.some((c) => c.id === clip.id)) return;
         set({ queue: [...get().queue, clip] });
