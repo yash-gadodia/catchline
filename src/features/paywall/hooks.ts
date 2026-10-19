@@ -6,6 +6,8 @@ import { chipState, gateFor, lastFreeDue, trialDue, videosRemaining, type ChipSt
 import { planKey, type Plan } from './products';
 import { getFoundingSeats, type FoundingSeats } from './seats';
 import { useUsage } from './usageStore';
+import { backendEnabled } from '../../data/backend';
+import { getAllowance } from '../../lib/api';
 
 export function storePlatform(): StorePlatform {
   return Platform.OS === 'android' ? 'android' : 'ios';
@@ -44,6 +46,18 @@ export function useVideosLeft(now: Date = new Date()): number {
   const usage = useUsage((s) => s.usage);
   const variant = useUsage((s) => s.variant);
   return videosRemaining(tier, usage, now, variant);
+}
+
+// Pull the free/plan count from the server (lift_allowance). Offline or before a
+// session exists, the local count stands until the next sync.
+export async function syncServerUsage(now: Date = new Date()): Promise<void> {
+  if (!backendEnabled()) return;
+  try {
+    const allowance = await getAllowance();
+    if (allowance) useUsage.getState().adopt(allowance, now);
+  } catch {
+    // keep the local count
+  }
 }
 
 // What the capture flow does with the next clip once it is saved.

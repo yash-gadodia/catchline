@@ -16,6 +16,7 @@ import { colors } from '../src/design/tokens';
 import { supabase } from '../src/lib/supabase';
 import { backendEnabled } from '../src/data/backend';
 import { syncLibrary } from '../src/data/library';
+import { syncServerUsage } from '../src/features/paywall/hooks';
 import { installForegroundHandler, liftIdFromResponse, registerPushToken, routeForLift } from '../src/features/notifications';
 import { init as initAnalytics, identify, reset, track, EVENTS } from '../src/lib/analytics';
 import { startAuthUserSync } from '../src/features/auth/authUser';
@@ -57,7 +58,9 @@ export default function RootLayout() {
 
     if (!backendEnabled()) return;
     const stopAuthUserSync = startAuthUserSync();
-    syncLibrary().catch(() => undefined);
+    syncLibrary()
+      .catch(() => undefined)
+      .then(() => syncServerUsage());
 
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) {

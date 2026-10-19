@@ -103,17 +103,26 @@ function wireBackend() {
     return result([]);
   });
   db.rpc.mockImplementation(async (fn: string) => {
-    if (fn === 'create_lift') return { data: { ...LIFT, status: 'uploading' }, error: null };
+    if (fn === 'lift_allowance') return { data: allowance(), error: null };
+    if (fn === 'create_lift') {
+      serverUsed += 1;
+      return { data: { ...LIFT, status: 'uploading' }, error: null };
+    }
     if (fn === 'enqueue_lift') return { data: { ...LIFT, status: 'queued' }, error: null };
     return { data: null, error: null };
   });
   db.storage.from.mockReturnValue({ createSignedUrls: jest.fn(async () => ({ data: [], error: null })) });
 }
 
+// The server's free-video count (usage_counters): create_lift charges, lift_allowance reads it.
+let serverUsed = 0;
+const allowance = () => ({ plan: 'free', period: 'lifetime', cap: 3, used: serverUsed, bonus: 0, remaining: Math.max(3 - serverUsed, 0) });
+
 global.fetch = jest.fn(async () => ({ blob: async () => new Blob(['x'.repeat(1024)]) })) as unknown as typeof fetch;
 
 beforeEach(() => {
   jest.clearAllMocks();
+  serverUsed = 0;
   params.current = {};
   analysisRow = null;
   resetConsentSync();
@@ -533,6 +542,7 @@ describe('uploadStep', () => {
 describe('paywall gate', () => {
   it('sends video 4 on the free plan to the paywall and never creates a lift', async () => {
     useUsage.setState({ usage: { lifetime: 3, month: '2026-10', thisMonth: 3 } });
+    serverUsed = 3;
     await submitClip(CLIP);
 
     expect(nav.push).toHaveBeenCalledTimes(1);
@@ -540,16 +550,17 @@ describe('paywall gate', () => {
     expect(pathname).toBe('/paywall');
     expect(p.movement).toBe('snatch');
     expect(p.clip).toMatch(/^clip-\d+$/);
-    expect(db.rpc).not.toHaveBeenCalled();
+    expect(db.rpc).not.toHaveBeenCalledWith('create_lift', expect.anything());
     expect(usePipeline.getState().job).toBeNull();
   });
 
   it('sends the ad funnel to the trial paywall after its one free video', async () => {
     useUsage.setState({ usage: { lifetime: 1, month: '2026-10', thisMonth: 1 }, variant: 'ad' });
+    serverUsed = 1;
     await submitClip(CLIP);
 
     expect(nav.push).toHaveBeenCalledWith('/paywall/funnel/trial');
-    expect(db.rpc).not.toHaveBeenCalled();
+    expect(db.rpc).not.toHaveBeenCalledWith('create_lift', expect.anything());
   });
 
   it('leaving the cue opens the trial paywall once the ad funnel is due', async () => {

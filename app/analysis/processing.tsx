@@ -7,6 +7,7 @@ import type { Analysis, Failure } from '../../src/analysis/types';
 import ProcessingSheet, { EXPECTED_ANALYSIS_S, type ProcessingState } from '../../src/features/analysis/ProcessingSheet';
 import { registerPushToken } from '../../src/features/notifications';
 import { useUsage } from '../../src/features/paywall/usageStore';
+import { syncServerUsage } from '../../src/features/paywall/hooks';
 import { usePurchases } from '../../src/features/purchases/usePurchases';
 import { liftsAhead, subscribeToLift } from '../../src/lib/api';
 import { syncLibrary } from '../../src/data/library';
@@ -173,7 +174,9 @@ function LiveProcessing({ lift }: { lift?: string }) {
           return;
         }
         putLiveAnalysis(a);
-        recordUsage();
+        // create_lift already charged this lift on the server; reopening it from the
+        // library must not count it again, so read the count instead of adding one.
+        void syncServerUsage();
         syncLibrary().catch(() => undefined);
         setAnalysis(a);
       },

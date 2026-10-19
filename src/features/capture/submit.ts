@@ -4,7 +4,7 @@ import { useOnboarding, type Units } from '../onboarding/store';
 import type { CheckId } from './checks';
 import { activeTrim, useCapture, type Clip, type ClipSource } from './store';
 import type { Trim } from './trim';
-import { nextClipGate } from '../paywall/hooks';
+import { nextClipGate, syncServerUsage } from '../paywall/hooks';
 import { backendEnabled } from '../../data/backend';
 import { startLift } from '../../data/pipeline';
 
@@ -49,7 +49,12 @@ export function toSubmission(clip: Clip, weight: string, units: Units): ClipSubm
 // capture rather than play the fixture as the lifter's own lift.
 export async function submitClip(clip: ClipSubmission, opts: { replace?: boolean } = {}): Promise<void> {
   const go = opts.replace ? router.replace : router.push;
-  const gate = nextClipGate();
+  let gate = nextClipGate();
+  // Before any paywall, ask the server: the local count can be stale or wrong.
+  if (gate !== 'ok' && backendEnabled()) {
+    await syncServerUsage();
+    gate = nextClipGate();
+  }
   const params = { clip: `clip-${Date.now()}`, movement: clip.movement };
   if (gate === 'paywall') return go({ pathname: '/paywall', params });
   if (gate === 'cap') return go({ pathname: '/paywall/cap', params });
