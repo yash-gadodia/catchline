@@ -200,6 +200,22 @@ def test_find_jerk_reps_pairs_a_shoulder_hold_with_the_next_overhead_hold():
     assert find_jerk_reps(at_sho, over, FPS) == [(10, 109, 75)]
 
 
+def test_find_jerk_reps_pairs_a_shoulder_hold_that_runs_straight_into_the_overhead_hold():
+    # 2c7d6090 / 45a85340 (19 Oct): the drive takes the wrists from the shoulder band to over the head with no frame
+    # in neither, so the shoulder run ends on (or one past) the overhead run's first frame. Both were "no jerk found"
+    n = 330
+    at_sho = np.zeros(n, bool)
+    over = np.zeros(n, bool)
+    at_sho[31:263] = True
+    over[262:323] = True
+    assert find_jerk_reps(at_sho, over, FPS) == [(31, 322, 262)]
+    at_sho[:] = False
+    over[:] = False
+    at_sho[0:37] = True
+    over[35:96] = True
+    assert find_jerk_reps(at_sho, over, FPS) == [(0, 95, 35)]
+
+
 def synthetic_jerk():
     """Bar height (cm) from the rack: hold, dip 10 cm, drive to overhead, land in the split, recover."""
     h = np.concatenate([np.full(30, 150.0), np.linspace(149, 140, 8), np.linspace(141, 175, 6), np.linspace(180, 205, 6),
