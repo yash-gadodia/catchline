@@ -22,6 +22,8 @@ import { init as initAnalytics, identify, reset, track, EVENTS } from '../src/li
 import { startAuthUserSync } from '../src/features/auth/authUser';
 import { useLocale } from '../src/i18n';
 
+const LAUNCH_FAILSAFE_MS = 4000;
+
 export const unstable_settings = { initialRouteName: '(tabs)' };
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
@@ -83,6 +85,16 @@ export default function RootLayout() {
       stopAuthUserSync();
     };
   }, []);
+
+  // Failsafe: whatever happens to the launch draw, the splash and the overlay go.
+  useEffect(() => {
+    if (!fontsLoaded) return;
+    const timer = setTimeout(() => {
+      SplashScreen.hideAsync().catch(() => undefined);
+      setLaunched(true);
+    }, LAUNCH_FAILSAFE_MS);
+    return () => clearTimeout(timer);
+  }, [fontsLoaded]);
 
   if (!fontsLoaded) {
     return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
