@@ -283,8 +283,12 @@ func trackLifter(_ people: [[PosePerson]]) -> [Int?] {
 
 // Separable bicubic resampling table (Keys kernel, a = -0.6: swscale's default
 // bicubic, B = 0, C = 0.6), pixel centres aligned, edges clamped, weights normalised.
+// swscale's bicubic (B 0, C 0.6): when downscaling the kernel is stretched by the ratio
+// and the taps grow to 1 + ceil(4 * ratio), so a 5x downscale is anti-aliased like ffmpeg's
+// (a fixed 4-tap kernel left 360 px frames ~50% sharper than ffmpeg's and the camera path drifted).
 struct Resampler {
   let n: Int
+  let taps: Int
   let idx: [Int]
   let w: [Float]
 
@@ -295,39 +299,58 @@ struct Resampler {
       if x < 2 { return a * x * x * x - 5 * a * x * x + 8 * a * x - 4 * a }
       return 0
     }
-    var idx = [Int](repeating: 0, count: dst * 4), w = [Float](repeating: 0, count: dst * 4)
+    let ratio = Float(src) / Float(dst)
+    let taps = src > dst ? max(min(1 + (4 * src + dst - 1) / dst, src - 2), 1) : 4
+    let stretch = src > dst ? ratio : 1
+    var idx = [Int](repeating: 0, count: dst * taps), w = [Float](repeating: 0, count: dst * taps)
     for d in 0 ..< dst {
-      let pos = (Float(d) + 0.5) * Float(src) / Float(dst) - 0.5
-      let base = Int(pos.rounded(.down))
+      let pos = (Float(d) + 0.5) * ratio - 0.5
+      let start = Int(pos - Float(taps - 2) / 2)  // C division: toward zero
       var sum: Float = 0
-      for t in 0 ..< 4 {
-        idx[d * 4 + t] = min(max(base - 1 + t, 0), src - 1)
-        w[d * 4 + t] = k(pos - Float(base - 1 + t))
-        sum += w[d * 4 + t]
+      for t in 0 ..< taps {
+        idx[d * taps + t] = min(max(start + t, 0), src - 1)
+        w[d * taps + t] = k((pos - Float(start + t)) / stretch)
+        sum += w[d * taps + t]
       }
-      for t in 0 ..< 4 { w[d * 4 + t] /= sum }
+      for t in 0 ..< taps { w[d * taps + t] /= sum }
     }
     n = dst
+    self.taps = taps
     self.idx = idx
     self.w = w
   }
 }
 
-// plane (h x w, `stride` floats per row) -> (rh.n x rw.n)
+// plane (h x w) -> (rh.n x rw.n): rows first (contiguous, vDSP), then columns on the fewer rows
 func resample(_ p: [Float], w: Int, h: Int, _ rw: Resampler, _ rh: Resampler) -> [Float] {
-  var tmp = [Float](repeating: 0, count: h * rw.n)
-  for y in 0 ..< h {
-    for x in 0 ..< rw.n {
-      var v: Float = 0
-      for t in 0 ..< 4 { v += p[y * w + rw.idx[x * 4 + t]] * rw.w[x * 4 + t] }
-      tmp[y * rw.n + x] = v
+  var tmp = [Float](repeating: 0, count: rh.n * w)
+  let tw = rw.taps, th = rh.taps
+  p.withUnsafeBufferPointer { src in
+    tmp.withUnsafeMutableBufferPointer { dst in
+      for y in 0 ..< rh.n {
+        let o = dst.baseAddress! + y * w
+        for t in 0 ..< th {
+          var wy = rh.w[y * th + t]
+          vDSP_vsma(src.baseAddress! + rh.idx[y * th + t] * w, 1, &wy, o, 1, o, 1, vDSP_Length(w))
+        }
+      }
     }
   }
   var out = [Float](repeating: 0, count: rh.n * rw.n)
-  for y in 0 ..< rh.n {
-    for t in 0 ..< 4 {
-      let sy = rh.idx[y * 4 + t], wy = rh.w[y * 4 + t]
-      for x in 0 ..< rw.n { out[y * rw.n + x] += tmp[sy * rw.n + x] * wy }
+  tmp.withUnsafeBufferPointer { src in
+    out.withUnsafeMutableBufferPointer { dst in
+      rw.idx.withUnsafeBufferPointer { idx in
+        rw.w.withUnsafeBufferPointer { wts in
+          for y in 0 ..< rh.n {
+            let row = src.baseAddress! + y * w, o = dst.baseAddress! + y * rw.n
+            for x in 0 ..< rw.n {
+              var v: Float = 0
+              for t in 0 ..< tw { v += row[idx[x * tw + t]] * wts[x * tw + t] }
+              o[x] = v
+            }
+          }
+        }
+      }
     }
   }
   return out

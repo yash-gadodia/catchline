@@ -2,6 +2,7 @@
 // macOS CLI around the module's Swift (symlinked from ../ios, minus the Expo module file): runs the
 // on-device pipeline on a video file and writes the trace, so trace-vs-Python parity is checked off-device.
 //   swift build -c release && .build/release/catchline-harness pose <clip> --models <dir> --out trace.json.gz
+// camera-path: the camera-motion stage alone, no models (cv/scripts/camera_parity.py drives it).
 import PackageDescription
 
 let package = Package(
@@ -11,6 +12,11 @@ let package = Package(
     .executableTarget(
       name: "harness",
       path: "Sources/harness",
+      exclude: ["core/PoseCoreMLModule.swift", "core/PoseCoreML.podspec"]
+    ),
+    .executableTarget(
+      name: "camera-path",
+      path: "Sources/camera-path",
       exclude: ["core/PoseCoreMLModule.swift", "core/PoseCoreML.podspec"]
     ),
   ]
