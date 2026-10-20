@@ -109,7 +109,10 @@ def run_snatch(ctx):
     t0, t_pose = ctx["t0"], ctx["t_pose"]
     up = lambda y: H - y
     wr_h = up(mid(k, L_WRI, R_WRI)[:, 1])
-    reps = find_reps(lowpass(wr_h, fps), lowpass(up(mv.head_y(k)), fps), lowpass(up(mid(k, L_KNEE, R_KNEE)[:, 1]), fps), fps)
+    # overhead = the bar overhead, from the wrist that continues it: a far wrist parked low halves the midpoint's height
+    bar_h = up(bar_from_wrists(k[:, L_WRI], k[:, R_WRI], 0.12 * float(np.nanmedian(boxes[:, 3] - boxes[:, 1])))[:, 1])
+    reps = find_reps(lowpass(wr_h, fps), lowpass(up(mv.head_y(k)), fps), lowpass(up(mid(k, L_KNEE, R_KNEE)[:, 1]), fps), fps,
+                     over_h=lowpass(bar_h, fps))
     if not reps:
         return fail("unsupported_movement", "no_reps", "No floor-to-overhead lift found in this clip.")
 
@@ -229,7 +232,15 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
     knee, ank = mid(ksm, L_KNEE, R_KNEE), mid(ksm, L_ANK, R_ANK)
     trunk = trunk_angle(sho, hip)
 
-    elbow = np.minimum(angle(ksm[:, L_SHO], ksm[:, L_ELB], ksm[:, L_WRI]), angle(ksm[:, R_SHO], ksm[:, R_ELB], ksm[:, R_WRI]))
+    el_l, el_r = angle(ksm[:, L_SHO], ksm[:, L_ELB], ksm[:, L_WRI]), angle(ksm[:, R_SHO], ksm[:, R_ELB], ksm[:, R_WRI])
+    elbow = np.minimum(el_l, el_r)
+    # one bar: wrists more than 0.12 body heights apart in height disagree, so one is misread and the arm whose wrist
+    # continues the bar stands (bar_from_wrists' choice; 9fb313e4: the left wrist parked at the shoulder for 5 frames,
+    # elbow 32-68 deg, while the right arm was locked at 178; it read a 0.77 s turnover, really 0.3 s)
+    apart = np.abs(kr[:, L_WRI, 1] - kr[:, R_WRI, 1]) > 0.12 * body_h
+    on_bar = bar_from_wrists(kr[:, L_WRI], kr[:, R_WRI], 0.12 * body_h)
+    left = np.linalg.norm(kr[:, L_WRI] - on_bar, axis=1) <= np.linalg.norm(kr[:, R_WRI] - on_bar, axis=1)
+    elbow[apart] = np.where(left[apart], el_l[apart], el_r[apart])
     rack = None
     if kind == "clean":
         from .lifts import rack_mask
@@ -247,11 +258,13 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
     def plates_at(f):
         return [refine_plate(fr[f], p) or p for p in find_plates(fr[f], kw[f, L_WRI], kw[f, R_WRI], body_h, setup_h)]
     plates = plates_at(seed)
-    if not plates:
-        return None
-    samples = [plates_at(f) for f in range(max(0, lo - 24), lo, 3)]
     from .lifts import scale_from_body
     body_scale = scale_from_body(kw)
+    # no plate at setup (24d4c6df, uploaded three times: a real 1.9 s snatch ~20 deg off side-on, no plate found):
+    # the body sizes the lift and the pose gives the angle, as for a plate that is not on the lifter's bar
+    if not plates and not body_scale:
+        return None
+    samples = [plates_at(f) for f in range(max(0, lo - 24), lo, 3)] if plates else []
     scale_ok = True
     for i, pl in enumerate(plates):
         fits = [s[i] for s in [plates] + samples if len(s) == len(plates) and s[i]["side"] == pl["side"]]
@@ -262,16 +275,18 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
         # further back and reads smaller)
         pl["refined"] = any("fit_inliers" in q for q in fits)
         scale_ok = scale_ok and (refined or i > 0)  # the far plate only refines the scale; a coarse one was always used
-    stray = not plate_on_bar(plates[0]["centre"][1], mid(kw, L_WRI, R_WRI)[seed, 1], plates[0]["diameter_px"])
+    stray = bool(plates) and not plate_on_bar(plates[0]["centre"][1], mid(kw, L_WRI, R_WRI)[seed, 1], plates[0]["diameter_px"])
     if stray:
         # another plate on the floor: it judges nothing (angle, follows-the-bar) and sizes nothing, the body does
         for pl in plates:
             pl["refined"] = False
         scale_ok = False
-    near = plates[0]
-    scale_near = near["diameter_px"] / PLATE_CM
+    near = plates[0] if plates else None
+    scale_near = near["diameter_px"] / PLATE_CM if near else None
     far = plates[1] if len(plates) > 1 else None
-    if far is not None:
+    if near is None:
+        span_cm, off_est, scale_ok = None, [], False
+    elif far is not None:
         scale_far = far["diameter_px"] / PLATE_CM
         px_per_cm = 2 / (1 / scale_near + 1 / scale_far)
         span_cm = np.linalg.norm(near["centre"] - far["centre"]) / px_per_cm
@@ -283,6 +298,11 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
     else:
         span_cm = None
         off_est = ellipse_angles(plates)
+    if off_est and not hands_overlap and max(off_est) < rules.ANGLE_ERR_DEG:
+        # side-on the hands overlap; a plate read within 10 deg of side-on with them a grip apart is not the lifter's
+        # (8611a672, 6b6204f4: 0 deg with the wrists 2.2-2.3 torsos apart, shoulders 0.74-0.94; 21B27BAF, side-on,
+        # 0.12 and 0.10), so the body's angle is used
+        off_est = []
     if not off_est:
         # no plate outline held: the coarse search's ratio grid (0.5-1.0) is not an angle, so the body's is used
         from .lifts import off_side_pose
@@ -290,10 +310,17 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
         off_est = [pose_off] if pose_off is not None else []
     off_side = float(np.median(off_est)) if off_est else 0.0
     foreshort = 1 / np.cos(np.radians(off_side))
-    plate_raw, plate_score = track_plate(fr, seed, near)
+    plate_raw = track_plate(fr, seed, near)[0] if near else np.full((len(fr), 2), np.nan)
     plate_ref = to_ref(plate_raw, Ms)
+    if near:
+        # the track re-locks onto a static patch when the plate leaves its search window (8611a672: down 45 px in a
+        # frame while the bar rose 27); a plate on the bar cannot drop a tenth of its diameter while the bar rises
+        dy, db = np.diff(plate_ref[lo: ev["peak"] + 1, 1]), np.diff(bar[lo: ev["peak"] + 1, 1])
+        jump = np.where((dy > 0.1 * near["diameter_px"]) & (db < -0.05 * near["diameter_px"]))[0]
+        if len(jump):
+            plate_ref[lo + int(jump[0]) + 1:] = np.nan
     # the wrists rise a few cm while the lifter takes the slack out of the bar; the bar leaves the floor with the plate
-    plate_lo = plate_liftoff(plate_ref[: ev["second_ext"], 1], lo, near["axes"][0])
+    plate_lo = plate_liftoff(plate_ref[: ev["second_ext"], 1], lo, near["axes"][0]) if near else None
     if plate_lo is not None and plate_lo > lo:
         phases, ev = segment_snatch(up(bar[:, 1]), knee_ang, fps, elbow=elbow, catch_mask=rack, liftoff=plate_lo)
         lo = ev["liftoff"]
@@ -302,17 +329,20 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
             phases, ev = segment_snatch(up(bar[:, 1]), knee_ang, fps, knee_pass=knee_pass, elbow=elbow, catch_mask=rack,
                                         liftoff=plate_lo)
     shin = np.nanmean([np.linalg.norm(kw[:, a] - kw[:, b], axis=1) for a, b in ((L_KNEE, L_ANK), (R_KNEE, R_ANK))], axis=0)
-    if not_a_lift(near, plate_ref[:, 1], bar[:, 1], shin, lo, ev["peak"]):
+    if not_a_lift(near or {}, plate_ref[:, 1], bar[:, 1], shin, lo, ev["peak"]):
         return False
     depth_ratio = None
-    if far is None:
+    if near is not None and far is None:
         # side-on, only the near plate is visible and it sits ~75 cm closer to the camera than the lifter.
         # The bar is rigid, so wrist-midpoint px rise / near-plate px rise over the pull = scale at the bar centre / near scale.
         pull_end = min(ev["second_ext"], len(fr) - 1)
         rise = -(plate_ref[pull_end, 1] - plate_ref[lo, 1]) if np.isfinite(plate_ref[pull_end, 1]) else np.nanmax(plate_ref[lo:pull_end + 1, 1]) - np.nanmin(plate_ref[lo:pull_end + 1, 1])
         depth_ratio = rise_ratio(plate_ref[lo: pull_end + 1, 1], bar[lo: pull_end + 1, 1]) if rise > 0.5 * near["axes"][0] else None
         px_per_cm, scale_method = near_bar_scale(scale_near, depth_ratio, body_scale)
-    px_per_cm, scale_method, scale_ok = check_scale(px_per_cm, scale_method, scale_ok, scale_near, body_scale)
+    if near is None:
+        px_per_cm, scale_method = body_scale, "body segments (no plate found)"
+    else:
+        px_per_cm, scale_method, scale_ok = check_scale(px_per_cm, scale_method, scale_ok, scale_near, body_scale)
     if stray and body_scale:
         px_per_cm, scale_method = body_scale, "body segments (plate not on the lifter's bar)"
 
@@ -437,7 +467,7 @@ def analyse_rep(clip, meta, people, k, ks, boxes, start, end, fps, H, W, debug_d
         "span_cm": span_cm, "plates": plates, "scale_method": scale_method, "scale_ok": scale_ok, "depth_ratio": depth_ratio,
         "catch_depth": vals_depth, "catch_depth_frame": g(depth_f), "catch_kind": catch_kind,
         "catch_knee_min": float(np.min(knee_ang[ev["caught"]: max(ev["caught"], depth_end) + 1])), "plate_tracked": int(np.isfinite(plate_raw[:, 0]).sum()),
-        "plate_lost_at": g(int(np.where(np.isfinite(plate_raw[:, 0]))[0].max())), "plate_wrist_corr": agree,
+        "plate_lost_at": g(int(np.where(np.isfinite(plate_raw[:, 0]))[0].max())) if np.isfinite(plate_raw[:, 0]).any() else None, "plate_wrist_corr": agree,
         "peak_h": peak_h, "drop": drop, "turnover_s": turnover_s, "standing_h": standing_h,
         "bar_speed": (sp[0], g(sp[1])) if sp else None,
         "cut_off": cut_off, "hands_overlap": bool(hands_overlap), "stab_inliers_min": int(min(inliers)) if inliers else 0, "fwd": fwd,

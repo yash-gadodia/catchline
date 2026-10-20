@@ -196,3 +196,13 @@ Build 26: Cues crashed and Trends was empty on a real account. Root cause: the C
 - [x] (Claude) Slow turnover ends at the first relock after the elbows' deepest bend (3-frame medians), not the first lockout after a late bar peak: e97d83bb read 0.63 s, really 0.37 s. Gotcha: raw argmin picked 9fb313e4's one-frame 6 deg wrist flip and dropped its real 0.77 s slow turnover
 - Replays: all 10 golden traces byte-identical; of 22 prod traces only these 4 lifts change. E0DF8887 golden is red on origin/catchline too (pre-existing)
 - [ ] (Claude) Mirror `on_screen`/`confirmed_off_side`/ANGLE_ERR_DEG in `src/analysis/device/rules.ts` when the device port resumes
+
+## Core analysis flow pass (20 Oct, `fix/cv-flow`, from a Fable 5 review of all 22 prod traces)
+- [x] (Claude) Jerk: the dip starts where the bar leaves the rack plateau by a tenth of the dip depth (a smooth dip's bottom is a turning point, so every jerk read dip start = bottom = "a press"); the window starts 1.5 s before overhead, so a clean and jerk is not measured in the clean
+- [x] (Claude) Elbow: when the wrists disagree in height by > 0.12 body heights, the arm whose wrist continues the bar (bar_from_wrists) gives the elbow angle (9fb313e4: false 0.77 s slow turnover from a 5-frame wrist misread, really 0.3 s)
+- [x] (Claude) Plate track cut where it drops a tenth of a diameter in a frame while the bar rises (re-lock onto a static patch: 8611a672, E0DF8887 frame 75)
+- [x] (Claude) A plate ellipse within 10 deg of side-on while the hands are a grip apart is overruled by the body's angle (8611a672, 6b6204f4: 0 deg vs wrists 2.2-2.3 torsos apart)
+- [x] (Claude) Snatch reps judge "overhead" from bar_from_wrists, not the wrist midpoint; no plate at setup sizes the lift from the body instead of failing (24d4c6df x3)
+- Replays: 22 prod traces, only the intended 6 lifts change (4 no_reps -> analysed, 9fb313e4 false cue gone, 6b6204f4 reason); goldens identical except E0DF8887 (plate cut at 75, scale -1%; that golden was already red)
+- [ ] (Claude) All 3 "bar_lost" snatches (44c07c15, ee231b89, 24d4c6df) are the smallest lifters in frame (34-36% of height): bar/peak tracking at low resolution is the next accuracy gap
+- [ ] (Claude) Mirror on_screen + angle veto in src/analysis/device when the device port resumes
