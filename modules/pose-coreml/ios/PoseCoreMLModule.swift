@@ -53,6 +53,9 @@ public class PoseCoreMLModule: Module {
 
     // The clip read on the phone as a trace.py trace (gzipped JSON at tracePath) plus the keyframe
     // stills the plan asked for. Without a plan: pose, lifter and camera path only (see AnalyseOnDevice.swift).
+    // Rejects with "Could not analyse on device: <code>: <detail>", code one of no_video_track, clip_unreadable,
+    // models_unavailable, stage_missing, plan_invalid (anything else is a file system error). Lift failures such
+    // as no_person or no_reps are the TS pipeline's, read from the trace; native never decides them.
     AsyncFunction("analyseOnDevice") { (uri: String, movement: String, plan: [String: Any]?) async throws -> [String: Any] in
       do {
         let progress = { (stage: String, fraction: Double) in

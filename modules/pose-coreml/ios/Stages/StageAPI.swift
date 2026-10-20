@@ -17,8 +17,8 @@ enum StageError: Error, CustomStringConvertible {
 
   var description: String {
     switch self {
-    case .notImplemented(let s): return "not implemented: \(s)"
-    case .invalid(let s): return s
+    case .notImplemented(let s): return "stage_missing: \(s) is not implemented"
+    case .invalid(let s): return "plan_invalid: \(s)"
     }
   }
 }

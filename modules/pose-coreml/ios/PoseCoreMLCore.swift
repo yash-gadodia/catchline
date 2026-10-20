@@ -13,10 +13,19 @@ import Foundation
 // pixels, head points (nose, eyes, ears, head top) dropped, plus the index of the
 // lifter tracked like cv/catchline_cv/lifter.py.
 
-enum PoseCoreMLError: Error {
+// Thrown to JS as "<code>: <detail>" (AnalyseFailedException): no_video_track, clip_unreadable, models_unavailable
+enum PoseCoreMLError: Error, CustomStringConvertible {
   case noVideoTrack
   case readFailed(String)
   case model(String)
+
+  var description: String {
+    switch self {
+    case .noVideoTrack: return "no_video_track: the file has no video track"
+    case .readFailed(let s): return "clip_unreadable: \(s)"
+    case .model(let s): return "models_unavailable: \(s)"
+    }
+  }
 }
 
 let poseInferHeight = 1280
