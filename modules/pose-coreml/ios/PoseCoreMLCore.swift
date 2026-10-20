@@ -31,7 +31,7 @@ enum PoseCoreMLError: Error, CustomStringConvertible {
 let poseInferHeight = 1280
 private let detSize = 640
 private let poseW = 192, poseH = 256
-private let headIdx: Set<Int> = [0, 1, 2, 3, 4, 17]
+let headIdx: Set<Int> = [0, 1, 2, 3, 4, 17]
 private let poseMean: [Float] = [123.675, 116.28, 103.53]
 private let poseStd: [Float] = [58.395, 57.12, 57.375]
 
@@ -194,7 +194,7 @@ func detectPeople(_ img: BGRImage, _ models: PoseModels) throws -> [[Float]] {
 
 // RTMPose: bbox_xyxy2cs(padding 1.25), aspect fixed to 192:256, cv2.warpAffine
 // (INTER_LINEAR, border 0) into 192x256, (BGR - mean) / std, SimCC argmax / 2.
-func estimatePose(_ img: BGRImage, box: [Float], _ models: PoseModels) throws -> (kpts: [Float], scores: [Float]) {
+func estimatePose(_ img: BGRImage, box: [Float], _ models: PoseModels, stripHead: Bool = true) throws -> (kpts: [Float], scores: [Float]) {
   var tick = Date()
   func lap() -> Double { let now = Date(); defer { tick = now }; return now.timeIntervalSince(tick) }
   let cx = (box[0] + box[2]) / 2, cy = (box[1] + box[3]) / 2
@@ -245,7 +245,7 @@ func estimatePose(_ img: BGRImage, box: [Float], _ models: PoseModels) throws ->
     kpts[j * 2 + 1] = ly / 2 / Float(poseH) * sh + cy - sh / 2
     scores[j] = v
   }
-  for j in headIdx { kpts[j * 2] = .nan; kpts[j * 2 + 1] = .nan; scores[j] = 0 }
+  if stripHead { for j in headIdx { kpts[j * 2] = .nan; kpts[j * 2 + 1] = .nan; scores[j] = 0 } }
   return (kpts, scores)
 }
 
@@ -410,7 +410,8 @@ func rotationDegrees(_ t: CGAffineTransform) -> Int {
   return (deg + 360) % 360
 }
 
-func analyzePoseCoreML(url: URL, models: PoseModels, progress: (Double) -> Void) async throws -> [String: Any] {
+// twoPass: pose.py two_pass for kipping HSPU (Stages/InvertedPass.swift).
+func analyzePoseCoreML(url: URL, models: PoseModels, twoPass: Bool = false, progress: (Double) -> Void) async throws -> [String: Any] {
   let asset = AVURLAsset(url: url)
   guard let track = try await asset.loadTracks(withMediaType: .video).first else { throw PoseCoreMLError.noVideoTrack }
   let (natural, transform, nominalFps) = try await track.load(.naturalSize, .preferredTransform, .nominalFrameRate)
@@ -446,9 +447,10 @@ func analyzePoseCoreML(url: URL, models: PoseModels, progress: (Double) -> Void)
       let img = uprightBGR(pb, rotation: rotation, outW: outW, outH: poseInferHeight)
       var row: [PosePerson] = []
       for box in try detectPeople(img, models) {
-        let (k, s) = try estimatePose(img, box: box, models)
+        let (k, s) = try estimatePose(img, box: box, models, stripHead: !twoPass)
         row.append(PosePerson(box: box, kpts: k, scores: s))
       }
+      if twoPass { row = try invertedPass(img, upright: row, models) }
       times.append(pts - first!)
       people.append(row)
       let p = duration > 0 ? min(max((pts - first!) / duration, 0), 1) : 0
