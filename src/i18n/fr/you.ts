@@ -104,4 +104,7 @@ export const you: Strings<typeof en> = {
   'you.notify.cueReminder': 'Prochaine séance : {cue}',
   'you.notify.analysed': 'Ton mouvement est analysé',
   'you.notify.queuedAnalysed': 'Tes mouvements en attente sont analysés',
+  'you.stored.originals.onDevice': "Sur ton téléphone. Analysée sur ton iPhone, jamais envoyée.",
+  'you.stored.positions.onDevice': "Positions du corps et trajectoire de la barre sous forme de chiffres, pas de vidéo, gardées sur ton téléphone (et dans ta propre sauvegarde iCloud) pour que ton historique s'améliore avec l'analyse. Jamais sur nos serveurs.",
+  'you.stored.frames.onDevice': "Cinq images par mouvement pour la chronophotographie et le recadrage de preuve, sur ton téléphone seulement.",
 };

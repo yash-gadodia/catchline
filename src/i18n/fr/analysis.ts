@@ -132,4 +132,10 @@ export const analysis: Strings<typeof en> = {
   'analysis.why.title': 'Pourquoi ça et pas autre chose ?',
   'analysis.why.body': "On choisit le premier défaut qui explique le reste. Tout ce qu'on a mesuré d'autre :",
   'analysis.why.close': 'Fermer',
+  'analysis.processing.analysingOnPhone': "Analyse sur ton iPhone",
+  'analysis.processing.analysingPct': "analyse {pct}%",
+  'analysis.processing.cancelNote': "Arrête l'analyse. La vidéo reste sur ton téléphone et n'est pas comptée.",
+  'analysis.processing.offlineTitle': "Préparation de l'analyse",
+  'analysis.processing.offlineBody': "L'analyse a besoin d'un téléchargement unique qui ne s'est pas terminé. Vérifie ta connexion (et le mode données réduites) et réessaie. Cela n'a pas compté comme une vidéo.",
+  'analysis.processing.retry': "Réessayer",
 };

@@ -132,4 +132,10 @@ export const analysis: Strings<typeof en> = {
   'analysis.why.title': '¿Por qué esto y no otra cosa?',
   'analysis.why.body': 'Elegimos el primer fallo que explica el resto. Todo lo demás que medimos:',
   'analysis.why.close': 'Cerrar',
+  'analysis.processing.analysingOnPhone': "Analizando en tu iPhone",
+  'analysis.processing.analysingPct': "analizando {pct}%",
+  'analysis.processing.cancelNote': "Detiene el análisis. El vídeo se queda en tu teléfono y no se cuenta.",
+  'analysis.processing.offlineTitle': "Preparando el análisis",
+  'analysis.processing.offlineBody': "El análisis necesita una descarga única que no terminó. Revisa tu conexión (y el modo de datos reducidos) y vuelve a intentarlo. Esto no gastó uno de tus vídeos.",
+  'analysis.processing.retry': "Volver a intentar",
 };

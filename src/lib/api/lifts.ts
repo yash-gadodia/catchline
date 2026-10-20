@@ -78,16 +78,64 @@ export async function enqueueLift(liftId: string): Promise<Lift> {
  * dropped: the worker then runs its own pose model.
  */
 export async function createLift(input: CreateLiftInput): Promise<Lift> {
+  const lift = await reserveLift(input);
+  await uploadLiftClip(lift, input.file, input);
+  if (input.pose) await uploadLiftPose(lift, input.pose).catch(() => false);
+  return enqueueLift(lift.id);
+}
+
+export type ReserveLiftInput = Pick<CreateLiftInput, 'movement' | 'loadKg' | 'retestCueId'>;
+
+/** create_lift alone: consent + cap checked and charged server-side, the lift waits in 'uploading'. */
+export async function reserveLift(input: ReserveLiftInput): Promise<Lift> {
   const { data, error } = await supabase.rpc('create_lift', {
     p_movement: input.movement,
     p_load_kg: input.loadKg,
     ...(input.retestCueId ? { p_retest_cue_id: input.retestCueId } : {}),
   });
   if (error) throw toApiError(error);
-  const lift = data as Lift;
-  await uploadLiftClip(lift, input.file, input);
-  if (input.pose) await uploadLiftPose(lift, input.pose).catch(() => false);
-  return enqueueLift(lift.id);
+  return data as Lift;
+}
+
+// ---------------------------------------------------------------------------
+// On-device analysis (0018). The phone keeps the analysis; the server gets the
+// per-lift record: which cue, or why none.
+// ---------------------------------------------------------------------------
+export type DeviceCue = { faultId: string; text: string; why: string };
+
+export async function startDeviceAnalysis(liftId: string): Promise<Lift> {
+  const { data, error } = await supabase.rpc('start_device_analysis', { p_lift_id: liftId });
+  if (error) throw toApiError(error);
+  return data as Lift;
+}
+
+export async function saveDeviceAnalysis(liftId: string, cue: DeviceCue | null, noCueCode: string | null): Promise<void> {
+  const { error } = await supabase.rpc('save_device_analysis', {
+    p_lift_id: liftId,
+    ...(cue ? { p_cue: cue } : {}),
+    ...(noCueCode ? { p_no_cue_code: noCueCode } : {}),
+  });
+  if (error) throw toApiError(error);
+}
+
+export async function failDeviceLift(liftId: string, code: string): Promise<void> {
+  const { error } = await supabase.rpc('fail_device_lift', { p_lift_id: liftId, p_code: code });
+  if (error) throw toApiError(error);
+}
+
+/** Drops every analysis, still and trace of the caller from the server. Returns how many analyses went. */
+export async function deleteServerAnalyses(): Promise<number> {
+  const { data, error } = await supabase.rpc('delete_my_server_analyses');
+  if (error) throw toApiError(error);
+  return data ?? 0;
+}
+
+export const TRACE_BUCKET = 'lift-traces';
+
+/** A signed URL for a lift's server-side trace, or null when there is none. */
+export async function signedTraceUrl(userId: string, liftId: string): Promise<string | null> {
+  const { data } = await supabase.storage.from(TRACE_BUCKET).createSignedUrl(`${userId}/${liftId}.json.gz`, SIGNED_URL_SECONDS);
+  return data?.signedUrl ?? null;
 }
 
 /** How many lifts, across all lifters, the single worker will take before this one. */

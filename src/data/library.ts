@@ -2,7 +2,9 @@ import { t } from '../i18n';
 import type { Analysis, Failure, Movement } from '../analysis/types';
 import { putLiveAnalysis } from '../analysis/live';
 import { keyFrameForPhase, repByIndex } from '../analysis/timeline';
-import { ensureSession, listAnalyses, listCues, listLifts } from '../lib/api';
+import { ensureSession, failDeviceLift, listAnalyses, listCues, listLifts } from '../lib/api';
+import { listLocalAnalyses } from './localLifts';
+import { onDeviceAnalysisEnabled } from './onDeviceAnalysis';
 import type { CueRow, Lift as LiftRow } from '../types/db';
 import { FAILURE_COPY } from '../features/library/failures';
 import { useLibraryStore } from '../features/library/store';
@@ -29,7 +31,7 @@ function catchImage(a: Analysis | undefined): string | undefined {
 // lifter's side whether the worker has picked it up yet or not.
 function liftStatus(s: string): LiftStatus {
   if (s === 'done' || s === 'failed' || s === 'processing') return s;
-  if (s === 'queued') return 'processing';
+  if (s === 'queued' || s === 'analysing') return 'processing';
   return 'queued';
 }
 
@@ -39,17 +41,19 @@ function workerFailure(row: LiftRow): Failure {
   return { reason, message: FAILURE_COPY[reason].title };
 }
 
-// A lift row exists from create_lift on, so 'uploading' is a clip still on its way; one still uploading after
-// STALE_UPLOAD_MS never made it (the app was closed mid-upload) and is not the free-videos 'queued' state.
-const STALE_UPLOAD_MS = 15 * 60 * 1000;
+// A lift row exists from create_lift on, so 'uploading' is a clip still on its way and 'analysing' a phone at
+// work on it; one still there after STALE_UPLOAD_MS never made it (the app was closed mid-way) and is not the
+// free-videos 'queued' state.
+export const STALE_UPLOAD_MS = 15 * 60 * 1000;
 
-function stuckUpload(row: LiftRow, now: number): boolean {
-  return row.status === 'uploading' && now - Date.parse(row.created_at) > STALE_UPLOAD_MS;
+export function stuckUpload(row: LiftRow, now: number): boolean {
+  return (row.status === 'uploading' || row.status === 'analysing') && now - Date.parse(row.created_at) > STALE_UPLOAD_MS;
 }
 
 export function toLift(row: LiftRow, a: Analysis | undefined, now: number = Date.now()): Lift {
   const stuck = stuckUpload(row, now);
   const status: LiftStatus = a?.failure || stuck ? 'failed' : row.status === 'uploading' ? 'processing' : liftStatus(row.status);
+  const cueOnly = !a && row.status === 'done';
   return {
     id: row.id,
     movement: row.movement as Movement,
@@ -62,6 +66,8 @@ export function toLift(row: LiftRow, a: Analysis | undefined, now: number = Date
     failure: a?.failure ?? (stuck ? { reason: 'unknown', message: t('library.detail.uploadStuck') } : status === 'failed' ? workerFailure(row) : undefined),
     headline: a?.cue?.evidence.caption,
     retestCueId: row.retest_cue_id ?? undefined,
+    // 3.1: a lift whose analysis lives on another phone (or was analysed by 3.0 and purged).
+    ...(cueOnly ? { cueId: row.cue_id ?? undefined } : {}),
   };
 }
 
@@ -103,7 +109,14 @@ export function toCue(row: CueRow, byLift: Map<string, Analysis>): CueRecord {
 // sessions (one per analysed lift) and cue memory.
 export async function syncLibrary(now: Date = new Date()): Promise<void> {
   await ensureSession();
-  const [lifts, cues, analyses] = await Promise.all([listLifts(), listCues(), listAnalyses()]);
+  const onDevice = onDeviceAnalysisEnabled();
+  const [lifts, cues, analyses] = await Promise.all([listLifts(), listCues(), onDevice ? listLocalAnalyses() : listAnalyses()]);
+  // A phone that died mid-analysis left the lift charged: give it back now rather than at the 24 h sweep.
+  if (onDevice) {
+    for (const l of lifts.filter((l) => l.status === 'analysing' && stuckUpload(l, now.getTime()))) {
+      failDeviceLift(l.id, 'interrupted').catch(() => undefined);
+    }
+  }
   const byLift = new Map(analyses.map((r) => [r.liftId, r.analysis]));
   for (const r of analyses) putLiveAnalysis(r.analysis);
   const sessions = lifts

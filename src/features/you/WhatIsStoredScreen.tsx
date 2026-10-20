@@ -11,12 +11,14 @@ import { CONSENT_VERSION, useOnboarding } from '../onboarding/store';
 import { Toggle } from '../share/ui';
 import { useSettings } from './settings';
 import { t } from '../../i18n';
+import { onDeviceAnalysisEnabled } from '../../data/onDeviceAnalysis';
 
 export function stored(): { id: string; title: string; body: string; keep: string }[] {
+  const onDevice = onDeviceAnalysisEnabled();
   return [
-    { id: 'originals', title: t('you.stored.originals.title'), body: t('you.stored.originals.body'), keep: '24 h' },
-    { id: 'positions', title: t('you.stored.positions.title'), body: t('you.stored.positions.body'), keep: t('you.stored.kept') },
-    { id: 'frames', title: t('you.stored.frames.title'), body: t('you.stored.frames.body'), keep: t('you.stored.kept') },
+    { id: 'originals', title: t('you.stored.originals.title'), body: onDevice ? t('you.stored.originals.onDevice') : t('you.stored.originals.body'), keep: onDevice ? t('you.stored.kept') : '24 h' },
+    { id: 'positions', title: t('you.stored.positions.title'), body: onDevice ? t('you.stored.positions.onDevice') : t('you.stored.positions.body'), keep: t('you.stored.kept') },
+    { id: 'frames', title: t('you.stored.frames.title'), body: onDevice ? t('you.stored.frames.onDevice') : t('you.stored.frames.body'), keep: t('you.stored.kept') },
     { id: 'cues', title: t('you.stored.cues.title'), body: t('you.stored.cues.body'), keep: t('you.stored.kept') },
   ];
 }

@@ -12,6 +12,8 @@ import { usePurchases } from '../../src/features/purchases/usePurchases';
 import { liftsAhead, subscribeToLift } from '../../src/lib/api';
 import { syncLibrary } from '../../src/data/library';
 import { usePipeline, type Job, type JobStatus } from '../../src/data/pipeline';
+import { cancelDeviceLift } from '../../src/data/devicePipeline';
+import { submitDraft } from '../../src/features/capture/submit';
 import { t } from '../../src/i18n';
 
 const STEP_MS = 1100;
@@ -31,6 +33,7 @@ export default function ProcessingRoute() {
 // src/data/pipeline uploadStep's meta, in the lifter's language.
 function uploadMeta(job: Job | null): string | null {
   if (job?.status === 'preparing') return t('analysis.processing.preparingPct', { pct: Math.round(job.prepared * 100) });
+  if (job?.status === 'analysing') return t('analysis.processing.analysingPct', { pct: Math.round((job.fraction ?? 0) * 100) });
   if (job?.status === 'uploading' && job.total > 0) return t('analysis.processing.uploadingPct', { pct: Math.round((job.sent / job.total) * 100) });
   return null;
 }
@@ -92,7 +95,14 @@ function Processing({ params }: { params: Params }) {
   );
 }
 
-const STEP_FOR: Record<JobStatus, number> = { preparing: 0, uploading: 0, queued: 1, processing: 2, done: 4, failed: 4 };
+const STEP_FOR: Record<JobStatus, number> = { preparing: 0, uploading: 0, analysing: 1, queued: 1, processing: 2, done: 4, failed: 4 };
+
+// On the phone the steps follow the native run: the four after "preparing" share its progress.
+function deviceStep(job: Job): number {
+  if (job.status === 'preparing') return 0;
+  if (job.status !== 'analysing') return STEP_FOR[job.status];
+  return 1 + Math.min(3, Math.floor((job.fraction ?? 0) * 4));
+}
 
 // A real lift: upload progress from the pipeline job, then the lift row over
 // Realtime until the worker writes the Analysis. `lift` names a lift opened
@@ -112,12 +122,14 @@ function LiveProcessing({ lift }: { lift?: string }) {
   const [ahead, setAhead] = useState(0);
   const [wake, setWake] = useState(0);
   const current = status ?? job?.status ?? 'preparing';
+  // On-device analysis (3.1): the job carries the result; nothing arrives over Realtime.
+  const device = job?.device === true && (!lift || lift === job.liftId);
   // The lift keeps going on the server: leaving lands on the Lifts tab, where
   // it is listed, never back on the review of the clip already sent.
   const home = () => router.dismissTo('/');
   // "Taking longer" talks about the queue, so the wait counts from when the clip is on the server.
-  const onPhone = current === 'preparing' || current === 'uploading';
-  const inQueue = current === 'queued' || current === 'processing';
+  const onPhone = current === 'preparing' || current === 'uploading' || current === 'analysing';
+  const inQueue = (current === 'queued' || current === 'processing') && !device;
   const serverAt = useRef<number | null>(null);
   if (!onPhone && serverAt.current === null) serverAt.current = elapsed;
   const serverElapsed = serverAt.current === null ? 0 : elapsed - serverAt.current;
@@ -136,7 +148,9 @@ function LiveProcessing({ lift }: { lift?: string }) {
 
   useEffect(() => {
     if (!job || job.status !== 'failed') return;
-    if (job.error === 'clip_too_long') return;
+    if (job.error === 'clip_too_long' || job.error === 'models_unavailable') return;
+    if (job.error === 'cancelled') return home();
+    if (job.error === 'analysis_failed') return fail(job.liftId ?? job.id, job.result?.failure?.reason ?? job.failureReason ?? 'unknown');
     if (job.error === 'cap_reached') {
       // A paid lifter the server caps has used the month's videos: the cap sheet, not the paywall.
       const pathname = usePurchases.getState().tier === 'free' ? '/paywall' : '/paywall/cap';
@@ -157,7 +171,15 @@ function LiveProcessing({ lift }: { lift?: string }) {
   }, []);
 
   useEffect(() => {
-    if (!liftId) return;
+    if (!device || job?.status !== 'done' || !job.result) return;
+    putLiveAnalysis(job.result);
+    void syncServerUsage();
+    syncLibrary().catch(() => undefined);
+    setAnalysis(job.result);
+  }, [device, job?.status]);
+
+  useEffect(() => {
+    if (!liftId || device) return;
     // A new lift replaces the old subscription, but the old lift's analysis fetch
     // may still be in flight: once cancelled, nothing from it may reach the sheet.
     let cancelled = false;
@@ -188,7 +210,7 @@ function LiveProcessing({ lift }: { lift?: string }) {
       cancelled = true;
       unsubscribe();
     };
-  }, [liftId, wake]);
+  }, [liftId, wake, device]);
 
   useEffect(() => {
     if (!liftId || !inQueue) return;
@@ -202,9 +224,10 @@ function LiveProcessing({ lift }: { lift?: string }) {
     };
   }, [liftId, inQueue]);
 
-  const step = analysis ? 5 : STEP_FOR[current] + (current === 'processing' ? crawl : 0);
+  const step = analysis ? 5 : device && job ? deviceStep(job) : STEP_FOR[current] + (current === 'processing' ? crawl : 0);
   const tooLong = job?.error === 'clip_too_long';
-  const state: ProcessingState = tooLong ? 'too_long' : analysis ? 'done' : serverElapsed > LONG_WAIT_S && !waiting ? 'long' : 'progress';
+  const offline = job?.error === 'models_unavailable';
+  const state: ProcessingState = tooLong ? 'too_long' : offline ? 'offline' : analysis ? 'done' : serverElapsed > LONG_WAIT_S && !waiting ? 'long' : 'progress';
   // The clip is still on the phone only for the lift this session sent.
   const clipUri = job && (!lift || lift === job.liftId) ? job.uri : null;
 
@@ -213,7 +236,7 @@ function LiveProcessing({ lift }: { lift?: string }) {
       analysis={analysis}
       clipUri={clipUri}
       meta={uploadMeta(job) ?? `${elapsed} s`}
-      firstStep={job?.status === 'preparing' ? t('analysis.processing.preparingClip') : t('analysis.processing.uploadingClip')}
+      firstStep={job?.status === 'preparing' ? t('analysis.processing.preparingClip') : device ? t('analysis.processing.analysingOnPhone') : t('analysis.processing.uploadingClip')}
       maxS={job?.maxS ?? undefined}
       state={state}
       step={step}
@@ -221,6 +244,10 @@ function LiveProcessing({ lift }: { lift?: string }) {
       onServer={inQueue}
       ahead={ahead}
       onHide={home}
+      onCancel={device && !analysis ? () => {
+        cancelDeviceLift();
+        home();
+      } : undefined}
       onNotify={async () => {
         await registerPushToken(true);
         home();
@@ -228,6 +255,9 @@ function LiveProcessing({ lift }: { lift?: string }) {
       onKeepWaiting={() => setWaiting(true)}
       onSee={() => analysis && router.replace({ pathname: '/analysis/reveal', params: retestParams(analysis.id, job?.liftId === liftId ? job?.retestCueId : undefined) })}
       onTrim={() => router.replace('/capture/trim')}
+      onRetry={() => {
+        if (!submitDraft({ replace: true })) home();
+      }}
     />
   );
 }

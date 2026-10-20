@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Movement } from '../analysis/types';
+import type { Analysis, Failure, Movement } from '../analysis/types';
 import { File } from 'expo-file-system';
 import { ApiError, createLift, syncPlan, type ApiErrorCode, type CreateLiftInput, type UploadSource } from '../lib/api';
 import type { Lift } from '../types/db';
@@ -9,9 +9,11 @@ import { syncConsent } from './backend';
 import { analyzeClipPose, shouldRunDevicePose } from './onDevicePose';
 import { ClipTooLongError, discardPrepared, prepareClip } from './prepare';
 import { rememberClip } from '../features/share/localClips';
+import { DEVICE_MOVEMENTS, startDeviceLift } from './devicePipeline';
+import { onDeviceAnalysisEnabled } from './onDeviceAnalysis';
 
-export type JobStatus = 'preparing' | 'uploading' | 'queued' | 'processing' | 'done' | 'failed';
-export type JobError = ApiErrorCode | 'clip_too_long';
+export type JobStatus = 'preparing' | 'uploading' | 'analysing' | 'queued' | 'processing' | 'done' | 'failed';
+export type JobError = ApiErrorCode | 'clip_too_long' | 'analysis_failed' | 'cancelled' | 'models_unavailable';
 
 export type Job = {
   id: string;
@@ -26,6 +28,13 @@ export type Job = {
   maxS: number | null;
   uri: string | null;
   retestCueId?: string;
+  // On-device analysis (3.1): the native stage under way, its share of the whole run,
+  // and the result once the phone has it (the server holds no analysis to fetch).
+  device?: boolean;
+  stage?: string | null;
+  fraction?: number;
+  result?: Analysis;
+  failureReason?: Failure['reason'];
 };
 
 type PipelineState = {
@@ -90,6 +99,7 @@ async function createLiftSynced(input: CreateLiftInput): Promise<Lift> {
 // enqueue. Never throws: the outcome lands on the job. The trim is baked into the
 // uploaded clip; the chosen rep is not sent (create_lift takes movement + load only).
 export async function startLift(sub: ClipSubmission & { uri: string }, read: (uri: string) => Promise<UploadSource> = readClip): Promise<void> {
+  if (onDeviceAnalysisEnabled() && DEVICE_MOVEMENTS.includes(sub.movement)) return startDeviceLift(sub);
   const { start, patch } = usePipeline.getState();
   start({
     id: `job-${Date.now()}`,

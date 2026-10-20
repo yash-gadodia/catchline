@@ -16,6 +16,7 @@ import { colors } from '../src/design/tokens';
 import { supabase } from '../src/lib/supabase';
 import { backendEnabled } from '../src/data/backend';
 import { syncLibrary } from '../src/data/library';
+import { moveServerAnalysesToDevice } from '../src/data/migrateToDevice';
 import { syncServerUsage } from '../src/features/paywall/hooks';
 import { installForegroundHandler, liftIdFromResponse, registerPushToken, routeForLift } from '../src/features/notifications';
 import { init as initAnalytics, identify, reset, track, EVENTS } from '../src/lib/analytics';
@@ -62,7 +63,11 @@ export default function RootLayout() {
     const stopAuthUserSync = startAuthUserSync();
     syncLibrary()
       .catch(() => undefined)
-      .then(() => syncServerUsage());
+      .then(() => syncServerUsage())
+      // 3.1: bring the server's copies of this account's analyses down, then have the server forget them.
+      .then(() => moveServerAnalysesToDevice())
+      .then((moved) => (moved?.moved ? syncLibrary() : undefined))
+      .catch(() => undefined);
 
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) {

@@ -16,6 +16,8 @@ export type Lift = {
   failure?: Failure;
   headline?: string;
   retestCueId?: string;
+  // 3.1: the server's cue record for a lift whose analysis is not on this phone.
+  cueId?: string;
 };
 
 export type Session = {

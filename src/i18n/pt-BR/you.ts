@@ -104,4 +104,7 @@ export const you: Strings<typeof en> = {
   'you.notify.cueReminder': 'Próxima sessão: {cue}',
   'you.notify.analysed': 'Seu levantamento foi analisado',
   'you.notify.queuedAnalysed': 'Seus levantamentos na fila foram analisados',
+  'you.stored.originals.onDevice': "No seu celular. Analisado no seu iPhone, nunca enviado.",
+  'you.stored.positions.onDevice': "Posições do corpo e trajetória da barra como números, não vídeo, guardados no seu celular (e no seu próprio backup do iCloud) para que seu histórico melhore quando a análise melhorar. Nunca nos nossos servidores.",
+  'you.stored.frames.onDevice': "Cinco imagens por levantamento para o estroboscópio e o recorte de evidência, só no seu celular.",
 };
