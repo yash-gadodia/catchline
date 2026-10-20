@@ -6,8 +6,8 @@ import type { Allowance } from '../../lib/api';
 
 export type QueuedClip = { id: string; movement: string };
 
-// Local usage + queue. Phase 3 moves the counter server-side (the analysis job is the
-// source of truth); this store is the seam the screens read through.
+// Local usage + queue. 3.1: the phone is the source of truth (design section 6.1),
+// backed by the Keychain count in src/data/freeLifts; the server mirrors it.
 type UsageState = {
   usage: Usage;
   variant: Variant;
@@ -16,6 +16,7 @@ type UsageState = {
   warnLastFree: () => void;
   record: (tier: Tier, now: Date) => void;
   adopt: (allowance: Allowance, now: Date) => void;
+  adoptFreeUsed: (count: number) => void;
   queueClip: (clip: QueuedClip) => void;
   takeQueued: () => QueuedClip | null;
   setVariant: (variant: Variant) => void;
@@ -31,17 +32,23 @@ export const useUsage = create<UsageState>()(
       warnedAt: null,
       warnLastFree: () => set({ warnedAt: get().usage.lifetime }),
       record: (tier, now) => set({ usage: recordAnalysis(get().usage, tier, now) }),
-      // The server's count is the truth: the local one drifted (a lift reopened from
-      // the library counted twice) and paywalled a lifter with a free video left.
+      // 3.1: the phone decides and the server only mirrors, so a count never goes
+      // down: the server's is adopted when higher (a new phone after sign-in), as is
+      // the Keychain's (a reinstall on the same phone).
       adopt: (allowance, now) => {
         const used = Math.max(0, allowance.used - allowance.bonus);
         const usage = get().usage;
-        set({
-          usage:
-            allowance.period === 'lifetime'
-              ? { ...usage, lifetime: used }
-              : { lifetime: Math.max(usage.lifetime, used), month: monthKey(now), thisMonth: used },
-        });
+        if (allowance.period === 'lifetime') {
+          set({ usage: { ...usage, lifetime: Math.max(usage.lifetime, used) } });
+          return;
+        }
+        const month = monthKey(now);
+        const thisMonth = usage.month === month ? Math.max(usage.thisMonth, used) : used;
+        set({ usage: { lifetime: Math.max(usage.lifetime, used), month, thisMonth } });
+      },
+      adoptFreeUsed: (count) => {
+        const usage = get().usage;
+        if (count > usage.lifetime) set({ usage: { ...usage, lifetime: count } });
       },
       queueClip: (clip) => {
         if (get().queue.some((c) => c.id === clip.id)) return;

@@ -55,7 +55,8 @@
           "savePhotosPermission": "Catchline saves the lift videos and cards you make to Photos.",
           "isAccessMediaLocationEnabled": false
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,

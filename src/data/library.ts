@@ -2,9 +2,9 @@ import { t } from '../i18n';
 import type { Analysis, Failure, Movement } from '../analysis/types';
 import { putLiveAnalysis } from '../analysis/live';
 import { keyFrameForPhase, repByIndex } from '../analysis/timeline';
-import { ensureSession, failDeviceLift, listAnalyses, listCues, listLifts } from '../lib/api';
-import { listLocalAnalyses } from './localLifts';
-import { onDeviceAnalysisEnabled } from './onDeviceAnalysis';
+import { deleteLift, ensureSession, listCues, listLifts } from '../lib/api';
+import { deleteLocalLift, listLocalAnalyses } from './localLifts';
+import { flushLiftOutbox, useLiftOutbox, type OutboxItem } from './liftOutbox';
 import type { CueRow, Lift as LiftRow } from '../types/db';
 import { FAILURE_COPY } from '../features/library/failures';
 import { useLibraryStore } from '../features/library/store';
@@ -105,20 +105,56 @@ export function toCue(row: CueRow, byLift: Map<string, Analysis>): CueRecord {
   };
 }
 
-// Backend mode: replace the fixture library with the lifter's own lifts,
-// sessions (one per analysed lift) and cue memory.
+// A lift analysed on this phone that the server has no row for yet (offline, or
+// no session): the library lists it from the outbox record.
+export function localRow(item: OutboxItem): LiftRow {
+  const l = item.lift;
+  return {
+    id: item.id,
+    user_id: '',
+    movement: l.movement,
+    load_kg: l.loadKg,
+    status: l.failureCode ? 'failed' : 'done',
+    error: l.failureCode,
+    clip_path: `device/${item.id}`,
+    charged_to: null,
+    attempts: 0,
+    created_at: l.analysedAt,
+    updated_at: l.analysedAt,
+    queued_at: null,
+    processed_at: l.analysedAt,
+    clip_deleted_at: l.analysedAt,
+    pose_source: 'on_device',
+    retest_cue_id: l.retestCueId,
+    cue_id: null,
+    no_cue_code: l.noCueCode,
+    made: l.made,
+    start_class: l.startClass,
+    yaw_bucket: l.yawBucket,
+    analysis_version: l.analysisVersion,
+  };
+}
+
+// 3.1, offline first: the lifts are the analyses in Documents plus what the
+// server knows (cue-only lifts from another phone, and cue memory). Offline the
+// server half is the last copy kept on the phone.
 export async function syncLibrary(now: Date = new Date()): Promise<void> {
-  await ensureSession();
-  const onDevice = onDeviceAnalysisEnabled();
-  const [lifts, cues, analyses] = await Promise.all([listLifts(), listCues(), onDevice ? listLocalAnalyses() : listAnalyses()]);
-  // A phone that died mid-analysis left the lift charged: give it back now rather than at the 24 h sweep.
-  if (onDevice) {
-    for (const l of lifts.filter((l) => l.status === 'analysing' && stuckUpload(l, now.getTime()))) {
-      failDeviceLift(l.id, 'interrupted').catch(() => undefined);
-    }
-  }
+  const analyses = await listLocalAnalyses();
   const byLift = new Map(analyses.map((r) => [r.liftId, r.analysis]));
   for (const r of analyses) putLiveAnalysis(r.analysis);
+  let serverLifts: LiftRow[] = [];
+  let cues: CueRow[] = useLiftOutbox.getState().cues;
+  try {
+    await ensureSession();
+    await flushLiftOutbox();
+    [serverLifts, cues] = await Promise.all([listLifts(), listCues()]);
+    useLiftOutbox.getState().setCues(cues);
+  } catch {
+    // offline: local lifts and the cached cue memory
+  }
+  const onServer = new Set(serverLifts.map((l) => l.id));
+  const pending = useLiftOutbox.getState().items.filter((i) => !onServer.has(i.id) && byLift.has(i.id)).map(localRow);
+  const lifts = [...pending, ...serverLifts].sort((a, b) => b.created_at.localeCompare(a.created_at));
   const sessions = lifts
     .filter((l) => l.status === 'done' && byLift.get(l.id) && !byLift.get(l.id)?.failure)
     .map((l) => toSession(l, byLift.get(l.id) as Analysis))
@@ -132,4 +168,13 @@ export async function syncLibrary(now: Date = new Date()): Promise<void> {
     sessions,
     cues: cues.map((c) => toCue(c, byLift)),
   });
+}
+
+// Deletes a lift everywhere. A lift the server holds goes there first, so a failed
+// delete (offline) leaves it whole rather than half gone.
+export async function removeLift(liftId: string): Promise<void> {
+  const item = useLiftOutbox.getState().items.find((i) => i.id === liftId);
+  if (!item || item.synced) await deleteLift(liftId);
+  deleteLocalLift(liftId);
+  useLiftOutbox.getState().forget(liftId);
 }

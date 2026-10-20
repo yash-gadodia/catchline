@@ -98,29 +98,32 @@ export async function reserveLift(input: ReserveLiftInput): Promise<Lift> {
 }
 
 // ---------------------------------------------------------------------------
-// On-device analysis (0018). The phone keeps the analysis; the server gets the
-// per-lift record: which cue, or why none.
+// On-device analysis (3.1, 0019). The phone keeps the analysis and decides the
+// free lifts; the server gets a slim record per lift when the phone is online.
 // ---------------------------------------------------------------------------
 export type DeviceCue = { faultId: string; text: string; why: string };
 
-export async function startDeviceAnalysis(liftId: string): Promise<Lift> {
-  const { data, error } = await supabase.rpc('start_device_analysis', { p_lift_id: liftId });
-  if (error) throw toApiError(error);
-  return data as Lift;
-}
+export type SyncLiftInput = {
+  movement: string;
+  loadKg: number | null;
+  made: boolean | null;
+  cue: DeviceCue | null;
+  noCueCode: string | null;
+  startClass: string | null;
+  yawBucket: string | null;
+  analysisVersion: string | null;
+  retestCueId: string | null;
+  failureCode: string | null;
+  analysedAt: string;
+};
 
-export async function saveDeviceAnalysis(liftId: string, cue: DeviceCue | null, noCueCode: string | null): Promise<void> {
-  const { error } = await supabase.rpc('save_device_analysis', {
-    p_lift_id: liftId,
-    ...(cue ? { p_cue: cue } : {}),
-    ...(noCueCode ? { p_no_cue_code: noCueCode } : {}),
-  });
-  if (error) throw toApiError(error);
-}
+export type SyncLiftResult = { status: 'done' | 'failed'; cue_id: string | null; duplicate?: boolean };
 
-export async function failDeviceLift(liftId: string, code: string): Promise<void> {
-  const { error } = await supabase.rpc('fail_device_lift', { p_lift_id: liftId, p_code: code });
+/** Idempotent per lift id: a second call returns the first outcome and counts nothing twice. */
+export async function syncLift(liftId: string, lift: SyncLiftInput): Promise<SyncLiftResult> {
+  const { data, error } = await supabase.rpc('sync_lift', { p_lift_id: liftId, p_lift: lift });
   if (error) throw toApiError(error);
+  return data as SyncLiftResult;
 }
 
 /** Drops every analysis, still and trace of the caller from the server. Returns how many analyses went. */

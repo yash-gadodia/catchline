@@ -35,19 +35,16 @@ jest.mock('../analysis/device/analyseTrace', () => ({
   planFromMisses: jest.fn(() => ({ windows: [], plates: [], tracks: [], keyframes: [], misses: [] })),
   analyseTrace: jest.fn(),
 }));
-jest.mock('../lib/api', () => ({
-  ...jest.requireActual('../lib/api/errors'),
-  reserveLift: jest.fn(async () => ({ id: 'lift-1', status: 'uploading' })),
-  startDeviceAnalysis: jest.fn(async () => ({ id: 'lift-1', status: 'analysing' })),
-  saveDeviceAnalysis: jest.fn(async () => undefined),
-  failDeviceLift: jest.fn(async () => undefined),
-  syncPlan: jest.fn(),
-}));
+jest.mock('expo-crypto', () => ({ randomUUID: () => 'lift-1' }));
+jest.mock('./liftOutbox', () => ({ queueLiftSync: jest.fn(async () => 1) }));
+jest.mock('./freeLifts', () => ({ writeFreeUsed: jest.fn(async () => undefined) }));
 jest.mock('../features/purchases/usePurchases', () => ({ usePurchases: { getState: () => ({ tier: 'free' }) } }));
 
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { analyseTrace, planFromMisses } from '../analysis/device/analyseTrace';
-import { ApiError, failDeviceLift, reserveLift, saveDeviceAnalysis, startDeviceAnalysis } from '../lib/api';
+import { queueLiftSync } from './liftOutbox';
+import { writeFreeUsed } from './freeLifts';
+import { useUsage } from '../features/paywall/usageStore';
 import { ClipTooLongError, prepareClip } from './prepare';
 import { saveLocalLift } from './localLifts';
 
@@ -70,20 +67,35 @@ const SUB: ClipSubmission & { uri: string } = {
 beforeEach(() => {
   jest.clearAllMocks();
   usePipeline.getState().clear();
+  useUsage.getState().reset();
   mockTrace.mockReturnValue({ ...snatchMock, id: 'x' });
 });
 
 describe('startDeviceLift, the happy path', () => {
-  it('charges the lift first, analyses on the phone, keeps the result locally and sends the server the cue', async () => {
+  it('analyses on the phone with no server call first, keeps the result locally, counts it and queues the slim record', async () => {
     await startDeviceLift(SUB);
-    expect(reserveLift).toHaveBeenCalledWith({ movement: 'snatch', loadKg: 70, retestCueId: undefined });
-    expect(startDeviceAnalysis).toHaveBeenCalledWith('lift-1');
     expect(prepareClip).toHaveBeenCalledTimes(1);
     expect(mockAnalyse).toHaveBeenCalledWith('file:///clip.mov.mp4', 'snatch', undefined);
     expect(mockTrace).toHaveBeenCalledWith({ traceVersion: 1, frames: [] }, 'snatch', { analysisId: 'lift-1', assetPrefix: 'lift-1' });
     expect(saveLocalLift).toHaveBeenCalledWith('lift-1', expect.objectContaining({ id: 'lift-1', movement: 'snatch', loadKg: 70 }), 'file:///cache/pose-coreml/trace.json.gz', {});
-    expect(saveDeviceAnalysis).toHaveBeenCalledWith('lift-1', { faultId: snatchMock.cue?.faultId, text: snatchMock.cue?.text, why: snatchMock.cue?.why }, null);
-    expect(failDeviceLift).not.toHaveBeenCalled();
+    expect(queueLiftSync).toHaveBeenCalledWith({
+      id: 'lift-1',
+      lift: {
+        movement: 'snatch',
+        loadKg: 70,
+        made: snatchMock.reps[snatchMock.bestRepIndex].made,
+        cue: { faultId: snatchMock.cue?.faultId, text: snatchMock.cue?.text, why: snatchMock.cue?.why },
+        noCueCode: null,
+        startClass: null,
+        yawBucket: null,
+        analysisVersion: snatchMock.analysisVersion ?? null,
+        retestCueId: null,
+        failureCode: null,
+        analysedAt: expect.any(String),
+      },
+    });
+    expect(useUsage.getState().usage.lifetime).toBe(1);
+    expect(writeFreeUsed).toHaveBeenCalledWith(1);
     const job = usePipeline.getState().job;
     expect(job?.status).toBe('done');
     expect(job?.device).toBe(true);
@@ -97,19 +109,17 @@ describe('startDeviceLift, the happy path', () => {
   it('sends why there was no cue for a partial result', async () => {
     mockTrace.mockReturnValue({ ...snatchMock, cue: null, noCueReason: { code: 'off_side_on', offSideDeg: 40 } });
     await startDeviceLift(SUB);
-    expect(saveDeviceAnalysis).toHaveBeenCalledWith('lift-1', null, 'off_side_on');
+    expect(queueLiftSync).toHaveBeenCalledWith({ id: 'lift-1', lift: expect.objectContaining({ cue: null, noCueCode: 'off_side_on', failureCode: null }) });
     expect(usePipeline.getState().job?.status).toBe('done');
   });
 
   it('is the path startLift takes when the flag is on', async () => {
     await startLift(SUB);
-    expect(reserveLift).toHaveBeenCalledTimes(1);
     expect(usePipeline.getState().job?.device).toBe(true);
   });
 
   it('leaves kipping HSPU on the server path (no TS replay for the rotated pass yet)', async () => {
     await startLift({ ...SUB, movement: 'kipping_hspu' });
-    expect(reserveLift).not.toHaveBeenCalled();
     expect(usePipeline.getState().job?.device).toBeUndefined();
   });
 });
@@ -152,56 +162,51 @@ describe('analyseLoop', () => {
 });
 
 describe('startDeviceLift when the analysis fails', () => {
-  it('fails the lift with the analysis code, keeps the failed analysis for the failure screen', async () => {
+  it('records the failure code without counting the lift, keeps the failed analysis for the failure screen', async () => {
     mockTrace.mockReturnValue({ ...snatchMock, failure: { reason: 'clip_cut_off', message: 'm', code: 'no_reps' } });
     await startDeviceLift(SUB);
-    expect(failDeviceLift).toHaveBeenCalledWith('lift-1', 'no_reps');
-    expect(saveDeviceAnalysis).not.toHaveBeenCalled();
+    expect(queueLiftSync).toHaveBeenCalledWith({ id: 'lift-1', lift: expect.objectContaining({ cue: null, made: null, failureCode: 'no_reps' }) });
+    expect(useUsage.getState().usage.lifetime).toBe(0);
+    expect(writeFreeUsed).not.toHaveBeenCalled();
     const job = usePipeline.getState().job;
     expect(job?.status).toBe('failed');
     expect(job?.error).toBe('analysis_failed');
     expect(job?.result?.failure?.reason).toBe('clip_cut_off');
   });
 
-  it('sends a native read error to the could-not-read screen and refunds the lift', async () => {
+  it('sends a native read error to the could-not-read screen, counting and syncing nothing', async () => {
     mockAnalyse.mockRejectedValueOnce(new Error('Could not analyse on device: no_video_track: AVAsset has no video track'));
     await startDeviceLift(SUB);
-    expect(failDeviceLift).toHaveBeenCalledWith('lift-1', 'no_video_track');
+    expect(queueLiftSync).not.toHaveBeenCalled();
+    expect(useUsage.getState().usage.lifetime).toBe(0);
     const job = usePipeline.getState().job;
     expect(job?.error).toBe('analysis_failed');
     expect(job?.failureReason).toBe('clip_unreadable');
     expect(deactivateKeepAwake).toHaveBeenCalledTimes(1);
   });
 
-  it('refunds and offers a retry when the models could not be fetched', async () => {
+  it('offers a retry when the models could not be loaded', async () => {
     mockAnalyse.mockRejectedValueOnce(new Error('Could not analyse on device: models_unavailable: offline'));
     await startDeviceLift(SUB);
-    expect(failDeviceLift).toHaveBeenCalledWith('lift-1', 'models_unavailable');
+    expect(queueLiftSync).not.toHaveBeenCalled();
     expect(usePipeline.getState().job).toMatchObject({ status: 'failed', error: 'models_unavailable' });
   });
 
   it('treats any other native rejection as a file-system error on the could-not-read screen', async () => {
     mockAnalyse.mockRejectedValueOnce(new Error('ENOSPC'));
     await startDeviceLift(SUB);
-    expect(failDeviceLift).toHaveBeenCalledWith('lift-1', 'unknown');
     expect(usePipeline.getState().job?.failureReason).toBe('clip_unreadable');
   });
 
-  it('gives a clip-too-long lift back at once, since the cap was charged before the trim', async () => {
+  it('fails a clip-too-long lift before analysing, counting nothing', async () => {
     (prepareClip as jest.Mock).mockRejectedValueOnce(new ClipTooLongError(20));
     await startDeviceLift(SUB);
-    expect(failDeviceLift).toHaveBeenCalledWith('lift-1', 'clip_too_long');
+    expect(queueLiftSync).not.toHaveBeenCalled();
+    expect(useUsage.getState().usage.lifetime).toBe(0);
     expect(usePipeline.getState().job).toMatchObject({ status: 'failed', error: 'clip_too_long', maxS: 20 });
   });
 
-  it('lands cap_reached on the job without a lift to fail', async () => {
-    (reserveLift as jest.Mock).mockRejectedValueOnce(new ApiError('cap_reached'));
-    await startDeviceLift(SUB);
-    expect(failDeviceLift).not.toHaveBeenCalled();
-    expect(usePipeline.getState().job).toMatchObject({ status: 'failed', error: 'cap_reached', liftId: null });
-  });
-
-  it('drops the result and refunds when the lifter cancels mid-run', async () => {
+  it('drops the result when the lifter cancels mid-run, counting nothing', async () => {
     mockAnalyse.mockImplementationOnce(async () => {
       cancelDeviceLift();
       return { tracePath: 'file:///t.gz', stills: {} };
@@ -209,7 +214,7 @@ describe('startDeviceLift when the analysis fails', () => {
     await startDeviceLift(SUB);
     expect(mockTrace).not.toHaveBeenCalled();
     expect(saveLocalLift).not.toHaveBeenCalled();
-    expect(failDeviceLift).toHaveBeenCalledWith('lift-1', 'cancelled');
+    expect(queueLiftSync).not.toHaveBeenCalled();
     expect(usePipeline.getState().job).toMatchObject({ status: 'failed', error: 'cancelled' });
   });
 });

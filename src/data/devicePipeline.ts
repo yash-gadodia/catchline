@@ -10,7 +10,11 @@ import type { Analysis, Failure } from '../analysis/types';
 import type { ClipSubmission } from '../features/capture/submit';
 import { rememberClip } from '../features/share/localClips';
 import { usePurchases } from '../features/purchases/usePurchases';
-import { ApiError, failDeviceLift, reserveLift, saveDeviceAnalysis, startDeviceAnalysis, syncPlan, type ReserveLiftInput } from '../lib/api';
+import { randomUUID } from 'expo-crypto';
+import type { SyncLiftInput } from '../lib/api';
+import { useUsage } from '../features/paywall/usageStore';
+import { writeFreeUsed } from './freeLifts';
+import { queueLiftSync } from './liftOutbox';
 import { syncConsent } from './backend';
 import { saveLocalLift } from './localLifts';
 import { usePipeline } from './pipeline';
@@ -128,38 +132,48 @@ export function deviceCue(a: Analysis): { faultId: string; text: string; why: st
   return a.cue ? { faultId: a.cue.faultId, text: a.cue.text, why: a.cue.why } : null;
 }
 
-// A paid lifter the server still thinks is free (a missed webhook) is capped by
-// create_lift: pull the plan from RevenueCat and try once more before the cap paywall.
-async function reserveLiftSynced(input: ReserveLiftInput) {
-  try {
-    return await reserveLift(input);
-  } catch (e) {
-    if (!(e instanceof ApiError) || e.code !== 'cap_reached' || usePurchases.getState().tier === 'free') throw e;
-    await syncPlan().catch(() => undefined);
-    return reserveLift(input);
-  }
-}
-
 let cancelled = false;
 
 // The lifter gave up on this lift: the pass that is running is left to finish and
-// its result is dropped; the lift is failed and refunded.
+// its result is dropped.
 export function cancelDeviceLift(): void {
   cancelled = true;
 }
 
-// Consent, then create_lift (cap checked and charged server-side), then the clip is
-// trimmed and analysed on the phone. The analysis, trace and stills are kept in the
-// app's Documents folder; the server gets the cue record only. Never throws: the
+type Extras = { startClass?: string; yawBucket?: string };
+
+// The slim record sync_lift keeps on the server: nothing biometric, no path.
+export function syncRecord(a: Analysis, sub: ClipSubmission, analysedAt: Date): SyncLiftInput {
+  const extras = a as Analysis & Extras;
+  return {
+    movement: sub.movement,
+    loadKg: sub.loadKg ?? null,
+    made: a.failure ? null : (a.reps[a.bestRepIndex]?.made ?? null),
+    cue: a.failure ? null : deviceCue(a),
+    noCueCode: a.noCueReason?.code ?? null,
+    startClass: extras.startClass ?? null,
+    yawBucket: extras.yawBucket ?? null,
+    analysisVersion: a.analysisVersion ?? null,
+    retestCueId: sub.retestCueId ?? null,
+    failureCode: a.failure ? (a.failure.code ?? a.failure.reason) : null,
+    analysedAt: analysedAt.toISOString(),
+  };
+}
+
+// 3.1: the phone decides. The paywall gate ran before this (submitClip reads the
+// Keychain count and RevenueCat's cached plan), so there is no server round trip:
+// the clip is trimmed and analysed on the phone, kept in Documents, counted, and
+// its slim record queued for sync_lift. Works in airplane mode. Never throws: the
 // outcome lands on the job.
 export async function startDeviceLift(sub: ClipSubmission & { uri: string }): Promise<void> {
   const { start, patch } = usePipeline.getState();
   cancelled = false;
+  const liftId = randomUUID();
   start({
     id: `job-${Date.now()}`,
     movement: sub.movement,
     status: 'preparing',
-    liftId: null,
+    liftId,
     prepared: 0,
     sent: 0,
     total: 0,
@@ -173,37 +187,35 @@ export async function startDeviceLift(sub: ClipSubmission & { uri: string }): Pr
     fraction: 0,
   });
   let prepared: string | null = null;
-  let liftId: string | null = null;
   activateKeepAwakeAsync(KEEP_AWAKE_TAG).catch(() => undefined);
   try {
-    await syncConsent();
-    const lift = await reserveLiftSynced({ movement: sub.movement, loadKg: sub.loadKg ?? undefined, retestCueId: sub.retestCueId });
-    liftId = lift.id;
-    patch({ liftId });
-    await startDeviceAnalysis(lift.id);
-    rememberClip(lift.id, sub.uri, sub.trim.start);
+    void syncConsent().catch(() => undefined);
+    rememberClip(liftId, sub.uri, sub.trim.start);
     const clip = await prepareClip(sub.uri, sub.trim, (p) => patch({ prepared: p }));
     prepared = clip.uri;
     patch({ status: 'analysing', prepared: 1 });
-    const { trace, tracePath, stills } = await analyseLoop(clip.uri, sub.movement, lift.id, (stage, fraction) => patch({ stage, fraction }), () => cancelled);
-    const analysis = finishAnalysis(parseAnalysis(analyseTrace(trace, sub.movement, { analysisId: lift.id, assetPrefix: lift.id })), lift.id, sub);
-    const local = saveLocalLift(lift.id, analysis, tracePath, stills);
-    if (local.failure) {
-      await failDeviceLift(lift.id, local.failure.code ?? local.failure.reason);
-      patch({ status: 'failed', error: 'analysis_failed', result: local });
-      return;
-    }
-    await saveDeviceAnalysis(lift.id, deviceCue(local), local.noCueReason?.code ?? null);
-    patch({ status: 'done', result: local });
+    const { trace, tracePath, stills } = await analyseLoop(clip.uri, sub.movement, liftId, (stage, fraction) => patch({ stage, fraction }), () => cancelled);
+    const analysis = finishAnalysis(parseAnalysis(analyseTrace(trace, sub.movement, { analysisId: liftId, assetPrefix: liftId })), liftId, sub);
+    const local = saveLocalLift(liftId, analysis, tracePath, stills);
+    const now = new Date();
+    if (!local.failure) await countLift(now);
+    void queueLiftSync({ id: liftId, lift: syncRecord(local, sub, now) });
+    if (local.failure) patch({ status: 'failed', error: 'analysis_failed', result: local });
+    else patch({ status: 'done', result: local });
   } catch (e) {
-    const code = e instanceof ClipTooLongError ? 'clip_too_long' : e instanceof ApiError ? e.code : nativeCode(e);
-    if (liftId) await failDeviceLift(liftId, code).catch(() => undefined);
+    const code = e instanceof ClipTooLongError ? 'clip_too_long' : nativeCode(e);
     if (e instanceof ClipTooLongError) patch({ status: 'failed', error: 'clip_too_long', maxS: e.maxS });
-    else if (e instanceof ApiError) patch({ status: 'failed', error: e.code });
     else if (code === 'cancelled' || code === MODELS_UNAVAILABLE) patch({ status: 'failed', error: code });
     else patch({ status: 'failed', error: 'analysis_failed', failureReason: failureReason(code) });
   } finally {
     deactivateKeepAwake(KEEP_AWAKE_TAG).catch(() => undefined);
     if (prepared) discardPrepared(prepared);
   }
+}
+
+// A lift that got a result uses one of the free lifts (or this month's fair use):
+// the local count, and the Keychain copy that outlives a reinstall.
+async function countLift(now: Date): Promise<void> {
+  useUsage.getState().record(usePurchases.getState().tier, now);
+  await writeFreeUsed(useUsage.getState().usage.lifetime);
 }

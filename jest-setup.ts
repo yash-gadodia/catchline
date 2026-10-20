@@ -197,8 +197,25 @@ jest.mock('expo-crypto', () => {
     __esModule: true,
     CryptoDigestAlgorithm: { SHA256: 'SHA-256' },
     getRandomBytes: (n: number) => new Uint8Array(nodeCrypto.randomBytes(n)),
+    randomUUID: () => nodeCrypto.randomUUID(),
     digestStringAsync: (_alg: string, s: string) =>
       Promise.resolve(nodeCrypto.createHash('sha256').update(s).digest('hex')),
+  };
+});
+// expo-secure-store is the Keychain: an in-memory map (reset it with __reset in a test).
+jest.mock('expo-secure-store', () => {
+  const items = new Map<string, string>();
+  return {
+    __esModule: true,
+    AFTER_FIRST_UNLOCK: 0,
+    getItemAsync: jest.fn(async (k: string) => items.get(k) ?? null),
+    setItemAsync: jest.fn(async (k: string, v: string) => {
+      items.set(k, v);
+    }),
+    deleteItemAsync: jest.fn(async (k: string) => {
+      items.delete(k);
+    }),
+    __reset: () => items.clear(),
   };
 });
 jest.mock('expo-web-browser', () => ({
