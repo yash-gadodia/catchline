@@ -79,4 +79,5 @@ export const onboarding: Strings<typeof en> = {
   'onboarding.demo.tryBody': "Wähl einen Satz, seitlich gefilmt, ganzer Körper und Stange im Bild.",
   'onboarding.demo.import': "Video importieren",
   'onboarding.demo.record': "Lieber aufnehmen",
+  'onboarding.privacy.onDevice': "Dein Video wird auf deinem iPhone analysiert und nie hochgeladen.",
 };

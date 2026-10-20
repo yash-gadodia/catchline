@@ -34,18 +34,24 @@
     </header>
 
     <h1>Privacy policy</h1>
-    <p class="meta">Last updated 17 October 2026. Operator: Yash Gadodia, Singapore.</p>
+    <p class="meta">Last updated 20 October 2026. Operator: Yash Gadodia, Singapore.</p>
 
-    <p>Catchline measures a short side-on video of one lift and returns one cue. This page says exactly what the app collects, what happens to your video, who touches it and how to delete everything. It describes what the app does today, not what it might do later.</p>
+    <p>Catchline measures a short side-on video of one lift and returns one cue. The analysis runs on your iPhone. This page says exactly what stays on your phone, what our server holds, who touches it and how to delete everything. It describes what the app does today, not what it might do later.</p>
 
     <h2>Your account</h2>
     <p>You can use Catchline without creating an account, or sign in with Apple. Without sign-in, the app creates an anonymous account with a random ID the first time it talks to our server. With Sign in with Apple, we receive whatever Apple shares with us (an Apple user ID, and your name or a relay email address if you choose to share them). We never see your Apple password.</p>
     <p>Your profile holds an optional display name, your plan, and a push notification token if you turn notifications on.</p>
 
-    <h2>What we collect</h2>
+    <h2>What stays on your phone</h2>
     <ul>
-      <li><strong>The clip you send.</strong> The video you film or import, the movement you picked and the load you entered. The clip is uploaded once over an encrypted connection to a storage bucket the app can only write to, never read back.</li>
-      <li><strong>What we keep from the clip.</strong> Body positions and bar path as numbers, kept so your history improves when the analysis does; deleted with your account. Head keypoints are dropped before anything is stored, and no video is kept. We also keep the measurements behind the cue and five still frames per lift for the strobe and the evidence crop.</li>
+      <li><strong>Your video.</strong> The clip you film or import never leaves your iPhone. It is not uploaded, not copied and not sent anywhere for analysis.</li>
+      <li><strong>The analysis.</strong> Body positions and bar path as numbers, the measurements behind the cue, the bar path overlay and five still frames per lift are kept in the app's own folder on your phone. Head keypoints are dropped before anything is stored. These files are part of your device backup (iCloud or your computer), which is under your control; a restored phone brings your history back.</li>
+      <li><strong>Deleting them.</strong> Deleting a lift in the app removes its files; deleting the app removes them all.</li>
+    </ul>
+
+    <h2>What our server holds</h2>
+    <ul>
+      <li><strong>A record per lift.</strong> The movement, the date, the load you entered, whether the analysis finished, and which cue it counted towards (or why there was none). No positions, no bar path, no stills, no video.</li>
       <li><strong>Cues and whether they stuck.</strong> Text and dates.</li>
       <li><strong>Your consent choices.</strong> A log of what you agreed to in the app, with the version and the date.</li>
       <li><strong>A usage count.</strong> How many videos you have analysed, so the free allowance and plan caps work.</li>
@@ -53,19 +59,18 @@
       <li><strong>Coach links.</strong> If you send a lift to a coach, we create a link token tied to that lift. Anyone holding the link can view that lift's result until it expires 30 days later. Coaches do not need an account.</li>
     </ul>
 
-    <h2>What we do with your video</h2>
+    <h2>What happens to your video</h2>
     <ul>
-      <li>A pose-estimation model on our analysis worker measures your joint positions and the bar position frame by frame. Head keypoints are discarded before storage. No face detection or face recognition model is used anywhere.</li>
-      <li>Rule tables written for weightlifting and gymnastics decide which fault matters most and which cue to show. The cue text comes from those rules. Your video, stills and measurements are not sent to any AI language model or to any AI vendor.</li>
-      <li>As soon as the analysis finishes (or finally fails), the worker deletes the original clip and records the deletion. A scheduled sweep runs every ten minutes and removes any clip older than 24 hours, so no original video outlives a day on our servers.</li>
-      <li>We never log, copy or store your clip anywhere else.</li>
+      <li>A pose-estimation model running on your iPhone measures your joint positions and the bar position frame by frame. Head keypoints are discarded before anything is stored. No face detection or face recognition model is used anywhere.</li>
+      <li>Rule tables written for weightlifting and gymnastics, also on your phone, decide which fault matters most and which cue to show. The cue text comes from those rules. Your video, stills and measurements are not sent to any AI language model or to any AI vendor.</li>
+      <li>We never use your video, stills, positions or measurements to train AI models or to tune the analysis. The analysis improves from our own test footage and from people who send us a clip on purpose.</li>
+      <li>Earlier versions of the app uploaded the clip to our analysis worker. That version is being retired; a clip it received was deleted within 24 hours, and the positions, stills and measurements it kept are moved to your phone and removed from our server the first time this version runs.</li>
     </ul>
-    <p>The app offers an optional switch, "Let Catchline use my clips to improve accuracy". Today it only records your choice. It does not change what we keep: clips are still deleted on the same schedule. If we ever start keeping opted-in clips, we will update this policy first and ask you again in the app.</p>
+    <p>The app offers an optional switch, "Let Catchline use my clips to improve accuracy". Today it only records your choice. It does not change what leaves your phone: nothing does. If we ever ask for opted-in clips, we will update this policy first and ask you again in the app.</p>
 
     <h2>Who processes your data</h2>
     <ul>
-      <li><strong>Supabase</strong> hosts our database, authentication and file storage. The project is in Singapore.</li>
-      <li><strong>Our analysis worker</strong> runs on a machine we operate in Singapore. It is the only thing that reads your clip.</li>
+      <li><strong>Supabase</strong> hosts our database and authentication. The project is in Singapore. It holds your account, the per-lift records, cues and purchase state described above, never video, positions or stills.</li>
       <li><strong>Apple</strong> handles the App Store, in-app purchases and Sign in with Apple under Apple's own privacy policy.</li>
       <li><strong>RevenueCat</strong> manages subscriptions and tells us which plan is active.</li>
       <li><strong>Expo</strong> delivers push notifications. A notification carries only a title, a short line and the lift ID, never video or stills.</li>
@@ -74,8 +79,8 @@
 
     <h2>How long we keep things</h2>
     <ul>
-      <li>Original clip: until the analysis finishes, and at most 24 hours.</li>
-      <li>Positions, bar path, stills, cues and measurements: until you delete your account. When the analysis improves, we may re-run it on your stored positions and bar path (never on video) and keep the earlier result alongside the new one; both go when you delete your account.</li>
+      <li>Video, positions, bar path, stills and measurements: on your phone, for as long as you keep them there. We hold none of them.</li>
+      <li>Per-lift records and cues: until you delete your account.</li>
       <li>Consent log and usage count: while your account exists.</li>
       <li>Purchase events: as long as needed to honour your plan and Apple's refund rules.</li>
       <li>Coach links: 30 days, or until you delete your account.</li>
@@ -83,7 +88,7 @@
 
     <h2>Your choices</h2>
     <ul>
-      <li><strong>Delete everything.</strong> In the app, go to You, then Delete account, and type DELETE. This erases your lifts, analyses, cues, stored positions and bar path, stills, coach links, consent log and the account itself. Positions, bar path and stills are swept from storage within 24 hours. An active subscription is cancelled separately in your App Store settings.</li>
+      <li><strong>Delete everything.</strong> In the app, go to You, then Delete account, and type DELETE. This erases your lift records, cues, coach links, consent log and the account itself on our server, and the analyses, positions and stills kept on your phone. An active subscription is cancelled separately in your App Store settings.</li>
       <li><strong>Export your data.</strong> You, then What is stored, then Export all my data.</li>
       <li><strong>Notifications.</strong> Turn them off in iOS Settings at any time.</li>
       <li><strong>Improve accuracy switch.</strong> Change it any time in You, then What is stored.</li>
@@ -94,7 +99,7 @@
     <p>Catchline is not for anyone under 13, and the consent screen asks you to confirm you are over 16. The App Store rating is 4+ because the app shows nothing unsuitable, but we do not knowingly create accounts for children. If you believe a child has used Catchline, email us and we will delete the account.</p>
 
     <h2>Changes</h2>
-    <p>When this policy changes we update the date at the top. If a change affects what happens to your clip, the app asks for your consent again before the next upload.</p>
+    <p>When this policy changes we update the date at the top. If a change affects what happens to your clip, the app asks for your consent again before the next analysis.</p>
 
     <h2>Contact</h2>
     <p>Yash Gadodia, Singapore<br><a href="mailto:pirsquare.yash+catchline@gmail.com">pirsquare.yash+catchline@gmail.com</a></p>

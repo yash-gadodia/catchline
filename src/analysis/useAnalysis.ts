@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getAnalysis as fetchAnalysis } from '../lib/api';
+import { onDeviceAnalysisEnabled } from '../data/onDeviceAnalysis';
+import { readLocalAnalysis } from '../data/localLifts';
 import { getAnalysis } from './fixtures';
 import { putLiveAnalysis } from './live';
 import type { Analysis } from './types';
@@ -22,7 +24,9 @@ export function useAnalysis(key?: string | string[]): AnalysisLoad {
   useEffect(() => {
     if (known || !id) return;
     let cancelled = false;
-    fetchAnalysis(id)
+    // 3.1: the phone holds its own analyses; the server has one only for a lift analysed by 3.0.
+    const load = onDeviceAnalysisEnabled() ? readLocalAnalysis(id).then((local) => local ?? fetchAnalysis(id)) : fetchAnalysis(id);
+    load
       .then((analysis) => {
         if (cancelled) return;
         if (analysis) putLiveAnalysis(analysis);

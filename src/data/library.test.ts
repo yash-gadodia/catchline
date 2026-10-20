@@ -14,6 +14,29 @@ const row = (over: Partial<LiftRow>): LiftRow =>
     ...over,
   }) as LiftRow;
 
+describe('toLift for a lift analysed on the phone (3.1)', () => {
+  const now = Date.parse('2026-10-14T03:50:00Z');
+
+  it('shows an analysing row as processing', () => {
+    const lift = toLift(row({ status: 'analysing', error: null }), undefined, now);
+    expect(lift.status).toBe('processing');
+    expect(lift.failure).toBeUndefined();
+  });
+
+  it('treats a lift left analysing for over 15 minutes as a failed upload', () => {
+    const lift = toLift(row({ status: 'analysing', error: null }), undefined, now + 16 * 60 * 1000);
+    expect(lift.status).toBe('failed');
+    expect(lift.failure?.reason).toBe('unknown');
+  });
+
+  it('carries the server cue record for a done lift whose analysis is on another phone', () => {
+    const lift = toLift(row({ status: 'done', error: null, cue_id: 'cue-7' }), undefined, now);
+    expect(lift.status).toBe('done');
+    expect(lift.cueId).toBe('cue-7');
+    expect(lift.reps).toBeUndefined();
+  });
+});
+
 describe('toLift for a lift the worker failed (no analysis row)', () => {
   it('maps a worker error code to its failure', () => {
     const lift = toLift(row({ error: 'clip_unreadable' }), undefined);

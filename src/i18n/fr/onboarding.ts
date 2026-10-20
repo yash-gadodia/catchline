@@ -79,4 +79,5 @@ export const onboarding: Strings<typeof en> = {
   'onboarding.demo.tryBody': "Choisis une série filmée de profil, tout le corps et la barre dans le cadre.",
   'onboarding.demo.import': "Importer une vidéo",
   'onboarding.demo.record': "Filmer plutôt",
+  'onboarding.privacy.onDevice': "Ta vidéo est analysée sur ton iPhone et n'est jamais envoyée.",
 };

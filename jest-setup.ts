@@ -343,9 +343,16 @@ jest.mock('./modules/clip-transcoder', () => ({
 // subscriber 0.5 then 1 as analyzePose runs.
 jest.mock('./modules/pose-coreml', () => {
   const listeners: ((e: { progress: number }) => void)[] = [];
+  const analyseListeners: ((e: { stage: string; fraction: number }) => void)[] = [];
   return {
     __esModule: true,
     default: {
+      // Full on-device analysis (3.1): one pass, a gzipped trace file and no stills unless a test overrides it.
+      analyseOnDevice: jest.fn(async () => {
+        analyseListeners.forEach((l) => l({ stage: 'pose', fraction: 0.5 }));
+        analyseListeners.forEach((l) => l({ stage: 'camera', fraction: 1 }));
+        return { tracePath: 'file:///cache/pose-coreml/trace.json.gz', stills: {} };
+      }),
       analyzePose: jest.fn(async () => {
         listeners.forEach((l) => l({ progress: 0.5 }));
         listeners.forEach((l) => l({ progress: 1 }));
@@ -362,10 +369,10 @@ jest.mock('./modules/pose-coreml', () => {
       }),
       ensureModels: jest.fn(async () => ({ status: 'ready', fraction: 1 })),
       modelsStatus: jest.fn(async () => ({ status: 'ready', fraction: 1 })),
-      analyseOnDevice: jest.fn(async () => ({ tracePath: '/tmp/trace.json.gz', stills: {} })),
-      addListener: jest.fn((_e: string, l: (e: { progress: number }) => void) => {
-        listeners.push(l);
-        return { remove: jest.fn(() => listeners.splice(listeners.indexOf(l), 1)) };
+      addListener: jest.fn((e: string, l: (e: never) => void) => {
+        const list = e === 'onAnalyseProgress' ? analyseListeners : listeners;
+        list.push(l as never);
+        return { remove: jest.fn(() => list.splice(list.indexOf(l as never), 1)) };
       }),
     },
   };

@@ -49,6 +49,7 @@ export const onboarding = {
   'onboarding.privacy.title': "What happens to your clip",
   'onboarding.privacy.faces': "We measure positions, not faces.",
   'onboarding.privacy.deleted': "Raw video is deleted within 24 hours. The overlay and numbers stay.",
+  'onboarding.privacy.onDevice': "Your video is analysed on your iPhone and never uploaded.",
   'onboarding.privacy.estimate': "The cue is an AI estimate, not medical advice.",
   'onboarding.privacy.agree': "I've read this and I'm over 16.",
   'onboarding.privacy.required': "Required.",

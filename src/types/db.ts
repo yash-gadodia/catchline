@@ -298,6 +298,8 @@ export type Database = {
           clip_deleted_at: string | null
           clip_path: string
           created_at: string
+          cue_id: string | null
+          no_cue_code: string | null
           error: string | null
           id: string
           load_kg: number | null
@@ -316,6 +318,8 @@ export type Database = {
           clip_deleted_at?: string | null
           clip_path: string
           created_at?: string
+          cue_id?: string | null
+          no_cue_code?: string | null
           error?: string | null
           id?: string
           load_kg?: number | null
@@ -334,6 +338,8 @@ export type Database = {
           clip_deleted_at?: string | null
           clip_path?: string
           created_at?: string
+          cue_id?: string | null
+          no_cue_code?: string | null
           error?: string | null
           id?: string
           load_kg?: number | null
@@ -535,6 +541,8 @@ export type Database = {
           clip_deleted_at: string | null
           clip_path: string
           created_at: string
+          cue_id: string | null
+          no_cue_code: string | null
           error: string | null
           id: string
           load_kg: number | null
@@ -563,6 +571,8 @@ export type Database = {
           clip_deleted_at: string | null
           clip_path: string
           created_at: string
+          cue_id: string | null
+          no_cue_code: string | null
           error: string | null
           id: string
           load_kg: number | null
@@ -591,6 +601,8 @@ export type Database = {
         }
         Returns: string
       }
+      fail_device_lift: { Args: { p_code: string; p_lift_id: string }; Returns: string }
+      delete_my_server_analyses: { Args: never; Returns: number }
       founding_seats: { Args: never; Returns: Json }
       get_coach_link: { Args: { p_token: string }; Returns: Json }
       lift_allowance: { Args: never; Returns: Json }
@@ -607,6 +619,39 @@ export type Database = {
       }
       purge_storage: { Args: { p_max_age?: string }; Returns: number }
       refund_lift: { Args: { p_lift_id: string }; Returns: undefined }
+      save_device_analysis: {
+        Args: { p_cue?: Json; p_lift_id: string; p_no_cue_code?: string }
+        Returns: Json
+      }
+      start_device_analysis: {
+        Args: { p_lift_id: string }
+        Returns: {
+          attempts: number
+          charged_to: string | null
+          clip_deleted_at: string | null
+          clip_path: string
+          created_at: string
+          cue_id: string | null
+          no_cue_code: string | null
+          error: string | null
+          id: string
+          load_kg: number | null
+          movement: string
+          pose_source: string
+          processed_at: string | null
+          queued_at: string | null
+          retest_cue_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "lifts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       save_coach_feedback: {
         Args: { p_notes?: string; p_overrides?: Json; p_token: string }
         Returns: boolean

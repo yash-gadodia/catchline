@@ -21,7 +21,7 @@ import Stage from './Stage';
 import ProcessingPath from './ProcessingPath';
 import { t } from '../../i18n';
 
-export type ProcessingState = 'progress' | 'long' | 'done' | 'too_long';
+export type ProcessingState = 'progress' | 'long' | 'done' | 'too_long' | 'offline';
 
 // One analysis on the single production worker takes about this long; jobs are serial.
 export const EXPECTED_ANALYSIS_S = 150;
@@ -42,10 +42,14 @@ type Props = {
   onServer?: boolean;
   ahead?: number;
   onHide: () => void;
+  // On-device analysis: the lifter can stop the run (the lift is refunded) instead of hiding it.
+  onCancel?: () => void;
   onNotify: () => void;
   onKeepWaiting: () => void;
   onSee: () => void;
   onTrim?: () => void;
+  // On-device analysis: the models could not be fetched; the lift was refunded, retry sends the clip again.
+  onRetry?: () => void;
 };
 
 export default function ProcessingSheet({ analysis, clipUri, reduceMotion, meta, firstStep, maxS, state, step, elapsed, etaSeconds = EXPECTED_ANALYSIS_S, onServer, ahead, ...on }: Props) {
@@ -73,7 +77,20 @@ export default function ProcessingSheet({ analysis, clipUri, reduceMotion, meta,
           meta={meta ?? formatWait(etaSeconds)}
           note={onServer ? <Queue etaSeconds={etaSeconds} ahead={ahead} /> : null}
           onHide={on.onHide}
+          onCancel={on.onCancel}
         />
+      ) : null}
+      {state === 'offline' ? (
+        <Sheet testID="sheet-offline">
+          <Header title={t('analysis.processing.offlineTitle')} meta="" strong />
+          <Text style={{ color: colors.text2, ...type.body }}>{t('analysis.processing.offlineBody')}</Text>
+          <Btn onPress={on.onRetry ?? on.onHide} testID="retry">
+            {t('analysis.processing.retry')}
+          </Btn>
+          <Btn kind="secondary" onPress={on.onHide} testID="cancel-offline">
+            {t('analysis.processing.cancel')}
+          </Btn>
+        </Sheet>
       ) : null}
       {state === 'too_long' ? (
         <Sheet testID="sheet-too-long">
@@ -222,6 +239,7 @@ function InProgress({
   meta,
   note,
   onHide,
+  onCancel,
 }: {
   analysis: Analysis | null;
   step: number;
@@ -229,6 +247,7 @@ function InProgress({
   meta: string;
   note: ReactNode;
   onHide: () => void;
+  onCancel?: () => void;
 }) {
   return (
     <Sheet testID="sheet-progress">
@@ -256,11 +275,11 @@ function InProgress({
         ))}
       </View>
       <View style={{ alignItems: 'center', gap: 2 }}>
-        <TextLink onPress={onHide} testID="hide">
-          {t('analysis.processing.hide')}
+        <TextLink onPress={onCancel ?? onHide} testID={onCancel ? 'cancel' : 'hide'}>
+          {onCancel ? t('analysis.processing.cancel') : t('analysis.processing.hide')}
         </TextLink>
         <Text style={{ color: colors.text2, ...type.small, textAlign: 'center' }}>
-          {t('analysis.processing.background')}
+          {onCancel ? t('analysis.processing.cancelNote') : t('analysis.processing.background')}
         </Text>
       </View>
     </Sheet>
