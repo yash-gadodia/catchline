@@ -1,3 +1,4 @@
+import Accelerate
 import Foundation
 
 // track.py foreground_mask, stabilise (one step) and camera_path (one step). Signatures in StageAPI.swift.
@@ -8,14 +9,21 @@ import Foundation
 
 // cv2.cvtColor(BGR2GRAY) on uint8: (B*1868 + G*9617 + R*4899 + 2^13) >> 14
 func grayscale(_ img: BGRImage) -> GrayImage {
-  var out = [UInt8](repeating: 0, count: img.width * img.height)
+  // (b * 1868 + g * 9617 + r * 4899 + 8192) >> 14 in float: every product and sum is an integer under 2^24, so exact
+  let n = img.width * img.height
+  var out = [UInt8](repeating: 0, count: n)
+  var acc = [Float](repeating: 0, count: n), ch = acc
+  var bias: Float = 8192, wb: Float = 1868, wg: Float = 9617, wr: Float = 4899, inv: Float = 1 / 16384
   img.data.withUnsafeBufferPointer { s in
-    for i in 0 ..< out.count {
-      let b = Int(s[i * 3]), g = Int(s[i * 3 + 1]), r = Int(s[i * 3 + 2])
-      let v: Int = b * 1868 + g * 9617 + r * 4899 + 8192
-      out[i] = UInt8(v >> 14)
-    }
+    vDSP_vfltu8(s.baseAddress!, 3, &ch, 1, vDSP_Length(n))
+    vDSP_vsmsa(ch, 1, &wb, &bias, &acc, 1, vDSP_Length(n))
+    vDSP_vfltu8(s.baseAddress! + 1, 3, &ch, 1, vDSP_Length(n))
+    vDSP_vsma(ch, 1, &wg, acc, 1, &acc, 1, vDSP_Length(n))
+    vDSP_vfltu8(s.baseAddress! + 2, 3, &ch, 1, vDSP_Length(n))
+    vDSP_vsma(ch, 1, &wr, acc, 1, &acc, 1, vDSP_Length(n))
   }
+  vDSP_vsmul(acc, 1, &inv, &acc, 1, vDSP_Length(n))
+  vDSP_vfixu8(acc, 1, &out, 1, vDSP_Length(n))  // truncation = the shift
   return GrayImage(width: img.width, height: img.height, data: out)
 }
 
