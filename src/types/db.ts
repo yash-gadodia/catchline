@@ -293,6 +293,7 @@ export type Database = {
       }
       lifts: {
         Row: {
+          analysis_version: string | null
           attempts: number
           charged_to: string | null
           clip_deleted_at: string | null
@@ -301,14 +302,17 @@ export type Database = {
           error: string | null
           id: string
           load_kg: number | null
+          made: boolean | null
           movement: string
           pose_source: string
           processed_at: string | null
           queued_at: string | null
           retest_cue_id: string | null
+          start_class: string | null
           status: string
           updated_at: string
           user_id: string
+          yaw_bucket: string | null
         }
         Insert: {
           attempts?: number
@@ -475,6 +479,7 @@ export type Database = {
     Functions: {
       begin_account_transfer: { Args: never; Returns: string }
       complete_account_transfer: { Args: { p_token: string }; Returns: Json }
+      sync_lift: { Args: { p_lift_id: string; p_lift: Json }; Returns: Json }
       apply_plan: {
         Args: {
           p_event_at: string
