@@ -417,7 +417,8 @@ describe('global states', () => {
   it('blocks on a required update', async () => {
     const onUpdate = jest.fn();
     const screen = await render(<UpdateRequired onUpdate={onUpdate} />);
-    expect(screen.getByText("This version can't talk to the analysis service any more.")).toBeOnTheScreen();
+    expect(screen.getByText('Update to keep analysing')).toBeOnTheScreen();
+    expect(screen.queryByText('Back to my lifts')).toBeNull();
     await press(screen.getByText('Update Catchline'));
     expect(onUpdate).toHaveBeenCalledTimes(1);
   });

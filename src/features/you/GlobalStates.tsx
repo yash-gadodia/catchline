@@ -66,14 +66,19 @@ export function LowStorageSheet({
   );
 }
 
-export function UpdateRequired({ onUpdate }: { onUpdate: () => void }) {
+export function UpdateRequired({ onUpdate, onBack }: { onUpdate: () => void; onBack?: () => void }) {
   return (
     <View testID="update-required" style={{ flex: 1, justifyContent: 'center', padding: space.gutter, gap: space.s3, backgroundColor: colors.bg }}>
       <Text style={[display(30), { color: colors.text }]}>{t('you.update.title')}</Text>
       <Body>{t('you.update.body')}</Body>
-      <Btn compact onPress={onUpdate} testID="update-app">
+      <Btn onPress={onUpdate} testID="update-app">
         {t('you.update.cta')}
       </Btn>
+      {onBack ? (
+        <Btn kind="text" onPress={onBack} testID="update-back">
+          {t('you.update.back')}
+        </Btn>
+      ) : null}
     </View>
   );
 }
