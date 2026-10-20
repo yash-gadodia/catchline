@@ -7,7 +7,6 @@ import Foundation
 // built from its replay misses), merged into the same trace. Pose runs once per clip. Free of
 // ExpoModulesCore: the macOS harness drives this same file.
 
-let keyframeHeight = 1080
 private let cameraSmallHeight = 360
 private let L_WRI = 9, R_WRI = 10
 
@@ -205,21 +204,14 @@ final class DeviceAnalyser {
       let boxes = try detectPeople(img, models)
       tm.detect += lap()
       for box in boxes {
-        let (k, sc) = try estimatePose(img, box: box, models)
+        // merge_passes compares the 26-point mean with the head scores still in; invertedPass strips them after
+        let (k, sc) = try estimatePose(img, box: box, models, stripHead: !twoPass)
         row.append(PosePerson(box: box, kpts: k, scores: sc))
       }
       tm.pose += lap()
       tm.frames += 1
       tm.people += row.count
-      if twoPass {
-        let flipped = try rotate180(img)
-        var rot: [PosePerson] = []
-        for box in try detectPeople(flipped, models) {
-          let (k, sc) = try estimatePose(flipped, box: box, models)
-          rot.append(PosePerson(box: box, kpts: k, scores: sc))
-        }
-        row = try mergePasses(upright: row, rotated: try unrotate(rot, width: outW, height: poseInferHeight))
-      }
+      if twoPass { row = try invertedPass(img, upright: row, models) }
       // track.py camera_path: KLT on the clip at 360 px tall, the previous frame's people masked
       let small = cameraPath ? grayscale(uprightBGR(pb, rotation: clip.rotation, outW: smallW, outH: cameraSmallHeight)) : nil
       if let prev = prevSmall, let small {
@@ -261,7 +253,8 @@ final class DeviceAnalyser {
     let clip = try await ClipReader(url: r.url)
     let total = r.people.count
     let outW = r.outW
-    let W1080 = clip.width(at: keyframeHeight)
+    // read_frame's ffmpeg scale=-2 rounds up to even, unlike video.frames() (clip.width(at:))
+    let W1080 = keyframeWidth(displayWidth: Double(clip.width), displayHeight: Double(clip.height))
 
     final class WindowState {
       let s0: Int, count: Int, n: Int, bodyH: Double
