@@ -49,3 +49,6 @@ supabase/.temp/
 deno.lock
 modules/pose-coreml/ios/models/
 worker/REVISION
+
+# macOS harness build products (modules/pose-coreml/harness)
+modules/pose-coreml/harness/.build/

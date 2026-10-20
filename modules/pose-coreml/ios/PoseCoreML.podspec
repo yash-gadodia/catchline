@@ -12,7 +12,7 @@ Pod::Spec.new do |s|
 
   s.dependency 'ExpoModulesCore'
 
-  s.source_files = "*.swift"
+  s.source_files = "*.swift", "Stages/*.swift"
   # Compiled Core ML models from cv/scripts/export_coreml.py (gitignored, ~60 MB)
   s.resource_bundles = { 'PoseCoreMLModels' => ['models/*.mlmodelc'] }
   s.pod_target_xcconfig = {

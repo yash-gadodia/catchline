@@ -1,5 +1,5 @@
 import PoseCoreML from '../../modules/pose-coreml';
-import { analyzeClipPose, onDevicePoseEnabled, poseJson } from './onDevicePose';
+import { analyzeClipPose, onDevicePoseEnabled, poseJson, prefetchPoseModels } from './onDevicePose';
 
 const analyzePose = PoseCoreML!.analyzePose as jest.Mock;
 
@@ -51,5 +51,14 @@ describe('onDevicePose', () => {
     process.env.EXPO_PUBLIC_ON_DEVICE_POSE = '1';
     analyzePose.mockRejectedValueOnce(new Error('Could not read body pose'));
     await expect(analyzeClipPose('file:///prepared.mp4', jest.fn())).resolves.toBeNull();
+  });
+
+  it('prefetch starts the model download whatever the build flag, and swallows a failure', async () => {
+    delete process.env.EXPO_PUBLIC_ON_DEVICE_POSE;
+    const ensureModels = PoseCoreML!.ensureModels as jest.Mock;
+    ensureModels.mockRejectedValueOnce(new Error('offline'));
+    prefetchPoseModels();
+    await Promise.resolve();
+    expect(ensureModels).toHaveBeenCalledTimes(1);
   });
 });

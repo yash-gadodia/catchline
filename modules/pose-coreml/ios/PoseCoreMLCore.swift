@@ -13,10 +13,19 @@ import Foundation
 // pixels, head points (nose, eyes, ears, head top) dropped, plus the index of the
 // lifter tracked like cv/catchline_cv/lifter.py.
 
-enum PoseCoreMLError: Error {
+// Thrown to JS as "<code>: <detail>" (AnalyseFailedException): no_video_track, clip_unreadable, models_unavailable
+enum PoseCoreMLError: Error, CustomStringConvertible {
   case noVideoTrack
   case readFailed(String)
   case model(String)
+
+  var description: String {
+    switch self {
+    case .noVideoTrack: return "no_video_track: the file has no video track"
+    case .readFailed(let s): return "clip_unreadable: \(s)"
+    case .model(let s): return "models_unavailable: \(s)"
+    }
+  }
 }
 
 let poseInferHeight = 1280
@@ -38,6 +47,13 @@ struct BGRImage {
   let height: Int
   var data: [UInt8]
 }
+
+// Seconds inside detectPeople / estimatePose, split into the Swift pre/post-processing and the Core ML call
+struct CoreTiming {
+  var detectPre = 0.0, detectInfer = 0.0, detectPost = 0.0, posePre = 0.0, poseInfer = 0.0, posePost = 0.0
+}
+
+nonisolated(unsafe) var coreTiming = CoreTiming()
 
 final class PoseModels {
   let det: MLModel
@@ -88,8 +104,21 @@ func resizeLinear(_ src: BGRImage, _ w: Int, _ h: Int) -> BGRImage {
   return BGRImage(width: w, height: h, data: out)
 }
 
+// MLShapedArray(converting:) copies element by element; a contiguous float32 output is read straight
 private func floats(_ m: MLMultiArray) -> [Float] {
-  MLShapedArray<Float>(converting: m).scalars
+  let n = m.count
+  if m.dataType == .float32, n == 0 || (m.strides.last?.intValue ?? 1) == 1 {
+    var contiguous = true
+    var expect = 1
+    for i in stride(from: m.shape.count - 1, through: 0, by: -1) {
+      if m.strides[i].intValue != expect { contiguous = false; break }
+      expect *= m.shape[i].intValue
+    }
+    if contiguous {
+      return m.withUnsafeBufferPointer(ofType: Float.self) { Array($0) }
+    }
+  }
+  return MLShapedArray<Float>(converting: m).scalars
 }
 
 private func iouXYXY(_ a: [Float], _ b: [Float]) -> Float {
@@ -103,6 +132,8 @@ private func iouXYXY(_ a: [Float], _ b: [Float]) -> Float {
 // ONNX graph carried (top 5000, IoU 0.65, score > 0.01, at most 200, best 100),
 // then rtmlib's score > 0.3. Boxes in `img` pixels.
 func detectPeople(_ img: BGRImage, _ models: PoseModels) throws -> [[Float]] {
+  var tick = Date()
+  func lap() -> Double { let now = Date(); defer { tick = now }; return now.timeIntervalSince(tick) }
   let ratio = min(Float(detSize) / Float(img.height), Float(detSize) / Float(img.width))
   let rw = Int(Float(img.width) * ratio), rh = Int(Float(img.height) * ratio)
   let small = resizeLinear(img, rw, rh)
@@ -118,26 +149,40 @@ func detectPeople(_ img: BGRImage, _ models: PoseModels) throws -> [[Float]] {
       }
     }
   }
+  coreTiming.detectPre += lap()
   let out = try models.det.prediction(from: MLDictionaryFeatureProvider(dictionary: ["input": input]))
+  coreTiming.detectInfer += lap()
   guard let bm = out.featureValue(for: "boxes")?.multiArrayValue, let sm = out.featureValue(for: "scores")?.multiArrayValue else {
     throw PoseCoreMLError.model("detector outputs")
   }
+  defer { coreTiming.detectPost += lap() }
   let boxes = floats(bm), scores = floats(sm)
   let n = boxes.count / 4, classes = scores.count / n
   let box = { (i: Int) in Array(boxes[i * 4 ..< i * 4 + 4]) }
+  func iou(_ a: Int, _ b: Int) -> Float {
+    let iw = max(0, min(boxes[a * 4 + 2], boxes[b * 4 + 2]) - max(boxes[a * 4], boxes[b * 4]))
+    let ih = max(0, min(boxes[a * 4 + 3], boxes[b * 4 + 3]) - max(boxes[a * 4 + 1], boxes[b * 4 + 1]))
+    let inter = iw * ih
+    let u = (boxes[a * 4 + 2] - boxes[a * 4]) * (boxes[a * 4 + 3] - boxes[a * 4 + 1]) + (boxes[b * 4 + 2] - boxes[b * 4]) * (boxes[b * 4 + 3] - boxes[b * 4 + 1]) - inter
+    return u > 0 ? inter / u : 0
+  }
   // the graph keeps the 5000 anchors with the best class score, then runs NMS per
   // class (IoU 0.65, score > 0.01, 200 per class) and returns the best 100 of all.
   // Only scores > 0.3 survive rtmlib, and a lower box never suppresses a higher one,
   // so per class only the > 0.3 candidates need the NMS: same result, far less work.
   var best = [Float](repeating: 0, count: n)
-  for a in 0 ..< n { best[a] = scores[a * classes ..< (a + 1) * classes].max() ?? 0 }
+  for a in 0 ..< n {
+    var m = -Float.infinity
+    for c in 0 ..< classes where scores[a * classes + c] > m { m = scores[a * classes + c] }
+    best[a] = m
+  }
   let top = n > 5000 ? Array(Array(0 ..< n).sorted { best[$0] > best[$1] }[..<5000]) : Array(0 ..< n)
   var dets: [(score: Float, a: Int)] = []
   for c in 0 ..< classes {
     let cand = top.filter { scores[$0 * classes + c] > 0.3 }.sorted { scores[$0 * classes + c] > scores[$1 * classes + c] }
     var kept: [Int] = []
     for a in cand {
-      if kept.contains(where: { iouXYXY(box($0), box(a)) > 0.65 }) { continue }
+      if kept.contains(where: { iou($0, a) > 0.65 }) { continue }
       kept.append(a)
       if kept.count == 200 { break }
     }
@@ -150,6 +195,8 @@ func detectPeople(_ img: BGRImage, _ models: PoseModels) throws -> [[Float]] {
 // RTMPose: bbox_xyxy2cs(padding 1.25), aspect fixed to 192:256, cv2.warpAffine
 // (INTER_LINEAR, border 0) into 192x256, (BGR - mean) / std, SimCC argmax / 2.
 func estimatePose(_ img: BGRImage, box: [Float], _ models: PoseModels) throws -> (kpts: [Float], scores: [Float]) {
+  var tick = Date()
+  func lap() -> Double { let now = Date(); defer { tick = now }; return now.timeIntervalSince(tick) }
   let cx = (box[0] + box[2]) / 2, cy = (box[1] + box[3]) / 2
   var sw = (box[2] - box[0]) * 1.25, sh = (box[3] - box[1]) * 1.25
   let aspect = Float(poseW) / Float(poseH)
@@ -177,10 +224,13 @@ func estimatePose(_ img: BGRImage, box: [Float], _ models: PoseModels) throws ->
       }
     }
   }
+  coreTiming.posePre += lap()
   let out = try models.pose.prediction(from: MLDictionaryFeatureProvider(dictionary: ["input": input]))
+  coreTiming.poseInfer += lap()
   guard let xm = out.featureValue(for: "simcc_x")?.multiArrayValue, let ym = out.featureValue(for: "simcc_y")?.multiArrayValue else {
     throw PoseCoreMLError.model("pose outputs")
   }
+  defer { coreTiming.posePost += lap() }
   let sx = floats(xm), sy = floats(ym)
   let wx = sx.count / 26, wy = sy.count / 26
   var kpts = [Float](repeating: 0, count: 52), scores = [Float](repeating: 0, count: 26)
