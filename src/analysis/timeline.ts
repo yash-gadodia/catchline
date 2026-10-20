@@ -116,10 +116,12 @@ export function phaseFrame(rep: Rep, name: PhaseName): number {
   return keyFrameForPhase(rep, name)?.frame ?? rep.phases.find((p) => p.name === name)?.startFrame ?? rep.startFrame;
 }
 
+// A measure the analysis could not take is stamped with the rep's start frame, which is no phase of its own (#88).
 export function measurementsByPhase(rep: Rep, measurements: Measurement[]): Partial<Record<PhaseName, Measurement[]>> {
   const out: Partial<Record<PhaseName, Measurement[]>> = {};
   for (const m of measurements) {
     if (m.frame < rep.startFrame || m.frame > rep.endFrame) continue;
+    if (m.status === 'not_seen' && m.frame === rep.startFrame) continue;
     const name = phaseOfFrame(rep, m.frame);
     if (name) (out[name] ??= []).push(m);
   }
