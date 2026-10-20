@@ -13,8 +13,17 @@ import numpy as np
 
 
 def load(path):
+    """The pose in `path`; ValueError when it is not the shape above, so the caller can run its own pose instead."""
     with open(path) as fh:
-        return json.load(fh)
+        pose = json.load(fh)
+    try:
+        ok = pose["height"] > 0 and pose["fps"] > 0 and pose["width"] > 0 and all(
+            f["t"] >= 0 and all(len(p["box"]) == 4 and len(p["kp"]) == 26 for p in f["people"]) for f in pose["frames"])
+    except (KeyError, TypeError, IndexError):
+        ok = False
+    if not ok:
+        raise ValueError("not a device pose")
+    return pose
 
 
 def person(p, s):
