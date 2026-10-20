@@ -284,8 +284,12 @@ def test_unreadable_device_pose_falls_back_to_server_pose(caplog):
 
 
 # #79: JSON that parses but is not a pose used to reach the pipeline and fail the lift 'unknown' three times.
-@pytest.mark.parametrize("bad", [{"frames": "garbage"}, [], {"fps": 30, "width": 1080, "height": 1920, "frames": [{"t": 0}]},
-                                 dict(POSE, frames=[{"t": 0, "people": [{"box": [1, 2, 3], "kp": []}]}])])
+@pytest.mark.parametrize("bad", [
+    {"frames": "garbage"},
+    [],
+    {"fps": 30, "width": 1080, "height": 1920, "frames": [{"t": 0}]},
+    dict(POSE, frames=[{"t": 0, "people": [{"box": [1, 2, 3], "kp": []}]}]),
+])
 def test_a_parseable_but_malformed_device_pose_falls_back_to_server_pose(bad, caplog):
     seen = {}
 
