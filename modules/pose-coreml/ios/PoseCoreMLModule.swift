@@ -14,14 +14,33 @@ private func fileURL(_ uri: String) -> URL {
   return URL(fileURLWithPath: uri)
 }
 
+// 3.1 bundles the models in the binary (scripts/fetch-pose-models.sh fills ios/models, the podspec
+// ships it as PoseCoreMLModels.bundle). nil in a build made without them.
+private let bundledModelsDir: URL? = {
+  guard let url = Bundle.main.url(forResource: "PoseCoreMLModels", withExtension: "bundle")
+    ?? Bundle(for: PoseCoreMLModule.self).url(forResource: "PoseCoreMLModels", withExtension: "bundle") else { return nil }
+  let all = ["YoloxHuman", "RTMPoseHalpe26"].allSatisfy {
+    FileManager.default.fileExists(atPath: url.appendingPathComponent("\($0).mlmodelc").path)
+  }
+  return all ? url : nil
+}()
+
+private let bundledStatus: [String: Any] = ["status": "ready", "fraction": 1.0, "bundled": true]
+
 public class PoseCoreMLModule: Module {
   private var models: PoseModels?
   private var analyser: DeviceAnalyser?
 
-  // The models are downloaded on first use (PoseModelStore); the stage events say how far along.
+  // The bundled models; without them (kept for one release, design 3.1 section 6.2) the
+  // PoseModelStore download, whose progress is the 'models' stage.
   private func loadModels(progress: @escaping (String, Double) -> Void) async throws -> PoseModels {
     if let m = models { return m }
-    let dir = try await PoseModelStore.shared.waitUntilReady { f in progress("models", f) }
+    let dir: URL
+    if let bundled = bundledModelsDir {
+      dir = bundled
+    } else {
+      dir = try await PoseModelStore.shared.waitUntilReady { f in progress("models", f) }
+    }
     let m = try PoseModels(directory: dir)
     models = m
     return m
@@ -33,11 +52,13 @@ public class PoseCoreMLModule: Module {
     Events("onProgress", "onAnalyseProgress")
 
     AsyncFunction("ensureModels") { () async -> [String: Any] in
-      await PoseModelStore.shared.ensure()
+      if bundledModelsDir != nil { return bundledStatus }
+      return await PoseModelStore.shared.ensure()
     }
 
     AsyncFunction("modelsStatus") { () async -> [String: Any] in
-      await PoseModelStore.shared.status()
+      if bundledModelsDir != nil { return bundledStatus }
+      return await PoseModelStore.shared.status()
     }
 
     AsyncFunction("analyzePose") { (uri: String) async throws -> [String: Any] in

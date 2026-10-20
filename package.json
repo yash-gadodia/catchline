@@ -78,6 +78,8 @@
     "typecheck": "tsc --noEmit",
     "verify": "tsc --noEmit && jest && expo export -p ios",
     "check": "tsx scripts/check-all.ts",
+    "eas-build-pre-install": "./scripts/fetch-pose-models.sh",
+    "pose-models": "./scripts/fetch-pose-models.sh",
     "qa": "tsx scripts/qa.ts"
   },
   "private": true
