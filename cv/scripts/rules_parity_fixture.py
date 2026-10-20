@@ -59,7 +59,8 @@ def fmt_cases():
 def main():
     movements = list(rules.FAULTS)
     cases = {"fmt": fmt_cases(), "severity": [], "fired": [], "gate": [], "chooseCue": [], "chooseSetCue": [], "notes": [],
-             "confidence": [], "repConfidence": [], "whySentence": [], "cueConfidence": []}
+             "confidence": [], "repConfidence": [], "whySentence": [], "cueConfidence": [], "onScreen": [],
+             "confirmedOffSide": []}
     for fid in rules.RULES:
         thr = rules.RULES[fid]["threshold"]
         for v in [thr, thr * 0.5, thr * 1.5, thr * 2, 0.0, -thr, thr * 3.7, rng.uniform(-thr, 3 * thr)]:
@@ -109,12 +110,17 @@ def main():
         cases["notes"].append({"movement": m, "reps": reps, "cue": cue, "limit": limit,
                                "out": rules.notes(m, reps, cue, limit)})
 
-    offs = [None, 0.0, 19.9, 20.0, 20.0001, 36.0, 60.0]
+    offs = [None, 0.0, 19.9, 20.0, 20.0001, 36.0, 60.0, 70.0, 70.0001, 85.0]
     sevs = [0.0, 1.0, 1.49, 1.4999999, 1.5, 2.0, 3.3]
+    for m in movements:
+        for off in offs:
+            vals = values(m)
+            cases["onScreen"].append({"values": vals, "off": off, "out": rules.on_screen(vals, off)})
     for fid in rules.RULES:
         for s in sevs:
             for off in offs:
                 cases["confidence"].append({"fid": fid, "sev": s, "off": off, "out": rules.confidence(fid, s, off)})
+                cases["confirmedOffSide"].append({"fid": fid, "sev": s, "off": off, "out": rules.confirmed_off_side(fid, s, off)})
                 for scale_ok in (True, False):
                     seen, total = rng.randint(0, 4), rng.randint(1, 4)
                     cases["cueConfidence"].append({"fid": fid, "sev": s, "off": off, "seen": seen, "total": total,
