@@ -14,6 +14,12 @@ export function onDevicePoseEnabled(): boolean {
   return process.env.EXPO_PUBLIC_ON_DEVICE_POSE === '1' && PoseCoreML !== null;
 }
 
+// Starts the one-time model download (~150 MB) so a later lift can run pose on the phone;
+// the framing check uses the same models, so this does not wait for the build flag.
+export function prefetchPoseModels(): void {
+  PoseCoreML?.ensureModels().catch(() => undefined);
+}
+
 // The object uploaded next to the clip as '<user>/<lift>.pose.json'. The native side
 // already rounds (0.1 px, 0.001 score) and drops head points; the worker reads it
 // with cv/catchline_cv/external_pose.py.

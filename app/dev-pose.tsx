@@ -14,6 +14,13 @@ import Transcoder from '../modules/clip-transcoder';
 // Open with catchline://dev-pose?uri=file:///... or pick a video.
 async function measure(uri: string, log: (line: string) => void) {
   if (!PoseCoreML) return log('PoseCoreML native module missing (Android or stale dev client)');
+  log(`models: ${(await PoseCoreML.modelsStatus()).status}`);
+  const d0 = Date.now();
+  for (let s = await PoseCoreML.ensureModels(); s.status !== 'ready'; s = await PoseCoreML.modelsStatus()) {
+    if (s.status === 'failed') return log(`models failed: ${s.error}`);
+    await new Promise((r) => setTimeout(r, 1000));
+  }
+  log(`models: ready (sha256 verified) after ${((Date.now() - d0) / 1000).toFixed(1)} s`);
   const src = await Transcoder.probe(uri);
   const t0 = Date.now();
   const clip = await prepareClip(uri, { start: 0, end: src.durationS }, () => undefined);

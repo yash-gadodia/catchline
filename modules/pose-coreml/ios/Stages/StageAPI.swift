@@ -96,12 +96,12 @@ struct KLTParams {
 // (cv2.line thickness int(2 * scale)). scale 0 and wrists nil give the box-only mask camera_path uses.
 // func foregroundMask(width: Int, height: Int, boxes: [Box], wrists: (Point, Point)?, scale: Double) throws -> Mask
 //
-// One step of track.py stabilise / camera_path: corners on `prev` outside `background == 0`
+// One step of track.py stabilise / camera_path: corners on `prev` where `foreground == 0`
 // (goodFeaturesToTrack quality 0.01), pyramidal LK to `cur`, estimateAffinePartial2D(p1 -> p0, RANSAC).
 // Returns the affine mapping cur px -> prev px and the RANSAC inlier count; nil when fewer than 12
 // corners are found or tracked, or the estimate fails (the caller then uses the identity and records
 // no inlier count, as the Python loop does).
-// func cameraMotionStep(prev: GrayImage, cur: GrayImage, background: Mask, params: KLTParams) throws -> (affine: Affine, inliers: Int)?
+// func cameraMotionStep(prev: GrayImage, cur: GrayImage, foreground: Mask, params: KLTParams) throws -> (affine: Affine, inliers: Int)?
 
 // --- Plates.swift ---------------------------------------------------------------------------------
 //

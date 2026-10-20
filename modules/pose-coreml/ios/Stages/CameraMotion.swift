@@ -18,6 +18,6 @@ func foregroundMask(width: Int, height: Int, boxes: [Box], wrists: (Point, Point
   throw StageError.notImplemented("foregroundMask")
 }
 
-func cameraMotionStep(prev: GrayImage, cur: GrayImage, background: Mask, params: KLTParams) throws -> (affine: Affine, inliers: Int)? {
+func cameraMotionStep(prev: GrayImage, cur: GrayImage, foreground: Mask, params: KLTParams) throws -> (affine: Affine, inliers: Int)? {
   throw StageError.notImplemented("cameraMotionStep")
 }

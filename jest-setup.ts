@@ -360,6 +360,9 @@ jest.mock('./modules/pose-coreml', () => {
           ],
         };
       }),
+      ensureModels: jest.fn(async () => ({ status: 'ready', fraction: 1 })),
+      modelsStatus: jest.fn(async () => ({ status: 'ready', fraction: 1 })),
+      analyseOnDevice: jest.fn(async () => ({ tracePath: '/tmp/trace.json.gz', stills: {} })),
       addListener: jest.fn((_e: string, l: (e: { progress: number }) => void) => {
         listeners.push(l);
         return { remove: jest.fn(() => listeners.splice(listeners.indexOf(l), 1)) };
