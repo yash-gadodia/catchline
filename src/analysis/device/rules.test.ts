@@ -6,7 +6,9 @@ import {
   chooseCue,
   chooseSetCue,
   confidence,
+  confirmedOffSide,
   cueConfidence,
+  onScreen,
   fired,
   fmt,
   gate,
@@ -33,13 +35,15 @@ const P = parity as unknown as {
   repConfidence: Case<{ conf: Confidence; seen: number; total: number }>[];
   whySentence: Case<{ fid: string; values: Values; detail: Record<string, number | string | null> | null }>[];
   cueConfidence: Case<{ fid: string; sev: number; off: number | null; seen: number; total: number; scaleOk: boolean }>[];
+  onScreen: Case<{ values: Values; off: number | null }>[];
+  confirmedOffSide: Case<{ fid: string; sev: number; off: number | null }>[];
 };
 
 const total = Object.values(P).reduce((n, cases) => n + cases.length, 0);
 
 describe('rules.ts matches rules.py on the parity fixture', () => {
   it('covers every case kind', () => {
-    expect(total).toBe(8032);
+    expect(total).toBe(11519);
   });
   it('fmt', () => P.fmt.forEach((c) => expect([c, fmt(c.value, c.unit)]).toEqual([c, c.out])));
   it('severity', () => P.severity.forEach((c) => expect([c, severity(c.fid, c.v)]).toEqual([c, c.out])));
@@ -58,6 +62,9 @@ describe('rules.ts matches rules.py on the parity fixture', () => {
   it('cueConfidence', () =>
     P.cueConfidence.forEach((c) =>
       expect([c, cueConfidence(c.fid, c.sev, c.off, c.seen, c.total, c.scaleOk)]).toEqual([c, c.out])));
+  it('onScreen', () => P.onScreen.forEach((c) => expect([c, onScreen(c.values, c.off)]).toEqual([c, c.out])));
+  it('confirmedOffSide', () =>
+    P.confirmedOffSide.forEach((c) => expect([c, confirmedOffSide(c.fid, c.sev, c.off)]).toEqual([c, c.out])));
 });
 
 describe('pyRound', () => {

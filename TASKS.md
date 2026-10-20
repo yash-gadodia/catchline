@@ -195,7 +195,7 @@ Build 26: Cues crashed and Trends was empty on a real account. Root cause: the C
 - [x] (Claude) Off side-on, `on_screen` corrects forward distances for off less 10 deg (the angle estimate's error) instead of not at all: e97d83bb (48 deg) and 742f6bde (43 deg) get "Brush the bar up"
 - [x] (Claude) Slow turnover ends at the first relock after the elbows' deepest bend (3-frame medians), not the first lockout after a late bar peak: e97d83bb read 0.63 s, really 0.37 s. Gotcha: raw argmin picked 9fb313e4's one-frame 6 deg wrist flip and dropped its real 0.77 s slow turnover
 - Replays: all 10 golden traces byte-identical; of 22 prod traces only these 4 lifts change. E0DF8887 golden is red on origin/catchline too (pre-existing)
-- [ ] (Claude) Mirror `on_screen`/`confirmed_off_side`/ANGLE_ERR_DEG in `src/analysis/device/rules.ts` when the device port resumes
+- [x] (Claude) Mirror `on_screen`/`confirmed_off_side`/ANGLE_ERR_DEG in `src/analysis/device/rules.ts` (`feat/od-logic`)
 
 ## Core analysis flow pass (20 Oct, `fix/cv-flow`, from a Fable 5 review of all 22 prod traces)
 - [x] (Claude) Jerk: the dip starts where the bar leaves the rack plateau by a tenth of the dip depth (a smooth dip's bottom is a turning point, so every jerk read dip start = bottom = "a press"); the window starts 1.5 s before overhead, so a clean and jerk is not measured in the clean
@@ -205,4 +205,9 @@ Build 26: Cues crashed and Trends was empty on a real account. Root cause: the C
 - [x] (Claude) Snatch reps judge "overhead" from bar_from_wrists, not the wrist midpoint; no plate at setup sizes the lift from the body instead of failing (24d4c6df x3)
 - Replays: 22 prod traces, only the intended 6 lifts change (4 no_reps -> analysed, 9fb313e4 false cue gone, 6b6204f4 reason); goldens identical except E0DF8887 (plate cut at 75, scale -1%; that golden was already red)
 - [ ] (Claude) All 3 "bar_lost" snatches (44c07c15, ee231b89, 24d4c6df) are the smallest lifters in frame (34-36% of height): bar/peak tracking at low resolution is the next accuracy gap
-- [ ] (Claude) Mirror on_screen + angle veto in src/analysis/device when the device port resumes
+- [x] (Claude) Mirror on_screen + angle veto in src/analysis/device (`feat/od-logic`)
+
+## On-device logic (20 Oct, `feat/od-logic`, phase 3 of docs/catchline/on-device-plan.md)
+- [x] (Claude) `src/analysis/device/analyseTrace.ts`: `analyseTrace(trace, movement)` gives Python's `pipeline.run` under `trace.replaying` for a TRACE_VERSION 1 trace, `planFromMisses(trace, movement)` the windows, plate frames, plate tracks and stills the native pixel stages still owe it (trace.ts replays with Python's Replayer fallbacks: nearest plate frame, affines composed from the camera path, stitched track)
+- [x] (Claude) Parity: `cv/scripts/dump_device_parity.py` writes Python's intermediates + Analysis per trace; `parity.test.ts` holds TS to them on the 4 committed traces x 16 movement runs (exact frames/cues, floats within 1e-6, in practice ~1e-12); `npx tsx scripts/device-parity.ts <expected dir> <trace dir>` runs private sets. 22 of 22 prod traces identical, miss lists included; 507 frames analyse in 65 ms in node (parse included)
+- Gotchas: Python traces carry bare `NaN` tokens (`parseTraceJson`); refine_plate is keyed by Python's `key(plate)` float repr, so match it by value; the seed frame can read one frame later on camera-path affines than on the window's own stabilisation, so a device trace needs 3 native calls to settle. kipping_hspu is not ported (needs the two-pass pose)

@@ -33,6 +33,8 @@ export const WHY = DATA.WHY;
 export const GATES: [string, string][] = DATA.GATES.map(([c, e]) => [c, e]);
 export const PRESENT = DATA.PRESENT;
 export const ALTERNATES = DATA.ALTERNATES;
+// the camera angle off side-on reads within 10 deg of the labelled angle (cv/tests/test_camera_angle.py)
+export const ANGLE_ERR_DEG = 10.0;
 
 // Python's round(): half to even on the exact double. toFixed rounds the exact value half away from zero, and a
 // double sits exactly on a tie only when x * 2^(nd+1) is an odd integer, so only those need stepping back.
@@ -62,6 +64,24 @@ export function fmt(value: number, unit: string): string {
 export function severity(fid: string, v: number): number {
   const thr = RULES[fid].threshold;
   return RULES[fid].below ? 1.0 + (thr - v) / thr : v / thr;
+}
+
+// rules.on_screen: off side-on (20-70 deg) a forward distance is judged corrected only for the angle less its error, so a
+// fault that fires on it is real; past 70 deg no forward distance is judged. Shown values stay fully corrected.
+export function onScreen(values: Values, off: number | null | undefined): Values {
+  if (!has(off) || off <= 20) return values;
+  const out: Values = { ...values };
+  const k = Math.cos(off * (Math.PI / 180)) / Math.cos((off - ANGLE_ERR_DEG) * (Math.PI / 180));
+  for (const [fid, v] of Object.entries(values)) {
+    const r = RULES[fid];
+    if (has(v) && r && r.horizontal && r.unit === 'cm' && !r.below) out[fid] = off <= 70 ? v * k : null;
+  }
+  return out;
+}
+
+export function confirmedOffSide(fid: string, sev: number, off: number | null | undefined): boolean {
+  const r = RULES[fid];
+  return has(off) && 20 < off && off <= 70 && r.horizontal && r.unit === 'cm' && !r.below && sev >= 1.0;
 }
 
 export function fired(values: Values): Record<string, number> {
@@ -158,6 +178,7 @@ export function repConfidence(conf: Confidence, seen: number, total: number): Co
 export function cueConfidence(cueId: string, sev: number, off: number | null | undefined, seen: number, total: number,
   scaleOk: boolean): Confidence {
   let conf = repConfidence(confidence(cueId, sev, off), seen, total);
+  if (conf === 'low' && confirmedOffSide(cueId, sev, off)) conf = 'worth_checking';
   if (UNCALIBRATED_SNATCH.has(cueId) && conf === 'clear') conf = 'worth_checking';
   if (!scaleOk && RULES[cueId].unit !== 's') conf = conf !== 'low' && sev >= 1.5 ? 'worth_checking' : 'low';
   return conf;
