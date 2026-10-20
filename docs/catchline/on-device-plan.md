@@ -12,7 +12,7 @@ Modal app plus the Mini worker are switched off. Supabase stays (accounts, lifts
 | 3 | Kipping HSPU second pass (frame rotated 180°) | `pose.py` `unrotate`, `merge_passes` | Run pose on the rotated frame too | not started |
 | 4 | Pick the lifter, track them | `cv/lifter.py` | TS port | in paused `feat/device-measure` |
 | 5 | Camera motion (KLT on the background) | `track.py` `camera_path`, `stabilise` | Swift: Vision image registration or OpenCV | not started, numbers will move |
-| 6 | Find + track plates (colour mask, ellipse search) | `track.py` `find_plates`, `refine_plate`, `track_plate` | Phase A: port as is (Swift + vImage). Phase B: plate detector model | not started / paused `feat/plate-detector` |
+| 6 | Find + track plates (colour mask, ellipse search) | `track.py` `find_plates`, `refine_plate`, `track_plate` | Phase A: `Stages/Plates.swift`, cv2/numpy reproduced step for step. Phase B: plate detector model | phase A done (bit-exact with Python on 18 clips) / paused `feat/plate-detector` |
 | 7 | Movement check + detection | `cv/movement.py`, `cv/detect.py` | TS port | in paused `feat/device-measure` |
 | 8 | Reps, phases, measurements, outcomes | `phases.py`, `pipeline.py`, `lifts.py`, `gym.py` | TS port | ~3.5k lines written, parity tests missing |
 | 9 | Rules + cue + confidence | `rules.py` (+ `rules.json`) | `src/analysis/device/rules.ts` | **done, PR #53** |
