@@ -259,3 +259,17 @@ def test_a_one_frame_elbow_glitch_is_not_the_pull_under():
     ev = {"rebend": 55, "second_ext": 67, "peak": 85, "caught": 90}
     vals, _ = turnover_values(ev, elbow, 23.5, 29.97)
     assert vals["slow_turnover"] == pytest.approx(23 / 29.97)
+
+
+def test_reps_are_found_from_the_bar_overhead_when_a_far_wrist_is_parked_low():
+    from catchline_cv.phases import find_reps
+    # the near wrist goes overhead for 0.5 s; the far one, hidden behind the plate, stays at the knee, so the midpoint
+    # never clears the nose
+    n = 60
+    near = np.full(n, 40.0)
+    near[20:40] = 180.0
+    far = np.full(n, 40.0)
+    mid = (near + far) / 2
+    nose, knee = np.full(n, 150.0), np.full(n, 50.0)
+    assert find_reps(mid, nose, knee, 30.0) == []
+    assert find_reps(mid, nose, knee, 30.0, over_h=near) == [(19, 39, 20)]

@@ -379,7 +379,9 @@ def run_jerk(ctx):
     wr = lowpass(up(mid(k, L_WRI, R_WRI)[:, 1]), fps)
     sho = lowpass(up(mid(k, L_SHO, R_SHO)[:, 1]), fps)
     head = lowpass(up(mv.head_y(k, t)), fps)
-    reps = find_jerk_reps(np.abs(wr - sho) < 0.35 * t, wr > head, fps)
+    # a dip and drive take under a second, so a rack hold that began with the clean's catch (2c7d6090, a clean and
+    # jerk in one clip) is cut to 1.5 s before the bar goes overhead
+    reps = [(max(s, a - int(1.5 * fps)), e, a) for s, e, a in find_jerk_reps(np.abs(wr - sho) < 0.35 * t, wr > head, fps)]
     if not reps:
         return ctx["fail"]("unsupported_movement", "no_reps", "No jerk found: the bar never went from the shoulders to overhead.")
     px_body = scale_from_body(k)

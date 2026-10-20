@@ -240,6 +240,24 @@ def test_segment_jerk_events_and_phases():
         assert b["startFrame"] == a["endFrame"] + 1
 
 
+def test_a_smooth_dip_starts_where_the_bar_leaves_the_rack_not_at_its_bottom():
+    # 45a85340: the bar eases into the dip, so its bottom is a turning point (-436.7 then -437.0 px); the dip start
+    # read as the bottom, forward_dip was 0 and the jerk was called a press. Rack at 0, a 30 px cosine dip over 15
+    # frames from frame 20, a drive to 200 px
+    n = 90
+    h = np.zeros(n)
+    h[20:36] = -15 * (1 - np.cos(np.linspace(0, np.pi, 16)))
+    h[36:50] = np.linspace(-30, 200, 14)
+    h[50:] = 200
+    knee = np.full(n, 170.0)
+    knee[25:40] = 140
+    knee[52:58] = 120
+    _, ev = segment_jerk(h, knee, np.full(n, 170.0), FPS)
+    assert ev["dip_bottom"] == 35
+    assert ev["dip_start"] == 23  # last frame within a tenth of the depth of the rack (-2.9 of -3.0)
+    assert ev["dip_start"] < ev["dip_bottom"] < ev["leave"]
+
+
 # ---------------------------------------------------------------- gymnastics signals
 
 def test_shoulders_at_the_top_edge_mean_the_top_of_the_rep_is_cut_off():

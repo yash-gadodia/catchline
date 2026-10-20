@@ -179,10 +179,10 @@ def key_frames(events):
             "recovery": events["recovered"]}
 
 
-def find_reps(wrist_h, nose_h, knee_h, fps, min_overhead_s=0.3):
+def find_reps(wrist_h, nose_h, knee_h, fps, min_overhead_s=0.3, over_h=None):
     """Snatch-style reps: wrists go from below the knees to above the nose. Returns [(start, end, overhead_start)].
-    All heights up positive."""
-    over = np.asarray(wrist_h) > np.asarray(nose_h)
+    All heights up positive. over_h, when given, is the height judged against the nose instead of wrist_h."""
+    over = np.asarray(wrist_h if over_h is None else over_h) > np.asarray(nose_h)
     low = np.asarray(wrist_h) < np.asarray(knee_h)
     reps, i, n = [], 0, len(over)
     while i < n:
@@ -282,16 +282,21 @@ def segment_jerk(bar_h, knee, elbow, fps, setup_s=1.0):
     bar_h, knee, elbow = (np.asarray(x, float) for x in (bar_h, knee, elbow))
     n = len(bar_h)
     top = int(np.argmax(bar_h))
-    # the dip bottom is the lowest bar before it goes overhead; the dip starts where the bar was last still (the rack
-    # pause). A descent longer than 60% of the drive is the bar being lowered into the rack, not a dip: no dip then.
+    # the dip bottom is the lowest bar before it goes overhead. The rack is the bar's highest point in the 1.5 s
+    # before it, and the dip starts once the bar has left the rack by a tenth of the dip's depth: a per-frame descent
+    # test stops at once on a smooth dip, whose bottom is a turning point (45a85340, 2c7d6090: dip start = bottom,
+    # so every jerk read as a press). A descent longer than 60% of the drive is the bar being lowered into the
+    # rack, not a dip: no dip then.
     dip_bottom = int(np.argmin(bar_h[: max(1, top)]))
     rng = max(1e-6, bar_h[top] - bar_h[dip_bottom])
+    rack_h = float(bar_h[max(0, dip_bottom - int(1.5 * fps)): dip_bottom + 1].max())
+    depth = rack_h - bar_h[dip_bottom]
     dip_start = dip_bottom
-    while dip_start > 0 and bar_h[dip_start - 1] > bar_h[dip_start] + 0.005 * rng:
+    while dip_start > 0 and bar_h[dip_start] <= rack_h - 0.1 * depth:
         dip_start -= 1
-    if bar_h[dip_start] - bar_h[dip_bottom] > 0.6 * rng:
+    if depth > 0.6 * rng:
         dip_start = dip_bottom
-    rack_h = float(bar_h[dip_start])
+        rack_h = float(bar_h[dip_start])
     rng = max(1e-6, bar_h[top] - rack_h)
     # the bar leaves the shoulders once it is back up to rack height after the dip
     back = np.where(bar_h[dip_bottom: top + 1] >= rack_h)[0]
