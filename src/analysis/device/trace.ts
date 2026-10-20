@@ -15,12 +15,13 @@ export class TraceMissing extends Error {}
 type N = number | null;
 export type Plan = {
   windows: { s0: number; count: number }[];
-  plates: { frame: number; wristA: [N, N]; wristB: [N, N]; bodyH: number; setupH: N }[];
+  plates: { frame: number; wristA: Pt | null; wristB: Pt | null; bodyH: number; setupH: N }[];
   tracks: { s0: number; n: number; start: number; plate: { centre: Pt; axes: [number, number]; score: number } }[];
   keyframes: { name: string; frame: number }[];
 };
 type PlateArgs = { wristA: Pt; wristB: Pt; bodyH: number; setupH: number };
 const nn = (v: number): N => (Number.isFinite(v) ? v : null);
+const np = (p: Pt): Pt | null => (Number.isFinite(p[0]) && Number.isFinite(p[1]) ? [p[0], p[1]] : null);
 
 type Calls = Record<string, Record<string, unknown[]>>;
 export type Trace = {
@@ -157,7 +158,7 @@ export class Replayer {
 
   planPlates(frame: number, a: PlateArgs) {
     if (this.plan.plates.some((p) => p.frame === frame)) return;
-    this.plan.plates.push({ frame, wristA: [nn(a.wristA[0]), nn(a.wristA[1])], wristB: [nn(a.wristB[0]), nn(a.wristB[1])], bodyH: a.bodyH, setupH: nn(a.setupH) });
+    this.plan.plates.push({ frame, wristA: np(a.wristA), wristB: np(a.wristB), bodyH: a.bodyH, setupH: nn(a.setupH) });
   }
 
   frames(height: number, start: number, count: number): number {
