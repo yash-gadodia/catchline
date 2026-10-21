@@ -3,7 +3,7 @@
 import { HANG_HIP_W, elbows, facing, hipAngles, kneeAngles, offSidePose, pyMin, rackMask, scaleFromBody, yawFromBody } from './body';
 import { lowpass, lowpassPts } from './filter';
 import { barTrack, dist, finitePt, fromRef, normalise, toRef, trunkAngle1 } from './geometry';
-import { bmuEvents, bmuPhases, cycleTops, kipEvents, kipPhases, mergeCycles, pushAway } from './gym';
+import { bmuEvents, bmuPhases, chordOffset, cycleTops, hspuEvents, hspuPhases, kipEvents, kipPhases, mergeCycles, pushAway, timingError } from './gym';
 import {
   JOINTS,
   K,
@@ -509,7 +509,6 @@ function jerkRep(ctx: Ctx, repNo: number, start: number, end: number, pxPerCm: n
 
 function runGym(ctx: Ctx, forceCycles?: [number, number, number][]): Result {
   const { movement, k, fps, H } = ctx;
-  if (movement === 'kipping_hspu') throw new Error('kipping_hspu is not ported to the device');
   const up = (y: number[]) => y.map((v) => H - v);
   const t = torsoPx(k);
   const sho = lowpass(up(ys(mid(ctx.world, L_SHO, R_SHO))), fps);
@@ -517,6 +516,19 @@ function runGym(ctx: Ctx, forceCycles?: [number, number, number][]): Result {
   if (!pxPerCm) return fail(ctx, 'too_far', 'no_body_scale', "Could not measure the athlete's body to scale the clip.");
   const wri = lowpass(up(ys(mid(ctx.world, L_WRI, R_WRI))), fps);
   const rel = sho.map((v, i) => v - wri[i]);
+  if (movement === 'kipping_hspu') {
+    // a rep bottoms out with the shoulders near the hands (head on the floor) and tops out arms-length above
+    const cyc = forceCycles ?? cycleTops(sho.map((v) => -v), t, fps, 0.3).filter((c) => rel[c[1]] < 0.4 * t);
+    const noReps = () => fail(ctx, 'unsupported_movement', 'no_reps', 'No handstand push-up reps found in this clip.');
+    if (!cyc.length) return noReps();
+    const infos: RepInfo[] = [];
+    cyc.forEach(([a, bottom, b], ri) => {
+      const r = hspuRep(ctx, ri + 1, a, bottom, b, pxPerCm);
+      if (r !== null) infos.push(r);
+    });
+    if (!infos.length) return noReps();
+    return { ...writeOut(ctx, infos), repCalls: infos };
+  }
   const el = lowpass(fmin(...elbows(k)), fps);
   const topMin = movement === 'kipping_pull_up' ? -0.35 * t : 0.2 * t;
   let cyc = cycleTops(sho, t, fps, 0.4).filter(
@@ -544,6 +556,70 @@ function runGym(ctx: Ctx, forceCycles?: [number, number, number][]): Result {
   });
   if (!infos.length) return fail(ctx, 'unsupported_movement', 'no_reps', `No ${name} reps found in this clip.`);
   return { ...writeOut(ctx, infos), repCalls: infos };
+}
+
+function hspuRep(ctx: Ctx, repNo: number, top0: number, bottom: number, top1: number, pxPerCm: number): RepInfo | null {
+  const { fps, n } = ctx;
+  const s0 = Math.max(0, top0 - int(0.3 * fps));
+  const e0 = Math.min(n, top1 + int(0.3 * fps) + 1);
+  const w = loadWindow(ctx, s0, e0);
+  const { ksm, L } = w;
+  const T0 = top0 - s0;
+  const T1 = Math.min(top1 - s0, L - 1);
+  const sho = mid(ksm, L_SHO, R_SHO);
+  const hip = mid(ksm, L_HIP, R_HIP);
+  const ank = mid(ksm, L_ANK, R_ANK);
+  const wri = mid(ksm, L_WRI, R_WRI);
+  const knee = mid(ksm, L_KNEE, R_KNEE);
+  const inverted = ank.map((p, i) => p[1] < sho[i][1]);
+  const inv = inverted.slice(T0, T1 + 1);
+  if (inv.filter(Boolean).length / inv.length < 0.5) return null;
+  const wallDir = nanmedian(ank.flatMap((p, i) => (inverted[i] ? [p[0] - wri[i][0]] : []))) >= 0 ? 1.0 : -1.0;
+  const hipAng = hipAngles(ksm);
+  const kneeAng = kneeAngles(ksm);
+  const el = fmax(...elbows(ksm));
+  const ev = hspuEvents(sho.map((p) => -p[1]), hipAng, kneeAng, el, T0, T1);
+  const off = offSidePose(ksm);
+  const fs = 1 / Math.cos(radians(pyMin(off ?? 0.0, 60.0)));
+  const cm = (px: number) => px / pxPerCm;
+  const lk = ev.lockout;
+  const vals: Values = {};
+  const det: Record<string, Detail> = {};
+  vals.hspu_banana = cm(chordOffset(sho[lk], hip[lk], ank[lk], -wallDir)) * fs;
+  det.hspu_banana = { frame: lk, from: [(sho[lk][0] + ank[lk][0]) / 2, (sho[lk][1] + ank[lk][1]) / 2], to: hip[lk], caption: `hips ${pyFixed(vals.hspu_banana, 0)} cm off line` };
+  // how far the knees stayed above the hips at the deepest tuck before the kick
+  const b_ = Math.max(T0, ev.drive);
+  const gap: number[] = [];
+  for (let f = T0; f <= b_; f++) gap.push(-(knee[f][1] - hip[f][1]));
+  const tf = T0 + nanargmin(gap);
+  vals.hspu_kip_timing = cm(gap[tf - T0]);
+  det.hspu_kip_timing = { frame: tf, from: hip[tf], to: knee[tf], caption: `knees ${pyFixed(vals.hspu_kip_timing, 0)} cm above hips` };
+  const timing = timingError(ev.drive, ev.press, fps);
+  const extra: MeasRow[] = [
+    { id: 'lockout_elbow', label: 'Lockout elbow', value: pyRound(el[lk], 1), unit: 'deg', frame: s0 + lk, status: 'normal', note: 'standard: arms straight at the top (≥160°)' },
+    { id: 'tuck_hip', label: 'Tuck', value: pyRound(hipAng[ev.tuck], 1), unit: 'deg', frame: s0 + ev.tuck, status: 'normal', note: 'tightest hip angle before the drive (<90° = full tuck)' },
+    {
+      id: 'drive_press',
+      label: 'Drive to press',
+      value: pyRound((ev.press - ev.drive) / fps, 2),
+      unit: 's',
+      frame: s0 + ev.press,
+      status: 'normal',
+      note: 'press after the leg drive; 0 to 0.25 s is in time' + (timing === 0 ? '' : ` (${pyFixed(timing, 2)} s outside)`),
+    },
+    {
+      id: 'bottom_depth',
+      label: 'Shoulders above hands at bottom',
+      value: pyRound(cm(wri[ev.bottom][1] - sho[ev.bottom][1]), 1),
+      unit: 'cm',
+      frame: s0 + ev.bottom,
+      status: 'normal',
+      note: 'smaller = deeper (head to the floor)',
+    },
+  ];
+  const phases = hspuPhases(ev);
+  const keys = { tuck: ev.tuck, drive: ev.drive, press: ev.press, lockout: lk };
+  return repInfo(ctx, repNo, s0, w, hip, phases, keys, { ...ev }, vals, det, extra, pxPerCm, off, el[lk] >= 160, T1, wallDir);
 }
 
 function hangRep(ctx: Ctx, repNo: number, a: number, top: number, b: number, pxPerCm: number, last: boolean): RepInfo | null {
