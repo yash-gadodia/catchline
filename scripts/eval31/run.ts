@@ -2,6 +2,7 @@
 //   sets   --evalset DIR --owner DIR --golden DIR... --design DIR         -> clips.json (labels + the 3.0 baseline)
 //   run    --clips clips.json --harness BIN --models DIR --cache DIR --out DIR [--only a,b] [--sets owner,public]
 //   score  --clips clips.json --out DIR                                    -> scoreboard.json (section 8.3 metrics)
+//   sheet  --clips clips.json --out DIR [--base DIR]                       -> sheet.html (stills, bar path, cue vs before)
 // Pose is cached per clip (harness --run-out), the pixel stages per plan hash, so a logic change re-runs node only.
 // Bundle for the Mini with: npx esbuild scripts/eval31/run.ts --bundle --platform=node --format=cjs --outfile=<f>
 import { createHash } from 'crypto';
@@ -78,10 +79,12 @@ function sets() {
   const evalset = opt('evalset')!, owner = opt('owner')!, design = opt('design')!;
   const clips: Clip[] = [];
   // owner: the app-format clips with the design agent's eye labels and compare.jsonl's "current" mode as 3.0
-  const labels = new Map(readFileSync(join(design, 'lifts', 'labels.tsv'), 'utf8').trim().split('\n').map((l) => {
-    const [id, movement, angle, framing = '', notes = ''] = l.split('\t');
-    return [id, { movement, angle, notes: [framing, notes].filter(Boolean).join('; ') }] as const;
-  }));
+  // labels_rev.tsv is the second look at the angled clips and wins over labels.tsv
+  const labels = new Map(['labels.tsv', 'labels_rev.tsv'].filter((f) => existsSync(join(design, 'lifts', f))).flatMap((f) =>
+    readFileSync(join(design, 'lifts', f), 'utf8').trim().split('\n').map((l) => {
+      const [id, movement, angle, framing = '', notes = ''] = l.split('\t');
+      return [id, { movement, angle, notes: [framing, notes].filter(Boolean).join('; ') }] as const;
+    })));
   const compare = new Map<string, Record<string, unknown>>();
   const cmpPath = join(design, 'lifts', 'out', 'compare.jsonl');
   if (existsSync(cmpPath)) for (const l of readFileSync(cmpPath, 'utf8').trim().split('\n')) { const j = JSON.parse(l); compare.set(j.id, j); }
@@ -133,6 +136,8 @@ type Row = {
   reps: { start: number; end: number; made: boolean; outcome: string; offSide: number | null; scale: string | null; liftoff: number | null }[];
   yawDeg: number | null;
   startClass?: string | null;
+  yawBucket?: string | null;
+  stills?: string | null;
   rounds: number; misses: number;
   timing: { poseS: number; pixelsS: number; nodeMs: number };
   error?: string;
@@ -175,6 +180,7 @@ function runOne(c: Clip, harness: string, models: string, cache: string, out: st
     let trace = parseTraceJson(gz(poseTrace)) as Trace;
     let res: ReturnType<typeof analyseTraceResult> | null = null;
     let rounds = 0;
+    let stills: string | null = null;
     const t1 = Date.now();
     for (; rounds < 4; rounds++) {
       const plan = planFromMisses(trace, movement, { assetPrefix: 'kf' });
@@ -186,10 +192,11 @@ function runOne(c: Clip, harness: string, models: string, cache: string, out: st
         const planFile = join(cache, 'pixels', `${key}.${hash}.plan.json`);
         writeJson(planFile, p);
         const t2 = Date.now();
-        sh(harness, ['analyse', c.file, '--models', models, '--plan', planFile, '--run-in', runFile, '--out', pix, '--stills', join(cache, 'stills', c.id), '--movement', movement]);
+        sh(harness, ['analyse', c.file, '--models', models, '--plan', planFile, '--run-in', runFile, '--out', pix, '--stills', join(cache, 'stills', `${key}.${hash}`), '--movement', movement]);
         timing.pixelsS += (Date.now() - t2) / 1000;
       }
       trace = mergeCalls(trace, parseTraceJson(gz(pix)) as Trace);
+      stills = join(cache, 'stills', `${key}.${hash}`);
     }
     const t3 = Date.now();
     res = analyseTraceResult(trace, movement, { assetPrefix: 'kf' });
@@ -206,7 +213,7 @@ function runOne(c: Clip, harness: string, models: string, cache: string, out: st
       id: c.id, set: c.set, group: c.group, movement: c.labelMovement, movementRun: movement,
       status: failure ? 'failed' : cue ? 'full' : 'partial', failure, cue, noCue: (a.noCueReason as Row['noCue']) ?? null, detected,
       nReps: reps.length, made: reps.map((r) => r.made), reps, yawDeg: median(reps.map((r) => r.offSide ?? NaN)),
-      startClass: (a.startClass as string) ?? null, rounds, misses: res.misses.length, timing,
+      startClass: (a.startClass as string) ?? null, yawBucket: (a.yawBucket as string) ?? null, rounds, misses: res.misses.length, timing, stills,
     };
     writeJson(join(out, `${c.id}.${movement}.analysis.json`), a);
     // the five unlabelled owner clips: follow the detector when the user's hint is the wrong family
@@ -225,7 +232,8 @@ function run() {
   mkdirSync(out, { recursive: true });
   const rowsPath = join(out, 'rows.jsonl');
   const done = new Set(existsSync(rowsPath) ? readFileSync(rowsPath, 'utf8').trim().split('\n').filter(Boolean).map((l) => JSON.parse(l).id) : []);
-  const todo = clips.filter((c) => (!only || only.includes(c.id)) && (!setsWanted || setsWanted.includes(c.set)) && (!done.has(c.id) || only));
+  const [shard, shards] = (opt('shard') ?? '0/1').split('/').map(Number);
+  const todo = clips.filter((c, i) => i % shards === shard && (!only || only.includes(c.id)) && (!setsWanted || setsWanted.includes(c.set)) && (!done.has(c.id) || only));
   log(`${todo.length} clips to run (${done.size} done)`);
   for (const [i, c] of todo.entries()) {
     const t0 = Date.now();
@@ -299,7 +307,49 @@ function score() {
   process.stdout.write(JSON.stringify(scoreboard, null, 1) + '\n');
 }
 
+const esc = (s: unknown) => String(s ?? '').replace(/[&<>"]/g, (ch) => `&#${ch.charCodeAt(0)};`);
+
+// One row per clip: the first rep's key-frame stills with the bar path and the cue's evidence drawn on the setup still,
+// this run's result next to the 3.0 baseline (or --base, an earlier run's out dir).
+function sheet() {
+  const clips = JSON.parse(readFileSync(opt('clips')!, 'utf8')) as Clip[];
+  const out = opt('out')!, basePath = opt('base');
+  const rowsOf = (dir: string) => new Map(readFileSync(join(dir, 'rows.jsonl'), 'utf8').trim().split('\n').map((l) => { const r = JSON.parse(l) as Row; return [r.id, r] as const; }));
+  const rows = rowsOf(out), base = basePath ? rowsOf(basePath) : null;
+  const res = (r: Row | undefined) => (r ? `${r.cue ?? r.noCue?.code ?? r.failure?.code ?? r.error ?? ''} · ${r.nReps} reps · yaw ${r.yawDeg?.toFixed(0) ?? '-'}` : '-');
+  const html: string[] = ['<!doctype html><meta charset="utf-8"><title>eval31 sheet</title><style>body{font:12px system-ui;margin:16px;background:#fff;color:#111}',
+    '.c{border-top:1px solid #ccc;padding:8px 0}.s{display:flex;gap:4px;overflow-x:auto}.f{position:relative;flex:none}.f img{height:220px;display:block}',
+    '.f svg{position:absolute;inset:0;width:100%;height:100%}.d{color:#c00}</style>'];
+  for (const c of clips) {
+    const r = rows.get(c.id);
+    if (!r) continue;
+    const b = base?.get(c.id);
+    const before = b ? res(b) : c.baseline ? `${c.baseline.cue ?? c.baseline.noCue ?? c.baseline.reason ?? ''} · ${c.baseline.nReps} reps (3.0)` : '-';
+    const changed = before.split(' · ')[0] !== res(r).split(' · ')[0];
+    html.push(`<div class="c"><b>${esc(c.id)}</b> ${esc(c.set)} · ${esc(c.labelMovement)} · angle ${esc(c.angleLabel)} · labelled reps ${esc(c.labelReps ?? '-')}<br>`,
+      `<span class="${changed ? 'd' : ''}">now: ${esc(res(r))} · before: ${esc(before)}</span>`);
+    const aPath = join(out, `${c.id}.${r.movementRun}.analysis.json`);
+    const a = existsSync(aPath) ? JSON.parse(readFileSync(aPath, 'utf8')) : null;
+    const rep = a?.reps?.[0] as { index: number; keyFrames: { image: string }[]; path: { x: number; y: number }[] } | undefined;
+    if (rep && r.stills) {
+      const ev = a.cue?.evidence?.rep === rep.index ? a.cue.evidence : null;
+      html.push('<div class="s">');
+      rep.keyFrames.forEach((kf, i) => {
+        const img = join(r.stills!, kf.image.slice(kf.image.lastIndexOf('/') + 1));
+        const svg = i > 0 ? '' : `<svg viewBox="0 0 1 1" preserveAspectRatio="none"><polyline fill="none" stroke="#FF1F3D" stroke-width="0.006" points="${rep.path.map((p) => `${p.x},${p.y}`).join(' ')}"/>` +
+          (ev ? `<line x1="${ev.from.x}" y1="${ev.from.y}" x2="${ev.to.x}" y2="${ev.to.y}" stroke="#0a0" stroke-width="0.01"/>` : '') + '</svg>';
+        html.push(`<div class="f"><img src="file://${esc(img)}" loading="lazy">${svg}</div>`);
+      });
+      html.push('</div>');
+    }
+    html.push('</div>');
+  }
+  writeFileSync(join(out, 'sheet.html'), html.join('\n'));
+  log(`sheet: ${join(out, 'sheet.html')}`);
+}
+
 if (cmd === 'sets') sets();
 else if (cmd === 'run') run();
 else if (cmd === 'score') score();
-else { log('usage: run.ts sets|run|score ...'); process.exit(2); }
+else if (cmd === 'sheet') sheet();
+else { log('usage: run.ts sets|run|score|sheet ...'); process.exit(2); }
