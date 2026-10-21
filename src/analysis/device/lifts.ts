@@ -48,7 +48,7 @@ import {
   where,
 } from './num';
 import { speedMeasurement } from './outcome';
-import { PhaseOut, findJerkReps, findRackReps, jerkKeyFrames, segmentJerk } from './phases';
+import { PhaseOut, StartClass, findJerkReps, findLifts, jerkKeyFrames, runs, segmentJerk } from './phases';
 import {
   AnalysisJson,
   CueCard,
@@ -64,6 +64,7 @@ import {
   bestRep,
   fail,
   KEYFRAME_H,
+  liftTags,
   maxBy,
   missBehindCard,
   ruleDetail,
@@ -108,6 +109,7 @@ function writeOut(ctx: Ctx, repInfo: RepInfo[]): Result {
     cue,
     ...(noCue ? { noCueReason: noCue } : {}),
     notes: rules.notes(movement, ruleReps(repInfo), cue),
+    ...liftTags(cueRep),
     measurements,
     failure: null,
   };
@@ -314,15 +316,17 @@ function runClean(ctx: Ctx, forceReps?: [number, number, number][]): Result {
   const up = (y: number[]) => y.map((v) => H - v);
   const wr = mid(k, L_WRI, R_WRI);
   const rack = rackMask(lowpassK(k, fps), lowpassPts(wr, fps), fps);
-  const found = findRackReps(lowpass(up(ys(wr)), fps), lowpass(up(ys(mid(k, L_KNEE, R_KNEE))), fps), rack, fps);
-  const reps = forceReps ?? found;
+  const lifts = findLifts(runs(rack, Math.max(1, int(0.3 * fps))), lowpass(up(ys(wr)), fps), lowpass(up(ys(mid(k, L_KNEE, R_KNEE))), fps),
+    lowpass(up(ys(mid(k, L_SHO, R_SHO))), fps), torsoPx(k), fps);
+  const reps = forceReps ?? lifts.map((l) => l.window);
+  const classes = forceReps ? reps.map((): StartClass => 'floor') : lifts.map((l) => l.startClass);
   const noClean = () => fail(ctx, 'unsupported_movement', 'no_reps', 'No clean found: the bar never went from the floor to a front-rack hold.');
   if (!reps.length) return noClean();
   const infos: RepInfo[] = [];
   const repCalls: (RepInfo | null | false)[] = [];
   let notLifts = 0;
   reps.forEach(([start, end], ri) => {
-    const r = analyseRep(ctx, start, end, ri + 1, 'clean');
+    const r = analyseRep(ctx, start, end, ri + 1, 'clean', classes[ri]);
     repCalls.push(r);
     if (r === false) notLifts += 1;
     if (r) infos.push(cleanInfo(r));
@@ -408,7 +412,7 @@ function runJerk(ctx: Ctx, forceReps?: [number, number, number][]): Result {
   if (!reps.length) return fail(ctx, 'unsupported_movement', 'no_reps', 'No jerk found: the bar never went from the shoulders to overhead.');
   const pxBody = scaleFromBody(k);
   if (!pxBody) return fail(ctx, 'too_far', 'no_body_scale', "Could not measure the lifter's body to scale the clip.");
-  const infos = reps.map(([start, end], ri) => jerkRep(ctx, ri + 1, start, end, pxBody));
+  const infos = reps.map(([start, end], ri): RepInfo => ({ ...jerkRep(ctx, ri + 1, start, end, pxBody), start_class: 'shoulders' }));
   return { ...writeOut(ctx, infos), repCalls: infos };
 }
 

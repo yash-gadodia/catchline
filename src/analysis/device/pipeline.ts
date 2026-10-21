@@ -30,6 +30,7 @@ import {
   lowpassK,
   mid,
   signals,
+  torsoPx,
   ys,
 } from './movement';
 import {
@@ -61,13 +62,16 @@ import {
   PhaseOut,
   SNATCH_PHASES,
   SnatchEvents,
+  StartClass,
   approachesCamera,
   catchDepth,
-  findReps,
+  findLifts,
+  hangPhases,
   keyFrames,
   plateFollowsBar,
   plateLiftoff,
   plateOnBar,
+  runs,
   segmentSnatch,
 } from './phases';
 import * as rules from './rules';
@@ -180,6 +184,7 @@ export type RepInfo = {
   ksm: K;
   scale_ok?: boolean;
   scale_method?: string;
+  start_class?: StartClass;
   cut_off?: boolean;
   bar_lost?: boolean;
   miss?: Miss;
@@ -257,15 +262,19 @@ export function runSnatch(ctx: Ctx, forceReps?: [number, number, number][]): Res
   const wrH = up(ys(mid(k, L_WRI, R_WRI)));
   // overhead = the bar overhead, from the wrist that continues it: a far wrist parked low halves the midpoint's height
   const barH = up(ys(barFromWrists(col(k, L_WRI), col(k, R_WRI), 0.12 * nanmedian(ctx.boxes.map((b) => b[3] - b[1])))));
-  const found = findReps(lowpass(wrH, fps), lowpass(up(headY(k)), fps), lowpass(up(ys(mid(k, L_KNEE, R_KNEE))), fps), fps, 0.3, lowpass(barH, fps));
-  const reps = forceReps ?? found;
+  const headH = lowpass(up(headY(k)), fps);
+  const overhead = lowpass(barH, fps).map((v, i) => v > headH[i]);
+  const lifts = findLifts(runs(overhead, Math.max(1, Math.ceil(0.3 * fps - 1e-9))), lowpass(wrH, fps), lowpass(up(ys(mid(k, L_KNEE, R_KNEE))), fps),
+    lowpass(up(ys(mid(k, L_SHO, R_SHO))), fps), torsoPx(k), fps);
+  const reps = forceReps ?? lifts.map((l) => l.window);
+  const classes = forceReps ? reps.map((): StartClass => 'floor') : lifts.map((l) => l.startClass);
   const noLift = () => fail(ctx, 'unsupported_movement', 'no_reps', 'No floor-to-overhead lift found in this clip.');
   if (!reps.length) return noLift();
   const repInfo: RepInfo[] = [];
   const repCalls: (RepInfo | null | false)[] = [];
   let notLifts = 0;
   reps.forEach(([start, end], ri) => {
-    const info = analyseRep(ctx, start, end, ri + 1);
+    const info = analyseRep(ctx, start, end, ri + 1, 'snatch', classes[ri]);
     repCalls.push(info);
     if (info === false) notLifts += 1;
     if (info) repInfo.push(info);
@@ -287,9 +296,9 @@ export function runSnatch(ctx: Ctx, forceReps?: [number, number, number][]): Res
     endFrame: r.end,
     made: r.made,
     phases: r.phases,
-    keyFrames: SNATCH_PHASES.map((phase, pi) => ({
+    keyFrames: Object.entries(r.keys).map(([phase, frame], pi) => ({
       phase,
-      frame: r.keys[phase],
+      frame,
       image: `${ctx.assetPrefix}/r${r.index}-${pi + 1}-${phase}.jpg`,
     })),
     path: r.path,
@@ -302,6 +311,7 @@ export function runSnatch(ctx: Ctx, forceReps?: [number, number, number][]): Res
     cue,
     ...(noCue ? { noCueReason: noCue } : {}),
     notes: rules.notes('snatch', ruleReps(repInfo), cue),
+    ...liftTags(cueRep),
     measurements,
     failure: null,
   };
@@ -335,7 +345,14 @@ export const severityOf = (values: Values) => {
 
 const kSlice = (k: K, a: number, b: number) => k.slice(a, b);
 
-export function analyseRep(ctx: Ctx, start: number, end: number, repNo: number, kind: 'snatch' | 'clean' = 'snatch'): RepInfo | null | false {
+export function analyseRep(
+  ctx: Ctx,
+  start: number,
+  end: number,
+  repNo: number,
+  kind: 'snatch' | 'clean' = 'snatch',
+  startClass: StartClass = 'floor',
+): RepInfo | null | false {
   const { fps, H, W, n, input } = ctx;
   const source = input.source;
   const s0 = Math.max(0, start - int(2 * fps));
@@ -488,6 +505,8 @@ export function analyseRep(ctx: Ctx, start: number, end: number, repNo: number, 
     vals.jump_back_excessive = -(vals.jump_forward as number) - Math.max(0.0, -barDx);
     detail.jump_back_excessive = { frame: ev.caught, from: feetFrom, to: feetTo };
   }
+  // no first pull from the hang or blocks: the floor-start rules judge nothing (design 4.3)
+  if (startClass !== 'floor') for (const f of ['hips_rise_early', 'hips_too_low_at_start', 'shoulders_behind_bar_at_start']) if (f in vals) vals[f] = null;
   const peakH = cm(bar[lo][1] - bar[ev.peak][1]);
   const drop = cm(bar[ev.caught][1] - bar[ev.peak][1]);
   const turnoverS = (ev.caught - ev.second_ext) / fps;
@@ -546,17 +565,19 @@ export function analyseRep(ctx: Ctx, start: number, end: number, repNo: number, 
   const events: Record<string, number | boolean> = {};
   for (const [kk, v] of Object.entries(ev)) events[kk] = typeof v === 'boolean' ? v : g(v);
   const keys: Record<string, number> = {};
-  for (const [kk, v] of Object.entries(keyFrames(ev))) keys[kk] = g(v);
+  const [outPhases, outKeys] = startClass === 'floor' ? [phases, keyFrames(ev)] : hangPhases(phases, ev, barY, torsoPx(kw), fps);
+  for (const [kk, v] of Object.entries(outKeys)) keys[kk] = g(v);
   return {
     rep_no: repNo,
     start: g(phases[0].startFrame),
     end: g(ev.recovered),
     made,
-    phases: phases.map((p) => ({ ...p, startFrame: g(p.startFrame), endFrame: g(p.endFrame) })),
+    phases: outPhases.map((p) => ({ ...p, startFrame: g(p.startFrame), endFrame: g(p.endFrame) })),
     keys,
     events,
     path,
     values: vals,
+    start_class: startClass,
     detail,
     px_per_cm: pxPerCm,
     off_side_deg: offSide,
@@ -820,6 +841,12 @@ function buildCue(r: RepInfo, reps: RepInfo[], best: RepInfo, W: number, H: numb
     },
   };
   return [meas, cue];
+}
+
+// the lift record's tags the phone syncs (sync_lift: start_class, yaw_bucket)
+export function liftTags(r: RepInfo): { startClass?: StartClass; yawBucket?: string } {
+  const yaw = rules.yawBucket(r.off_side_deg);
+  return { ...(r.start_class ? { startClass: r.start_class } : {}), ...(yaw ? { yawBucket: yaw } : {}) };
 }
 
 const OUTCOMES = new Set(['missed_forward', 'missed_behind', 'missed', 'jerk_forward', 'jerk_back', 'could_not_stand']);
