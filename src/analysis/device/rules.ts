@@ -166,7 +166,7 @@ export function notes(movement: string, reps: Rep[], cue: { faultId: string; tex
 export function confidence(faultId: string, sev: number, sideOnOffDeg: number | null | undefined): Confidence {
   if (!has(sideOnOffDeg) || sideOnOffDeg <= 20) return sev >= 1.5 ? 'clear' : 'worth_checking';
   if (RULES[faultId].horizontal) return 'low';
-  return sev >= 1.5 ? 'worth_checking' : 'low';
+  return sideOnOffDeg <= 70 || sev >= 1.5 ? 'worth_checking' : 'low';
 }
 
 export function repConfidence(conf: Confidence, seen: number, total: number): Confidence {

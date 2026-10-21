@@ -60,10 +60,12 @@ def test_the_new_snatch_faults_rank_by_severity_then_lift_order():
     assert rules.RULES["early_arm_bend"]["order"] < rules.RULES["slow_turnover"]["order"] < rules.RULES["bar_crash"]["order"] < rules.RULES["jump_forward"]["order"]
 
 
-def test_the_new_snatch_rules_are_projection_sensitive_so_off_side_on_reads_low():
+def test_timing_and_drop_rules_hold_off_side_on_because_the_angle_only_shortens_them():
     for fid in ("early_arm_bend", "slow_turnover", "bar_crash"):
-        assert rules.RULES[fid]["horizontal"] is True
-        assert rules.confidence(fid, 2.0, 35.0) == "low"
+        assert rules.RULES[fid]["horizontal"] is False
+        assert rules.confidence(fid, 1.1, 35.0) == "worth_checking"
+        assert rules.confidence(fid, 1.1, 75.0) == "low"
+    assert rules.confidence("jump_forward", 2.0, 35.0) == "low"
 
 
 def test_the_new_snatch_cues_are_never_clear_and_a_time_needs_no_plate_scale():

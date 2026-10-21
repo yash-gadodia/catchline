@@ -23,7 +23,7 @@
       "threshold": 0.1,
       "unit": "s",
       "order": 1.5,
-      "horizontal": true
+      "horizontal": false
     },
     "incomplete_extension": {
       "threshold": 8.0,
@@ -35,13 +35,13 @@
       "threshold": 0.45,
       "unit": "s",
       "order": 2.5,
-      "horizontal": true
+      "horizontal": false
     },
     "bar_crash": {
       "threshold": 25.0,
       "unit": "cm",
       "order": 2.7,
-      "horizontal": true
+      "horizontal": false
     },
     "forward_dip": {
       "threshold": 4.0,
@@ -77,7 +77,7 @@
       "threshold": 0.13,
       "unit": "s",
       "order": 2,
-      "horizontal": true
+      "horizontal": false
     },
     "no_push_away": {
       "threshold": 4.0,

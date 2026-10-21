@@ -16,10 +16,13 @@ _DATA = json.loads((Path(__file__).parent / "rules.json").read_text())
 #   (cut pull); 0.1 s = 3 frames at 30 fps. The snatch bends at 150 deg, 03's 165 less a margin for ~10 deg of elbow
 #   keypoint error (CF L1, Everett)
 # - slow_turnover 0.45 s: snatch S6, full knee extension to elbow lockout: 03 flags > 450 ms; elite 235 +- 20 ms
-#   (JSSM 11:162 table 2), beginners 0.4-0.7 s (Torokhtiy). Horizontal: the lockout frame is a 2D elbow angle, read
-#   late off side-on
+#   (JSSM 11:162 table 2), beginners 0.4-0.7 s (Torokhtiy). Not horizontal: a bent elbow reads more open off
+#   side-on (150 reads 158 at 45 deg, v3.1-design table 3), so lockout is found a frame or two early and the time
+#   can only read short. A turnover that fires off side-on is real
 # - bar_crash 25 cm: snatch S6 drop, bar peak to elbow lockout: Nagao 2019 elite 17 +- 4 cm (made) vs 18 cm (missed),
-#   03's novice flag > 25 cm. Horizontal for the same reason: a late lockout frame reads as a longer drop
+#   03's novice flag > 25 cm. Vertical, and the early lockout can only shorten the drop
+# - early_arm_bend, early_arm_pull: timing; the bend is found late off side-on (the elbow reads more open), so they
+#   too can only read short
 # - jerk: 03 MVP #8, #7, #9, #10 (thresholds a notch above the taxonomy's for phone noise)
 # - gymnastics v1 (23 section 6.1), conservative: kip K2 -> K1 -> K3, BMU B1 -> B2 -> B3, HSPU H2 -> H1
 RULES = _DATA["RULES"]
@@ -154,12 +157,14 @@ def notes(movement, reps, cue, limit=3):
 
 
 def confidence(fault_id, severity, side_on_off_deg):
-    """Camera angle caps confidence: horizontal distances are foreshortened off side-on; vertical ones survive."""
+    """Camera angle caps confidence: horizontal distances are foreshortened off side-on; timing and vertical faults
+    hold to 70 deg (v3.1-design section 3.1), so they stay worth checking there, never clear. Past 70 the angle
+    estimate saturates and only a fault 1.5x over its threshold is worth checking."""
     if side_on_off_deg is None or side_on_off_deg <= 20:
         return "clear" if severity >= 1.5 else "worth_checking"
     if RULES[fault_id]["horizontal"]:
         return "low"
-    return "worth_checking" if severity >= 1.5 else "low"
+    return "worth_checking" if side_on_off_deg <= 70 or severity >= 1.5 else "low"
 
 
 def rep_confidence(conf, seen, total):

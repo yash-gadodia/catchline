@@ -809,7 +809,7 @@
     "unit": "deg",
     "frame": 74,
     "status": "not_seen",
-    "note": "not judged: filmed ~30\u00b0 off side-on",
+    "note": "not judged: filmed ~30° off side-on",
     "best": 45.5
    },
    {
@@ -818,8 +818,8 @@
     "value": 0.0,
     "unit": "s",
     "frame": 96,
-    "status": "not_seen",
-    "note": "not judged: filmed ~30\u00b0 off side-on",
+    "status": "normal",
+    "note": "elbow bend before the hip snap (+ = early)",
     "best": -0.13
    },
    {
@@ -829,7 +829,7 @@
     "unit": "cm",
     "frame": 101,
     "status": "not_seen",
-    "note": "not judged: filmed ~30\u00b0 off side-on"
+    "note": "not judged: filmed ~30° off side-on"
    },
    {
     "id": "chin_over_bar",

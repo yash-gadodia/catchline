@@ -222,10 +222,14 @@ def test_a_distance_fault_over_threshold_on_screen_is_worth_checking_not_held_ba
     assert cue_confidence("jump_forward", 12.275 / 8.0, 58.0, 1, 1, True) == "worth_checking"
 
 
-def test_timing_faults_and_steep_angles_stay_unjudged_off_side_on():
+def test_timing_faults_are_judged_off_side_on_and_steep_angles_leave_distances_unjudged():
     from catchline_cv import rules
     from catchline_cv.pipeline import cue_confidence
-    assert cue_confidence("slow_turnover", 2.0, 40.0, 1, 1, True) == "low"
+    # 4f3e068e (21 Oct, ~54 deg): extension to lockout 0.71 s was held back as an angle problem; lockout can only
+    # read early off side-on, so the time is if anything short
+    assert cue_confidence("slow_turnover", 0.71 / 0.45, 54.0, 2, 2, True) == "worth_checking"
+    assert cue_confidence("slow_turnover", 1.2, 75.0, 1, 1, True) == "low"
+    assert cue_confidence("slow_turnover", 1.6, 75.0, 1, 1, True) == "worth_checking"
     assert rules.on_screen(E3B8, 75.0)["jump_forward"] is None
     assert rules.on_screen(E3B8, 75.0)["slow_turnover"] == 0.43
 
