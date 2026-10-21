@@ -8,6 +8,9 @@ import { getFoundingSeats, type FoundingSeats } from './seats';
 import { useUsage } from './usageStore';
 import { backendEnabled } from '../../data/backend';
 import { getAllowance } from '../../lib/api';
+import { supabase } from '../../lib/supabase';
+import { readFreeUsed } from '../../data/freeLifts';
+import { signInWithApple } from '../auth/appleSignIn';
 
 export function storePlatform(): StorePlatform {
   return Platform.OS === 'android' ? 'android' : 'ios';
@@ -27,8 +30,25 @@ export function useFoundingSeats(): FoundingSeats | null {
   return seats;
 }
 
+// Sign in with Apple before any purchase (Yash, 20 Oct 2026), so a plan always
+// belongs to an account and follows the lifter to a new phone. Analysing needs
+// no account. A cancelled sign-in is a cancelled purchase; restore needs none.
+export async function ensureAccountForPurchase(): Promise<PurchaseStatus | null> {
+  if (!backendEnabled() || Platform.OS !== 'ios') return null;
+  const { data } = await supabase.auth.getSession();
+  if (data.session && !data.session.user.is_anonymous) return null;
+  try {
+    const result = await signInWithApple();
+    return result.cancelled ? 'cancelled' : null;
+  } catch {
+    return 'failed';
+  }
+}
+
 // The store purchase plus the analytics every paywall surface reports.
 export async function purchasePlan(plan: Plan): Promise<PurchaseStatus> {
+  const blocked = await ensureAccountForPurchase();
+  if (blocked) return blocked;
   const status = await usePurchases.getState().purchase(plan);
   if (status === 'success') track(EVENTS.PURCHASE_COMPLETED, { plan: planKey(plan) });
   return status;
@@ -48,11 +68,19 @@ export function useVideosLeft(now: Date = new Date()): number {
   return videosRemaining(tier, usage, now, variant);
 }
 
-// Pull the free/plan count from the server (lift_allowance). Offline or before a
-// session exists, the local count stands until the next sync.
+// The free count from the Keychain (a reinstall on this phone), then the server's
+// mirror (lift_allowance, a new phone after sign-in). Either only ever raises the
+// local count. Offline or without a session the server half is skipped.
+export async function syncKeychainUsage(): Promise<void> {
+  useUsage.getState().adoptFreeUsed(await readFreeUsed());
+}
+
 export async function syncServerUsage(now: Date = new Date()): Promise<void> {
+  await syncKeychainUsage();
   if (!backendEnabled()) return;
   try {
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) return;
     const allowance = await getAllowance();
     if (allowance) useUsage.getState().adopt(allowance, now);
   } catch {

@@ -18,6 +18,7 @@ import { backendEnabled } from '../src/data/backend';
 import { syncLibrary } from '../src/data/library';
 import { moveServerAnalysesToDevice } from '../src/data/migrateToDevice';
 import { syncServerUsage } from '../src/features/paywall/hooks';
+import { flushLiftOutbox } from '../src/data/liftOutbox';
 import { installForegroundHandler, liftIdFromResponse, registerPushToken, routeForLift } from '../src/features/notifications';
 import { init as initAnalytics, identify, reset, track, EVENTS } from '../src/lib/analytics';
 import { startAuthUserSync } from '../src/features/auth/authUser';
@@ -59,7 +60,10 @@ export default function RootLayout() {
     // Initialise RevenueCat once (real SDK in a dev build; no-op in Expo Go).
     usePurchases.getState().configure();
 
-    if (!backendEnabled()) return;
+    if (!backendEnabled()) {
+      void syncServerUsage();
+      return;
+    }
     const stopAuthUserSync = startAuthUserSync();
     syncLibrary()
       .catch(() => undefined)
@@ -79,6 +83,8 @@ export default function RootLayout() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
         identify(session.user.id);
+        // Lifts analysed offline or before an account existed reach the server now.
+        void flushLiftOutbox();
         if (event === 'SIGNED_IN') registerPushToken();
       } else if (event === 'SIGNED_OUT') {
         reset();

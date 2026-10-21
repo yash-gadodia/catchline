@@ -1,7 +1,6 @@
 import { Alert } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
-import { syncLibrary } from '../../src/data/library';
-import { deleteLift } from '../../src/lib/api';
+import { removeLift, syncLibrary } from '../../src/data/library';
 import { t } from '../../src/i18n';
 import { liftLink } from '../../src/features/library/derive';
 import LiftsScreen from '../../src/features/library/LiftsScreen';
@@ -31,7 +30,7 @@ export default function LiftsRoute() {
               text: t('library.lifts.deleteConfirm'),
               style: 'destructive',
               onPress: () =>
-                deleteLift(lift.id)
+                removeLift(lift.id)
                   .then(() => syncLibrary())
                   .catch(() => Alert.alert(t('library.lifts.deleteFailed'))),
             },
