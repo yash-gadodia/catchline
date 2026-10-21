@@ -1,8 +1,8 @@
 // cv/catchline_cv/lifts.py: the clean (on the snatch's analyseRep), the jerk and the hanging gymnastics movements.
 // The kipping HSPU is not ported.
-import { HANG_HIP_W, elbows, facing, hipAngles, kneeAngles, offSidePose, pyMin, rackMask, scaleFromBody } from './body';
+import { HANG_HIP_W, elbows, facing, hipAngles, kneeAngles, offSidePose, pyMin, rackMask, scaleFromBody, yawFromBody } from './body';
 import { lowpass, lowpassPts } from './filter';
-import { barFromWrists, dist, finitePt, fromRef, normalise, toRef, trunkAngle1 } from './geometry';
+import { barTrack, dist, finitePt, fromRef, normalise, toRef, trunkAngle1 } from './geometry';
 import { bmuEvents, bmuPhases, cycleTops, kipEvents, kipPhases, mergeCycles, pushAway } from './gym';
 import {
   JOINTS,
@@ -419,8 +419,7 @@ function jerkRep(ctx: Ctx, repNo: number, start: number, end: number, pxPerCm: n
   const w = loadWindow(ctx, s0, e0);
   const { ksm, kr, L } = w;
   const t = torsoPx(ksm);
-  const overlap = nanmedian(kr.map((r) => dist(r[L_WRI], r[R_WRI]))) < 0.15 * w.bodyH;
-  const bar = overlap ? lowpassPts(barFromWrists(col(kr, L_WRI), col(kr, R_WRI), 0.12 * w.bodyH), fps, 6.0) : mid(ksm, L_WRI, R_WRI);
+  const bar = lowpassPts(barTrack(col(kr, L_WRI), col(kr, R_WRI), w.bodyH), fps, 6.0);
   const kneeAng = kneeAngles(ksm);
   const el = fmax(...elbows(ksm));
   const o = start - s0;
@@ -433,7 +432,7 @@ function jerkRep(ctx: Ctx, repNo: number, start: number, end: number, pxPerCm: n
   const phases = ph.map((p) => ({ ...p, startFrame: p.startFrame + o, endFrame: p.endFrame + o }));
   const ev = Object.fromEntries(Object.entries(ev0).map(([kk, v]) => [kk, v + o])) as typeof ev0;
   const fwd = ev.leave > ev.dip_start ? facing(ksm.slice(ev.dip_start, ev.leave + 1)) : facing(ksm);
-  const off = offSidePose(ksm);
+  const off = yawFromBody(ksm, 0, L - 1);
   const fs = 1 / Math.cos(radians(pyMin(off === null || off === 0 ? 0.0 : off, 60.0)));
   const cm = (px: number) => px / pxPerCm;
   const sho = mid(ksm, L_SHO, R_SHO);
