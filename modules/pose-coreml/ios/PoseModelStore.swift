@@ -3,7 +3,10 @@ import CryptoKit
 import Foundation
 import System
 
-// The compiled models are too big to bundle (~150 MB FP32), so they are fetched once from the
+// 3.1 bundles the models (PoseCoreMLModule.bundledModelsDir); this download is the fallback for a build
+// made without them, kept for one release (design 3.1 section 6.2), then deleted. Keep the tag and
+// SHA-256s below equal to modules/pose-coreml/models.lock.
+// The compiled models were too big to bundle (~150 MB FP32), so they were fetched once from the
 // GitHub release below, checked against these SHA-256s, unpacked into Application Support
 // (excluded from backup) and loaded from there. Built by cv/scripts/export_coreml.py, packed with
 // `aa archive -d models -subdir <name>.mlmodelc -o <name>.mlmodelc.aar` (see scripts/publish-pose-models.sh).

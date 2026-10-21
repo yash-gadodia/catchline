@@ -9,9 +9,10 @@ export type PoseFrame = { t: number; people: PosePerson[]; lifter?: number };
 
 export type PoseResult = { fps: number; width: number; height: number; frames: PoseFrame[] };
 
-// The models are downloaded on first use (PoseModelStore.swift); until 'ready', analyzePose and
-// analyseOnDevice wait for them. error is the last failed download, retried by the next ensureModels.
-export type ModelsStatus = { status: 'absent' | 'downloading' | 'ready' | 'failed'; error?: string; fraction: number };
+// 3.1 bundles the models, so this is 'ready' (bundled: true) from the first launch. A build made
+// without them falls back to the one-time download (PoseModelStore.swift, one release only): until
+// 'ready', analyzePose and analyseOnDevice wait, and error is the last failed download.
+export type ModelsStatus = { status: 'absent' | 'downloading' | 'ready' | 'failed'; error?: string; fraction: number; bundled?: boolean };
 
 // What the TS pipeline still needs from the clip (src/analysis/device: planFromMisses), in the
 // 1280 px inference frame. Each entry becomes one trace.py call record (AnalyseOnDevice.swift).
@@ -22,6 +23,7 @@ export type AnalysePlan = {
   keyframes?: { name: string; frame: number }[];
 };
 
+// 'models' only in a build without bundled models (the download fallback).
 export type AnalyseStage = 'models' | 'pose' | 'pixels';
 
 export type AnalyseResult = { tracePath: string; stills: Record<string, string> };

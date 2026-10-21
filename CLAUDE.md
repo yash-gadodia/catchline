@@ -6,7 +6,7 @@ Design source of truth: `~/dev/liftcheck-research/design/` (`Catchline Design Sy
 
 ## Commands
 - **Install**: `npm install --legacy-peer-deps`
-- **Run**: `npx expo run:ios` (debug build; Expo Go cannot run this repo) · **Bundle check**: `npx expo export -p ios`
+- **Run**: `npm run pose-models` once (bundles the Core ML models, ~150 MB, gitignored), then `npx expo run:ios` (debug build; Expo Go cannot run this repo) · **Bundle check**: `npx expo export -p ios`
 - **Test**: `npx jest` · **Typecheck**: `npm run typecheck`
 - **Backend (Mac Mini only)**: see BACKEND_SETUP "Local run"; `supabase test db`, worker `uv run pytest`
 
