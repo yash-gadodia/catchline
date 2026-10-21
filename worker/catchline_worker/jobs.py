@@ -1,5 +1,6 @@
 import logging
 import os
+import subprocess
 import tempfile
 import time
 import traceback
@@ -9,7 +10,7 @@ from dataclasses import dataclass
 from catchline_cv import external_pose
 from catchline_cv import pose as cv_pose
 from catchline_cv import trace as cv_trace
-from catchline_cv.video import ClipUnreadable
+from catchline_cv.video import ClipUnreadable, probe
 
 from .push import failed_message, ready_message
 
@@ -29,6 +30,9 @@ DRAIN_RESERVE_S = 300
 ERROR_CODES = {"clip_unreadable", "unknown"}
 # codes a retry can never fix: fail on the first attempt
 FINAL_CODES = {"clip_unreadable"}
+# pose runs on every frame, so a 120 fps slow-mo clip costs twice a 60 fps one for the same cue: a 35 s 120 fps clip
+# took 10 min on the Mini and hit the 900 s Modal timeout three times (21-10-2026)
+MAX_FPS = 60
 
 
 def error_code(e: BaseException) -> str:
@@ -84,6 +88,17 @@ def fetch_pose(db, job: Job, workdir: str) -> dict | None:
     except Exception:
         log.exception("device pose for lift %s unusable; running server pose", job.lift_id)
         return None
+
+
+def cap_fps(clip: str, workdir: str) -> str:
+    """The clip, re-encoded to MAX_FPS when it is faster. The analysis records the fps it ran at, and the app turns
+    frames into seconds with that, so the timeline still lines up with the original video."""
+    if probe(clip)["fps"] <= MAX_FPS + 1:
+        return clip
+    out = os.path.join(workdir, f"clip-{MAX_FPS}fps.mp4")
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", clip, "-vf", f"fps={MAX_FPS}", "-an", "-c:v", "libx264",
+                    "-preset", "veryfast", "-crf", "16", out], check=True)
+    return out
 
 
 def save_trace(db, job: Job, rec: cv_trace.Recorder, result: Result, pose: dict | None, workdir: str) -> bool:
@@ -150,6 +165,9 @@ def process_one(
             clip = os.path.join(tmp, "clip")
             db.download(RAW_BUCKET, job.clip_path, clip)
             pose = fetch_pose(db, job, tmp)
+            if pose is None:
+                # the phone's pose has one entry per frame of the original clip, so only a server-pose lift is capped
+                clip = cap_fps(clip, tmp)
             t["download"] = time.monotonic() - t0
             p0 = cv_pose.pose_seconds
             with cv_trace.recording() as rec:

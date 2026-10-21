@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import re
+import shutil
 import subprocess
 from pathlib import Path
 from types import SimpleNamespace
@@ -9,7 +10,7 @@ from types import SimpleNamespace
 import pytest
 from catchline_cv import ANALYSIS_VERSION, pipeline
 from catchline_cv import trace as cv_trace
-from catchline_cv.video import ClipUnreadable
+from catchline_cv.video import ClipUnreadable, probe
 
 from catchline_worker import jobs
 from catchline_worker.jobs import (
@@ -115,6 +116,15 @@ class CvFailureDb(FakeDb):
             self.calls.append(("rpc", fn, args))
             return {"status": "failed", "cue_id": None}
         return super().rpc(fn, args)
+
+
+REAL_CAP_FPS = jobs.cap_fps
+
+
+@pytest.fixture(autouse=True)
+def uncapped(monkeypatch):
+    """FakeDb downloads the bytes b"clip", which ffprobe cannot read; the cap has its own tests below."""
+    monkeypatch.setattr(jobs, "cap_fps", lambda clip, workdir: clip)
 
 
 def fake_analyse(clip, job, workdir):
@@ -572,3 +582,45 @@ def test_each_job_logs_its_stage_timings(monkeypatch, caplog):
     with caplog.at_level(logging.INFO, logger="catchline_worker"):
         process_one(TimedDb([ROW]), timed_analyse)
     assert "lift lift-1 done attempt=1 download=1.5s pose=4.0s analysis=2.0s upload=1.0s total=8.5s" in caplog.text
+
+
+def make_clip(path, fps, seconds=1):
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", f"testsrc=size=160x90:rate={fps}",
+                    "-t", str(seconds), "-c:v", "libx264", "-pix_fmt", "yuv420p", str(path)], check=True)
+    return str(path)
+
+
+def test_a_120_fps_clip_is_analysed_at_60_fps_over_the_same_duration(tmp_path):
+    out = REAL_CAP_FPS(make_clip(tmp_path / "slowmo.mp4", 120, seconds=2), str(tmp_path))
+    meta = probe(out)
+    assert out == str(tmp_path / "clip-60fps.mp4")
+    assert (meta["fps"], meta["frameCount"]) == (60.0, 120)
+
+
+def test_a_60_fps_clip_is_analysed_as_filmed(tmp_path):
+    clip = make_clip(tmp_path / "normal.mp4", 60)
+    assert REAL_CAP_FPS(clip, str(tmp_path)) == clip
+
+
+def test_a_server_pose_lift_is_analysed_from_the_capped_clip(monkeypatch):
+    seen = {}
+    monkeypatch.setattr(jobs, "cap_fps", lambda clip, workdir: shutil.copyfile(clip, clip + "-60fps"))
+
+    def recording(clip, job, workdir):
+        seen["clip"] = os.path.basename(clip)
+        return fake_analyse(clip, job, workdir)
+
+    assert process_one(FakeDb([ROW]), recording)["status"] == "done"
+    assert seen["clip"] == "clip-60fps"
+
+
+def test_a_device_pose_lift_keeps_the_original_clip_its_pose_frames_belong_to(monkeypatch):
+    seen = {}
+    monkeypatch.setattr(jobs, "cap_fps", lambda clip, workdir: shutil.copyfile(clip, clip + "-60fps"))
+
+    def recording(clip, job, workdir, pose=None):
+        seen["clip"] = os.path.basename(clip)
+        return fake_analyse(clip, job, workdir)
+
+    assert process_one(FakeDb([ROW], pose=POSE), recording)["status"] == "done"
+    assert seen["clip"] == "clip"
