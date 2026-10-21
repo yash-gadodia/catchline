@@ -39,6 +39,11 @@ struct PosePerson {
   var box: [Float]       // x1 y1 x2 y2
   var kpts: [Float]      // 26 * (x, y)
   var scores: [Float]    // 26
+
+  // Detected but not run through RTMPose: NaN joints never pass select_lifter's joint-shift test
+  static func unposed(box: [Float]) -> PosePerson {
+    PosePerson(box: box, kpts: [Float](repeating: .nan, count: 52), scores: [Float](repeating: 0, count: 26))
+  }
 }
 
 // An 8-bit BGR image, row-major, no padding.
@@ -73,52 +78,98 @@ final class PoseModels {
   }
 }
 
-// cv2.resize(INTER_LINEAR) for uint8 BGR: half-pixel centres, edge clamp, round to nearest.
-func resizeLinear(_ src: BGRImage, _ w: Int, _ h: Int) -> BGRImage {
-  var out = [UInt8](repeating: 0, count: w * h * 3)
-  let sx = Float(src.width) / Float(w), sy = Float(src.height) / Float(h)
+// cv2.resize(INTER_LINEAR)'s sample positions along one axis: half-pixel centres, edge clamp.
+// Returns, per output index, the two source indices and the weight of the second.
+private func linearTaps(src: Int, dst: Int) -> (i0: [Int], i1: [Int], w1: [Float]) {
+  var i0 = [Int](repeating: 0, count: dst), i1 = i0, w1 = [Float](repeating: 0, count: dst)
+  let scale = Float(src) / Float(dst)
+  for d in 0 ..< dst {
+    var f = (Float(d) + 0.5) * scale - 0.5
+    if f < 0 { f = 0 }
+    var a = Int(f)
+    if a >= src - 1 { a = src - 1; f = Float(a) }
+    i0[d] = a
+    i1[d] = min(a + 1, src - 1)
+    w1[d] = f - Float(a)
+  }
+  return (i0, i1, w1)
+}
+
+// Separable bilinear resampling of an 8-bit BGR image into three float planes (one per channel,
+// `rowStride` floats per row, written at `dst` + c * planeStride): rows blended with vDSP, columns
+// gathered. The same values as the per-pixel cv2.resize(INTER_LINEAR) port, rounded to nearest and
+// clamped to 0...255, in a few vector calls per row. A row tap of src.height reads a zero row and a
+// column tap of src.width the zero pixel past the row's end, so out-of-frame samples are 0 (warpAffine).
+private func bilinearRows(_ src: BGRImage, rows: (i0: [Int], i1: [Int], w1: [Float]), cols: (i0: [Int], i1: [Int], w1: [Float]),
+                          outW: Int, dst: UnsafeMutablePointer<Float>, rowStride: Int, planeStride: Int) {
+  let w = src.width, n = outW
+  let rowLen = w * 3 + 3  // + one zero pixel
+  var rowA = [Float](repeating: 0, count: rowLen), rowB = rowA, blend = rowA
+  var cacheA = -1, cacheB = -1
+  var idx0 = [[vDSP_Length]](repeating: [vDSP_Length](repeating: 0, count: n), count: 3), idx1 = idx0
+  for c in 0 ..< 3 {
+    for x in 0 ..< n {
+      idx0[c][x] = vDSP_Length(cols.i0[x] * 3 + c + 1)  // vgathr indices are 1-based
+      idx1[c][x] = vDSP_Length(cols.i1[x] * 3 + c + 1)
+    }
+  }
+  var w0 = cols.w1.map { 1 - $0 }, w1 = cols.w1
+  var g0 = [Float](repeating: 0, count: n), g1 = g0
   src.data.withUnsafeBufferPointer { s in
-    for y in 0 ..< h {
-      var fy = (Float(y) + 0.5) * sy - 0.5
-      if fy < 0 { fy = 0 }
-      var y0 = Int(fy)
-      if y0 >= src.height - 1 { y0 = src.height - 1; fy = Float(y0) }
-      let y1 = min(y0 + 1, src.height - 1)
-      let wy = fy - Float(y0)
-      for x in 0 ..< w {
-        var fx = (Float(x) + 0.5) * sx - 0.5
-        if fx < 0 { fx = 0 }
-        var x0 = Int(fx)
-        if x0 >= src.width - 1 { x0 = src.width - 1; fx = Float(x0) }
-        let x1 = min(x0 + 1, src.width - 1)
-        let wx = fx - Float(x0)
-        for c in 0 ..< 3 {
-          let a = Float(s[(y0 * src.width + x0) * 3 + c]), b = Float(s[(y0 * src.width + x1) * 3 + c])
-          let d = Float(s[(y1 * src.width + x0) * 3 + c]), e = Float(s[(y1 * src.width + x1) * 3 + c])
-          let v = (a * (1 - wx) + b * wx) * (1 - wy) + (d * (1 - wx) + e * wx) * wy
-          out[(y * w + x) * 3 + c] = UInt8(min(max(v.rounded(), 0), 255))
-        }
+    func load(_ r: Int, into buf: inout [Float]) {
+      if r >= src.height { vDSP_vclr(&buf, 1, vDSP_Length(w * 3)); return }
+      vDSP_vfltu8(s.baseAddress! + r * w * 3, 1, &buf, 1, vDSP_Length(w * 3))
+    }
+    for y in 0 ..< rows.i0.count {
+      let out = dst + y * rowStride
+      if cacheA != rows.i0[y] { cacheA = rows.i0[y]; load(cacheA, into: &rowA) }
+      if cacheB != rows.i1[y] { cacheB = rows.i1[y]; load(cacheB, into: &rowB) }
+      var wy1 = rows.w1[y], wy0 = 1 - wy1
+      vDSP_vsmsma(rowA, 1, &wy0, rowB, 1, &wy1, &blend, 1, vDSP_Length(w * 3))
+      for c in 0 ..< 3 {
+        vDSP_vgathr(blend, idx0[c], 1, &g0, 1, vDSP_Length(n))
+        vDSP_vgathr(blend, idx1[c], 1, &g1, 1, vDSP_Length(n))
+        let o = out + c * planeStride
+        vDSP_vmma(g0, 1, &w0, 1, g1, 1, &w1, 1, o, 1, vDSP_Length(n))
+        // Float.rounded() (half away from zero) on values >= 0: floor(v + 0.5). A 2x downscale lands every sample
+        // on a .5 tie, so round-half-even (vvnintf) would move a quarter of the detector's pixels by one.
+        var half: Float = 0.5, cnt = Int32(n)
+        vDSP_vsadd(o, 1, &half, o, 1, vDSP_Length(n))
+        vvfloorf(o, o, &cnt)
+        var lo: Float = 0, hi: Float = 255
+        vDSP_vclip(o, 1, &lo, &hi, o, 1, vDSP_Length(n))
       }
     }
   }
-  return BGRImage(width: w, height: h, data: out)
 }
 
-// MLShapedArray(converting:) copies element by element; a contiguous float32 output is read straight
+// MLShapedArray(converting:) copies element by element; an output laid out as rows of its last axis (the Neural
+// Engine pads each row, e.g. 4 floats to 32) is read row by row instead: float32 copied, float16 (the FP16
+// detector's) widened by vImage in one call
 private func floats(_ m: MLMultiArray) -> [Float] {
-  let n = m.count
-  if m.dataType == .float32, n == 0 || (m.strides.last?.intValue ?? 1) == 1 {
-    var contiguous = true
-    var expect = 1
-    for i in stride(from: m.shape.count - 1, through: 0, by: -1) {
-      if m.strides[i].intValue != expect { contiguous = false; break }
-      expect *= m.shape[i].intValue
-    }
-    if contiguous {
-      return m.withUnsafeBufferPointer(ofType: Float.self) { Array($0) }
+  let n = m.count, d = m.shape.count
+  let last = d > 0 ? m.shape[d - 1].intValue : 1
+  var rowsLaidOut = d > 0 && m.strides[d - 1].intValue == 1 && (m.dataType == .float32 || m.dataType == .float16) && n > 0
+  if rowsLaidOut {
+    for i in stride(from: d - 3, through: 0, by: -1) where m.strides[i].intValue != m.strides[i + 1].intValue * m.shape[i + 1].intValue {
+      rowsLaidOut = false
     }
   }
-  return MLShapedArray<Float>(converting: m).scalars
+  guard rowsLaidOut else { return MLShapedArray<Float>(converting: m).scalars }
+  let rows = n / last, rowStride = d > 1 ? m.strides[d - 2].intValue : last
+  var out = [Float](repeating: 0, count: n)
+  out.withUnsafeMutableBufferPointer { dst in
+    if m.dataType == .float32 {
+      let src = m.dataPointer.assumingMemoryBound(to: Float.self)
+      if rowStride == last { dst.baseAddress!.update(from: src, count: n); return }
+      for r in 0 ..< rows { (dst.baseAddress! + r * last).update(from: src + r * rowStride, count: last) }
+    } else {
+      var s = vImage_Buffer(data: m.dataPointer, height: vImagePixelCount(rows), width: vImagePixelCount(last), rowBytes: rowStride * 2)
+      var t = vImage_Buffer(data: dst.baseAddress!, height: vImagePixelCount(rows), width: vImagePixelCount(last), rowBytes: last * 4)
+      _ = vImageConvert_Planar16FtoPlanarF(&s, &t, vImage_Flags(kvImageNoFlags))
+    }
+  }
+  return out
 }
 
 private func iouXYXY(_ a: [Float], _ b: [Float]) -> Float {
@@ -136,19 +187,13 @@ func detectPeople(_ img: BGRImage, _ models: PoseModels) throws -> [[Float]] {
   func lap() -> Double { let now = Date(); defer { tick = now }; return now.timeIntervalSince(tick) }
   let ratio = min(Float(detSize) / Float(img.height), Float(detSize) / Float(img.width))
   let rw = Int(Float(img.width) * ratio), rh = Int(Float(img.height) * ratio)
-  let small = resizeLinear(img, rw, rh)
   let input = try MLMultiArray(shape: [1, 3, NSNumber(value: detSize), NSNumber(value: detSize)], dataType: .float32)
   let plane = detSize * detSize
   let p = input.dataPointer.bindMemory(to: Float.self, capacity: 3 * plane)
-  for i in 0 ..< 3 * plane { p[i] = 114 }
-  small.data.withUnsafeBufferPointer { s in
-    for y in 0 ..< rh {
-      for x in 0 ..< rw {
-        let o = (y * rw + x) * 3
-        for c in 0 ..< 3 { p[c * plane + y * detSize + x] = Float(s[o + c]) }
-      }
-    }
-  }
+  var pad: Float = 114
+  vDSP_vfill(&pad, p, 1, vDSP_Length(3 * plane))
+  bilinearRows(img, rows: linearTaps(src: img.height, dst: rh), cols: linearTaps(src: img.width, dst: rw), outW: rw,
+               dst: p, rowStride: detSize, planeStride: plane)
   coreTiming.detectPre += lap()
   let out = try models.det.prediction(from: MLDictionaryFeatureProvider(dictionary: ["input": input]))
   coreTiming.detectInfer += lap()
@@ -207,22 +252,28 @@ func estimatePose(_ img: BGRImage, box: [Float], _ models: PoseModels, stripHead
   let input = try MLMultiArray(shape: [1, 3, NSNumber(value: poseH), NSNumber(value: poseW)], dataType: .float32)
   let plane = poseW * poseH
   let p = input.dataPointer.bindMemory(to: Float.self, capacity: 3 * plane)
-  img.data.withUnsafeBufferPointer { src in
-    for y in 0 ..< poseH {
-      let fy = (Float(y) - ty) / s
-      let y0 = Int(fy.rounded(.down)), wy = fy - Float(y0)
-      for x in 0 ..< poseW {
-        let fx = (Float(x) - tx) / s
-        let x0 = Int(fx.rounded(.down)), wx = fx - Float(x0)
-        for c in 0 ..< 3 {
-          func px(_ xx: Int, _ yy: Int) -> Float {
-            xx < 0 || yy < 0 || xx >= img.width || yy >= img.height ? 0 : Float(src[(yy * img.width + xx) * 3 + c])
-          }
-          let v = (px(x0, y0) * (1 - wx) + px(x0 + 1, y0) * wx) * (1 - wy) + (px(x0, y0 + 1) * (1 - wx) + px(x0 + 1, y0 + 1) * wx) * wy
-          p[c * plane + y * poseW + x] = (min(max(v.rounded(), 0), 255) - poseMean[c]) / poseStd[c]
-        }
-      }
-    }
+  // warpAffine as separable bilinear taps; a sample outside the frame reads the zero row / zero pixel (border 0)
+  var rows = (i0: [Int](repeating: 0, count: poseH), i1: [Int](repeating: 0, count: poseH), w1: [Float](repeating: 0, count: poseH))
+  for y in 0 ..< poseH {
+    let fy = (Float(y) - ty) / s
+    let y0 = Int(fy.rounded(.down))
+    rows.w1[y] = fy - Float(y0)
+    rows.i0[y] = y0 >= 0 && y0 < img.height ? y0 : img.height
+    rows.i1[y] = y0 + 1 >= 0 && y0 + 1 < img.height ? y0 + 1 : img.height
+  }
+  var cols = (i0: [Int](repeating: 0, count: poseW), i1: [Int](repeating: 0, count: poseW), w1: [Float](repeating: 0, count: poseW))
+  for x in 0 ..< poseW {
+    let fx = (Float(x) - tx) / s
+    let x0 = Int(fx.rounded(.down))
+    cols.w1[x] = fx - Float(x0)
+    cols.i0[x] = x0 >= 0 && x0 < img.width ? x0 : img.width
+    cols.i1[x] = x0 + 1 >= 0 && x0 + 1 < img.width ? x0 + 1 : img.width
+  }
+  bilinearRows(img, rows: rows, cols: cols, outW: poseW, dst: p, rowStride: poseW, planeStride: plane)
+  for c in 0 ..< 3 {
+    var m = -poseMean[c], sd = poseStd[c]
+    vDSP_vsadd(p + c * plane, 1, &m, p + c * plane, 1, vDSP_Length(plane))
+    vDSP_vsdiv(p + c * plane, 1, &sd, p + c * plane, 1, vDSP_Length(plane))
   }
   coreTiming.posePre += lap()
   let out = try models.pose.prediction(from: MLDictionaryFeatureProvider(dictionary: ["input": input]))
@@ -321,106 +372,131 @@ struct Resampler {
   }
 }
 
-// plane (h x w) -> (rh.n x rw.n): rows first (contiguous, vDSP), then columns on the fewer rows
+// One separable pass along rows: plane (h x w) -> (r.n x w), each output row a weighted sum of
+// source rows (contiguous, vDSP_vsma per tap).
+private func resampleRows(_ p: UnsafePointer<Float>, w: Int, h: Int, _ r: Resampler, into dst: UnsafeMutablePointer<Float>) {
+  let th = r.taps
+  vDSP_vclr(dst, 1, vDSP_Length(r.n * w))
+  for y in 0 ..< r.n {
+    let o = dst + y * w
+    for t in 0 ..< th {
+      var wy = r.w[y * th + t]
+      vDSP_vsma(p + r.idx[y * th + t] * w, 1, &wy, o, 1, o, 1, vDSP_Length(w))
+    }
+  }
+}
+
+// plane (h x w) -> (rh.n x rw.n): rows first, then the columns as a rows pass on the transpose
+// (vDSP_mtrans both ways), so every tap is a contiguous vector op.
 func resample(_ p: [Float], w: Int, h: Int, _ rw: Resampler, _ rh: Resampler) -> [Float] {
   var tmp = [Float](repeating: 0, count: rh.n * w)
-  let tw = rw.taps, th = rh.taps
-  p.withUnsafeBufferPointer { src in
-    tmp.withUnsafeMutableBufferPointer { dst in
-      for y in 0 ..< rh.n {
-        let o = dst.baseAddress! + y * w
-        for t in 0 ..< th {
-          var wy = rh.w[y * th + t]
-          vDSP_vsma(src.baseAddress! + rh.idx[y * th + t] * w, 1, &wy, o, 1, o, 1, vDSP_Length(w))
-        }
-      }
-    }
-  }
+  p.withUnsafeBufferPointer { src in tmp.withUnsafeMutableBufferPointer { resampleRows(src.baseAddress!, w: w, h: h, rh, into: $0.baseAddress!) } }
+  var tmpT = [Float](repeating: 0, count: w * rh.n)  // w rows x rh.n cols
+  vDSP_mtrans(tmp, 1, &tmpT, 1, vDSP_Length(w), vDSP_Length(rh.n))
+  var outT = [Float](repeating: 0, count: rw.n * rh.n)  // rw.n rows x rh.n cols
+  tmpT.withUnsafeBufferPointer { src in outT.withUnsafeMutableBufferPointer { resampleRows(src.baseAddress!, w: rh.n, h: w, rw, into: $0.baseAddress!) } }
   var out = [Float](repeating: 0, count: rh.n * rw.n)
-  tmp.withUnsafeBufferPointer { src in
-    out.withUnsafeMutableBufferPointer { dst in
-      rw.idx.withUnsafeBufferPointer { idx in
-        rw.w.withUnsafeBufferPointer { wts in
-          for y in 0 ..< rh.n {
-            let row = src.baseAddress! + y * w, o = dst.baseAddress! + y * rw.n
-            for x in 0 ..< rw.n {
-              var v: Float = 0
-              for t in 0 ..< tw { v += row[idx[x * tw + t]] * wts[x * tw + t] }
-              o[x] = v
-            }
-          }
-        }
-      }
-    }
-  }
+  vDSP_mtrans(outT, 1, &out, 1, vDSP_Length(rh.n), vDSP_Length(rw.n))
   return out
 }
 
-// Rotate a plane of `T` clockwise by quarter turns (exact, no resampling).
-func rotatePlane<T>(_ p: [T], w: Int, h: Int, quarter: Int) -> (data: [T], w: Int, h: Int) {
-  if quarter % 4 == 0 { return (p, w, h) }
-  let (ow, oh) = quarter % 2 == 1 ? (h, w) : (w, h)
-  var out = p
-  for y in 0 ..< h {
-    for x in 0 ..< w {
-      let (nx, ny): (Int, Int)
-      switch quarter % 4 {
-      case 1: (nx, ny) = (h - 1 - y, x)
-      case 2: (nx, ny) = (w - 1 - x, h - 1 - y)
-      default: (nx, ny) = (y, w - 1 - x)
-      }
-      out[ny * ow + nx] = p[y * w + x]
-    }
+// Rotate a float plane clockwise by quarter turns (exact): a transpose plus a row or order reversal.
+func rotatePlane(_ p: [Float], w: Int, h: Int, quarter: Int) -> (data: [Float], w: Int, h: Int) {
+  let q = quarter % 4
+  if q == 0 { return (p, w, h) }
+  if q == 2 {
+    var out = p  // out[h - 1 - y][w - 1 - x] = p[y][x]: the flat array reversed
+    vDSP_vrvrs(&out, 1, vDSP_Length(w * h))
+    return (out, w, h)
   }
-  return (out, ow, oh)
+  var t = [Float](repeating: 0, count: w * h)  // w rows x h cols: t[x][y] = p[y][x]
+  vDSP_mtrans(p, 1, &t, 1, vDSP_Length(w), vDSP_Length(h))
+  if q == 1 {
+    // out[x][h - 1 - y] = p[y][x]: every row of t reversed
+    t.withUnsafeMutableBufferPointer { b in for x in 0 ..< w { vDSP_vrvrs(b.baseAddress! + x * h, 1, vDSP_Length(h)) } }
+    return (t, h, w)
+  }
+  // q == 3: out[w - 1 - x][y] = p[y][x]: the rows of t in reverse order
+  var out = [Float](repeating: 0, count: w * h)
+  t.withUnsafeBufferPointer { src in out.withUnsafeMutableBufferPointer { dst in
+    for x in 0 ..< w { cblas_scopy(Int32(h), src.baseAddress! + x * h, 1, dst.baseAddress! + (w - 1 - x) * h, 1) }
+  } }
+  return (out, h, w)
 }
 
 // ffmpeg's YUV -> bgr24 sits this much below an exact BT.709 limited-range
 // conversion (B, G, R; measured against ffmpeg 8.1 on three clips, slope 1.000).
 private let ffmpegOffset: [Float] = [2.1, 1.85, 2.2]
 
+// One plane of the pixel buffer as floats (optionally every `step`th byte from `offset`).
+private func planeFloats(_ base: UnsafePointer<UInt8>, rowBytes: Int, w: Int, h: Int, step: Int = 1) -> [Float] {
+  var out = [Float](repeating: 0, count: w * h)
+  out.withUnsafeMutableBufferPointer { o in
+    for y in 0 ..< h { vDSP_vfltu8(base + y * rowBytes, vDSP_Stride(step), o.baseAddress! + y * w, 1, vDSP_Length(w)) }
+  }
+  return out
+}
+
 // The upright frame at outW x outH, BGR, as pose.py's `ffmpeg -vf scale -pix_fmt bgr24`
 // pipe produces it: the decoded 4:2:0 planes (bit-exact H.264 output) rotated
 // losslessly, luma and chroma scaled bicubically in YUV, chroma shared by pixel
-// pairs, then BT.709 limited range to BGR.
-func uprightBGR(_ pb: CVPixelBuffer, rotation: Int, outW: Int, outH: Int) -> BGRImage {
-  CVPixelBufferLockBaseAddress(pb, .readOnly)
-  defer { CVPixelBufferUnlockBaseAddress(pb, .readOnly) }
-  let w = CVPixelBufferGetWidthOfPlane(pb, 0), h = CVPixelBufferGetHeightOfPlane(pb, 0)
-  let cw = CVPixelBufferGetWidthOfPlane(pb, 1), ch = CVPixelBufferGetHeightOfPlane(pb, 1)
-  let yRow = CVPixelBufferGetBytesPerRowOfPlane(pb, 0), cRow = CVPixelBufferGetBytesPerRowOfPlane(pb, 1)
-  let yPtr = CVPixelBufferGetBaseAddressOfPlane(pb, 0)!.assumingMemoryBound(to: UInt8.self)
-  let cPtr = CVPixelBufferGetBaseAddressOfPlane(pb, 1)!.assumingMemoryBound(to: UInt8.self)
-  var Y = [Float](repeating: 0, count: w * h), U = [Float](repeating: 0, count: cw * ch), V = U
-  for y in 0 ..< h { for x in 0 ..< w { Y[y * w + x] = Float(yPtr[y * yRow + x]) } }
-  for y in 0 ..< ch {
-    for x in 0 ..< cw {
-      U[y * cw + x] = Float(cPtr[y * cRow + x * 2])
-      V[y * cw + x] = Float(cPtr[y * cRow + x * 2 + 1])
-    }
+// pairs, then BT.709 limited range to BGR. All of it in vDSP / BLAS calls: no per-pixel Swift.
+// The decoded 4:2:0 planes as floats, already rotated upright: read once per frame, scaled to each height
+// the frame is needed at (1280 for pose, 360 for the camera path) without converting twice.
+struct UprightPlanes {
+  let y: (data: [Float], w: Int, h: Int)
+  let u: (data: [Float], w: Int, h: Int)
+  let v: (data: [Float], w: Int, h: Int)
+
+  init(_ pb: CVPixelBuffer, rotation: Int) {
+    CVPixelBufferLockBaseAddress(pb, .readOnly)
+    defer { CVPixelBufferUnlockBaseAddress(pb, .readOnly) }
+    let w = CVPixelBufferGetWidthOfPlane(pb, 0), h = CVPixelBufferGetHeightOfPlane(pb, 0)
+    let cw = CVPixelBufferGetWidthOfPlane(pb, 1), ch = CVPixelBufferGetHeightOfPlane(pb, 1)
+    let yRow = CVPixelBufferGetBytesPerRowOfPlane(pb, 0), cRow = CVPixelBufferGetBytesPerRowOfPlane(pb, 1)
+    let yPtr = CVPixelBufferGetBaseAddressOfPlane(pb, 0)!.assumingMemoryBound(to: UInt8.self)
+    let cPtr = CVPixelBufferGetBaseAddressOfPlane(pb, 1)!.assumingMemoryBound(to: UInt8.self)
+    let q = rotation / 90 % 4
+    y = rotatePlane(planeFloats(yPtr, rowBytes: yRow, w: w, h: h), w: w, h: h, quarter: q)
+    u = rotatePlane(planeFloats(cPtr, rowBytes: cRow, w: cw, h: ch, step: 2), w: cw, h: ch, quarter: q)
+    v = rotatePlane(planeFloats(cPtr + 1, rowBytes: cRow, w: cw, h: ch, step: 2), w: cw, h: ch, quarter: q)
   }
-  let q = rotation / 90 % 4
-  let ry = rotatePlane(Y, w: w, h: h, quarter: q)
-  let ru = rotatePlane(U, w: cw, h: ch, quarter: q), rv = rotatePlane(V, w: cw, h: ch, quarter: q)
+}
+
+func uprightBGR(_ pb: CVPixelBuffer, rotation: Int, outW: Int, outH: Int) -> BGRImage {
+  uprightBGR(UprightPlanes(pb, rotation: rotation), outW: outW, outH: outH)
+}
+
+func uprightBGR(_ planes: UprightPlanes, outW: Int, outH: Int) -> BGRImage {
+  let (ry, ru, rv) = (planes.y, planes.u, planes.v)
   let ys = resample(ry.data, w: ry.w, h: ry.h, Resampler(src: ry.w, dst: outW), Resampler(src: ry.h, dst: outH))
   let crw = Resampler(src: ru.w, dst: outW / 2), crh = Resampler(src: ru.h, dst: outH)
   let us = resample(ru.data, w: ru.w, h: ru.h, crw, crh), vs = resample(rv.data, w: rv.w, h: rv.h, crw, crh)
   let kr: Float = 0.2126, kb: Float = 0.0722, kg: Float = 1 - 0.2126 - 0.0722
-  var bgr = [UInt8](repeating: 0, count: outW * outH * 3)
-  for y in 0 ..< outH {
-    for x in 0 ..< outW {
-      let yy = (ys[y * outW + x] - 16) * 255 / 219
-      let c = y * (outW / 2) + x / 2
-      let u = (us[c] - 128) * 255 / 224, v = (vs[c] - 128) * 255 / 224
-      let b = yy + 2 * (1 - kb) * u
-      let g = yy - 2 * kb * (1 - kb) / kg * u - 2 * kr * (1 - kr) / kg * v
-      let r = yy + 2 * (1 - kr) * v
-      let o = (y * outW + x) * 3
-      bgr[o] = UInt8(min(max((b - ffmpegOffset[0]).rounded(), 0), 255))
-      bgr[o + 1] = UInt8(min(max((g - ffmpegOffset[1]).rounded(), 0), 255))
-      bgr[o + 2] = UInt8(min(max((r - ffmpegOffset[2]).rounded(), 0), 255))
-    }
+  let n = outW * outH, half = n / 2
+  // yy = (Y - 16) * 255 / 219; u, v = (C - 128) * 255 / 224; then b = yy + 2 (1 - kb) u, etc., minus ffmpeg's offset
+  var yy = [Float](repeating: 0, count: n)
+  var ya: Float = 255 / 219, yb: Float = -16 * 255 / 219
+  vDSP_vsmsa(ys, 1, &ya, &yb, &yy, 1, vDSP_Length(n))
+  let cs: Float = 255 / 224
+  let cb = cs * 2 * (1 - kb), cgU = -cs * 2 * kb * (1 - kb) / kg, cgV = -cs * 2 * kr * (1 - kr) / kg, cr = cs * 2 * (1 - kr)
+  var halfPlane = [Float](repeating: 0, count: half), full = [Float](repeating: 0, count: n)
+  var bgr = [UInt8](repeating: 0, count: n * 3)
+  var lo: Float = 0, hi: Float = 255
+  func channel(_ c: Int, _ mu: Float, _ mv: Float) {
+    var a = mu, b = -128 * (mu + mv) - ffmpegOffset[c]
+    vDSP_vsmsa(us, 1, &a, &b, &halfPlane, 1, vDSP_Length(half))
+    if mv != 0 { var m = mv; vDSP_vsma(vs, 1, &m, halfPlane, 1, &halfPlane, 1, vDSP_Length(half)) }
+    // chroma shared by pixel pairs: half[k] -> full[2k], full[2k + 1]
+    cblas_scopy(Int32(half), halfPlane, 1, &full, 2)
+    full.withUnsafeMutableBufferPointer { cblas_scopy(Int32(half), halfPlane, 1, $0.baseAddress! + 1, 2) }
+    vDSP_vadd(yy, 1, full, 1, &full, 1, vDSP_Length(n))
+    vDSP_vclip(full, 1, &lo, &hi, &full, 1, vDSP_Length(n))
+    bgr.withUnsafeMutableBufferPointer { vDSP_vfixru8(full, 1, $0.baseAddress! + c, 3, vDSP_Length(n)) }
   }
+  channel(0, cb, 0)
+  channel(1, cgU, cgV)
+  channel(2, 0, cr)
   return BGRImage(width: outW, height: outH, data: bgr)
 }
 

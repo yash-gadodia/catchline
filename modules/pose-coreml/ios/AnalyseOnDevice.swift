@@ -131,6 +131,16 @@ struct ClipReader {
   }
 }
 
+// select_lifter seeds on the largest box x mean keypoint score and follows that person by box overlap, so a box far
+// shorter than the frame's tallest is in practice never the lifter: only boxes at least this fraction of the tallest
+// are posed (the rest stay as boxes, for the camera path's masks). Checked against posing everyone in the PR body.
+let lifterSizeFraction: Float = 0.4
+
+func lifterCandidates(_ boxes: [[Float]]) -> [Int] {
+  let tallest = boxes.map { $0[3] - $0[1] }.max() ?? 0
+  return boxes.indices.filter { boxes[$0][3] - boxes[$0][1] >= lifterSizeFraction * tallest }
+}
+
 // What the first pass read, kept so a planned pass needs no second inference
 struct PoseRun {
   let url: URL
@@ -147,13 +157,14 @@ struct PoseRun {
 // Seconds per stage of the last pose pass (the harness prints ms per frame)
 struct PoseTiming {
   var decode = 0.0, upright = 0.0, detect = 0.0, pose = 0.0, camera = 0.0
-  var frames = 0, people = 0
+  var frames = 0, people = 0, posed = 0
 }
 
 final class DeviceAnalyser {
   let models: PoseModels
   private(set) var run: PoseRun?
   private(set) var timing = PoseTiming()
+  var poseEveryone = false  // harness only: the full pose pass, for parity against lifter-only
 
   init(models: PoseModels) { self.models = models }
 
@@ -198,12 +209,15 @@ final class DeviceAnalyser {
     func lap() -> Double { let now = Date(); defer { tick = now }; return now.timeIntervalSince(tick) }
     let n = try clip.read { f, pb in
       tm.decode += lap()
-      let img = uprightBGR(pb, rotation: clip.rotation, outW: outW, outH: poseInferHeight)
+      let planes = UprightPlanes(pb, rotation: clip.rotation)
+      let img = uprightBGR(planes, outW: outW, outH: poseInferHeight)
       tm.upright += lap()
       var row: [PosePerson] = []
       let boxes = try detectPeople(img, models)
       tm.detect += lap()
-      for box in boxes {
+      let pick = poseEveryone || twoPass ? Array(boxes.indices) : lifterCandidates(boxes)
+      for (i, box) in boxes.enumerated() {
+        guard pick.contains(i) else { row.append(.unposed(box: box)); continue }
         // merge_passes compares the 26-point mean with the head scores still in; invertedPass strips them after
         let (k, sc) = try estimatePose(img, box: box, models, stripHead: !twoPass)
         row.append(PosePerson(box: box, kpts: k, scores: sc))
@@ -211,9 +225,10 @@ final class DeviceAnalyser {
       tm.pose += lap()
       tm.frames += 1
       tm.people += row.count
+      tm.posed += pick.count
       if twoPass { row = try invertedPass(img, upright: row, models) }
       // track.py camera_path: KLT on the clip at 360 px tall, the previous frame's people masked
-      let small = cameraPath ? grayscale(uprightBGR(pb, rotation: clip.rotation, outW: smallW, outH: cameraSmallHeight)) : nil
+      let small = cameraPath ? grayscale(uprightBGR(planes, outW: smallW, outH: cameraSmallHeight)) : nil
       if let prev = prevSmall, let small {
         let boxes = people[f - 1].map { $0.box.map { Double($0) * s } }
         let mask = try foregroundMask(width: smallW, height: cameraSmallHeight, boxes: boxes, wrists: nil, scale: 0)
