@@ -54,6 +54,10 @@ export function facing(k: K): number {
 }
 
 const len = (a: Pt, b: Pt) => Math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2);
+const mid1 = (r: Pt[], a: number, b: number): Pt => [(r[a][0] + r[b][0]) / 2, (r[a][1] + r[b][1]) / 2];
+// keypoint shoulder and hip widths as a share of the standing torso, seen front-on
+const SHO_W = 0.7;
+const HIP_W = 0.5;
 
 export function scaleFromBody(k: K): number | null {
   const segs = [
@@ -70,6 +74,21 @@ export function offSidePose(k: K, hipW = 0.5): number | null {
   const ds = nanmedian(k.map((r) => Math.abs(r[L_SHO][0] - r[R_SHO][0]))) / (0.7 * t);
   const dh = nanmedian(k.map((r) => Math.abs(r[L_HIP][0] - r[R_HIP][0]))) / (hipW * t);
   return degrees(mean([Math.asin(pyMin(1.0, ds)), Math.asin(pyMin(1.0, dh))]));
+}
+
+export const MAX_YAW_DEG = 70;
+
+// The camera's yaw off side-on from the lifter's body (design 3.1): offSidePose over the pull, from lift-off to the
+// second extension, where the lifter is upright or hinged (not stacked in a squat or overhead), with the standing
+// torso (90th percentile over the window) as the length the widths are read against.
+export function yawFromBody(k: K, a: number, b: number): number | null {
+  const t = nanpercentile(k.map((r) => len(mid1(r, L_SHO, R_SHO), mid1(r, L_HIP, R_HIP))), 90);
+  const w = k.slice(a, b + 1);
+  if (!Number.isFinite(t) || t <= 0 || w.length < 3) return null;
+  const ds = nanmedian(w.map((r) => Math.abs(r[L_SHO][0] - r[R_SHO][0]))) / (SHO_W * t);
+  const dh = nanmedian(w.map((r) => Math.abs(r[L_HIP][0] - r[R_HIP][0]))) / (HIP_W * t);
+  if (!Number.isFinite(ds) || !Number.isFinite(dh)) return null;
+  return Math.min(MAX_YAW_DEG, degrees(mean([Math.asin(pyMin(1.0, ds)), Math.asin(pyMin(1.0, dh))])));
 }
 
 export function rackMask(k: K, bar: Pt[], fps: number): boolean[] {

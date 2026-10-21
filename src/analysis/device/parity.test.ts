@@ -2,10 +2,10 @@ import { readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { gunzipSync } from 'zlib';
 
-import { analyseTrace, planFromMisses } from './analyseTrace';
+import { analyseTrace, analyseTraceResult, planFromMisses } from './analyseTrace';
 import { butter2 } from './filter';
 import { pyFixed, pyRound } from './num';
-import { Fixture, compare, runFixture } from './parity';
+import { Fixture, compare, headline, runFixture } from './parity';
 import { Trace, parseTraceJson } from './trace';
 
 const DIR = join(__dirname, 'fixtures');
@@ -16,35 +16,40 @@ const files = readdirSync(DIR)
 const load = (f: string) => JSON.parse(gunzipSync(readFileSync(join(DIR, f))).toString()) as Fixture;
 const loadTrace = (name: string) => parseTraceJson(gunzipSync(readFileSync(join(TRACES, `${name}.trace.json.gz`))).toString()) as Trace;
 
-describe('device measurement matches the Python pipeline on the committed lift traces', () => {
-  it('covers the snatch, clean, jerk, kipping pull-up and bar muscle-up code', () => {
-    const fx = files.map(load);
-    expect(new Set(fx.map((f) => f.movement))).toEqual(new Set(['snatch', 'clean', 'jerk', 'kipping_pull_up', 'bar_muscle_up']));
-    // forced fixtures reach the clean, jerk and muscle-up rep code on clips of other movements
-    expect(fx.filter((f) => f.forced).map((f) => (f.expected.analysis as { reps: unknown[] }).reps.length)).toEqual([2, 2, 1, 1, 1, 1]);
-  });
-
-  it.each(files)('%s', (f) => {
-    const fx = load(f);
-    const { diffs } = runFixture(fx, loadTrace(fx.name));
-    for (const d of Object.values(diffs)) expect(d.mismatches).toEqual([]);
-  });
-
-  it('analyseTrace gives the Python analysis for a trace as recorded', () => {
-    for (const fx of files.map(load).filter((x) => !x.forced)) {
-      const a = analyseTrace(loadTrace(fx.name), fx.movement);
-      expect(compare(fx.expected.analysis, a).mismatches).toEqual([]);
+// 3.1 measures in the body frame (design 2.1, 3.1), so Python stays the reference only for what comes before the
+// measurement: the world keypoints, the movement signals, the detector and what the replay asks the video for.
+describe('the device analysis on the committed lift traces', () => {
+  it('matches the Python pipeline up to the measurement', () => {
+    for (const f of files) {
+      const { diffs } = runFixture(load(f), loadTrace(load(f).name));
+      expect([f, diffs.world.mismatches, diffs.signals.mismatches, diffs.detected.mismatches, diffs.misses.mismatches]).toEqual([f, [], [], [], []]);
     }
   });
 
-  it('notices a changed plate fit', () => {
-    const fx = load('2026-10-05_21B27BAF.mov.snatch.expected.json.gz');
-    const trace = loadTrace(fx.name);
+  it('judges the gymnastics clip (about 30 deg off side-on) by cue type', () => {
+    const got = files.map((f) => {
+      const a = runFixture(load(f), loadTrace(load(f).name)).analysis as { cue: { confidence: string } | null };
+      return `${f.split('.expected')[0]} ${headline(a)} ${a.cue?.confidence ?? ''}`.trim();
+    });
+    expect(got).toEqual([
+      '2026-09-22_A1F2F738.mov.bar_muscle_up fail:no_reps',
+      '2026-09-22_A1F2F738.mov.bar_muscle_up.forced cue:bmu_early_pull worth_checking',
+      '2026-09-22_A1F2F738.mov.kipping_pull_up cue:leg_kip worth_checking',
+      '2026-09-22_A1F2F738.mp4.bar_muscle_up fail:no_reps',
+      '2026-09-22_A1F2F738.mp4.bar_muscle_up.forced cue:bmu_early_pull clear',
+      '2026-09-22_A1F2F738.mp4.kipping_pull_up cue:leg_kip worth_checking',
+    ]);
+  });
+
+  it('sizes a snatch from the body: a plate fit 20% bigger changes nothing', () => {
+    const trace = loadTrace('2026-10-05_21B27BAF.mov');
+    const before = analyseTraceResult(trace, 'snatch');
     for (const outs of Object.values(trace.calls.refine_plate)) {
       for (const o of outs as ({ axes: { $t: number[] } } | null)[]) if (o) o.axes.$t = o.axes.$t.map((v) => v * 1.2);
     }
-    const { diffs } = runFixture(fx, trace);
-    expect(diffs.analysis.mismatches.some((m) => m.startsWith('.pxPerCm'))).toBe(true);
+    const after = analyseTraceResult(trace, 'snatch');
+    expect(before.reps.map((r) => r.scale_method)).toEqual(['body segments']);
+    expect(after.analysis.pxPerCm).toBe(before.analysis.pxPerCm);
   });
 
   it('refuses a trace of another version', () => {
@@ -86,16 +91,14 @@ describe('planFromMisses asks the native pixel stages for what a replay could no
     expect(plan.misses.slice(0, 3)).toEqual(['frames 10+136', 'stabilise 10+136', 'find_plates 57']);
   });
 
-  it('with the plates found, wants the sample frames and the near plate track', () => {
+  it('with the plates found, wants the sample frames and no plate track (plates on the setup frames only)', () => {
     const full = loadTrace(name);
     const t = strip(['track_plate']);
     t.calls.find_plates = { '56': full.calls.find_plates['56'] };
     const plan = planFromMisses(t, 'snatch');
     expect(plan.windows).toEqual([]);
     expect(plan.plates.map((p) => p.frame)).toEqual([35, 38, 41, 44, 47, 50, 53]);
-    expect(plan.tracks).toHaveLength(1);
-    expect(plan.tracks[0]).toMatchObject({ s0: 10, n: 136, start: 46 });
-    expect(plan.tracks[0].plate.axes[0]).toBeGreaterThan(0);
+    expect(plan.tracks).toEqual([]);
   });
 });
 

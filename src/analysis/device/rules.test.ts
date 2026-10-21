@@ -1,6 +1,7 @@
 import parity from './rules-parity.json';
 import {
   ALTERNATES,
+  CUE_TYPE,
   CUES,
   RULES,
   chooseCue,
@@ -8,6 +9,9 @@ import {
   confidence,
   confirmedOffSide,
   cueConfidence,
+  cueType,
+  yawBucket,
+  yawErrDeg,
   onScreen,
   fired,
   fmt,
@@ -41,6 +45,9 @@ const P = parity as unknown as {
 
 const total = Object.values(P).reduce((n, cases) => n + cases.length, 0);
 
+// 3.1 judges off side-on by cue type (design 3.1), so rules.py stays the reference only up to 20 deg
+const sideOn = <T extends { off: number | null }>(cases: T[]) => cases.filter((c) => c.off === null || c.off <= 20);
+
 describe('rules.ts matches rules.py on the parity fixture', () => {
   it('covers every case kind', () => {
     expect(total).toBe(11519);
@@ -54,17 +61,51 @@ describe('rules.ts matches rules.py on the parity fixture', () => {
     P.chooseSetCue.forEach((c) => expect([c, chooseSetCue(c.movement, c.reps)]).toEqual([c, c.out])));
   it('notes', () =>
     P.notes.forEach((c) => expect([c, notes(c.movement, c.reps, c.cue, c.limit)]).toEqual([c, c.out])));
-  it('confidence', () => P.confidence.forEach((c) => expect([c, confidence(c.fid, c.sev, c.off)]).toEqual([c, c.out])));
+  it('confidence', () => sideOn(P.confidence).forEach((c) => expect([c, confidence(c.fid, c.sev, c.off)]).toEqual([c, c.out])));
   it('repConfidence', () =>
     P.repConfidence.forEach((c) => expect([c, repConfidence(c.conf, c.seen, c.total)]).toEqual([c, c.out])));
   it('whySentence', () =>
     P.whySentence.forEach((c) => expect([c, whySentence(c.fid, c.values, c.detail)]).toEqual([c, c.out])));
   it('cueConfidence', () =>
-    P.cueConfidence.forEach((c) =>
+    sideOn(P.cueConfidence).forEach((c) =>
       expect([c, cueConfidence(c.fid, c.sev, c.off, c.seen, c.total, c.scaleOk)]).toEqual([c, c.out])));
-  it('onScreen', () => P.onScreen.forEach((c) => expect([c, onScreen(c.values, c.off)]).toEqual([c, c.out])));
+  it('onScreen', () => sideOn(P.onScreen).forEach((c) => expect([c, onScreen(c.values, c.off)]).toEqual([c, c.out])));
   it('confirmedOffSide', () =>
-    P.confirmedOffSide.forEach((c) => expect([c, confirmedOffSide(c.fid, c.sev, c.off)]).toEqual([c, c.out])));
+    sideOn(P.confirmedOffSide).forEach((c) => expect([c, confirmedOffSide(c.fid, c.sev, c.off)]).toEqual([c, c.out])));
+});
+
+describe('off side-on, each cue type is judged as far as one camera can see it', () => {
+  it('types every rule', () => {
+    expect(Object.keys(RULES).filter((f) => !(f in CUE_TYPE))).toEqual([]);
+    expect(['early_arm_bend', 'hips_rise_early', 'incomplete_extension', 'bar_forward_off_hips'].map(cueType)).toEqual([
+      'timing', 'vertical', 'joint', 'forward',
+    ]);
+  });
+
+  it('reads the yaw error off the design table and buckets the yaw', () => {
+    expect([10, 20, 25, 45, 53, 60, 70].map(yawErrDeg)).toEqual([3, 3, 4, 7, 9, 12, 15]);
+    expect([null, 12, 33, 50, 65].map(yawBucket)).toEqual([null, 'side', '20-45', '45-60', 'past_60']);
+  });
+
+  it('keeps timing and vertical cues at any yaw, "clear" only under 30 deg', () => {
+    expect([10, 25, 40, 65].map((off) => confidence('early_arm_bend', 1.6, off))).toEqual(['clear', 'clear', 'worth_checking', 'worth_checking']);
+    expect([25, 65].map((off) => confidence('hips_rise_early', 1.1, off))).toEqual(['worth_checking', 'worth_checking']);
+    expect(onScreen({ early_arm_bend: 0.2, bar_crash: 30 }, 65)).toEqual({ early_arm_bend: 0.2, bar_crash: 30 });
+  });
+
+  it('corrects a forward distance for the yaw less its error to 45 deg, needs 1.5x to 60, drops it past 60', () => {
+    const at = (off: number) => onScreen({ bar_forward_off_hips: 20 }, off).bar_forward_off_hips as number;
+    expect(at(30)).toBeCloseTo((20 * Math.cos(Math.PI / 6)) / Math.cos((25 * Math.PI) / 180), 6);
+    expect(at(50)).toBeCloseTo((20 * Math.cos((50 * Math.PI) / 180)) / Math.cos((41.75 * Math.PI) / 180) / 1.5, 6);
+    expect(at(61)).toBeNull();
+    expect(onScreen({ press_out: 20, incomplete_extension: 12 }, 50)).toEqual({ press_out: null, incomplete_extension: 8 });
+  });
+
+  it('lets a forward cue through off side-on only once it cleared on the yaw-aware value, never past 60', () => {
+    expect([30, 55, 61].map((off) => cueConfidence('bar_forward_off_hips', 1.2, off, 2, 2, true))).toEqual(['worth_checking', 'worth_checking', 'low']);
+    expect(cueConfidence('bar_forward_off_hips', 0.9, 30, 2, 2, true)).toBe('low');
+    expect(confirmedOffSide('early_arm_bend', 1.2, 30)).toBe(false);
+  });
 });
 
 describe('pyRound', () => {
