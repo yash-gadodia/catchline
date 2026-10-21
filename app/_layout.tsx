@@ -17,6 +17,7 @@ import { supabase } from '../src/lib/supabase';
 import { backendEnabled } from '../src/data/backend';
 import { syncLibrary } from '../src/data/library';
 import { syncServerUsage } from '../src/features/paywall/hooks';
+import { requireUpdateFlag } from '../src/features/you/updateFlag';
 import { installForegroundHandler, liftIdFromResponse, registerPushToken, routeForLift } from '../src/features/notifications';
 import { init as initAnalytics, identify, reset, track, EVENTS } from '../src/lib/analytics';
 import { startAuthUserSync } from '../src/features/auth/authUser';
@@ -62,7 +63,8 @@ export default function RootLayout() {
     const stopAuthUserSync = startAuthUserSync();
     syncLibrary()
       .catch(() => undefined)
-      .then(() => syncServerUsage());
+      .then(() => syncServerUsage())
+      .then(() => requireUpdateFlag());
 
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) {
