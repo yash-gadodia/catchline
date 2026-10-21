@@ -281,8 +281,8 @@ export function findLifts(
     const last = lifts[lifts.length - 1];
     const from = last ? last.window[1] + 1 : 0;
     const lows = where(low.slice(from, a)).map((f) => f + from);
-    // a rest overhead (a squat catch before the stand-up) starts nothing
-    const rest = restThenRise(barH, t, fps, from, a, (f) => barH[f] < shoH[f] + 0.35 * t);
+    // a snatch or a clean starts below the shoulders: a rest in the rack or overhead (a catch before the stand-up) starts nothing
+    const rest = restThenRise(barH, t, fps, from, a, (f) => barH[f] < shoH[f] - 0.35 * t);
     const lowStart = lows.length ? lows[lows.length - 1] : null;
     if (rest === null && lowStart === null) {
       if (last) last.window = [last.window[0], b, last.window[2]];
@@ -290,7 +290,7 @@ export function findLifts(
     }
     const start = rest !== null && (lowStart === null || rest > lowStart) ? rest : (lowStart as number);
     const startClass: StartClass =
-      barH[start] < kneeH[start] || (rest === null && lowStart !== null) ? 'floor' : Math.abs(barH[start] - shoH[start]) < 0.35 * t ? 'shoulders' : 'hang';
+      barH[start] < kneeH[start] || (rest === null && lowStart !== null) ? 'floor' : 'hang';
     lifts.push({ window: [start, b, a], startClass });
   }
   return lifts;

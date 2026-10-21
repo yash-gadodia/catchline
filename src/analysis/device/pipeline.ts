@@ -492,6 +492,7 @@ export function analyseRep(
     kneeAng,
     ev.caught,
     depthEnd,
+    65.0 + rules.openAngleDeg(offSide, 65.0),
   );
   const valsDepth = cm(depthPx);
   if (kind === 'snatch') {
@@ -515,7 +516,7 @@ export function analyseRep(
     const d = cd.early_arm_bend;
     vals.early_arm_bend = armBendValue(cv.early_arm_bend, d.from_frame, d.to_frame, lo);
     detail.early_arm_bend = d;
-    const [tv, td] = turnoverValues(ev, elbow, drop, fps);
+    const [tv, td] = turnoverValues(ev, elbow, drop, fps, 1.0, 150.0 + 0.25 * offSide);
     Object.assign(vals, tv);
     Object.assign(detail, td);
   }
@@ -619,13 +620,14 @@ export function armBendValue(value: number, brk: number, hipFull: number, lo: nu
   return value;
 }
 
-export function turnoverValues(ev: SnatchEvents, elbow: number[], dropCm: number, fps: number, maxS = 1.0): [Values, Record<string, Detail>] {
+// lockDeg: the elbow lockout angle, 150 side-on; off side-on a bent elbow reads more open (design 3.1: 150 + 0.25 x yaw)
+export function turnoverValues(ev: SnatchEvents, elbow: number[], dropCm: number, fps: number, maxS = 1.0, lockDeg = 150.0): [Values, Record<string, Detail>] {
   const vals: Values = { slow_turnover: null, bar_crash: null };
   const det: Record<string, Detail> = {
     slow_turnover: { frame: ev.caught, from_frame: ev.second_ext },
     bar_crash: { frame: ev.caught, from_frame: ev.peak },
   };
-  if (!(elbow[ev.caught] >= 150) || ev.second_ext - ev.rebend < MIN_PHASE || ev.peak - ev.second_ext < MIN_PHASE) return [vals, det];
+  if (!(elbow[ev.caught] >= lockDeg) || ev.second_ext - ev.rebend < MIN_PHASE || ev.peak - ev.second_ext < MIN_PHASE) return [vals, det];
   // the turnover ends at the first lockout after the elbows' deepest bend under the bar (3-frame medians), not
   // always at the catch: the arms can lock while the bar still rises
   let lock = ev.caught;
@@ -635,8 +637,8 @@ export function turnoverValues(ev: SnatchEvents, elbow: number[], dropCm: number
     const bend: number[] = [];
     for (let i = 0; i + 2 < seg.length; i++) bend.push(median([seg[i], seg[i + 1], seg[i + 2]]));
     const deepest = a + argmin(bend);
-    const relock = where(elbow.slice(deepest, lock).map((v) => v >= 150));
-    if (min(bend) < 150 && relock.length) {
+    const relock = where(elbow.slice(deepest, lock).map((v) => v >= lockDeg));
+    if (min(bend) < lockDeg && relock.length) {
       lock = deepest + relock[0];
       det.slow_turnover.frame = lock;
     }

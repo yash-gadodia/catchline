@@ -81,6 +81,24 @@ export function yawErrDeg(yaw: number): number {
   return ERR_AT[ERR_AT.length - 1][1];
 }
 
+// how much more open a sagittal joint angle reads off side-on (design table 3, an orthographic model): a 70 deg knee
+// reads 73 at 30 deg yaw, 76 at 45, 80 at 60; a 120 reads 136 at 45. Linear in the table's rows between 70 and 150.
+const OPEN_AT: [number, number[]][] = [[70, [0, 3, 6, 8, 10, 13]], [120, [0, 7, 16, 22, 28, 38]], [150, [0, 4, 8, 12, 15, 19]]];
+const OPEN_YAW = [0, 30, 45, 53, 60, 70];
+export function openAngleDeg(yaw: number | null | undefined, joint: number): number {
+  if (!has(yaw) || yaw <= 0) return 0;
+  const y = Math.min(yaw, 70);
+  const row = (r: number[]) => {
+    const i = Math.max(1, OPEN_YAW.findIndex((v) => v >= y));
+    const [x0, x1] = [OPEN_YAW[i - 1], OPEN_YAW[i]];
+    return r[i - 1] + ((y - x0) * (r[i] - r[i - 1])) / (x1 - x0);
+  };
+  const j = Math.min(Math.max(joint, OPEN_AT[0][0]), OPEN_AT[OPEN_AT.length - 1][0]);
+  const k = Math.max(1, OPEN_AT.findIndex(([a]) => a >= j));
+  const [[a0, r0], [a1, r1]] = [OPEN_AT[k - 1], OPEN_AT[k]];
+  return row(r0) + ((j - a0) * (row(r1) - row(r0))) / (a1 - a0);
+}
+
 export function yawBucket(yaw: number | null | undefined): string | null {
   if (!has(yaw)) return null;
   return yaw <= 20 ? 'side' : yaw <= VALUE_MAX_DEG ? '20-45' : yaw <= JUDGED_MAX_DEG ? '45-60' : 'past_60';

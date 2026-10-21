@@ -86,7 +86,7 @@ function loadWindow(ctx: Ctx, s0: number, e0: number): Window {
   return { L, kw, kr, ksm: lowpassK(kr, ctx.fps, 6.0), Ms, bodyH };
 }
 
-function writeOut(ctx: Ctx, repInfo: RepInfo[]): Result {
+function writeOut(ctx: Ctx, repInfo: RepInfo[], tag = 'r'): Result {
   const movement = ctx.movement;
   const best = bestRep(repInfo);
   repInfo.forEach((r, i) => (r.index = i + 1));
@@ -98,7 +98,7 @@ function writeOut(ctx: Ctx, repInfo: RepInfo[]): Result {
     endFrame: r.end,
     made: r.made,
     phases: r.phases,
-    keyFrames: Object.entries(r.keys).map(([phase, f], pi) => ({ phase, frame: f, image: `${ctx.assetPrefix}/r${r.index}-${pi + 1}-${phase}.jpg` })),
+    keyFrames: Object.entries(r.keys).map(([phase, f], pi) => ({ phase, frame: f, image: `${ctx.assetPrefix}/${tag}${r.index}-${pi + 1}-${phase}.jpg` })),
     path: r.path,
   }));
   const analysis: AnalysisJson = {
@@ -334,7 +334,60 @@ function runClean(ctx: Ctx, forceReps?: [number, number, number][]): Result {
   if (!infos.length && notLifts) return { ...noClean(), repCalls };
   if (!infos.length)
     return { ...fail(ctx, 'bar_out_of_frame', 'no_plate', 'Could not find the plates at the start of the lift, so the bar could not be measured.'), repCalls };
-  return { ...writeOut(ctx, infos), repCalls };
+  if (forceReps) return { ...writeOut(ctx, infos), repCalls };
+  // a jerk from the rack within 8 s of a clean's catch makes the lift a clean & jerk (design 4.1)
+  const jerks = jerkWindows(ctx);
+  const used = new Set<number>();
+  const pairs: [RepInfo, [number, number, number]][] = [];
+  infos.forEach((r, i) => {
+    const [, end, hold] = reps[i];
+    const j = jerks.findIndex(([s, , a], ji) => !used.has(ji) && a > hold && s <= end + int(8 * ctx.fps));
+    if (j >= 0) {
+      used.add(j);
+      pairs.push([r, jerks[j]]);
+    }
+  });
+  if (!pairs.length) return { ...writeOut(ctx, infos), repCalls };
+  return { ...cleanAndJerk(ctx, infos, pairs), repCalls };
+}
+
+const SEGMENT_KEYS = ['reps', 'bestRepIndex', 'cue', 'noCueReason', 'notes', 'measurements', 'pxPerCm'];
+// the clean's faults that put the bar forward explain a forward jerk that follows
+const CLEAN_EXPLAINS_JERK: [string[], string[]] = [['bar_forward_off_hips', 'jump_forward'], ['forward_dip', 'bar_forward_overhead']];
+
+// One lift, two segments, one cue (design 4.1): each segment is measured on its own; the cue is the more severe
+// segment's, unless a clean fault explains the jerk's; the other segment's cue becomes a note.
+function cleanAndJerk(ctx: Ctx, cleans: RepInfo[], pairs: [RepInfo, [number, number, number]][]): Result {
+  const pxBody = scaleFromBody(ctx.k) ?? (pairs[0][0].px_per_cm as number);
+  const jerkInfos = pairs.map(([, [s, e]], i): RepInfo => ({ ...jerkRep(ctx, i + 1, s, e, pxBody), start_class: 'shoulders' }));
+  const clean = writeOut(ctx, cleans);
+  const jerk = writeOut({ ...ctx, movement: 'jerk' }, jerkInfos, 'j');
+  const sev = (res: Result) => {
+    const c = res.analysis.cue as CueCard | null;
+    if (!c) return -1;
+    return Math.max(0, ...res.reps.map((r) => rules.fired(rules.onScreen(r.values, r.off_side_deg))[c.faultId] ?? 0));
+  };
+  const cc = clean.analysis.cue as CueCard | null;
+  const jc = jerk.analysis.cue as CueCard | null;
+  const explains = cc !== null && jc !== null && CLEAN_EXPLAINS_JERK[0].includes(cc.faultId) && CLEAN_EXPLAINS_JERK[1].includes(jc.faultId);
+  const cleanWins = !jc || (cc !== null && (explains || sev(clean) >= sev(jerk)));
+  const [main, other] = cleanWins ? [clean, jerk] : [jerk, clean];
+  const otherCue = other.analysis.cue as CueCard | null;
+  const otherNote = otherCue
+    ? [{ faultId: otherCue.faultId, text: otherCue.text, why: otherCue.why, severity: rules.pyRound(Math.max(0, sev(other)), 2), reps: 1 }]
+    : [];
+  const segment = (kind: string, res: Result) => ({ kind, ...Object.fromEntries(SEGMENT_KEYS.filter((k) => k in res.analysis).map((k) => [k, res.analysis[k]])) });
+  const analysis: AnalysisJson = {
+    ...main.analysis,
+    movement: 'clean',
+    liftKind: 'clean_and_jerk',
+    notes: [...otherNote, ...((main.analysis.notes as unknown[]) ?? [])].slice(0, 3),
+    segments: [segment('clean', clean), segment('jerk', jerk)],
+    ...liftTags(cleans[0]),
+  };
+  const cue = analysis.cue as CueCard | null;
+  if (cue && pairs.some(([c], i) => c.made && !jerkInfos[i].made)) analysis.cue = { ...cue, why: `Clean made, jerk missed. ${cue.why}` };
+  return { analysis, reps: [...cleans, ...jerkInfos], repCalls: [] };
 }
 
 function cleanInfo(r: RepInfo): RepInfo {
@@ -394,7 +447,7 @@ function cleanInfo(r: RepInfo): RepInfo {
 
 // ---------------------------------------------------------------- jerk
 
-function runJerk(ctx: Ctx, forceReps?: [number, number, number][]): Result {
+function jerkWindows(ctx: Ctx): [number, number, number][] {
   const { k, fps, H } = ctx;
   const up = (y: number[]) => y.map((v) => H - v);
   const t = torsoPx(k);
@@ -403,12 +456,16 @@ function runJerk(ctx: Ctx, forceReps?: [number, number, number][]): Result {
   const hd = lowpass(up(headY(k, t)), fps);
   // a dip and drive take under a second, so a rack hold that began with the clean's catch is cut to 1.5 s before
   // the bar goes overhead
-  const found = findJerkReps(
+  return findJerkReps(
     wr.map((w, i) => Math.abs(w - sho[i]) < 0.35 * t),
     wr.map((w, i) => w > hd[i]),
     fps,
   ).map(([s, e, a]): [number, number, number] => [Math.max(s, a - int(1.5 * fps)), e, a]);
-  const reps = forceReps ?? found;
+}
+
+function runJerk(ctx: Ctx, forceReps?: [number, number, number][]): Result {
+  const { k } = ctx;
+  const reps = forceReps ?? jerkWindows(ctx);
   if (!reps.length) return fail(ctx, 'unsupported_movement', 'no_reps', 'No jerk found: the bar never went from the shoulders to overhead.');
   const pxBody = scaleFromBody(k);
   if (!pxBody) return fail(ctx, 'too_far', 'no_body_scale', "Could not measure the lifter's body to scale the clip.");

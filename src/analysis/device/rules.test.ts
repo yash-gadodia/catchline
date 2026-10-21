@@ -10,6 +10,7 @@ import {
   confirmedOffSide,
   cueConfidence,
   cueType,
+  openAngleDeg,
   yawBucket,
   yawErrDeg,
   onScreen,
@@ -99,6 +100,12 @@ describe('off side-on, each cue type is judged as far as one camera can see it',
     expect(at(50)).toBeCloseTo((20 * Math.cos((50 * Math.PI) / 180)) / Math.cos((41.75 * Math.PI) / 180) / 1.5, 6);
     expect(at(61)).toBeNull();
     expect(onScreen({ press_out: 20, incomplete_extension: 12 }, 50)).toEqual({ press_out: null, incomplete_extension: 8 });
+  });
+
+  it('opens a bent joint by the design table: a 70 deg knee reads 76 at 45 deg, a 120 reads 136', () => {
+    expect([openAngleDeg(45, 70), openAngleDeg(45, 120), openAngleDeg(0, 120), openAngleDeg(null, 70)]).toEqual([6, 16, 0, 0]);
+    expect(openAngleDeg(45, 65)).toBe(6);
+    expect(openAngleDeg(37.5, 95)).toBeCloseTo((4.5 + 11.5) / 2, 6);
   });
 
   it('lets a forward cue through off side-on only once it cleared on the yaw-aware value, never past 60', () => {
