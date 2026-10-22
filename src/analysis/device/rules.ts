@@ -135,8 +135,9 @@ export function severity(fid: string, v: number): number {
 }
 
 // The values a cue is judged on off side-on (shown values stay fully corrected). A forward distance is corrected only
-// for the yaw less its error, so a fault that fires on it is real; from 45 deg it must clear 1.5x its threshold, and
-// past 60 it is not judged. A joint angle past 45 deg must clear 1.5x, past 60 it is not judged; press-out not past 45.
+// for the yaw less its error, so a fault that fires on it is real, and past 45 deg it is not judged: the body yaw
+// reads a front view as low as 45-60 (eval31), so a forward cue never rests on yaw alone. A joint angle past 45 deg
+// must clear 1.5x, past 60 it is not judged; press-out not past 45.
 export function onScreen(values: Values, off: number | null | undefined): Values {
   if (!has(off) || off <= 20) return values;
   const out: Values = { ...values };
@@ -145,10 +146,11 @@ export function onScreen(values: Values, off: number | null | undefined): Values
     const r = RULES[fid];
     const t = cueType(fid);
     if (!has(v) || !r || t === 'timing' || t === 'vertical') continue;
-    if (off > JUDGED_MAX_DEG || (fid === 'press_out' && off > VALUE_MAX_DEG)) out[fid] = null;
+    const forwardCm = t === 'forward' && r.unit === 'cm';
+    if (off > JUDGED_MAX_DEG || ((fid === 'press_out' || forwardCm) && off > VALUE_MAX_DEG)) out[fid] = null;
     else if (r.below) continue;
     else {
-      const seen = t === 'forward' && r.unit === 'cm' ? v * k : v;
+      const seen = forwardCm ? v * k : v;
       out[fid] = off > VALUE_MAX_DEG ? seen / 1.5 : seen;
     }
   }
@@ -157,7 +159,7 @@ export function onScreen(values: Values, off: number | null | undefined): Values
 
 export function confirmedOffSide(fid: string, sev: number, off: number | null | undefined): boolean {
   const r = RULES[fid];
-  return has(off) && 20 < off && off <= JUDGED_MAX_DEG && cueType(fid) !== 'timing' && cueType(fid) !== 'vertical' && !r.below && sev >= 1.0;
+  return has(off) && 20 < off && off <= (cueType(fid) === 'forward' && r.unit === 'cm' ? VALUE_MAX_DEG : JUDGED_MAX_DEG) && cueType(fid) !== 'timing' && cueType(fid) !== 'vertical' && !r.below && sev >= 1.0;
 }
 
 export function fired(values: Values): Record<string, number> {

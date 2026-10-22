@@ -94,11 +94,11 @@ describe('off side-on, each cue type is judged as far as one camera can see it',
     expect(onScreen({ early_arm_bend: 0.2, bar_crash: 30 }, 65)).toEqual({ early_arm_bend: 0.2, bar_crash: 30 });
   });
 
-  it('corrects a forward distance for the yaw less its error to 45 deg, needs 1.5x to 60, drops it past 60', () => {
+  it('corrects a forward distance for the yaw less its error to 45 deg and drops it past 45', () => {
     const at = (off: number) => onScreen({ bar_forward_off_hips: 20 }, off).bar_forward_off_hips as number;
     expect(at(30)).toBeCloseTo((20 * Math.cos(Math.PI / 6)) / Math.cos((25 * Math.PI) / 180), 6);
-    expect(at(50)).toBeCloseTo((20 * Math.cos((50 * Math.PI) / 180)) / Math.cos((41.75 * Math.PI) / 180) / 1.5, 6);
-    expect(at(61)).toBeNull();
+    expect(at(45)).toBeCloseTo((20 * Math.cos(Math.PI / 4)) / Math.cos((38 * Math.PI) / 180), 6);
+    expect([46, 50, 61].map(at)).toEqual([null, null, null]);
     expect(onScreen({ press_out: 20, incomplete_extension: 12 }, 50)).toEqual({ press_out: null, incomplete_extension: 8 });
   });
 
@@ -108,8 +108,9 @@ describe('off side-on, each cue type is judged as far as one camera can see it',
     expect(openAngleDeg(37.5, 95)).toBeCloseTo((4.5 + 11.5) / 2, 6);
   });
 
-  it('lets a forward cue through off side-on only once it cleared on the yaw-aware value, never past 60', () => {
-    expect([30, 55, 61].map((off) => cueConfidence('bar_forward_off_hips', 1.2, off, 2, 2, true))).toEqual(['worth_checking', 'worth_checking', 'low']);
+  it('lets a forward cue through off side-on only once it cleared on the yaw-aware value, never past 45', () => {
+    expect([30, 45, 55, 61].map((off) => cueConfidence('bar_forward_off_hips', 1.2, off, 2, 2, true))).toEqual(['worth_checking', 'worth_checking', 'low', 'low']);
+    expect([30, 55].map((off) => confirmedOffSide('early_arm_bend', 1.2, off))).toEqual([false, false]);
     expect(cueConfidence('bar_forward_off_hips', 0.9, 30, 2, 2, true)).toBe('low');
     expect(confirmedOffSide('early_arm_bend', 1.2, 30)).toBe(false);
   });
