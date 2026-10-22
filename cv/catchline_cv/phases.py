@@ -26,19 +26,25 @@ def segment_snatch(bar_h, knee, fps, knee_pass=None, elbow=None, setup_s=1.0, mi
     # turnover peak = first local max once the bar is past half its rise (a squat snatch stands up higher later)
     v = np.gradient(bar_h)
     peak = top
+    # a bar that stalls on the hips or chest and rises again within 0.2 s is a bump, not the turnover (677bea01)
+    stall = max(2, int(round(0.2 * fps)))
     for f in range(liftoff + 1, top):
         if bar_h[f] > floor + 0.5 * rng and bar_h[f - 1] <= bar_h[f] > bar_h[f + 1]:
             later = bar_h[f + 1:]
             higher = np.where(later > bar_h[f])[0]
+            if len(higher) and higher[0] < stall:
+                continue
             dip = later[: higher[0]] if len(higher) else later
             if len(dip) and bar_h[f] - dip.min() >= 0.03 * rng:
                 peak = f
                 break
     else:
         # a power snatch received without a dip: the wrists creep up as the lifter stands, so the highest point is
-        # the stand-up. The turnover ends where the fast rise stops (under a fifth of its top speed)
+        # the stand-up. The turnover ends where the fast rise stops (under a fifth of its top speed for 0.1 s)
         fast = liftoff + int(np.argmax(v[liftoff: top + 1]))
-        slow = np.where(v[fast: top + 1] < 0.2 * v[fast])[0]
+        hold = max(2, int(round(0.1 * fps)))
+        slow = np.convolve((v[fast: top + 1] < 0.2 * v[fast]).astype(int), np.ones(hold, int), "valid")
+        slow = np.where(slow == hold)[0]
         if len(slow):
             peak = fast + int(slow[0])
 
