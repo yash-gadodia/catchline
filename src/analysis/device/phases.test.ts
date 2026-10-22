@@ -29,6 +29,21 @@ describe('rest-then-rise lifts', () => {
     expect(lifts.map((l) => l.window)).toEqual([[32, 104, 49]]);
   });
 
+  it('finds touch-and-go hang reps, starting the next at the bottom of the dip', () => {
+    const bar = [...flat(2.0, 30), ...seg(2.0, 1.3, 15), ...flat(1.3, 10), ...seg(1.3, 4.2, 20), ...flat(4.2, 30), ...seg(4.2, 1.5, 20), ...seg(1.5, 4.2, 20), ...flat(4.2, 30)];
+    const lifts = findLifts(holdsOf(bar), bar, knee(bar.length), sho(bar.length), 1, fps);
+    expect(lifts).toEqual([
+      { window: [53, 109, 69], startClass: 'hang' },
+      { window: [124, 174, 139], startClass: 'hang' },
+    ]);
+  });
+
+  it('chains touch-and-go reps only after a lift from the hang', () => {
+    const bar = [...flat(0.5, 30), ...seg(0.5, 4.2, 25), ...flat(4.2, 30), ...seg(4.2, 1.5, 20), ...seg(1.5, 4.2, 20), ...flat(4.2, 30)];
+    const lifts = findLifts(holdsOf(bar), bar, knee(bar.length), sho(bar.length), 1, fps);
+    expect(lifts.map((l) => l.startClass)).toEqual(['floor']);
+  });
+
   it('needs the bar to rest before the rise', () => {
     const bar = [...seg(1.3, 4.2, 20), ...flat(4.2, 20)];
     expect(restThenRise(bar, 1, fps, 0, 19)).toBeNull();

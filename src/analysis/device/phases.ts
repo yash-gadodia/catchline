@@ -264,6 +264,15 @@ export function restThenRise(barH: number[], t: number, fps: number, from: numbe
   return null;
 }
 
+// A touch-and-go rep after a lift from the hang (a hang set): the bar turns at the bottom of the dip with no rest, so the
+// start is that turn, if it is at the hips or lower and the bar rises 0.8 torso lengths from it within 2.5 s.
+function touchAndGo(barH: number[], shoH: number[], t: number, fps: number, from: number, hold: number): number | null {
+  const lo = Math.max(from, hold - int(2.5 * fps));
+  if (hold <= lo) return null;
+  const dip = lo + argmin(barH.slice(lo, hold));
+  return dip > lo && barH[dip] <= shoH[dip] - 0.8 * t && barH[hold] - barH[dip] >= 0.8 * t ? dip : null;
+}
+
 // The production finders' receive holds with rest-then-rise as the start, so a lift from the hang is found as well as
 // one from the floor (the last frame with the wrists below the knees stays the start where it is the later of the two).
 // Holds with no new start after the previous lift are that lift's (a squat stand-up, a re-dip).
@@ -282,7 +291,7 @@ export function findLifts(
     const from = last ? last.window[1] + 1 : 0;
     const lows = where(low.slice(from, a)).map((f) => f + from);
     // a snatch or a clean starts below the shoulders: a rest in the rack or overhead (a catch before the stand-up) starts nothing
-    const rest = restThenRise(barH, t, fps, from, a, (f) => barH[f] < shoH[f] - 0.35 * t);
+    const rest = restThenRise(barH, t, fps, from, a, (f) => barH[f] < shoH[f] - 0.35 * t) ?? (last?.startClass === 'hang' ? touchAndGo(barH, shoH, t, fps, from, a) : null);
     const lowStart = lows.length ? lows[lows.length - 1] : null;
     if (rest === null && lowStart === null) {
       if (last) last.window = [last.window[0], b, last.window[2]];
