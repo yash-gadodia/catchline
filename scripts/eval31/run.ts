@@ -137,6 +137,7 @@ type Row = {
   yawDeg: number | null;
   startClass?: string | null;
   yawBucket?: string | null;
+  liftKind?: string | null;
   stills?: string | null;
   rounds: number; misses: number;
   timing: { poseS: number; pixelsS: number; nodeMs: number };
@@ -213,7 +214,7 @@ function runOne(c: Clip, harness: string, models: string, cache: string, out: st
       id: c.id, set: c.set, group: c.group, movement: c.labelMovement, movementRun: movement,
       status: failure ? 'failed' : cue ? 'full' : 'partial', failure, cue, noCue: (a.noCueReason as Row['noCue']) ?? null, detected,
       nReps: reps.length, made: reps.map((r) => r.made), reps, yawDeg: median(reps.map((r) => r.offSide ?? NaN)),
-      startClass: (a.startClass as string) ?? null, yawBucket: (a.yawBucket as string) ?? null, rounds, misses: res.misses.length, timing, stills,
+      startClass: (a.startClass as string) ?? null, yawBucket: (a.yawBucket as string) ?? null, liftKind: (a.liftKind as string) ?? null, rounds, misses: res.misses.length, timing, stills,
     };
     writeJson(join(out, `${c.id}.${movement}.analysis.json`), a);
     // the five unlabelled owner clips: follow the detector when the user's hint is the wrong family
@@ -300,6 +301,7 @@ function score() {
       cueAgreementWithBaseline: bl.length ? pct(bl.length - cueChanges.length, bl.length) : null,
       cueChanges, repChanges,
       startClasses: count(xs, (x) => x.r.startClass ?? null),
+      cleanAndJerkTwoSegments: `${xs.filter((x) => x.c.labelMovement === 'clean_and_jerk' && x.r.liftKind === 'clean_and_jerk').length}/${xs.filter((x) => x.c.labelMovement === 'clean_and_jerk').length}`,
       speed: { medianPoseS: median(xs.map((x) => x.r.timing.poseS).filter((v) => v > 0)), medianPixelsS: median(xs.map((x) => x.r.timing.pixelsS).filter((v) => v > 0)), medianNodeMs: median(xs.map((x) => x.r.timing.nodeMs)), totalS: Math.round(xs.reduce((s, x) => s + x.r.timing.poseS + x.r.timing.pixelsS + x.r.timing.nodeMs / 1000, 0)) },
     };
   }
