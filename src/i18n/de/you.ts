@@ -107,4 +107,22 @@ export const you: Strings<typeof en> = {
   'you.stored.originals.onDevice': "Auf deinem Handy. Auf deinem iPhone analysiert, nie hochgeladen.",
   'you.stored.positions.onDevice': "Körperpositionen und Hantelweg als Zahlen, kein Video, auf deinem Handy (und in deinem eigenen iCloud-Backup) gespeichert, damit dein Verlauf mit der Analyse besser wird. Nie auf unseren Servern.",
   'you.stored.frames.onDevice': "Fünf Standbilder pro Lift für die Stroboskop-Ansicht und den Beweisausschnitt, nur auf deinem Handy.",
+  // REVIEW
+  'you.reportProblem': "Problem melden",
+  // REVIEW
+  'you.report.placeholder': "Was ist passiert, und was hast du erwartet?",
+  // REVIEW
+  'you.report.details': "Gesendet mit Catchline {version}, Update {update}, {device}",
+  // REVIEW
+  'you.report.lift': "Zu Lift {id}",
+  // REVIEW
+  'you.report.noVideo': "Es wird kein Video angehängt.",
+  // REVIEW
+  'you.report.send': "Senden",
+  // REVIEW
+  'you.report.sent': "Gesendet. Danke, wir lesen jede Meldung.",
+  // REVIEW
+  'you.report.queued': "Gespeichert. Wird gesendet, sobald du online bist.",
+  // REVIEW
+  'you.report.done': "Fertig",
 };

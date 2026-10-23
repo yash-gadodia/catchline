@@ -32,7 +32,7 @@ import {
   type Settings,
 } from './settings';
 
-type Nav = { onDemo: () => void; onWhatIsStored: () => void; onDeleteAccount: () => void; onPlan: () => void; onHelp: () => void };
+type Nav = { onDemo: () => void; onWhatIsStored: () => void; onDeleteAccount: () => void; onPlan: () => void; onReport: () => void; onHelp: () => void };
 type Picker = 'name' | 'language' | 'units' | 'defaultMovement' | 'frameRate' | 'cueReminder' | 'autoDelete' | null;
 
 function options<T extends string>(labels: Record<T, string>): { value: T; label: string }[] {
@@ -183,6 +183,7 @@ export default function YouScreen({
           <Row title={t('you.signOut')} sub={t('you.signOutSub')} right={<Value>›</Value>} onPress={doSignOut} testID="row-sign-out" />
         ) : null}
         <Row title={t('you.deleteAccount')} right={<Value>›</Value>} onPress={nav.onDeleteAccount} testID="row-delete" />
+        <Row title={t('you.reportProblem')} right={<Value>›</Value>} onPress={nav.onReport} testID="row-report" />
         <Row title={t('you.help')} muted right={<Value>{t('you.about', { version })}</Value>} onPress={nav.onHelp} last testID="row-help" />
       </ScrollView>
 

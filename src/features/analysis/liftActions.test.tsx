@@ -1,11 +1,10 @@
 import { act, fireEvent, render } from '@testing-library/react-native';
 import { ActionSheetIOS, Share } from 'react-native';
-import * as Linking from 'expo-linking';
 import { snatchMock, snatchMockLow } from '../../analysis/fixtures';
 import { loadLibrary } from '../library/repository';
 import PlayerRoute from '../../../app/analysis/player';
 import CueRoute from '../../../app/analysis/cue';
-import { openLiftActions, reportText, reportUrl, sendReport } from './liftActions';
+import { openLiftActions, reportContext, reportHref } from './liftActions';
 
 const mockRouter = { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true), dismissTo: jest.fn() };
 const mockParams: { current: Record<string, string> } = { current: {} };
@@ -16,8 +15,6 @@ jest.mock('expo-router', () => ({
   useNavigation: () => ({ setOptions: () => {}, getParent: () => undefined }),
   useLocalSearchParams: () => mockParams.current,
 }));
-jest.mock('expo-linking', () => ({ __esModule: true, openURL: jest.fn(async () => true) }));
-jest.mock('expo-constants', () => ({ __esModule: true, default: { expoConfig: { version: '1.2.3' } } }));
 
 let pick = 0;
 const sheet = jest.spyOn(ActionSheetIOS, 'showActionSheetWithOptions').mockImplementation((_, cb) => cb(pick));
@@ -30,7 +27,7 @@ beforeEach(() => {
 });
 
 describe('openLiftActions', () => {
-  const on = { onShare: jest.fn(), onFilmAnother: jest.fn() };
+  const on = { onShare: jest.fn(), onFilmAnother: jest.fn(), onReport: jest.fn() };
 
   it('offers Share, Film another set and Report a wrong result, with no delete', () => {
     pick = 3;
@@ -39,7 +36,7 @@ describe('openLiftActions', () => {
       options: ['Share', 'Film another set', 'Report a wrong result', 'Cancel'],
       cancelButtonIndex: 3,
     });
-    expect([on.onShare, on.onFilmAnother, Linking.openURL].map((f) => (f as jest.Mock).mock.calls.length)).toEqual([0, 0, 0]);
+    expect([on.onShare, on.onFilmAnother, on.onReport].map((f) => (f as jest.Mock).mock.calls.length)).toEqual([0, 0, 0]);
   });
 
   it('runs each item on its own handler', () => {
@@ -51,15 +48,12 @@ describe('openLiftActions', () => {
     expect(on.onFilmAnother).toHaveBeenCalledTimes(1);
     pick = 2;
     openLiftActions(snatchMock, on);
-    expect(Linking.openURL).toHaveBeenCalledWith(reportUrl(snatchMock));
+    expect(on.onReport).toHaveBeenCalledTimes(1);
   });
 
-  it('the report mail names the lift, movement, cue and app version', () => {
-    const url = reportUrl(snatchMock);
-    expect(url.startsWith('mailto:pirsquare.yash+catchline@gmail.com?subject=Wrong%20result%20snatch-mock&body=')).toBe(true);
-    expect(decodeURIComponent(url.split('&body=')[1])).toBe(
-      `Lift: snatch-mock\nMovement: Snatch\nCue: ${snatchMock.cue!.text}\nApp version: 1.2.3\n\nWhat looks wrong:`
-    );
+  it('the report names the lift, movement and cue', () => {
+    expect(reportContext(snatchMock)).toBe(`Snatch · cue: ${snatchMock.cue!.text}`);
+    expect(reportHref(snatchMock)).toEqual({ pathname: '/report', params: { lift: 'snatch-mock', context: reportContext(snatchMock) } });
   });
 });
 
@@ -81,7 +75,7 @@ describe('the ··· button on the result screens', () => {
     await act(async () => {
       fireEvent.press(view.getByTestId('topbar-more'));
     });
-    expect(Linking.openURL).toHaveBeenCalledWith(reportUrl(snatchMock));
+    expect(mockRouter.push).toHaveBeenCalledWith(reportHref(snatchMock));
   });
 
   it('low-confidence cue: Film another set leaves the result for capture', async () => {
@@ -97,32 +91,6 @@ describe('the ··· button on the result screens', () => {
     await act(async () => {
       fireEvent.press(view.getByTestId('topbar-more'));
     });
-    expect(Linking.openURL).toHaveBeenCalledWith(reportUrl(snatchMockLow));
-  });
-});
-
-// #16: a phone with no mail client rejects the mailto, which left the row doing nothing at all.
-describe('Report a wrong result when no mail app can open', () => {
-  it('copies the report and names the address instead of failing silently', async () => {
-    const open = jest.fn(async () => {
-      throw new Error('Unable to open URL: mailto:pirsquare.yash+catchline@gmail.com');
-    });
-    const copy = jest.fn();
-    const alert = jest.fn();
-    await sendReport(snatchMock, { open, copy, alert });
-    expect(copy).toHaveBeenCalledWith(reportText(snatchMock));
-    expect(alert).toHaveBeenCalledWith(
-      'No mail app on this phone',
-      'The lift details are copied. Email them to pirsquare.yash+catchline@gmail.com.'
-    );
-  });
-
-  it('opens the mail draft and says nothing when mail is there', async () => {
-    const open = jest.fn(async () => true);
-    const copy = jest.fn();
-    const alert = jest.fn();
-    await sendReport(snatchMock, { open, copy, alert });
-    expect(open).toHaveBeenCalledWith(reportUrl(snatchMock));
-    expect([copy, alert].map((f) => f.mock.calls.length)).toEqual([0, 0]);
+    expect(mockRouter.push).toHaveBeenCalledWith(reportHref(snatchMockLow));
   });
 });

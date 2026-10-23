@@ -7,8 +7,6 @@ export const analysis: Strings<typeof en> = {
   'analysis.actions.filmAnother': 'Filmar outra série',
   'analysis.actions.report': 'Reportar um resultado errado',
   'analysis.actions.cancel': 'Cancelar',
-  'analysis.report.noMailTitle': 'Nenhum app de e-mail neste telefone',
-  'analysis.report.noMailBody': 'Os dados do levantamento estão copiados. Envie para {email}.',
   'analysis.baseline.today': '{value} hoje',
   'analysis.baseline.bestOnly': '{head}. Seu melhor é {best}.',
   'analysis.baseline.average': 'suas últimas {n} têm média de {avg}',

@@ -24,6 +24,7 @@ export {
 } from './lifts';
 export { listCues, updateCue } from './cues';
 export { createCoachLink, revokeCoachLink } from './coach';
+export { sendProblemReport, type ProblemReport } from './feedback';
 export {
   ensureSession,
   recordConsent,

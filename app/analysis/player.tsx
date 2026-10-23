@@ -3,7 +3,7 @@ import { useLocalSearchParams, useNavigation, useRouter, type Href } from 'expo-
 import { useAnalysis } from '../../src/analysis/useAnalysis';
 import AnalysisPlaceholder from '../../src/features/analysis/AnalysisPlaceholder';
 import PlayerScreen from '../../src/features/analysis/PlayerScreen';
-import { openLiftActions } from '../../src/features/analysis/liftActions';
+import { openLiftActions, reportHref } from '../../src/features/analysis/liftActions';
 import { captureHref } from '../../src/features/paywall/hooks';
 
 export default function PlayerRoute() {
@@ -32,7 +32,13 @@ export default function PlayerRoute() {
       onShare={share}
       retestCueId={retest}
       onRetest={(id) => router.push(captureHref(`/capture?retest=${id}`) as Href)}
-      onMore={() => openLiftActions(analysis, { onShare: share, onFilmAnother: () => router.push(captureHref('/capture') as Href) })}
+      onMore={() =>
+        openLiftActions(analysis, {
+          onShare: share,
+          onFilmAnother: () => router.push(captureHref('/capture') as Href),
+          onReport: () => router.push(reportHref(analysis)),
+        })
+      }
     />
   );
 }

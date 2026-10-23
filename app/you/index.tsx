@@ -10,6 +10,7 @@ export default function YouRoute() {
         onWhatIsStored: () => router.push('/you/stored'),
         onDeleteAccount: () => router.push('/you/delete'),
         onPlan: () => router.push('/paywall/plans'),
+        onReport: () => router.push('/report' as Href),
         onHelp: () => {},
       }}
     />
