@@ -72,7 +72,7 @@ export default function PlayerScreen({
   const rep = repByIndex(analysis, cue?.evidence.rep ?? analysis.bestRepIndex);
   const partial = cue ? null : noCueCopy(analysis);
   const cuePhase = cue ? phaseOfFrame(rep, cue.evidence.frame) : null;
-  const openFrame = initialFrame ?? (cue ? cue.evidence.frame : rep.phases[0] ? phaseFrame(rep, rep.phases[0].name) : rep.startFrame);
+  const openFrame = initialFrame ?? (rep.phases[0] ? phaseFrame(rep, rep.phases[0].name) : rep.startFrame);
   const [frame, setFrameState] = useState(clampFrame(rep, openFrame));
   const [speed, setSpeed] = useState<Speed>('0.25');
   const [playing, setPlaying] = useState(false);

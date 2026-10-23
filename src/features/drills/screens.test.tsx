@@ -37,7 +37,7 @@ describe('drill card on the cue screens', () => {
   });
 
   it('player shows the same drill under its cue', async () => {
-    await render(<PlayerScreen analysis={snatchMock} onBack={noop} onShare={noop} />);
+    await render(<PlayerScreen analysis={snatchMock} initialFrame={snatchMock.cue!.evidence.frame} onBack={noop} onShare={noop} />);
     expect(screen.getByTestId('drill-name')).toHaveTextContent('Pause deadlift at lift-off and the knee');
   });
 
