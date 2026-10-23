@@ -28,6 +28,7 @@ export type Job = {
   fraction?: number;
   result?: Analysis;
   failureReason?: Failure['reason'];
+  failureDetail?: string;
 };
 
 type PipelineState = {

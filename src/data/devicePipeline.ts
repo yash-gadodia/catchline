@@ -206,7 +206,7 @@ export async function startDeviceLift(sub: ClipSubmission & { uri: string }): Pr
     const code = e instanceof ClipTooLongError ? 'clip_too_long' : nativeCode(e);
     if (e instanceof ClipTooLongError) patch({ status: 'failed', error: 'clip_too_long', maxS: e.maxS });
     else if (code === 'cancelled' || code === MODELS_UNAVAILABLE) patch({ status: 'failed', error: code });
-    else patch({ status: 'failed', error: 'analysis_failed', failureReason: failureReason(code) });
+    else patch({ status: 'failed', error: 'analysis_failed', failureReason: failureReason(code), failureDetail: e instanceof Error ? e.message : String(e) });
   } finally {
     deactivateKeepAwake(KEEP_AWAKE_TAG).catch(() => undefined);
     if (prepared) discardPrepared(prepared);

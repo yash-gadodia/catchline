@@ -283,6 +283,12 @@ describe('FailureScreen', () => {
     expect(queryByText(/wall walk/i)).toBeNull();
   });
 
+  it('shows the native error under the copy of an unreadable clip', async () => {
+    const native = 'Could not analyse on device: clip_unreadable: Cannot Decode';
+    const { getByTestId } = await render(<FailureScreen reason="clip_unreadable" header="" refCode="x" detail={native} onAction={jest.fn()} />);
+    expect(getByTestId('failure-detail')).toHaveTextContent(native);
+  });
+
   it('lets the lifter pick between two people', async () => {
     const onAction = jest.fn();
     const { getByTestId } = await render(<FailureScreen reason="multiple_lifters" header="Snatch" refCode="x" onAction={onAction} />);
