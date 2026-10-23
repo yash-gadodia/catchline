@@ -5,6 +5,7 @@ import { useAnalysis } from '../../src/analysis/useAnalysis';
 import type { Analysis, Failure } from '../../src/analysis/types';
 import ProcessingSheet, { EXPECTED_ANALYSIS_S, type ProcessingState } from '../../src/features/analysis/ProcessingSheet';
 import { registerPushToken } from '../../src/features/notifications';
+import { noteAnalysisFinished } from '../../src/features/notifications/ask';
 import { useUsage } from '../../src/features/paywall/usageStore';
 import { syncServerUsage } from '../../src/features/paywall/hooks';
 import { usePurchases } from '../../src/features/purchases/usePurchases';
@@ -130,6 +131,7 @@ function LiveProcessing() {
   useEffect(() => {
     if (job?.status !== 'done' || !job.result) return;
     putLiveAnalysis(job.result);
+    if (!job.result.failure) noteAnalysisFinished();
     void syncServerUsage();
     syncLibrary().catch(() => undefined);
     setAnalysis(job.result);

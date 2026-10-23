@@ -1,4 +1,4 @@
-export type Step = 'launch' | 'welcome' | 'demo' | 'lifts' | 'sample' | 'guide' | 'camera' | 'account' | 'privacy';
+export type Step = 'launch' | 'welcome' | 'demo' | 'lifts' | 'sample' | 'guide' | 'camera' | 'account' | 'privacy' | 'notify';
 
 // 'film' heads for the viewfinder; 'import' heads for the library picker and
 // never asks for the camera.
@@ -12,6 +12,7 @@ export type FlowContext = {
   camera: CameraStatus;
   accountDecided: boolean;
   consented: boolean;
+  notifyDecided: boolean;
   completed: boolean;
 };
 
@@ -25,6 +26,7 @@ const step = (s: Step): Destination => ({ kind: 'step', step: s });
 function finish(ctx: FlowContext): Destination {
   if (!ctx.accountDecided) return step('account');
   if (!ctx.consented) return step('privacy');
+  if (!ctx.notifyDecided) return step('notify');
   return ctx.intent === 'import' ? { kind: 'import' } : { kind: 'capture' };
 }
 
@@ -52,8 +54,15 @@ export function nextAfter(current: Step, ctx: FlowContext): Destination {
     case 'account':
       return finish({ ...ctx, accountDecided: true });
     case 'privacy':
-      return ctx.consented ? (ctx.intent === 'import' ? { kind: 'import' } : afterPrivacy(ctx)) : step('privacy');
+      if (!ctx.consented) return step('privacy');
+      return ctx.notifyDecided ? afterNotify(ctx) : step('notify');
+    case 'notify':
+      return afterNotify(ctx);
   }
+}
+
+function afterNotify(ctx: FlowContext): Destination {
+  return ctx.intent === 'import' ? { kind: 'import' } : afterPrivacy(ctx);
 }
 
 function afterPrivacy(ctx: FlowContext): Destination {

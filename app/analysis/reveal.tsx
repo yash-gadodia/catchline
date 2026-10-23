@@ -2,6 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAnalysis } from '../../src/analysis/useAnalysis';
 import AnalysisPlaceholder from '../../src/features/analysis/AnalysisPlaceholder';
 import RevealScreen from '../../src/features/analysis/RevealScreen';
+import { maybeReaskForPush } from '../../src/features/notifications/ask';
 
 export default function Reveal() {
   const { fixture, retest } = useLocalSearchParams<{ fixture?: string; retest?: string }>();
@@ -12,7 +13,10 @@ export default function Reveal() {
   return (
     <RevealScreen
       analysis={analysis}
-      onDone={() => router.replace({ pathname: '/analysis/cue', params: retest ? { fixture: analysis.id, retest } : { fixture: analysis.id } })}
+      onDone={() => {
+        void maybeReaskForPush();
+        router.replace({ pathname: '/analysis/cue', params: retest ? { fixture: analysis.id, retest } : { fixture: analysis.id } });
+      }}
     />
   );
 }
