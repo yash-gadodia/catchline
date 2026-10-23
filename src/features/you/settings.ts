@@ -19,7 +19,6 @@ export type Settings = {
   haptics: boolean;
   cueReminder: CueReminder;
   autoDelete: AutoDelete;
-  improveAccuracy: boolean;
   language: Language;
 };
 
@@ -31,7 +30,6 @@ export const DEFAULT_SETTINGS: Settings = {
   haptics: true,
   cueReminder: { days: [2, 4], time: '17:30' },
   autoDelete: '24h',
-  improveAccuracy: false,
   language: 'system',
 };
 
@@ -86,7 +84,6 @@ export function settingsOf(s: Settings): Settings {
     haptics: s.haptics,
     cueReminder: s.cueReminder,
     autoDelete: s.autoDelete,
-    improveAccuracy: s.improveAccuracy,
     language: s.language,
   };
 }

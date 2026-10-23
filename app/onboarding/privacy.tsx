@@ -7,13 +7,11 @@ import { parseIntent, useFlow } from '../../src/features/onboarding/useFlow';
 export default function PrivacyRoute() {
   const { intent } = useLocalSearchParams<{ intent?: string }>();
   const { go } = useFlow(parseIntent(intent));
-  const consent = useOnboarding((s) => s.consent);
   const acceptConsent = useOnboarding((s) => s.acceptConsent);
   return (
     <PrivacyScreen
-      initialImprove={consent?.improveAccuracy ?? false}
-      onContinue={(improve) => {
-        acceptConsent(improve);
+      onContinue={() => {
+        acceptConsent();
         if (backendEnabled()) syncConsent().catch(() => undefined);
         go('privacy', { consented: true });
       }}

@@ -47,11 +47,8 @@ LIFETIME = ("catchline_founding_lifetime", "Catchline Founding Lifetime", "29.99
             "Pull for life. One payment, 500 seats only")
 
 WHATS_NEW = (
-    "Parallax is now Catchline, a form check for weightlifting and CrossFit gymnastics. Film a side-on snatch, "
-    "clean, jerk, kipping pull-up, bar muscle-up or kipping handstand push-up and get one cue to work on, with the "
-    "measurement behind it. Your first 3 videos are free. If you bought Parallax lifetime, you get Catchline "
-    "Founding membership (Pull for life) at no cost: tap Restore Purchases on the Plans screen. "
-    "Questions: [SUPPORT_EMAIL]."
+    "Catchline now analyses your lift entirely on your iPhone. Your video never leaves your phone, and it works "
+    "with no signal. Your first 3 videos are still free."
 )
 CHANGE_OF_PURPOSE = (
     "CHANGE OF PURPOSE (guideline 2.3.1)\n"

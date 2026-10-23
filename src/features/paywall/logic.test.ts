@@ -62,7 +62,8 @@ describe('quiz', () => {
   });
 
   it('maps the answer to the movement to film', () => {
-    expect(quizMovement(['Handstand push-ups'])).toBe('HSPU');
+    expect(quizQuestion(0, []).options).toEqual(['Snatch', 'Clean and jerk', 'Muscle-ups']);
+    expect(quizMovement(['Muscle-ups'])).toBe('muscle-up');
     expect(quizMovement([])).toBe('snatch');
   });
 });

@@ -15,6 +15,7 @@ import { useOnboarding } from '../onboarding/store';
 import { Chip, SheetTitle, Toggle } from '../share/ui';
 import { signInWithApple, type AppleSignIn } from '../auth/appleSignIn';
 import { Note } from '../onboarding/ui';
+import { pickable } from '../onboarding/lifts';
 import { exportMyLifts, libraryLifts, shareLiftsCsv } from './liftsCsv';
 import { LANGUAGE_NAMES, LOCALES, t, type Language } from '../../i18n';
 import { accountRepository, signOutOfAccount, useAccountView, type DataExport } from './account';
@@ -42,7 +43,7 @@ function options<T extends string>(labels: Record<T, string>): { value: T; label
 function pickers() {
   return {
     units: options(UNIT_LABELS),
-    defaultMovement: MOVEMENTS.map((m) => ({ value: m, label: movementLabel(m) })),
+    defaultMovement: MOVEMENTS.filter(pickable).map((m) => ({ value: m, label: movementLabel(m) })),
     frameRate: options(frameRateLabels()),
     autoDelete: options(autoDeleteLabels()),
   };

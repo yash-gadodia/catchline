@@ -5,7 +5,7 @@ export type QuizQuestion = { title: string; options: string[] };
 
 export const QUIZ_LENGTH = 4;
 
-const MOVEMENTS = ['Snatch', 'Clean and jerk', 'Muscle-ups', 'Handstand push-ups'];
+const MOVEMENTS = ['Snatch', 'Clean and jerk', 'Muscle-ups'];
 
 // Options are stored and matched in English; quizOptionLabel shows them in the lifter's language.
 const FAULTS: Record<string, { noun: string; title: Key; options: string[] }> = {

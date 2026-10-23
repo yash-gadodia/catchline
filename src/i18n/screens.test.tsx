@@ -51,7 +51,7 @@ describe.each([
   });
 
   it('privacy consent', async () => {
-    const screen = await render(<PrivacyScreen initialImprove={false} onContinue={jest.fn()} />);
+    const screen = await render(<PrivacyScreen onContinue={jest.fn()} />);
     expect(screen.getByText(privacyTitle)).toBeOnTheScreen();
     expect(screen.getByText(estimate)).toBeOnTheScreen();
   });

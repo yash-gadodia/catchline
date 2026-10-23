@@ -74,7 +74,6 @@ export default function CueRoute() {
             if (next) router.replace({ pathname: '/cue/[id]', params: { id: next } });
           },
           onKeepTrying: () => keepTrying(cue.id),
-          onSendToCoach: () => Share.share({ message: t('library.cueRoute.shareCoach', { cue: cueText(cue.metricId, cue.text) }) }),
         }}
       />
     );

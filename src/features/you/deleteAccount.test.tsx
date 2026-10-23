@@ -38,7 +38,7 @@ async function confirmDelete(onDeleted: jest.Mock) {
 beforeEach(() => {
   jest.clearAllMocks();
   useAccountStore.setState({ account: { name: 'Alex', signIn: 'apple', synced: true, plan: { tier: 'free', videosUsed: 1 } } });
-  useOnboarding.getState().acceptConsent(true, new Date('2026-10-01T00:00:00.000Z'));
+  useOnboarding.getState().acceptConsent(new Date('2026-10-01T00:00:00.000Z'));
   useOnboarding.getState().complete();
   useUsage.getState().reset();
   useUsage.getState().record('free', new Date('2026-10-02T00:00:00.000Z'));

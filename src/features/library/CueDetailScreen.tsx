@@ -311,7 +311,7 @@ export function StuckScreen({ cue, nav }: { cue: CueRecord; nav: StuckNav }) {
   );
 }
 
-export type DidntStickNav = { onTryNew: () => void; onKeepTrying: () => void; onSendToCoach: () => void; onBack: () => void };
+export type DidntStickNav = { onTryNew: () => void; onKeepTrying: () => void; onBack: () => void };
 
 export function DidntStickScreen({ cue, nav }: { cue: CueRecord; nav: DidntStickNav }) {
   const insets = useSafeAreaInsets();
@@ -342,14 +342,9 @@ export function DidntStickScreen({ cue, nav }: { cue: CueRecord; nav: DidntStick
             {t('library.didntStick.tryNew')}
           </Btn>
         ) : null}
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-          <Underlined onPress={nav.onKeepTrying} testID="keep-trying">
-            {t('library.didntStick.keepTrying')}
-          </Underlined>
-          <Underlined onPress={nav.onSendToCoach} testID="send-to-coach">
-            {t('library.didntStick.sendToCoach')}
-          </Underlined>
-        </View>
+        <Underlined onPress={nav.onKeepTrying} testID="keep-trying">
+          {t('library.didntStick.keepTrying')}
+        </Underlined>
       </View>
     </View>
   );

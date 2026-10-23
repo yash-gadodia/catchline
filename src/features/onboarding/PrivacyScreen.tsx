@@ -18,16 +18,9 @@ export function privacyPoints(): string[] {
 
 const small = { ...type.callout };
 
-export default function PrivacyScreen({
-  initialImprove,
-  onContinue,
-}: {
-  initialImprove: boolean;
-  onContinue: (improveAccuracy: boolean) => void;
-}) {
+export default function PrivacyScreen({ onContinue }: { onContinue: () => void }) {
   const insets = useSafeAreaInsets();
   const [agreed, setAgreed] = useState(false);
-  const [improve, setImprove] = useState(initialImprove);
   return (
     <View testID="privacy-screen" style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top + space.s7 }}>
       <ScrollView contentContainerStyle={{ paddingHorizontal: space.gutter, gap: space.s5, paddingBottom: space.s4 }}>
@@ -44,15 +37,9 @@ export default function PrivacyScreen({
             {t('onboarding.privacy.agree')} <Text style={{ color: colors.text2 }}>{t('onboarding.privacy.required')}</Text>
           </Text>
         </Checkbox>
-        <Checkbox checked={improve} onToggle={() => setImprove((v) => !v)} testID="consent-improve">
-          <Text style={[small, { color: colors.text }]}>
-            {t('onboarding.privacy.improve')}{' '}
-            <Text style={{ color: colors.text2 }}>{t('onboarding.privacy.improveNote')}</Text>
-          </Text>
-        </Checkbox>
       </ScrollView>
       <View style={{ paddingHorizontal: space.gutter, paddingTop: space.s2, paddingBottom: Math.max(insets.bottom, space.s4) + space.s2, gap: space.s4 }}>
-        <GateBtn disabled={!agreed} onPress={() => onContinue(improve)} testID="privacy-continue">
+        <GateBtn disabled={!agreed} onPress={onContinue} testID="privacy-continue">
           {t('onboarding.privacy.continue')}
         </GateBtn>
         <Text style={{ color: colors.text2, ...type.readout, textAlign: 'center' }}>
