@@ -19,7 +19,7 @@ const perms = Notifications.getPermissionsAsync as jest.Mock;
 beforeEach(() => {
   jest.clearAllMocks();
   usePushAsk.setState({ onboarded: false, reasked: false });
-  useOnboarding.setState({ consent: { version: 1, acceptedAt: '2026-10-23T00:00:00.000Z', improveAccuracy: false }, completed: false });
+  useOnboarding.setState({ consent: { version: 1, acceptedAt: '2026-10-23T00:00:00.000Z' }, completed: false });
 });
 
 describe('onboarding notifications step', () => {
