@@ -82,3 +82,19 @@ def test_pipeline_runs_on_the_phone_pose_without_rtmpose(pose, tmp_path, monkeyp
     assert [(r["startFrame"], r["endFrame"], r["made"]) for r in analysis["reps"]] == [(31, 145, False)]
     assert analysis["cue"]["faultId"] == "missed_forward"
     assert len(glob.glob(str(tmp_path / "keyframes" / "*.jpg"))) == 7
+
+
+def test_load_accepts_the_phone_pose(pose, tmp_path):
+    path = tmp_path / "pose.json"
+    path.write_text(json.dumps(pose))
+    assert ep.load(str(path)) == pose
+
+
+# #79: a pose that parses but is not one must not reach the pipeline.
+@pytest.mark.parametrize("bad", [{"frames": "garbage"}, [], {"fps": 30, "width": 360, "height": 0, "frames": []},
+                                 {"fps": 30, "width": 360, "height": 640, "frames": [{"t": 0, "people": [{"box": [], "kp": []}]}]}])
+def test_load_rejects_what_is_not_a_device_pose(bad, tmp_path):
+    path = tmp_path / "pose.json"
+    path.write_text(json.dumps(bad))
+    with pytest.raises(ValueError, match="not a device pose"):
+        ep.load(str(path))
