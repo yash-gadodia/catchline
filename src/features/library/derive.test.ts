@@ -88,7 +88,7 @@ describe('lift list', () => {
     expect(liftLink(lift('l-snatch-low'))).toEqual({ pathname: '/analysis/cue', params: { fixture: 'snatch-mock-low' } });
     expect(liftLink(lift('l-snatch-real'))).toEqual({ pathname: '/analysis/cue', params: { fixture: 'snatch-real' } });
     expect(liftLink(lift('l-snatch-miss'))).toEqual({ pathname: '/analysis/miss', params: { fixture: 'snatch-mock-miss' } });
-    expect(liftLink(lift('l-clean'))).toEqual({ pathname: '/analysis/processing', params: { live: '1', lift: 'l-clean' } });
+    expect(liftLink(lift('l-clean'))).toBeNull();
     expect(liftLink(lift('l-jerk'))).toEqual({ pathname: '/failure/[id]', params: { id: 'l-jerk' } });
     expect(liftLink(lift('l-mu'))).toEqual({ pathname: '/trends', params: { movement: 'bar_muscle_up' } });
     expect(liftLink(lift('l-snatch-queued'))).toBeNull();

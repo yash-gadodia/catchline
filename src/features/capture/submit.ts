@@ -5,7 +5,7 @@ import type { CheckId } from './checks';
 import { activeTrim, useCapture, type Clip, type ClipSource } from './store';
 import type { Trim } from './trim';
 import { nextClipGate, syncKeychainUsage } from '../paywall/hooks';
-import { backendEnabled } from '../../data/backend';
+import { onDeviceAnalysisEnabled } from '../../data/onDeviceAnalysis';
 import { startLift } from '../../data/pipeline';
 
 export type ClipSubmission = {
@@ -43,10 +43,11 @@ export function toSubmission(clip: Clip, weight: string, units: Units): ClipSubm
   };
 }
 
-// Analyse: the paywall gate first (the clip stays on the phone either way),
-// then the backend pipeline, or the bundled sample in dev mode. A clip with no
-// file (the sample) only exists in dev builds; a release build goes back to
-// capture rather than play the fixture as the lifter's own lift.
+// Analyse: the paywall gate first, then the analysis on the phone (3.1: the clip
+// never leaves it, no backend or network needed), or the bundled sample where there
+// is no native module (dev without it). A clip with no file (the sample) only exists
+// in dev builds; a release build goes back to capture rather than play the fixture
+// as the lifter's own lift.
 export async function submitClip(clip: ClipSubmission, opts: { replace?: boolean } = {}): Promise<void> {
   const go = opts.replace ? router.replace : router.push;
   // The Keychain count first (a reinstall must not hand the free lifts back); the
@@ -58,7 +59,7 @@ export async function submitClip(clip: ClipSubmission, opts: { replace?: boolean
   if (gate === 'cap') return go({ pathname: '/paywall/cap', params });
   if (gate === 'trial') return go('/paywall/funnel/trial');
   if (!clip.uri && !__DEV__) return go('/capture');
-  if (!backendEnabled() || !clip.uri) {
+  if (!onDeviceAnalysisEnabled() || !clip.uri) {
     go({ pathname: '/analysis/processing', params: { fixture: 'snatch-mock', count: '1', ...(clip.retestCueId ? { retest: clip.retestCueId } : {}) } });
     return;
   }

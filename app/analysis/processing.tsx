@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { AppState } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { putLiveAnalysis } from '../../src/analysis/live';
 import { useAnalysis } from '../../src/analysis/useAnalysis';
@@ -9,7 +8,6 @@ import { registerPushToken } from '../../src/features/notifications';
 import { useUsage } from '../../src/features/paywall/usageStore';
 import { syncServerUsage } from '../../src/features/paywall/hooks';
 import { usePurchases } from '../../src/features/purchases/usePurchases';
-import { liftsAhead, subscribeToLift } from '../../src/lib/api';
 import { syncLibrary } from '../../src/data/library';
 import { usePipeline, type Job, type JobStatus } from '../../src/data/pipeline';
 import { cancelDeviceLift } from '../../src/data/devicePipeline';
@@ -17,24 +15,21 @@ import { submitDraft } from '../../src/features/capture/submit';
 import { t } from '../../src/i18n';
 
 const STEP_MS = 1100;
-const CRAWL_MS = 4000;
 const LONG_WAIT_MARGIN_S = 30;
 const LONG_WAIT_S = EXPECTED_ANALYSIS_S + LONG_WAIT_MARGIN_S;
-const QUEUE_POLL_MS = 10_000;
 
-type Params = { fixture?: string; state?: ProcessingState; step?: string; elapsed?: string; count?: string; live?: string; lift?: string; retest?: string };
+type Params = { fixture?: string; state?: ProcessingState; step?: string; elapsed?: string; count?: string; live?: string; retest?: string };
 
 export default function ProcessingRoute() {
   const params = useLocalSearchParams<Params>();
-  if (params.live === '1') return <LiveProcessing lift={params.lift} />;
+  if (params.live === '1') return <LiveProcessing />;
   return <Processing key={JSON.stringify(params)} params={params} />;
 }
 
-// src/data/pipeline uploadStep's meta, in the lifter's language.
+// The first step's meta, in the lifter's language.
 function uploadMeta(job: Job | null): string | null {
   if (job?.status === 'preparing') return t('analysis.processing.preparingPct', { pct: Math.round(job.prepared * 100) });
   if (job?.status === 'analysing') return t('analysis.processing.analysingPct', { pct: Math.round((job.fraction ?? 0) * 100) });
-  if (job?.status === 'uploading' && job.total > 0) return t('analysis.processing.uploadingPct', { pct: Math.round((job.sent / job.total) * 100) });
   return null;
 }
 
@@ -104,46 +99,24 @@ function deviceStep(job: Job): number {
   return 1 + Math.min(3, Math.floor((job.fraction ?? 0) * 4));
 }
 
-// A real lift: upload progress from the pipeline job, then the lift row over
-// Realtime until the worker writes the Analysis. `lift` names a lift opened
-// from the library (no job in memory after a relaunch).
-function LiveProcessing({ lift }: { lift?: string }) {
+// A real lift (3.1): analysed on the phone, so the job carries its progress and then the
+// result. Nothing is uploaded and nothing arrives over the network.
+function LiveProcessing() {
   const router = useRouter();
   const job = usePipeline((s) => s.job);
-  const liftId = lift ?? job?.liftId ?? null;
-  const [status, setStatus] = useState<JobStatus | null>(null);
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
-  // The clock counts from when this lift was sent (the job id is its start time), so reopening keeps it.
-  const startedAt = job && (!lift || lift === job.liftId) ? Number(job.id.replace('job-', '')) || null : null;
+  // The clock counts from when this lift was started (the job id is its start time), so reopening keeps it.
+  const startedAt = job ? Number(job.id.replace('job-', '')) || null : null;
   const since = () => (startedAt ? Math.max(0, Math.floor((Date.now() - startedAt) / 1000)) : 0);
   const [elapsed, setElapsed] = useState(since);
-  const [crawl, setCrawl] = useState(0);
-  const [waiting, setWaiting] = useState(false);
-  const [ahead, setAhead] = useState(0);
-  const [wake, setWake] = useState(0);
-  const current = status ?? job?.status ?? 'preparing';
-  // On-device analysis (3.1): the job carries the result; nothing arrives over Realtime.
-  const device = job?.device === true && (!lift || lift === job.liftId);
-  // The lift keeps going on the server: leaving lands on the Lifts tab, where
-  // it is listed, never back on the review of the clip already sent.
+  // Leaving lands on the Lifts tab, never back on the review of the clip already analysed.
   const home = () => router.dismissTo('/');
-  // "Taking longer" talks about the queue, so the wait counts from when the clip is on the server.
-  const onPhone = current === 'preparing' || current === 'uploading' || current === 'analysing';
-  const inQueue = (current === 'queued' || current === 'processing') && !device;
-  const serverAt = useRef<number | null>(null);
-  if (!onPhone && serverAt.current === null) serverAt.current = elapsed;
-  const serverElapsed = serverAt.current === null ? 0 : elapsed - serverAt.current;
-
   const fail = (id: string, reason: Failure['reason']) =>
     router.replace({ pathname: '/failure/[id]', params: { id, reason } });
 
   useEffect(() => {
     const tick = setInterval(() => setElapsed((e) => (startedAt ? since() : e + 1)), 1000);
-    const crawler = setInterval(() => setCrawl((c) => Math.min(c + 1, 2)), CRAWL_MS);
-    return () => {
-      clearInterval(tick);
-      clearInterval(crawler);
-    };
+    return () => clearInterval(tick);
   }, []);
 
   useEffect(() => {
@@ -151,109 +124,40 @@ function LiveProcessing({ lift }: { lift?: string }) {
     if (job.error === 'clip_too_long' || job.error === 'models_unavailable') return;
     if (job.error === 'cancelled') return home();
     if (job.error === 'analysis_failed') return fail(job.liftId ?? job.id, job.result?.failure?.reason ?? job.failureReason ?? 'unknown');
-    if (job.error === 'cap_reached') {
-      // A paid lifter the server caps has used the month's videos: the cap sheet, not the paywall.
-      const pathname = usePurchases.getState().tier === 'free' ? '/paywall' : '/paywall/cap';
-      router.replace({ pathname, params: { clip: job.id, movement: job.movement } });
-    } else fail(job.id, 'unknown');
+    fail(job.id, 'unknown');
   }, [job?.status]);
 
-  // Realtime can drop while the app is in the background; coming back
-  // resubscribes, which refetches the lift so a result that landed meanwhile
-  // is not missed.
-  const shown = useRef(false);
-  shown.current = analysis !== null;
   useEffect(() => {
-    const sub = AppState.addEventListener('change', (s) => {
-      if (s === 'active' && !shown.current) setWake((w) => w + 1);
-    });
-    return () => sub.remove();
-  }, []);
-
-  useEffect(() => {
-    if (!device || job?.status !== 'done' || !job.result) return;
+    if (job?.status !== 'done' || !job.result) return;
     putLiveAnalysis(job.result);
     void syncServerUsage();
     syncLibrary().catch(() => undefined);
     setAnalysis(job.result);
-  }, [device, job?.status]);
+  }, [job?.status]);
 
-  useEffect(() => {
-    if (!liftId || device) return;
-    // A new lift replaces the old subscription, but the old lift's analysis fetch
-    // may still be in flight: once cancelled, nothing from it may reach the sheet.
-    let cancelled = false;
-    setStatus(null);
-    setAnalysis(null);
-    const unsubscribe = subscribeToLift(liftId, {
-      onLift: (lift) => {
-        if (!cancelled) setStatus(lift.status as JobStatus);
-      },
-      onAnalysis: (a, lift) => {
-        if (cancelled) return;
-        if (!a || a.failure || lift.status === 'failed') {
-          fail(lift.id, a?.failure?.reason ?? 'unknown');
-          return;
-        }
-        putLiveAnalysis(a);
-        // create_lift already charged this lift on the server; reopening it from the
-        // library must not count it again, so read the count instead of adding one.
-        void syncServerUsage();
-        syncLibrary().catch(() => undefined);
-        setAnalysis(a);
-      },
-      onError: () => {
-        if (!cancelled) fail(liftId, 'unknown');
-      },
-    });
-    return () => {
-      cancelled = true;
-      unsubscribe();
-    };
-  }, [liftId, wake, device]);
-
-  useEffect(() => {
-    if (!liftId || !inQueue) return;
-    let live = true;
-    const poll = () => liftsAhead(liftId).then((n) => live && setAhead(n)).catch(() => undefined);
-    poll();
-    const timer = setInterval(poll, QUEUE_POLL_MS);
-    return () => {
-      live = false;
-      clearInterval(timer);
-    };
-  }, [liftId, inQueue]);
-
-  const step = analysis ? 5 : device && job ? deviceStep(job) : STEP_FOR[current] + (current === 'processing' ? crawl : 0);
+  const step = analysis ? 5 : job ? deviceStep(job) : 0;
   const tooLong = job?.error === 'clip_too_long';
   const offline = job?.error === 'models_unavailable';
-  const state: ProcessingState = tooLong ? 'too_long' : offline ? 'offline' : analysis ? 'done' : serverElapsed > LONG_WAIT_S && !waiting ? 'long' : 'progress';
-  // The clip is still on the phone only for the lift this session sent.
-  const clipUri = job && (!lift || lift === job.liftId) ? job.uri : null;
+  const state: ProcessingState = tooLong ? 'too_long' : offline ? 'offline' : analysis ? 'done' : 'progress';
 
   return (
     <ProcessingSheet
       analysis={analysis}
-      clipUri={clipUri}
+      clipUri={job?.uri ?? null}
       meta={uploadMeta(job) ?? `${elapsed} s`}
-      firstStep={job?.status === 'preparing' ? t('analysis.processing.preparingClip') : device ? t('analysis.processing.analysingOnPhone') : t('analysis.processing.uploadingClip')}
+      firstStep={job?.status === 'preparing' ? t('analysis.processing.preparingClip') : t('analysis.processing.analysingOnPhone')}
       maxS={job?.maxS ?? undefined}
       state={state}
       step={step}
       elapsed={elapsed}
-      onServer={inQueue}
-      ahead={ahead}
       onHide={home}
-      onCancel={device && !analysis ? () => {
+      onCancel={analysis ? undefined : () => {
         cancelDeviceLift();
         home();
-      } : undefined}
-      onNotify={async () => {
-        await registerPushToken(true);
-        home();
       }}
-      onKeepWaiting={() => setWaiting(true)}
-      onSee={() => analysis && router.replace({ pathname: '/analysis/reveal', params: retestParams(analysis.id, job?.liftId === liftId ? job?.retestCueId : undefined) })}
+      onNotify={home}
+      onKeepWaiting={home}
+      onSee={() => analysis && router.replace({ pathname: '/analysis/reveal', params: retestParams(analysis.id, job?.retestCueId) })}
       onTrim={() => router.replace('/capture/trim')}
       onRetry={() => {
         if (!submitDraft({ replace: true })) home();

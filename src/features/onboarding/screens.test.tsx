@@ -150,7 +150,7 @@ describe('Privacy and consent', () => {
   it('blocks Continue until the required box is ticked, and passes the optional choice', async () => {
     const onContinue = jest.fn();
     const screen = await render(<PrivacyScreen initialImprove={false} onContinue={onContinue} />);
-    expect(screen.getByText('Raw video is deleted within 24 hours. The overlay and numbers stay.')).toBeOnTheScreen();
+    expect(screen.getByText('Your video is analysed on your iPhone and never uploaded.')).toBeOnTheScreen();
     expect(screen.getByTestId('privacy-continue')).toBeDisabled();
     await press(screen.getByTestId('privacy-continue'));
     expect(onContinue).not.toHaveBeenCalled();

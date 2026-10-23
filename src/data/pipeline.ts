@@ -1,14 +1,7 @@
 import { create } from 'zustand';
 import type { Analysis, Failure, Movement } from '../analysis/types';
-import { File } from 'expo-file-system';
-import { ApiError, createLift, syncPlan, type ApiErrorCode, type CreateLiftInput, type UploadSource } from '../lib/api';
-import type { Lift } from '../types/db';
+import type { ApiErrorCode } from '../lib/api';
 import type { ClipSubmission } from '../features/capture/submit';
-import { usePurchases } from '../features/purchases/usePurchases';
-import { syncConsent } from './backend';
-import { analyzeClipPose, shouldRunDevicePose } from './onDevicePose';
-import { ClipTooLongError, discardPrepared, prepareClip } from './prepare';
-import { rememberClip } from '../features/share/localClips';
 import { DEVICE_MOVEMENTS, startDeviceLift } from './devicePipeline';
 import { onDeviceAnalysisEnabled } from './onDeviceAnalysis';
 
@@ -45,7 +38,7 @@ type PipelineState = {
 };
 
 // The one lift in flight from Review to the cue. Processing reads it to show
-// upload progress and, once the lift exists, subscribes to its row.
+// the phone's progress and, once the phone has it, the result.
 export const usePipeline = create<PipelineState>((set) => ({
   job: null,
   patch: (fields) => set((s) => (s.job ? { job: { ...s.job, ...fields } } : {})),
@@ -53,93 +46,26 @@ export const usePipeline = create<PipelineState>((set) => ({
   clear: () => set({ job: null }),
 }));
 
-// The clip is read from disk one chunk at a time as the upload asks for it, so a
-// 100 MB slo-mo never sits in memory whole.
-export async function readClip(uri: string): Promise<UploadSource> {
-  const file = new File(uri);
-  const size = file.size;
-  return {
-    size,
-    slice(start, end) {
-      const handle = file.open();
-      try {
-        handle.offset = start;
-        return handle.readBytes(end - start);
-      } finally {
-        handle.close();
-      }
-    },
-  };
-}
-
-// The first processing step: "Preparing your clip" while it is trimmed and
-// re-encoded on the phone (behind EXPO_PUBLIC_ON_DEVICE_POSE the encode fills the
-// first half of the bar and the body pose the second), then "Uploading your clip" with the bytes sent.
-export function uploadStep(job: Job | null): { label: string; meta: string | null } {
-  if (job?.status === 'preparing') return { label: 'Preparing your clip', meta: `preparing ${Math.round(job.prepared * 100)}%` };
-  const meta = job?.status === 'uploading' && job.total > 0 ? `uploading ${Math.round((job.sent / job.total) * 100)}%` : null;
-  return { label: 'Uploading your clip', meta };
-}
-
-// A paid lifter the server still thinks is free (a missed webhook) is capped
-// by create_lift: pull the plan from RevenueCat and try once more before the
-// cap paywall. The cap check runs before the upload, so the retry is cheap.
-async function createLiftSynced(input: CreateLiftInput): Promise<Lift> {
-  try {
-    return await createLift(input);
-  } catch (e) {
-    if (!(e instanceof ApiError) || e.code !== 'cap_reached' || usePurchases.getState().tier === 'free') throw e;
-    await syncPlan().catch(() => undefined);
-    return createLift(input);
-  }
-}
-
-// Consent, then the trimmed H.264 copy (1080 px long edge) (Supabase Free caps uploads at
-// 50 MB), then create_lift (cap checked server-side) + resumable upload +
-// enqueue. Never throws: the outcome lands on the job. The trim is baked into the
-// uploaded clip; the chosen rep is not sent (create_lift takes movement + load only).
-export async function startLift(sub: ClipSubmission & { uri: string }, read: (uri: string) => Promise<UploadSource> = readClip): Promise<void> {
+// 3.1 analyses only on the phone: the clip is never uploaded and no server analysis is
+// started (the 3.0 upload path stays on the server for 3.0 binaries). A movement the
+// phone cannot analyse yet (kipping HSPU: no TS replay of the rotated pass) fails as
+// unsupported, counting nothing. Never throws: the outcome lands on the job.
+export async function startLift(sub: ClipSubmission & { uri: string }): Promise<void> {
   if (onDeviceAnalysisEnabled() && DEVICE_MOVEMENTS.includes(sub.movement)) return startDeviceLift(sub);
-  const { start, patch } = usePipeline.getState();
-  start({
+  usePipeline.getState().start({
     id: `job-${Date.now()}`,
     movement: sub.movement,
-    status: 'preparing',
+    status: 'failed',
     liftId: null,
     prepared: 0,
     sent: 0,
     total: 0,
     uploadUrl: null,
-    error: null,
+    error: 'analysis_failed',
     maxS: null,
     uri: sub.uri,
     retestCueId: sub.retestCueId,
+    device: true,
+    failureReason: 'unsupported_movement',
   });
-  let prepared: string | null = null;
-  try {
-    await syncConsent();
-    const pose = await shouldRunDevicePose();
-    const clip = await prepareClip(sub.uri, sub.trim, (p) => patch({ prepared: pose ? p / 2 : p }));
-    prepared = clip.uri;
-    const poseJson = pose ? await analyzeClipPose(clip.uri, (p) => patch({ prepared: 0.5 + p / 2 })) : null;
-    const file = await read(clip.uri);
-    patch({ status: 'uploading', prepared: 1, total: file.size });
-    const lift = await createLiftSynced({
-      movement: sub.movement,
-      loadKg: sub.loadKg ?? undefined,
-      retestCueId: sub.retestCueId,
-      file,
-      pose: poseJson ?? undefined,
-      contentType: 'video/mp4',
-      onUploadUrl: (uploadUrl) => patch({ uploadUrl }),
-      onProgress: (sent, total) => patch({ sent, total }),
-    });
-    rememberClip(lift.id, sub.uri, sub.trim.start);
-    patch({ liftId: lift.id, status: lift.status as JobStatus });
-  } catch (e) {
-    if (e instanceof ClipTooLongError) patch({ status: 'failed', error: 'clip_too_long', maxS: e.maxS });
-    else patch({ status: 'failed', error: e instanceof ApiError ? e.code : 'upload_failed' });
-  } finally {
-    if (prepared) discardPrepared(prepared);
-  }
 }
