@@ -51,7 +51,7 @@ describe('CueNotes', () => {
 describe('sub-notes on the result screens', () => {
   it('the player keeps the headline cue and lists the notes under it', async () => {
     const { getByText, getByTestId } = await render(
-      <PlayerScreen analysis={{ ...snatchMock, notes }} onBack={() => {}} onShare={() => {}} />
+      <PlayerScreen analysis={{ ...snatchMock, notes }} initialFrame={snatchMock.cue!.evidence.frame} onBack={() => {}} onShare={() => {}} />
     );
     expect(getByText(snatchMock.cue!.text)).toBeOnTheScreen();
     expect(getByTestId('player-cue-area')).toContainElement(getByTestId('cue-notes'));
@@ -76,7 +76,7 @@ describe('disclaimer', () => {
   const text = 'AI estimate from one camera angle. Not coaching or medical advice.';
 
   it('appears exactly once at the bottom of the cue area on the player and both cue layouts', async () => {
-    const player = await render(<PlayerScreen analysis={{ ...snatchMock, notes }} onBack={() => {}} onShare={() => {}} />);
+    const player = await render(<PlayerScreen analysis={{ ...snatchMock, notes }} initialFrame={snatchMock.cue!.evidence.frame} onBack={() => {}} onShare={() => {}} />);
     expect(player.getAllByText(text)).toHaveLength(1);
     expect(player.getByTestId('player-cue-area')).toContainElement(player.getByTestId('disclaimer'));
     const clear = await render(<CueScreen analysis={snatchMock} nav={nav} />);

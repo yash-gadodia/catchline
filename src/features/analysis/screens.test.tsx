@@ -234,8 +234,14 @@ describe('CueScreen', () => {
 describe('PlayerScreen', () => {
   const props = { onBack: noop, onCompare: jest.fn(), onShare: noop };
 
-  it("opens on the cue's phase with the cue, its keyframe and its readout", async () => {
-    const { getByTestId, getByText } = await render(<PlayerScreen analysis={snatchMock} {...props} />);
+  it('opens on Setup even when there is a cue, so the lift plays from the start', async () => {
+    const { getByTestId } = await render(<PlayerScreen analysis={snatchMock} {...props} />);
+    expect(getByTestId('frame-setup')).toBeSelected();
+    expect(getByTestId('player-readout')).toHaveTextContent('388 · setup · 0.47 s');
+  });
+
+  it("a deep link to the cue's frame opens on the cue's phase with the cue, its keyframe and its readout", async () => {
+    const { getByTestId, getByText } = await render(<PlayerScreen analysis={snatchMock} initialFrame={snatchMock.cue!.evidence.frame} {...props} />);
     expect(getByText('Snatch · 62.5 kg · rep 2')).toBeOnTheScreen();
     expect(getByTestId('player-readout')).toHaveTextContent('422 · transition · 1.03 s');
     expect(getByTestId('frame-transition')).toBeSelected();
@@ -252,14 +258,14 @@ describe('PlayerScreen', () => {
   });
 
   it('keeps the peak bar speed hidden until it is validated against a sensor', async () => {
-    const { getByTestId, queryByTestId } = await render(<PlayerScreen analysis={snatchMock} {...props} />);
+    const { getByTestId, queryByTestId } = await render(<PlayerScreen analysis={snatchMock} initialFrame={snatchMock.cue!.evidence.frame} {...props} />);
     await press(getByTestId('frame-second_pull'));
     expect(queryByTestId('measure-bar_speed')).toBeNull();
     expect(getByTestId('phase-empty')).toHaveTextContent('Nothing measured in this phase. Lasted 0.18 s.');
   });
 
   it('jumps to a phase from its filmstrip frame with a rigid tick', async () => {
-    const { getByTestId, queryByTestId } = await render(<PlayerScreen analysis={snatchMock} {...props} />);
+    const { getByTestId, queryByTestId } = await render(<PlayerScreen analysis={snatchMock} initialFrame={snatchMock.cue!.evidence.frame} {...props} />);
     await press(getByTestId('frame-turnover'));
     expect(getByTestId('player-readout')).toHaveTextContent('446 · turnover · 1.43 s');
     expect(getByTestId('frame-turnover')).toBeSelected();
@@ -270,7 +276,7 @@ describe('PlayerScreen', () => {
   });
 
   it('steps phase to phase from the chevrons and stops at the ends', async () => {
-    const { getByTestId } = await render(<PlayerScreen analysis={snatchMock} {...props} />);
+    const { getByTestId } = await render(<PlayerScreen analysis={snatchMock} initialFrame={snatchMock.cue!.evidence.frame} {...props} />);
     await press(getByTestId('phase-next'));
     expect(getByTestId('frame-second_pull')).toBeSelected();
     expect(getByTestId('player-readout')).toHaveTextContent('436 · 2nd pull · 1.27 s');
@@ -281,14 +287,14 @@ describe('PlayerScreen', () => {
   });
 
   it('marks the cue phase with a dot and the phase it follows from with a ring', async () => {
-    const { getByTestId } = await render(<PlayerScreen analysis={snatchReal} {...props} />);
+    const { getByTestId } = await render(<PlayerScreen analysis={snatchReal} initialFrame={snatchReal.cue!.evidence.frame} {...props} />);
     expect(getByTestId('frame-catch')).toBeSelected();
     expect(getByTestId('frame-catch')).toContainElement(getByTestId('frame-mark-cue'));
     expect(getByTestId('frame-turnover')).toContainElement(getByTestId('frame-mark-follows'));
   });
 
   it("lists the phase's measurements, the cue first, with the best rep", async () => {
-    const { getByTestId } = await render(<PlayerScreen analysis={snatchReal} {...props} />);
+    const { getByTestId } = await render(<PlayerScreen analysis={snatchReal} initialFrame={snatchReal.cue!.evidence.frame} {...props} />);
     expect(getByTestId('measure-jump_forward')).toHaveTextContent('Jumped forwardcue7.4 cm', { exact: false });
     expect(getByTestId('measure-jump_forward')).toHaveTextContent('best rep 4.4 cm', { exact: false });
     expect(getByTestId('measure-bar_peak_height')).toHaveTextContent('Bar peak height125.2 cm', { exact: false });
@@ -297,14 +303,14 @@ describe('PlayerScreen', () => {
   });
 
   it('says when a phase has nothing measured', async () => {
-    const { getByTestId } = await render(<PlayerScreen analysis={snatchReal} {...props} />);
+    const { getByTestId } = await render(<PlayerScreen analysis={snatchReal} initialFrame={snatchReal.cue!.evidence.frame} {...props} />);
     await press(getByTestId('frame-setup'));
     expect(getByTestId('phase-empty')).toHaveTextContent('Nothing measured in this phase.');
     expect(getByTestId('phase-head')).toHaveTextContent('Setupf 822–851');
   });
 
   it('toggles overlays and cycles one speed pill', async () => {
-    const { getByTestId, queryByTestId } = await render(<PlayerScreen analysis={snatchMock} {...props} />);
+    const { getByTestId, queryByTestId } = await render(<PlayerScreen analysis={snatchMock} initialFrame={snatchMock.cue!.evidence.frame} {...props} />);
     expect(getByTestId('path-done')).toBeOnTheScreen();
     await press(getByTestId('toggle-path'));
     expect(queryByTestId('path-done')).toBeNull();
@@ -321,14 +327,14 @@ describe('PlayerScreen', () => {
   });
 
   it('says how confident the cue is, with the reason when not high', async () => {
-    const clear = await render(<PlayerScreen analysis={snatchMock} {...props} />);
+    const clear = await render(<PlayerScreen analysis={snatchMock} initialFrame={snatchMock.cue!.evidence.frame} {...props} />);
     expect(clear.getByTestId('player-confidence')).toHaveTextContent('Confidence: high');
-    const low = await render(<PlayerScreen analysis={snatchMockLow} {...props} />);
+    const low = await render(<PlayerScreen analysis={snatchMockLow} initialFrame={snatchMockLow.cue!.evidence.frame} {...props} />);
     expect(low.getByTestId('player-confidence')).toHaveTextContent('Confidence: medium · bar partly hidden, seen on 2 of 3 reps');
   });
 
   it('tapping the video plays and pauses, and stepping a phase pauses', async () => {
-    const { getByTestId } = await render(<PlayerScreen analysis={snatchMock} {...props} />);
+    const { getByTestId } = await render(<PlayerScreen analysis={snatchMock} initialFrame={snatchMock.cue!.evidence.frame} {...props} />);
     await press(getByTestId('stage-press'));
     expect(getByTestId('stage-press')).toHaveProp('accessibilityLabel', 'Pause');
     expect(getByTestId('player-play')).toHaveProp('accessibilityLabel', 'Pause');
