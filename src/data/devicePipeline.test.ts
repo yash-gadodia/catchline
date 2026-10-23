@@ -118,9 +118,10 @@ describe('startDeviceLift, the happy path', () => {
     expect(usePipeline.getState().job?.device).toBe(true);
   });
 
-  it('leaves kipping HSPU on the server path (no TS replay for the rotated pass yet)', async () => {
+  it('never analyses kipping HSPU on the phone yet (no TS replay for the rotated pass): it fails as unsupported', async () => {
     await startLift({ ...SUB, movement: 'kipping_hspu' });
-    expect(usePipeline.getState().job?.device).toBeUndefined();
+    expect(usePipeline.getState().job).toMatchObject({ status: 'failed', failureReason: 'unsupported_movement' });
+    expect(mockAnalyse).not.toHaveBeenCalled();
   });
 });
 

@@ -351,8 +351,8 @@ describe('WhatIsStoredScreen', () => {
   it('spells out what is kept and toggles the accuracy opt-in', async () => {
     const onExport = jest.fn();
     const screen = await render(<WhatIsStoredScreen onBack={jest.fn()} onExport={onExport} />);
-    expect(screen.getByText('On your phone. Sent once for analysis, deleted from our servers within 24 hours.')).toBeOnTheScreen();
-    expect(screen.getAllByText('kept')).toHaveLength(3);
+    expect(screen.getByText('On your phone. Analysed on your iPhone, never uploaded.')).toBeOnTheScreen();
+    expect(screen.getAllByText('kept')).toHaveLength(4);
     expect(screen.getByText('Only if you turned it on. Off right now.')).toBeOnTheScreen();
     await act(async () => {
       fireEvent(screen.getByTestId('toggle-improve'), 'valueChange', true);
