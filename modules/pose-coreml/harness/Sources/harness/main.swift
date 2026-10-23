@@ -1,14 +1,15 @@
 import Foundation
 
-// catchline-harness pose    <clip> --models <dir> --out <trace.json.gz> [--movement snatch] [--no-camera] [--pose-json <path>]
+// catchline-harness pose    <clip> --models <dir> --out <trace.json.gz> [--movement snatch] [--no-camera] [--all-people] [--pose-json <path>]
 // catchline-harness analyse <clip> --models <dir> --plan <plan.json> --out <trace.json.gz> [--stills <dir>] [--movement snatch]
 //
 // pose: the first analyseOnDevice call (pose + lifter + camera path). analyse: the same, then the pixel
 // stages on the frames the plan names (the plan is what src/analysis/device planFromMisses writes).
 // --no-camera skips track.py camera_path (until CameraMotion.swift lands) so the lifter can be compared alone.
+// --all-people poses every detection (the app poses only the lifter's candidates after the first second).
 
 func usage() -> Never {
-  FileHandle.standardError.write(Data("usage: catchline-harness pose|analyse <clip> --models <dir> --out <trace.json.gz> [--plan <plan.json>] [--stills <dir>] [--movement <m>] [--no-camera] [--pose-json <path>]\n".utf8))
+  FileHandle.standardError.write(Data("usage: catchline-harness pose|analyse <clip> --models <dir> --out <trace.json.gz> [--plan <plan.json>] [--stills <dir>] [--movement <m>] [--no-camera] [--all-people] [--pose-json <path>]\n".utf8))
   exit(2)
 }
 
@@ -20,7 +21,7 @@ var opts: [String: String] = [:]
 var flags: Set<String> = []
 while !args.isEmpty {
   let a = args.removeFirst()
-  if a == "--no-camera" { flags.insert(a); continue }
+  if a == "--no-camera" || a == "--all-people" { flags.insert(a); continue }
   guard a.hasPrefix("--"), !args.isEmpty else { usage() }
   opts[a] = args.removeFirst()
 }
@@ -42,6 +43,7 @@ if command == "analyse" {
 let stillsDir = URL(fileURLWithPath: opts["--stills"] ?? FileManager.default.temporaryDirectory.appendingPathComponent("catchline-harness-stills").path)
 
 let analyser = DeviceAnalyser(models: models)
+analyser.poseEveryone = flags.contains("--all-people")
 let sem = DispatchSemaphore(value: 0)
 var failure: Error?
 var lastStage = ""
@@ -58,8 +60,8 @@ Task {
     if tm.frames > 0 {
       let ms = { (s: Double) in String(format: "%.0f", s * 1000 / Double(tm.frames)) }
       let c = coreTiming
-      log("  detect: pre \(ms(c.detectPre)) infer \(ms(c.detectInfer)) post \(ms(c.detectPost));  pose (all people): pre \(ms(c.posePre)) infer \(ms(c.poseInfer)) post \(ms(c.posePost))")
-      log("pose pass ms/frame: decode \(ms(tm.decode))  upright \(ms(tm.upright))  detect \(ms(tm.detect))  pose \(ms(tm.pose)) (\(String(format: "%.1f", Double(tm.people) / Double(tm.frames))) people/frame)  camera \(ms(tm.camera))")
+      log("  detect: pre \(ms(c.detectPre)) infer \(ms(c.detectInfer)) post \(ms(c.detectPost));  pose (posed people): pre \(ms(c.posePre)) infer \(ms(c.poseInfer)) post \(ms(c.posePost))")
+      log("pose pass ms/frame: decode \(ms(tm.decode))  upright \(ms(tm.upright))  detect \(ms(tm.detect))  pose \(ms(tm.pose)) (\(String(format: "%.1f", Double(tm.posed) / Double(tm.frames))) posed of \(String(format: "%.1f", Double(tm.people) / Double(tm.frames))) people/frame)  camera \(ms(tm.camera))")
     }
     try writeTrace(trace, to: URL(fileURLWithPath: out))
     let n = (trace["meta"] as? [String: Any])?["frameCount"] ?? 0
