@@ -222,7 +222,7 @@ Scope: movements = snatch, clean, clean & jerk, (bar) muscle-up, butterfly pull-
 - [ ] (Claude) Reference lines + ring in PlayerScreen (DrawLayer) and ShareRenderer: vertical start line, knee/hip/peak horizontals, ring at max forward drift.
 - [ ] (Claude) Result screen hero = bar-path replay; key numbers under it: max forward drift, hip loop, crash depth, feet movement (jump forward/back), catch height.
 - [ ] (Claude) Cue demoted to "Worth working on", shown only at high confidence; otherwise "Looks solid" / numbers only. Fix the 48 cm forward-distance bug (IMG_0073) first.
-- [ ] (Claude) Feet tracking (start vs catch position) as a first-class measurement.
+- [ ] (Claude) Body positions as first-class measurements, drawn like the bar path (owner 23-10: "hip position, feet position, etc"): hip path + hip height at start/lift-off/hip contact, hips vs shoulders rising (hips shooting up early), shoulders over the bar at the knee, hip-to-bar contact point, knee angle at start/catch, feet position start vs catch (jump forward/back, width), catch depth. Each with an overlay marker in the player and a number under the replay.
 - [ ] (Claude) Butterfly pull-up rep/phase logic (needs owner side-on clips).
 - [ ] (Claude) Richer share video: phase labels, timeline playhead, measurement at its moment, slow-mo hip->turnover, end card.
 - [ ] (Claude) Smaller app: FP16 weight storage (passes parity, ~184 -> ~110 MB) once the zero-cue-change eval passes. (Yash) run scripts/publish-pose-models.sh for the new tag.
