@@ -9,7 +9,7 @@ import { t } from '../../src/i18n';
 // A failed lift by id; `?reason=` previews any failure variant (dev entry). The
 // design header for an unknown lift is a dev preview only.
 export default function FailureRoute() {
-  const { id, reason } = useLocalSearchParams<{ id: string; reason?: string }>();
+  const { id, reason, native } = useLocalSearchParams<{ id: string; reason?: string; native?: string }>();
   const router = useRouter();
   const lift = useLift(id);
   const r = (reason && reason in FAILURE_COPY ? reason : lift?.failure?.reason ?? 'unknown') as FailureReason;
@@ -22,7 +22,7 @@ export default function FailureRoute() {
       ? 'Snatch · 62.5 kg'
       : '';
   const stored = lift?.failure?.reason === r ? failureMessage(lift.failure) : undefined;
-  const detail = stored && stored !== FAILURE_COPY[r].title ? stored : undefined;
+  const detail = native ?? (stored && stored !== FAILURE_COPY[r].title ? stored : undefined);
   const partial = lift?.analysisId ?? (__DEV__ ? 'snatch-mock' : null);
   const onAction = (a: FailureAction) => {
     if (a === 'retake') router.push('/capture' as Href);

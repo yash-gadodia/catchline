@@ -53,6 +53,11 @@ export default function FailureScreen({
         <SmallCaps>{copy.kicker}</SmallCaps>
         <Text style={[display(36), { color: colors.text }]}>{copy.title}</Text>
         <Text style={{ color: colors.text2, ...type.callout }}>{copy.body}</Text>
+        {detail && reason !== 'unsupported_movement' ? (
+          <Text style={{ color: colors.text2, ...type.readout }} testID="failure-detail" selectable>
+            {detail}
+          </Text>
+        ) : null}
       </ScrollView>
       <View style={{ paddingTop: space.s4, paddingHorizontal: space.gutter, paddingBottom: Math.max(insets.bottom, space.s7), gap: space.s3 }}>
         {copy.alt ? (

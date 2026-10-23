@@ -112,8 +112,8 @@ function LiveProcessing() {
   const [elapsed, setElapsed] = useState(since);
   // Leaving lands on the Lifts tab, never back on the review of the clip already analysed.
   const home = () => router.dismissTo('/');
-  const fail = (id: string, reason: Failure['reason']) =>
-    router.replace({ pathname: '/failure/[id]', params: { id, reason } });
+  const fail = (id: string, reason: Failure['reason'], native?: string) =>
+    router.replace({ pathname: '/failure/[id]', params: native ? { id, reason, native } : { id, reason } });
 
   useEffect(() => {
     const tick = setInterval(() => setElapsed((e) => (startedAt ? since() : e + 1)), 1000);
@@ -124,7 +124,7 @@ function LiveProcessing() {
     if (!job || job.status !== 'failed') return;
     if (job.error === 'clip_too_long' || job.error === 'models_unavailable') return;
     if (job.error === 'cancelled') return home();
-    if (job.error === 'analysis_failed') return fail(job.liftId ?? job.id, job.result?.failure?.reason ?? job.failureReason ?? 'unknown');
+    if (job.error === 'analysis_failed') return fail(job.liftId ?? job.id, job.result?.failure?.reason ?? job.failureReason ?? 'unknown', job.failureDetail);
     fail(job.id, 'unknown');
   }, [job?.status]);
 
