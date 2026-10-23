@@ -125,4 +125,15 @@ export const you: Strings<typeof en> = {
   'you.report.queued': "Gespeichert. Wird gesendet, sobald du online bist.",
   // REVIEW
   'you.report.done': "Fertig",
+  'you.whatsNew': "Neuigkeiten",
+  // REVIEW
+  'you.whatsNew.version': "Catchline {version}",
+  // REVIEW
+  'you.whatsNew.v31.onDevice': "Dein Lift wird jetzt komplett auf deinem iPhone analysiert, und die Analyse funktioniert auch ohne Netz.",
+  // REVIEW
+  'you.whatsNew.v31.privacy': "Dein Video verlässt nie dein iPhone. Auf dem Gerät analysiert, nie zum Trainieren von KI verwendet.",
+  // REVIEW
+  'you.whatsNew.v31.reads': "Genauere Analyse von schräg gefilmten Lifts und Lifts aus dem Hang, und ein ganzes Umsetzen und Stoßen wird als ein Lift gelesen.",
+  // REVIEW
+  'you.whatsNew.v31.hips': "Behoben: Eine Stange, die an der Hüfte stockt, bringt die Analyse nicht mehr durcheinander.",
 };

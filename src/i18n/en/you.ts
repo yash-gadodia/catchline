@@ -112,4 +112,10 @@ export const you = {
   'you.report.sent': "Sent. Thank you, we read every one.",
   'you.report.queued': "Saved. It sends the next time you are online.",
   'you.report.done': "Done",
+  'you.whatsNew': "What's new",
+  'you.whatsNew.version': "Catchline {version}",
+  'you.whatsNew.v31.onDevice': "Your lift is now analysed entirely on your iPhone, and analysis works with no signal.",
+  'you.whatsNew.v31.privacy': "Your video never leaves your iPhone. Analysed on-device, never used to train AI.",
+  'you.whatsNew.v31.reads': "Sharper reads of lifts filmed at an angle and of hang lifts, and a full clean and jerk is read as one lift.",
+  'you.whatsNew.v31.hips': "Fixed: a bar that stalls at the hips no longer throws off the read.",
 } as const;

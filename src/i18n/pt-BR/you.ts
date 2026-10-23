@@ -125,4 +125,15 @@ export const you: Strings<typeof en> = {
   'you.report.queued': "Salvo. Será enviado na próxima vez que você estiver online.",
   // REVIEW
   'you.report.done': "Concluído",
+  'you.whatsNew': "Novidades",
+  // REVIEW
+  'you.whatsNew.version': "Catchline {version}",
+  // REVIEW
+  'you.whatsNew.v31.onDevice': "Seu levantamento agora é analisado inteiramente no seu iPhone, e a análise funciona sem sinal.",
+  // REVIEW
+  'you.whatsNew.v31.privacy': "Seu vídeo nunca sai do seu iPhone. Analisado no aparelho, nunca usado para treinar IA.",
+  // REVIEW
+  'you.whatsNew.v31.reads': "Leituras mais precisas de levantamentos filmados em ângulo e do hang, e um arremesso completo é lido como um só levantamento.",
+  // REVIEW
+  'you.whatsNew.v31.hips': "Corrigido: uma barra que trava no quadril não atrapalha mais a leitura.",
 };
