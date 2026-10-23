@@ -81,7 +81,6 @@ function repSummary(r: RepInfo, keys: string[]): Record<string, unknown> {
       ]),
     ),
     bar: r.track,
-    plate_ref: sn ? sn.ref.plate_ref : r.track.map(() => [NaN, NaN]),
     knee_ang: kneeAngles(r.ksm),
     hip_ang: hipAngles(r.ksm),
     elbow: sn ? sn.ref.elbow : fmax(...elbows(r.ksm)),

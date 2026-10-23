@@ -147,4 +147,14 @@ export type Analysis = {
   analysisRevision?: string;
   // Set when the lift was re-analysed from its stored trace with a newer analysis (ISO time, server-stamped).
   reanalysedAt?: string;
+  // 3.1 on-device: where the lift started and how far off side-on it was filmed (synced as start_class / yaw_bucket).
+  startClass?: 'floor' | 'hang' | 'blocks' | 'shoulders';
+  yawBucket?: 'side' | '20-45' | '45-60' | 'past_60';
+  // A clean followed by its jerk: one lift, the cue from one segment, each segment measured on its own.
+  liftKind?: 'clean_and_jerk';
+  segments?: AnalysisSegment[];
+};
+
+export type AnalysisSegment = Pick<Analysis, 'reps' | 'bestRepIndex' | 'cue' | 'noCueReason' | 'notes' | 'measurements' | 'pxPerCm'> & {
+  kind: 'clean' | 'jerk';
 };

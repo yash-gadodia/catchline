@@ -81,7 +81,38 @@ export function barFromWrists(lw: Pt[], rw: Pt[], maxGap: number): Pt[] {
   return out;
 }
 
-export const toRef = (points: Pt[], Ms: Affine[]): Pt[] =>
+const med3 = (a: number, b: number, c: number) => {
+  const v = [a, b, c].filter(Number.isFinite).sort((x, y) => x - y);
+  return v.length ? v[(v.length - 1) >> 1] : NaN;
+};
+// 3-frame running median per coordinate (the end frames keep their own value)
+export const median3 = (p: Pt[]): Pt[] =>
+  p.map((q, i) => {
+    const a = p[Math.max(0, i - 1)];
+    const c = p[Math.min(p.length - 1, i + 1)];
+    return [med3(a[0], q[0], c[0]), med3(a[1], q[1], c[1])];
+  });
+
+// The bar is the hands (design 2.1): barFromWrists over 3-frame medians of the wrists, so a one-frame wrist flip never
+// reaches the low-pass, and a frame whose bar jumps more than 0.25 body heights from the last good one is left out
+// (NaN, interpolated by the low-pass); after 3 left-out frames in a row the track follows the wrists again.
+export function barTrack(lw: Pt[], rw: Pt[], bodyH: number): Pt[] {
+  const bar = barFromWrists(median3(lw), median3(rw), 0.12 * bodyH);
+  let last: Pt | null = null;
+  let skipped = 0;
+  return bar.map((p) => {
+    if (!finitePt(p)) return p;
+    if (last && skipped < 3 && dist(p, last) > 0.25 * bodyH) {
+      skipped += 1;
+      return NAN_PT;
+    }
+    last = p;
+    skipped = 0;
+    return p;
+  });
+}
+
+export const toRef =(points: Pt[], Ms: Affine[]): Pt[] =>
   points.map((p, i) => (finitePt(p) ? applyAffine(Ms[i], p) : NAN_PT));
 
 export const fromRef = (p: Pt, M: Affine): Pt => applyAffine(invertAffine(M), p);

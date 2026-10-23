@@ -191,6 +191,31 @@ export function keyFrames(ev: SnatchEvents): Record<string, number> {
   };
 }
 
+// A lift from the hang (design 4.3): setup (standing with the bar), hang (the bar lowered to the start height, ending
+// at its lowest point, lift-off), then one pull to the second extension, turnover, catch and recovery as the snatch.
+// barY is image y (down positive); with no lowering of 0.3 torso lengths in the 3 s before (blocks) the hang is a frame.
+export function hangPhases(phases: PhaseOut[], ev: SnatchEvents, barY: number[], t: number, fps: number): [PhaseOut[], Record<string, number>] {
+  const lo = ev.liftoff;
+  const a = Math.max(phases[0].startFrame, lo - int(3 * fps));
+  const top = a + argmin(barY.slice(a, lo + 1));
+  const drop = barY[lo] - barY[top];
+  let hs = lo;
+  if (drop >= 0.3 * t) {
+    hs = top;
+    while (hs + 1 < lo && barY[hs + 1] <= barY[top] + 0.05 * drop) hs++;
+  }
+  const b = [phases[0].startFrame, hs, lo, phases[3].endFrame];
+  for (let i = 1; i < b.length; i++) b[i] = Math.max(b[i], b[i - 1] + 1);
+  const out: PhaseOut[] = [
+    { name: 'setup', startFrame: b[0], endFrame: Math.max(b[0], b[1] - 1) },
+    { name: 'hang', startFrame: b[1], endFrame: Math.max(b[1], b[2]) },
+    { name: 'second_pull', startFrame: b[2] + 1, endFrame: Math.max(b[2] + 1, b[3]) },
+    ...phases.slice(4),
+  ];
+  const k = keyFrames(ev);
+  return [out, { setup: Math.max(phases[0].startFrame, hs - 1), hang: lo, second_pull: k.second_pull, turnover: k.turnover, catch: k.catch, recovery: k.recovery }];
+}
+
 export type RepWindow = [number, number, number];
 
 export function findReps(wristH: number[], noseH: number[], kneeH: number[], fps: number, minOverheadS = 0.3, overH?: number[]): RepWindow[] {
@@ -217,6 +242,67 @@ export function findReps(wristH: number[], noseH: number[], kneeH: number[], fps
     } else i++;
   }
   return reps;
+}
+
+// Where a lift starts (design 4.1): on the floor (the bar at rest below the knees), at the hang (above the knees), on
+// blocks (the user's tag only; the read never says blocks) or at the shoulders (a jerk).
+export type StartClass = 'floor' | 'hang' | 'blocks' | 'shoulders';
+export type Lift = { window: RepWindow; startClass: StartClass };
+
+// The last frame before a receive at `hold` where the bar sat still (under 0.3 torso lengths a second, for 0.25 s or
+// more) and then rose at least 0.8 torso lengths into the receive within 2.5 s; null if there is none after `from`.
+export function restThenRise(barH: number[], t: number, fps: number, from: number, hold: number, ok: (f: number) => boolean = () => true): number | null {
+  const v = gradient(barH).map((x) => Math.abs((x * fps) / t));
+  const need = Math.max(1, int(0.25 * fps));
+  const lo = Math.max(from, hold - int(2.5 * fps));
+  for (let rb = hold - 1; rb >= lo; rb--) {
+    if (barH[hold] - barH[rb] < 0.8 * t || !ok(rb)) continue;
+    let still = 0;
+    for (let f = rb; f >= Math.max(0, rb - need + 1) && v[f] < 0.3; f--) still++;
+    if (still >= need) return rb;
+  }
+  return null;
+}
+
+// A touch-and-go rep after a lift from the hang (a hang set): the bar turns at the bottom of the dip with no rest, so the
+// start is that turn, if it is at the hips or lower and the bar rises 0.8 torso lengths from it within 2.5 s.
+function touchAndGo(barH: number[], shoH: number[], t: number, fps: number, from: number, hold: number): number | null {
+  const lo = Math.max(from, hold - int(2.5 * fps));
+  if (hold <= lo) return null;
+  const dip = lo + argmin(barH.slice(lo, hold));
+  return dip > lo && barH[dip] <= shoH[dip] - 0.8 * t && barH[hold] - barH[dip] >= 0.8 * t ? dip : null;
+}
+
+// The production finders' receive holds with rest-then-rise as the start, so a lift from the hang is found as well as
+// one from the floor (the last frame with the wrists below the knees stays the start where it is the later of the two).
+// Holds with no new start after the previous lift are that lift's (a squat stand-up, a re-dip).
+export function findLifts(
+  holds: [number, number][],
+  barH: number[],
+  kneeH: number[],
+  shoH: number[],
+  t: number,
+  fps: number,
+): Lift[] {
+  const low = barH.map((v, i) => v < kneeH[i]);
+  const lifts: Lift[] = [];
+  for (const [a, b] of holds) {
+    const last = lifts[lifts.length - 1];
+    const from = last ? last.window[1] + 1 : 0;
+    const lows = where(low.slice(from, a)).map((f) => f + from);
+    // a snatch or a clean starts below the shoulders: a rest in the rack or overhead (a catch before the stand-up) starts nothing
+    const rest = restThenRise(barH, t, fps, from, a, (f) => barH[f] < shoH[f] - 0.35 * t) ?? (last?.startClass === 'hang' ? touchAndGo(barH, shoH, t, fps, from, a) : null);
+    const lowStart = lows.length ? lows[lows.length - 1] : null;
+    if (rest === null && lowStart === null) {
+      if (last) last.window = [last.window[0], b, last.window[2]];
+      continue;
+    }
+    const start = rest !== null && (lowStart === null || rest > lowStart) ? rest : (lowStart as number);
+    const startClass: StartClass =
+      barH[start] < kneeH[start] || (rest === null && lowStart !== null) ? 'floor' : 'hang';
+    lifts.push({ window: [start, b, a], startClass });
+  }
+  return lifts;
 }
 
 export function catchDepth(hipH: number[], kneeH: number[], kneeAng: number[], start: number, end0: number, squatKneeDeg = 65.0): [number, number, string] {

@@ -33,8 +33,76 @@ export const WHY = DATA.WHY;
 export const GATES: [string, string][] = DATA.GATES.map(([c, e]) => [c, e]);
 export const PRESENT = DATA.PRESENT;
 export const ALTERNATES = DATA.ALTERNATES;
-// the camera angle off side-on reads within 10 deg of the labelled angle (cv/tests/test_camera_angle.py)
+// the 3.0 constant: plates within 10 deg of side-on with the hands a grip apart are not the lifter's (pipeline.ts)
 export const ANGLE_ERR_DEG = 10.0;
+
+// What a cue measures decides how far off side-on it is judged (design 3.1): timing and vertical cues at any yaw,
+// sagittal joint angles to 45 deg (an "estimate" to 60), forward/back distances to 45 deg as a value, to 60 only when
+// they clear 1.5x the threshold, never past 60.
+export type CueType = 'timing' | 'vertical' | 'joint' | 'forward';
+export const CUE_TYPE: Record<string, CueType> = {
+  early_arm_bend: 'timing',
+  slow_turnover: 'timing',
+  early_arm_pull: 'timing',
+  chicken_wing: 'timing',
+  hips_rise_early: 'vertical',
+  bar_crash: 'vertical',
+  hips_too_low_at_start: 'vertical',
+  bmu_early_pull: 'vertical',
+  hips_low_transition: 'vertical',
+  hspu_kip_timing: 'vertical',
+  incomplete_extension: 'joint',
+  press_out: 'joint',
+  leg_kip: 'joint',
+  bar_forward_off_hips: 'forward',
+  jump_forward: 'forward',
+  jump_back_excessive: 'forward',
+  forward_dip: 'forward',
+  bar_forward_overhead: 'forward',
+  chest_dive: 'forward',
+  shoulders_behind_bar_at_start: 'forward',
+  no_push_away: 'forward',
+  hspu_banana: 'forward',
+};
+export const cueType = (fid: string): CueType => CUE_TYPE[fid] ?? 'forward';
+export const VALUE_MAX_DEG = 45;
+export const JUDGED_MAX_DEG = 60;
+
+// the body yaw estimate's error (68% band half-width, design table 1): 3 deg at 20, 5 at 30, 7 at 45, 9 at 53, 12 at
+// 60, unusable past 65
+const ERR_AT: [number, number][] = [[20, 3], [30, 5], [45, 7], [53, 9], [60, 12], [65, 15]];
+export function yawErrDeg(yaw: number): number {
+  if (yaw <= ERR_AT[0][0]) return ERR_AT[0][1];
+  for (let i = 1; i < ERR_AT.length; i++) {
+    const [x0, y0] = ERR_AT[i - 1];
+    const [x1, y1] = ERR_AT[i];
+    if (yaw <= x1) return y0 + ((yaw - x0) * (y1 - y0)) / (x1 - x0);
+  }
+  return ERR_AT[ERR_AT.length - 1][1];
+}
+
+// how much more open a sagittal joint angle reads off side-on (design table 3, an orthographic model): a 70 deg knee
+// reads 73 at 30 deg yaw, 76 at 45, 80 at 60; a 120 reads 136 at 45. Linear in the table's rows between 70 and 150.
+const OPEN_AT: [number, number[]][] = [[70, [0, 3, 6, 8, 10, 13]], [120, [0, 7, 16, 22, 28, 38]], [150, [0, 4, 8, 12, 15, 19]]];
+const OPEN_YAW = [0, 30, 45, 53, 60, 70];
+export function openAngleDeg(yaw: number | null | undefined, joint: number): number {
+  if (!has(yaw) || yaw <= 0) return 0;
+  const y = Math.min(yaw, 70);
+  const row = (r: number[]) => {
+    const i = Math.max(1, OPEN_YAW.findIndex((v) => v >= y));
+    const [x0, x1] = [OPEN_YAW[i - 1], OPEN_YAW[i]];
+    return r[i - 1] + ((y - x0) * (r[i] - r[i - 1])) / (x1 - x0);
+  };
+  const j = Math.min(Math.max(joint, OPEN_AT[0][0]), OPEN_AT[OPEN_AT.length - 1][0]);
+  const k = Math.max(1, OPEN_AT.findIndex(([a]) => a >= j));
+  const [[a0, r0], [a1, r1]] = [OPEN_AT[k - 1], OPEN_AT[k]];
+  return row(r0) + ((j - a0) * (row(r1) - row(r0))) / (a1 - a0);
+}
+
+export function yawBucket(yaw: number | null | undefined): string | null {
+  if (!has(yaw)) return null;
+  return yaw <= 20 ? 'side' : yaw <= VALUE_MAX_DEG ? '20-45' : yaw <= JUDGED_MAX_DEG ? '45-60' : 'past_60';
+}
 
 // Python's round(): half to even on the exact double. toFixed rounds the exact value half away from zero, and a
 // double sits exactly on a tie only when x * 2^(nd+1) is an odd integer, so only those need stepping back.
@@ -66,22 +134,32 @@ export function severity(fid: string, v: number): number {
   return RULES[fid].below ? 1.0 + (thr - v) / thr : v / thr;
 }
 
-// rules.on_screen: off side-on (20-70 deg) a forward distance is judged corrected only for the angle less its error, so a
-// fault that fires on it is real; past 70 deg no forward distance is judged. Shown values stay fully corrected.
+// The values a cue is judged on off side-on (shown values stay fully corrected). A forward distance is corrected only
+// for the yaw less its error, so a fault that fires on it is real, and past 45 deg it is not judged: the body yaw
+// reads a front view as low as 45-60 (eval31), so a forward cue never rests on yaw alone. A joint angle past 45 deg
+// must clear 1.5x, past 60 it is not judged; press-out not past 45.
 export function onScreen(values: Values, off: number | null | undefined): Values {
   if (!has(off) || off <= 20) return values;
   const out: Values = { ...values };
-  const k = Math.cos(off * (Math.PI / 180)) / Math.cos((off - ANGLE_ERR_DEG) * (Math.PI / 180));
+  const k = Math.cos(off * (Math.PI / 180)) / Math.cos((off - yawErrDeg(off)) * (Math.PI / 180));
   for (const [fid, v] of Object.entries(values)) {
     const r = RULES[fid];
-    if (has(v) && r && r.horizontal && r.unit === 'cm' && !r.below) out[fid] = off <= 70 ? v * k : null;
+    const t = cueType(fid);
+    if (!has(v) || !r || t === 'timing' || t === 'vertical') continue;
+    const forwardCm = t === 'forward' && r.unit === 'cm';
+    if (off > JUDGED_MAX_DEG || ((fid === 'press_out' || forwardCm) && off > VALUE_MAX_DEG)) out[fid] = null;
+    else if (r.below) continue;
+    else {
+      const seen = forwardCm ? v * k : v;
+      out[fid] = off > VALUE_MAX_DEG ? seen / 1.5 : seen;
+    }
   }
   return out;
 }
 
 export function confirmedOffSide(fid: string, sev: number, off: number | null | undefined): boolean {
   const r = RULES[fid];
-  return has(off) && 20 < off && off <= 70 && r.horizontal && r.unit === 'cm' && !r.below && sev >= 1.0;
+  return has(off) && 20 < off && off <= (cueType(fid) === 'forward' && r.unit === 'cm' ? VALUE_MAX_DEG : JUDGED_MAX_DEG) && cueType(fid) !== 'timing' && cueType(fid) !== 'vertical' && !r.below && sev >= 1.0;
 }
 
 export function fired(values: Values): Record<string, number> {
@@ -163,10 +241,13 @@ export function notes(movement: string, reps: Rep[], cue: { faultId: string; tex
   });
 }
 
+// timing and vertical cues hold at any yaw ("clear" needs under 30 deg); a joint angle or a forward distance off
+// side-on is "low" unless confirmedOffSide (it cleared its threshold on the yaw-aware value)
 export function confidence(faultId: string, sev: number, sideOnOffDeg: number | null | undefined): Confidence {
   if (!has(sideOnOffDeg) || sideOnOffDeg <= 20) return sev >= 1.5 ? 'clear' : 'worth_checking';
-  if (RULES[faultId].horizontal) return 'low';
-  return sev >= 1.5 ? 'worth_checking' : 'low';
+  const t = cueType(faultId);
+  if (t === 'timing' || t === 'vertical') return sev >= 1.5 && sideOnOffDeg < 30 ? 'clear' : 'worth_checking';
+  return 'low';
 }
 
 export function repConfidence(conf: Confidence, seen: number, total: number): Confidence {

@@ -152,7 +152,7 @@ struct PoseTiming {
 
 final class DeviceAnalyser {
   let models: PoseModels
-  private(set) var run: PoseRun?
+  var run: PoseRun?  // settable so the harness can reload a cached pose pass
   private(set) var timing = PoseTiming()
 
   init(models: PoseModels) { self.models = models }

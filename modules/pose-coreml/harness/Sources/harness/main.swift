@@ -48,6 +48,7 @@ var lastStage = ""
 Task {
   do {
     let t1 = Date()
+    if let path = opts["--run-in"] { analyser.run = try loadRun(URL(fileURLWithPath: path), clip: clip); log("pose pass loaded from \(path)") }
     let (trace, stills) = try await analyser.analyse(url: clip, movement: movement, plan: plan, stillsDir: stillsDir,
                                                      cameraPath: !flags.contains("--no-camera")) { stage, f in
       if stage != lastStage { lastStage = stage; log("stage \(stage)") }
@@ -66,6 +67,10 @@ Task {
     if let path = opts["--pose-json"], let run = analyser.run {
       try Data(poseJSON(run).utf8).write(to: URL(fileURLWithPath: path))
       log("pose json \(path)")
+    }
+    if let path = opts["--run-out"], let run = analyser.run {
+      try saveRun(run, to: URL(fileURLWithPath: path))
+      log("pose run \(path)")
     }
   } catch {
     failure = error
@@ -100,4 +105,53 @@ func poseJSON(_ run: PoseRun) -> String {
     frames.append(frame)
   }
   return pyJSON(["source": "rtmpose-coreml", "fps": fps, "width": run.outW, "height": poseInferHeight, "frames": frames])
+}
+
+// The pose pass as a sidecar the eval loop caches: everything pixelPass reads (people boxes, the lifter, the camera
+// path, meta), NaN as null. The trace calls are rebuilt from it exactly as posePass records them.
+func saveRun(_ run: PoseRun, to url: URL) throws {
+  let n = run.people.count
+  let num = { (d: Double) -> Any in d.isNaN ? NSNull() : d }
+  var k: [Any] = [], ks: [Any] = [], boxes: [Any] = []
+  k.reserveCapacity(n * 52)
+  for f in 0 ..< n {
+    for j in 0 ..< 26 { k.append(num(run.lifter.kpts[f][j].x)); k.append(num(run.lifter.kpts[f][j].y)) }
+    ks += run.lifter.scores[f].map(num)
+    boxes += run.lifter.boxes[f].map(num)
+  }
+  let obj: [String: Any] = [
+    "poseKey": run.poseKey, "hanging": run.hanging, "outW": run.outW, "meta": run.meta,
+    "people": run.people.map { $0.map { $0.box.map { Double($0) } } },
+    "lifterK": k, "lifterS": ks, "lifterB": boxes,
+    "camera": run.cameraPath.map { $0.map(num) },
+  ]
+  try JSONSerialization.data(withJSONObject: obj).write(to: url, options: .atomic)
+}
+
+func loadRun(_ url: URL, clip: URL) throws -> PoseRun {
+  guard let o = try JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any],
+        let poseKey = o["poseKey"] as? String, let hanging = o["hanging"] as? Bool, let outW = o["outW"] as? Int,
+        let meta = o["meta"] as? [String: Any], let peopleBoxes = o["people"] as? [[[Double]]],
+        let lk = o["lifterK"] as? [Any], let ls = o["lifterS"] as? [Any], let lb = o["lifterB"] as? [Any],
+        let cam = o["camera"] as? [[Any]] else { throw StageError.invalid("run file \(url.path)") }
+  let num = { (a: Any) -> Double in (a as? Double) ?? .nan }
+  let n = peopleBoxes.count
+  let people = peopleBoxes.map { $0.map { PosePerson(box: $0.map { Float($0) }, kpts: [], scores: []) } }
+  var kpts: [[Point]] = [], scores: [[Double]] = [], boxes: [Box] = []
+  var k: [Double] = [], ks: [Double] = [], b: [Double] = []
+  for f in 0 ..< n {
+    kpts.append((0 ..< 26).map { Point(num(lk[f * 52 + $0 * 2]), num(lk[f * 52 + $0 * 2 + 1])) })
+    scores.append((0 ..< 26).map { num(ls[f * 26 + $0]) })
+    boxes.append((0 ..< 4).map { num(lb[f * 4 + $0]) })
+    for j in 0 ..< 26 { k.append(kpts[f][j].x); k.append(kpts[f][j].y) }
+    ks += scores[f]
+    b += boxes[f]
+  }
+  let path = cam.map { $0.map(num) }
+  var calls: [String: [String: [Any]]] = [
+    "select_lifter": ["\(poseKey):\(hanging ? "True" : "False")": [tup([nd([n, 26, 2], k), nd([n, 26], ks), nd([n, 4], b)])]],
+  ]
+  if !path.isEmpty { calls["camera_path"] = [poseKey: [path.map { nd([2, 3], $0) }]] }
+  return PoseRun(url: clip, poseKey: poseKey, hanging: hanging, outW: outW, people: people,
+                 lifter: LifterTrack(kpts: kpts, scores: scores, boxes: boxes), cameraPath: path, calls: calls, meta: meta)
 }

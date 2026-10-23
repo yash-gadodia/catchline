@@ -1,7 +1,7 @@
 // cv/catchline_cv/gym.py (hanging movements) and scipy.signal.find_peaks with prominence and distance.
 import { sustainedBelow } from './body';
 import { PhaseOut } from './phases';
-import { argmax, argmin, gradient, where } from './num';
+import { Pt, argmax, argmin, gradient, where } from './num';
 
 export const KIP_PHASES = ['arch', 'hollow', 'hip_drive', 'recovery'];
 
@@ -154,4 +154,48 @@ export function shouldersCutOff(shoYs: number[], height: number, edge = 0.03): b
   let m = Infinity;
   for (const v of shoYs) if (!Number.isNaN(v) && v < m) m = v;
   return m < edge * height;
+}
+
+// ---------------------------------------------------------------- kipping HSPU (gym.hspu_*)
+
+export const HSPU_PHASES = ['tuck', 'drive', 'press', 'lockout'];
+export type HspuEvents = { top0: number; bottom: number; tuck: number; drive: number; press: number; lockout: number; top1: number };
+
+// one kipping HSPU between two lockouts (shoulder-height peaks top0 and top1): bottom (shoulders lowest), tuck
+// (tightest hip), drive (fastest knee extension), press (fastest elbow extension), lockout (arms straight again)
+export function hspuEvents(shoH: number[], hipAng: number[], knee: number[], elbow: number[], top0: number, top1: number): HspuEvents {
+  const bottom = top0 + argmin(shoH.slice(top0, top1 + 1));
+  const tuck = top0 + argmin(hipAng.slice(top0, top1 + 1));
+  const s = Math.min(tuck, bottom);
+  const kv = gradient(knee);
+  const ev = gradient(elbow);
+  const drive = s + argmax(kv.slice(s, top1 + 1));
+  const press = bottom + argmax(ev.slice(bottom, top1 + 1));
+  const lk = where(elbow.slice(press, top1 + 1).map((v) => v >= 160));
+  const lockout = lk.length ? press + lk[0] : top1;
+  return { top0, bottom, tuck, drive, press, lockout, top1 };
+}
+
+export function hspuPhases(ev: HspuEvents): PhaseOut[] {
+  const b = [ev.top0, ev.drive, ev.press, ev.lockout, ev.top1];
+  for (let i = 1; i < b.length; i++) b[i] = Math.max(b[i], b[i - 1] + 1);
+  const spans: [number, number][] = [[b[0], b[1] - 1], [b[1], b[2] - 1], [b[2], b[3] - 1], [b[3], b[4]]];
+  return HSPU_PHASES.map((name, i) => ({ name, startFrame: spans[i][0], endFrame: Math.max(spans[i][0], spans[i][1]) }));
+}
+
+// seconds the press falls outside [0, windowS] after the leg drive; 0 inside the window
+export function timingError(drive: number, press: number, fps: number, windowS = 0.25): number {
+  const lag = (press - drive) / fps;
+  return Math.max(0.0, -lag, lag - windowS);
+}
+
+// signed distance of the hip from the shoulder-ankle chord, positive toward `away` (a unit x sign)
+export function chordOffset(sho: Pt, hip: Pt, ank: Pt, away: number): number {
+  const dx = ank[0] - sho[0];
+  const dy = ank[1] - sho[1];
+  const L = Math.hypot(dx, dy);
+  if (!L) return 0.0;
+  const nx = -dy / L;
+  const off = (hip[0] - sho[0]) * nx + (hip[1] - sho[1]) * (dx / L);
+  return Math.sign(nx) === Math.sign(away) || nx === 0 ? off : -off;
 }

@@ -1,9 +1,9 @@
 // cv/catchline_cv/pipeline.py after pose: the movement check, the snatch (and, via analyseRep, the clean) rep
 // measurement, the cue card and the withholding rules. Frames inside a rep are window indices unless named abs.
-import { cleanPullValues, hipAngles, kneeAngles, offSidePose, rackMask, scaleFromBody } from './body';
+import { MAX_YAW_DEG, cleanPullValues, hipAngles, kneeAngles, rackMask, scaleFromBody, yawFromBody } from './body';
 import { detect, Detected } from './detect';
 import { lowpass, lowpassPts } from './filter';
-import { angle, barFromWrists, dist, finitePt, fromRef, normalise, riseRatio, toRef, toWorld, trunkAngle } from './geometry';
+import { angle, barFromWrists, barTrack, dist, finitePt, fromRef, normalise, toRef, toWorld, trunkAngle } from './geometry';
 import {
   FAMILY,
   K,
@@ -30,6 +30,7 @@ import {
   lowpassK,
   mid,
   signals,
+  torsoPx,
   ys,
 } from './movement';
 import {
@@ -61,13 +62,16 @@ import {
   PhaseOut,
   SNATCH_PHASES,
   SnatchEvents,
+  StartClass,
   approachesCamera,
   catchDepth,
-  findReps,
+  findLifts,
+  hangPhases,
   keyFrames,
   plateFollowsBar,
   plateLiftoff,
   plateOnBar,
+  runs,
   segmentSnatch,
 } from './phases';
 import * as rules from './rules';
@@ -141,7 +145,6 @@ export type Ref = {
   Ms: Affine[];
   ksm: K;
   bar: Pt[];
-  plate_ref: Pt[];
   knee_ang: number[];
   hip_ang: number[];
   trunk: number[];
@@ -181,6 +184,7 @@ export type RepInfo = {
   ksm: K;
   scale_ok?: boolean;
   scale_method?: string;
+  start_class?: StartClass;
   cut_off?: boolean;
   bar_lost?: boolean;
   miss?: Miss;
@@ -194,14 +198,10 @@ export type SnatchExtras = {
   off_side_estimates: number[];
   span_cm: number | null;
   plates: Plate[];
-  depth_ratio: number | null;
   catch_depth: number;
   catch_depth_frame: number;
   catch_kind: string;
   catch_knee_min: number;
-  plate_tracked: number;
-  plate_lost_at: number | null;
-  plate_wrist_corr: number | null;
   peak_h: number;
   drop: number;
   turnover_s: number;
@@ -262,15 +262,19 @@ export function runSnatch(ctx: Ctx, forceReps?: [number, number, number][]): Res
   const wrH = up(ys(mid(k, L_WRI, R_WRI)));
   // overhead = the bar overhead, from the wrist that continues it: a far wrist parked low halves the midpoint's height
   const barH = up(ys(barFromWrists(col(k, L_WRI), col(k, R_WRI), 0.12 * nanmedian(ctx.boxes.map((b) => b[3] - b[1])))));
-  const found = findReps(lowpass(wrH, fps), lowpass(up(headY(k)), fps), lowpass(up(ys(mid(k, L_KNEE, R_KNEE))), fps), fps, 0.3, lowpass(barH, fps));
-  const reps = forceReps ?? found;
+  const headH = lowpass(up(headY(k)), fps);
+  const overhead = lowpass(barH, fps).map((v, i) => v > headH[i]);
+  const lifts = findLifts(runs(overhead, Math.max(1, Math.ceil(0.3 * fps - 1e-9))), lowpass(wrH, fps), lowpass(up(ys(mid(k, L_KNEE, R_KNEE))), fps),
+    lowpass(up(ys(mid(k, L_SHO, R_SHO))), fps), torsoPx(k), fps);
+  const reps = forceReps ?? lifts.map((l) => l.window);
+  const classes = forceReps ? reps.map((): StartClass => 'floor') : lifts.map((l) => l.startClass);
   const noLift = () => fail(ctx, 'unsupported_movement', 'no_reps', 'No floor-to-overhead lift found in this clip.');
   if (!reps.length) return noLift();
   const repInfo: RepInfo[] = [];
   const repCalls: (RepInfo | null | false)[] = [];
   let notLifts = 0;
   reps.forEach(([start, end], ri) => {
-    const info = analyseRep(ctx, start, end, ri + 1);
+    const info = analyseRep(ctx, start, end, ri + 1, 'snatch', classes[ri]);
     repCalls.push(info);
     if (info === false) notLifts += 1;
     if (info) repInfo.push(info);
@@ -292,9 +296,9 @@ export function runSnatch(ctx: Ctx, forceReps?: [number, number, number][]): Res
     endFrame: r.end,
     made: r.made,
     phases: r.phases,
-    keyFrames: SNATCH_PHASES.map((phase, pi) => ({
+    keyFrames: Object.entries(r.keys).map(([phase, frame], pi) => ({
       phase,
-      frame: r.keys[phase],
+      frame,
       image: `${ctx.assetPrefix}/r${r.index}-${pi + 1}-${phase}.jpg`,
     })),
     path: r.path,
@@ -307,6 +311,7 @@ export function runSnatch(ctx: Ctx, forceReps?: [number, number, number][]): Res
     cue,
     ...(noCue ? { noCueReason: noCue } : {}),
     notes: rules.notes('snatch', ruleReps(repInfo), cue),
+    ...liftTags(cueRep),
     measurements,
     failure: null,
   };
@@ -340,7 +345,14 @@ export const severityOf = (values: Values) => {
 
 const kSlice = (k: K, a: number, b: number) => k.slice(a, b);
 
-export function analyseRep(ctx: Ctx, start: number, end: number, repNo: number, kind: 'snatch' | 'clean' = 'snatch'): RepInfo | null | false {
+export function analyseRep(
+  ctx: Ctx,
+  start: number,
+  end: number,
+  repNo: number,
+  kind: 'snatch' | 'clean' = 'snatch',
+  startClass: StartClass = 'floor',
+): RepInfo | null | false {
   const { fps, H, W, n, input } = ctx;
   const source = input.source;
   const s0 = Math.max(0, start - int(2 * fps));
@@ -358,9 +370,7 @@ export function analyseRep(ctx: Ctx, start: number, end: number, repNo: number, 
   })();
   const ksm = lowpassK(kr, fps, 6.0);
   const handsOverlap = nanmedian(kr.map((r) => dist(r[L_WRI], r[R_WRI]))) < 0.15 * bodyH;
-  const bar: Pt[] = handsOverlap
-    ? lowpassPts(barFromWrists(col(kr, L_WRI), col(kr, R_WRI), 0.12 * bodyH), fps, 6.0)
-    : mid(ksm, L_WRI, R_WRI);
+  const bar: Pt[] = lowpassPts(barTrack(col(kr, L_WRI), col(kr, R_WRI), bodyH), fps, 6.0);
   const barY = ys(bar);
   const kneeAng = kneeAngles(ksm);
   const hipAng = hipAngles(ksm);
@@ -391,7 +401,8 @@ export function analyseRep(ctx: Ctx, start: number, end: number, repNo: number, 
   let kneePass = kneePassFrom(lo, ev.peak);
   if (kneePass !== null && !ev.double_knee_bend) [phases, ev] = seg({ kneePass });
 
-  // plates at setup -> scale + camera angle; near plate tracked through the pull
+  // plates on the setup frames only, a booster: a yaw estimate beside the body's, and the scale side-on when both
+  // plates' outlines hold and agree with the body; the body sizes everything else
   const seed = Math.max(0, lo - 3);
   const setupH = nanmedian(boxH(s0 + Math.max(0, lo - 24), s0 + lo + 1));
   const platesAt = (f: number): Plate[] => source.plates(s0 + f, kw[f][L_WRI], kw[f][R_WRI], bodyH, setupH).map((p) => ({ ...p }));
@@ -401,86 +412,42 @@ export function analyseRep(ctx: Ctx, start: number, end: number, repNo: number, 
   if (!plates.length && !bodyScale) return null;
   const samples: Plate[][] = [];
   if (plates.length) for (let f = Math.max(0, lo - 24); f < lo; f += 3) samples.push(platesAt(f));
-  let scaleOk = true;
   plates.forEach((pl, i) => {
     const fits = [plates, ...samples].filter((s) => s.length === plates.length && s[i].side === pl.side).map((s) => s[i]);
-    const [axes, diameter, refined] = plateDiameter(fits, bodyScale);
+    const [axes, diameter] = plateDiameter(fits, bodyScale);
     pl.axes = axes ?? pl.axes;
     pl.diameter_px = diameter ? diameter : Math.max(...pl.axes);
     pl.refined = fits.some((q) => q.fitInliers !== undefined);
-    scaleOk = scaleOk && (refined || i > 0);
   });
-  // another plate on the floor: it judges nothing (angle, follows-the-bar) and sizes nothing, the body does
+  // another plate on the floor: it judges nothing and sizes nothing, the body does
   const stray = plates.length > 0 && !plateOnBar(plates[0].centre[1], mid(kw, L_WRI, R_WRI)[seed][1], plates[0].diameter_px as number);
-  if (stray) {
-    for (const pl of plates) pl.refined = false;
-    scaleOk = false;
-  }
+  if (stray) for (const pl of plates) pl.refined = false;
   const near = plates.length ? plates[0] : null;
-  const scaleNear = near ? (near.diameter_px as number) / PLATE_CM : NaN;
   const far = plates.length > 1 ? plates[1] : null;
-  let pxPerCm = NaN;
-  let scaleMethod = '';
-  let spanCm: number | null = null;
-  let offEst: number[];
-  if (near === null) {
-    offEst = [];
-    scaleOk = false;
-  } else if (far !== null) {
-    const scaleFar = (far.diameter_px as number) / PLATE_CM;
-    pxPerCm = 2 / (1 / scaleNear + 1 / scaleFar);
-    spanCm = dist(near.centre, far.centre) / pxPerCm;
-    const spanOff = near.refined && far.refined ? [degrees(Math.asin(clip(spanCm / PLATE_SPAN_CM, 0, 1)))] : [];
-    offEst = [...spanOff, ...ellipseAngles(plates)];
-    scaleMethod = 'harmonic mean of near and far plates';
-  } else offEst = ellipseAngles(plates);
-  // side-on the hands overlap; a plate read within 10 deg of side-on with them a grip apart is not the lifter's
-  if (offEst.length && !handsOverlap && max(offEst) < rules.ANGLE_ERR_DEG) offEst = [];
-  if (!offEst.length) {
-    const poseOff = offSidePose(kw);
-    offEst = poseOff !== null ? [poseOff] : [];
-  }
-  const offSide = offEst.length ? median(offEst) : 0.0;
-  const foreshort = 1 / Math.cos(radians(offSide));
-  const plateRaw: Pt[] = near ? source.trackPlate(s0, L, seed, near, null).centres : kw.map(() => [NaN, NaN]);
-  const plateRef = toRef(plateRaw, Ms);
-  if (near) {
-    // the track re-locks onto a static patch when the plate leaves its search window; a plate on the bar cannot drop
-    // a tenth of its diameter while the bar rises
-    const d = near.diameter_px as number;
-    for (let f = lo; f < ev.peak; f++) {
-      if (plateRef[f + 1][1] - plateRef[f][1] > 0.1 * d && barY[f + 1] - barY[f] < -0.05 * d) {
-        for (let q = f + 1; q < L; q++) plateRef[q] = [NaN, NaN];
-        break;
-      }
-    }
-  }
-  const plateY = ys(plateRef);
-  const plateLo = near ? plateLiftoff(plateY.slice(0, ev.second_ext), lo, near.axes[0]) : null;
-  if (plateLo !== null && plateLo > lo) {
-    [phases, ev] = seg({ liftoff: plateLo });
-    lo = ev.liftoff;
-    kneePass = kneePassFrom(lo, ev.peak);
-    if (kneePass !== null && !ev.double_knee_bend) [phases, ev] = seg({ kneePass, liftoff: plateLo });
-  }
   const shin = kw.map((r) => nanmean([dist(r[L_KNEE], r[L_ANK]), dist(r[R_KNEE], r[R_ANK])]));
-  if (notALift(near, plateY, barY, shin, lo, ev.peak)) return false;
-  let depthRatio: number | null = null;
-  if (near !== null && far === null) {
-    const pullEnd = Math.min(ev.second_ext, L - 1);
-    const win = plateY.slice(lo, pullEnd + 1);
-    const rise = finite(plateY[pullEnd]) ? -(plateY[pullEnd] - plateY[lo]) : nanmax(win) - nanmin(win);
-    depthRatio = rise > 0.5 * near.axes[0] ? riseRatio(win, barY.slice(lo, pullEnd + 1)) : null;
-    [pxPerCm, scaleMethod] = nearBarScale(scaleNear, depthRatio, bodyScale);
+  if (approachesCamera(shin, lo, ev.peak) || ev.peak <= lo) return false;
+  const bothFit = near !== null && far !== null && Boolean(near.refined) && Boolean(far.refined);
+  const plateScale = bothFit ? 2 / (PLATE_CM / (near.diameter_px as number) + PLATE_CM / (far.diameter_px as number)) : null;
+  const spanCm = plateScale ? dist(near!.centre, far!.centre) / plateScale : null;
+  let plateYaw = [...(spanCm !== null ? [degrees(Math.asin(clip(spanCm / PLATE_SPAN_CM, 0, 1)))] : []), ...ellipseAngles(plates)];
+  // side-on the hands overlap; a plate read within 10 deg of side-on with them a grip apart is not the lifter's
+  if (plateYaw.length && !handsOverlap && max(plateYaw) < rules.ANGLE_ERR_DEG) plateYaw = [];
+  const bodyYaw = yawFromBody(kw, lo, Math.min(ev.second_ext, L - 1));
+  const offEst = [...(bodyYaw !== null ? [bodyYaw] : []), ...plateYaw];
+  const offSide = offEst.length ? clip(median(offEst), 0, MAX_YAW_DEG) : 0.0;
+  const foreshort = 1 / Math.cos(radians(offSide));
+  let pxPerCm = bodyScale ?? NaN;
+  let scaleMethod = 'body segments';
+  let scaleOk = bodyScale !== null;
+  if (plateScale !== null && offSide <= 20 && (!bodyScale || (SCALE_VS_BODY[0] <= plateScale / bodyScale && plateScale / bodyScale <= SCALE_VS_BODY[1]))) {
+    pxPerCm = plateScale;
+    scaleMethod = 'harmonic mean of near and far plates';
+    scaleOk = true;
+  } else if (!bodyScale && near) {
+    pxPerCm = (near.diameter_px as number) / PLATE_CM;
+    scaleMethod = 'near plate only (no body scale)';
   }
-  if (near === null) {
-    pxPerCm = bodyScale as number;
-    scaleMethod = 'body segments (no plate found)';
-  } else [pxPerCm, scaleMethod, scaleOk] = checkScale(pxPerCm, scaleMethod, scaleOk, scaleNear, bodyScale);
-  if (stray && bodyScale) {
-    pxPerCm = bodyScale;
-    scaleMethod = "body segments (plate not on the lifter's bar)";
-  }
+  if (!Number.isFinite(pxPerCm)) return null;
 
   const toes = mid(ksm, L_BIGTOE, R_BIGTOE);
   const heels = mid(ksm, L_HEEL, R_HEEL);
@@ -525,6 +492,7 @@ export function analyseRep(ctx: Ctx, start: number, end: number, repNo: number, 
     kneeAng,
     ev.caught,
     depthEnd,
+    65.0 + rules.openAngleDeg(offSide, 65.0),
   );
   const valsDepth = cm(depthPx);
   if (kind === 'snatch') {
@@ -538,6 +506,8 @@ export function analyseRep(ctx: Ctx, start: number, end: number, repNo: number, 
     vals.jump_back_excessive = -(vals.jump_forward as number) - Math.max(0.0, -barDx);
     detail.jump_back_excessive = { frame: ev.caught, from: feetFrom, to: feetTo };
   }
+  // no first pull from the hang or blocks: the floor-start rules judge nothing (design 4.3)
+  if (startClass !== 'floor') for (const f of ['hips_rise_early', 'hips_too_low_at_start', 'shoulders_behind_bar_at_start']) if (f in vals) vals[f] = null;
   const peakH = cm(bar[lo][1] - bar[ev.peak][1]);
   const drop = cm(bar[ev.caught][1] - bar[ev.peak][1]);
   const turnoverS = (ev.caught - ev.second_ext) / fps;
@@ -546,23 +516,12 @@ export function analyseRep(ctx: Ctx, start: number, end: number, repNo: number, 
     const d = cd.early_arm_bend;
     vals.early_arm_bend = armBendValue(cv.early_arm_bend, d.from_frame, d.to_frame, lo);
     detail.early_arm_bend = d;
-    const [tv, td] = turnoverValues(ev, elbow, drop, fps);
+    const [tv, td] = turnoverValues(ev, elbow, drop, fps, 1.0, 150.0 + 0.25 * offSide);
     Object.assign(vals, tv);
     Object.assign(detail, td);
   }
   const head = headY(ksm);
   const standingH = cm(nanmax(ank.map((p, i) => p[1] - head[i]))) + 12.0;
-
-  const pullHi = Math.min(ev.second_ext, L - 1);
-  const pull: number[] = [];
-  for (let f = lo; f <= pullHi; f++) pull.push(f);
-  const okp = pull.map((f) => finite(plateY[f]));
-  let agree: number | null = null;
-  if (okp.filter(Boolean).length > 5) {
-    const pv = gradient(lowpass(pull.map((f) => plateY[f]), fps)).filter((_, i) => okp[i]);
-    const wv = gradient(pull.map((f) => barY[f])).filter((_, i) => okp[i]);
-    agree = corrcoef(pv, wv);
-  }
 
   let made = ev.recovered < L - 1 && max(kneeAng.slice(ev.recovered, ev.recovered + int(0.5 * fps) + 1)) > 150;
 
@@ -603,22 +562,23 @@ export function analyseRep(ctx: Ctx, start: number, end: number, repNo: number, 
   for (let f = phases[0].startFrame; f < L; f++) if (f <= ev.recovered) path.push({ frame: g(f), ...normalise(fromRef(bar[f], Ms[f]), W, H) });
   const sp = peakUpSpeed(barY, fps, pxPerCm, ev.liftoff, ev.caught);
   const barLost = kind === 'snatch' && bar[ev.peak][1] > sho[ev.peak][1];
-  const finiteIdx = where(plateRaw.map((p) => finite(p[0])));
   const catchEnd = Math.max(ev.caught, depthEnd);
   const events: Record<string, number | boolean> = {};
   for (const [kk, v] of Object.entries(ev)) events[kk] = typeof v === 'boolean' ? v : g(v);
   const keys: Record<string, number> = {};
-  for (const [kk, v] of Object.entries(keyFrames(ev))) keys[kk] = g(v);
+  const [outPhases, outKeys] = startClass === 'floor' ? [phases, keyFrames(ev)] : hangPhases(phases, ev, barY, torsoPx(kw), fps);
+  for (const [kk, v] of Object.entries(outKeys)) keys[kk] = g(v);
   return {
     rep_no: repNo,
     start: g(phases[0].startFrame),
     end: g(ev.recovered),
     made,
-    phases: phases.map((p) => ({ ...p, startFrame: g(p.startFrame), endFrame: g(p.endFrame) })),
+    phases: outPhases.map((p) => ({ ...p, startFrame: g(p.startFrame), endFrame: g(p.endFrame) })),
     keys,
     events,
     path,
     values: vals,
+    start_class: startClass,
     detail,
     px_per_cm: pxPerCm,
     off_side_deg: offSide,
@@ -639,14 +599,10 @@ export function analyseRep(ctx: Ctx, start: number, end: number, repNo: number, 
       off_side_estimates: offEst,
       span_cm: spanCm,
       plates,
-      depth_ratio: depthRatio,
       catch_depth: valsDepth,
       catch_depth_frame: g(depthF),
       catch_kind: catchKind,
       catch_knee_min: min(kneeAng.slice(ev.caught, catchEnd + 1)),
-      plate_tracked: finiteIdx.length,
-      plate_lost_at: finiteIdx.length ? g(max(finiteIdx)) : null,
-      plate_wrist_corr: agree,
       peak_h: peakH,
       drop,
       turnover_s: turnoverS,
@@ -654,7 +610,7 @@ export function analyseRep(ctx: Ctx, start: number, end: number, repNo: number, 
       bar_speed: sp ? [sp[0], g(sp[1])] : null,
       hands_overlap: handsOverlap,
       stab_inliers_min: inliers.length ? int(min(inliers)) : 0,
-      ref: { s0, Ms, ksm, bar, plate_ref: plateRef, knee_ang: kneeAng, hip_ang: hipAng, trunk, hip, sho, ank, elbow, lo, contact, knee_pass: kneePass, rack },
+      ref: { s0, Ms, ksm, bar, knee_ang: kneeAng, hip_ang: hipAng, trunk, hip, sho, ank, elbow, lo, contact, knee_pass: kneePass, rack },
     },
   };
 }
@@ -664,13 +620,14 @@ export function armBendValue(value: number, brk: number, hipFull: number, lo: nu
   return value;
 }
 
-export function turnoverValues(ev: SnatchEvents, elbow: number[], dropCm: number, fps: number, maxS = 1.0): [Values, Record<string, Detail>] {
+// lockDeg: the elbow lockout angle, 150 side-on; off side-on a bent elbow reads more open (design 3.1: 150 + 0.25 x yaw)
+export function turnoverValues(ev: SnatchEvents, elbow: number[], dropCm: number, fps: number, maxS = 1.0, lockDeg = 150.0): [Values, Record<string, Detail>] {
   const vals: Values = { slow_turnover: null, bar_crash: null };
   const det: Record<string, Detail> = {
     slow_turnover: { frame: ev.caught, from_frame: ev.second_ext },
     bar_crash: { frame: ev.caught, from_frame: ev.peak },
   };
-  if (!(elbow[ev.caught] >= 150) || ev.second_ext - ev.rebend < MIN_PHASE || ev.peak - ev.second_ext < MIN_PHASE) return [vals, det];
+  if (!(elbow[ev.caught] >= lockDeg) || ev.second_ext - ev.rebend < MIN_PHASE || ev.peak - ev.second_ext < MIN_PHASE) return [vals, det];
   // the turnover ends at the first lockout after the elbows' deepest bend under the bar (3-frame medians), not
   // always at the catch: the arms can lock while the bar still rises
   let lock = ev.caught;
@@ -680,8 +637,8 @@ export function turnoverValues(ev: SnatchEvents, elbow: number[], dropCm: number
     const bend: number[] = [];
     for (let i = 0; i + 2 < seg.length; i++) bend.push(median([seg[i], seg[i + 1], seg[i + 2]]));
     const deepest = a + argmin(bend);
-    const relock = where(elbow.slice(deepest, lock).map((v) => v >= 150));
-    if (min(bend) < 150 && relock.length) {
+    const relock = where(elbow.slice(deepest, lock).map((v) => v >= lockDeg));
+    if (min(bend) < lockDeg && relock.length) {
       lock = deepest + relock[0];
       det.slow_turnover.frame = lock;
     }
@@ -886,6 +843,12 @@ function buildCue(r: RepInfo, reps: RepInfo[], best: RepInfo, W: number, H: numb
     },
   };
   return [meas, cue];
+}
+
+// the lift record's tags the phone syncs (sync_lift: start_class, yaw_bucket)
+export function liftTags(r: RepInfo): { startClass?: StartClass; yawBucket?: string } {
+  const yaw = rules.yawBucket(r.off_side_deg);
+  return { ...(r.start_class ? { startClass: r.start_class } : {}), ...(yaw ? { yawBucket: yaw } : {}) };
 }
 
 const OUTCOMES = new Set(['missed_forward', 'missed_behind', 'missed', 'jerk_forward', 'jerk_back', 'could_not_stand']);

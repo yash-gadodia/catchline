@@ -1,9 +1,9 @@
 // cv/catchline_cv/lifts.py: the clean (on the snatch's analyseRep), the jerk and the hanging gymnastics movements.
 // The kipping HSPU is not ported.
-import { HANG_HIP_W, elbows, facing, hipAngles, kneeAngles, offSidePose, pyMin, rackMask, scaleFromBody } from './body';
+import { HANG_HIP_W, elbows, facing, hipAngles, kneeAngles, offSidePose, pyMin, rackMask, scaleFromBody, yawFromBody } from './body';
 import { lowpass, lowpassPts } from './filter';
-import { barFromWrists, dist, finitePt, fromRef, normalise, toRef, trunkAngle1 } from './geometry';
-import { bmuEvents, bmuPhases, cycleTops, kipEvents, kipPhases, mergeCycles, pushAway } from './gym';
+import { barTrack, dist, finitePt, fromRef, normalise, toRef, trunkAngle1 } from './geometry';
+import { bmuEvents, bmuPhases, chordOffset, cycleTops, hspuEvents, hspuPhases, kipEvents, kipPhases, mergeCycles, pushAway, timingError } from './gym';
 import {
   JOINTS,
   K,
@@ -48,7 +48,7 @@ import {
   where,
 } from './num';
 import { speedMeasurement } from './outcome';
-import { PhaseOut, findJerkReps, findRackReps, jerkKeyFrames, segmentJerk } from './phases';
+import { PhaseOut, StartClass, findJerkReps, findLifts, jerkKeyFrames, runs, segmentJerk } from './phases';
 import {
   AnalysisJson,
   CueCard,
@@ -64,6 +64,7 @@ import {
   bestRep,
   fail,
   KEYFRAME_H,
+  liftTags,
   maxBy,
   missBehindCard,
   ruleDetail,
@@ -85,7 +86,7 @@ function loadWindow(ctx: Ctx, s0: number, e0: number): Window {
   return { L, kw, kr, ksm: lowpassK(kr, ctx.fps, 6.0), Ms, bodyH };
 }
 
-function writeOut(ctx: Ctx, repInfo: RepInfo[]): Result {
+function writeOut(ctx: Ctx, repInfo: RepInfo[], tag = 'r'): Result {
   const movement = ctx.movement;
   const best = bestRep(repInfo);
   repInfo.forEach((r, i) => (r.index = i + 1));
@@ -97,7 +98,7 @@ function writeOut(ctx: Ctx, repInfo: RepInfo[]): Result {
     endFrame: r.end,
     made: r.made,
     phases: r.phases,
-    keyFrames: Object.entries(r.keys).map(([phase, f], pi) => ({ phase, frame: f, image: `${ctx.assetPrefix}/r${r.index}-${pi + 1}-${phase}.jpg` })),
+    keyFrames: Object.entries(r.keys).map(([phase, f], pi) => ({ phase, frame: f, image: `${ctx.assetPrefix}/${tag}${r.index}-${pi + 1}-${phase}.jpg` })),
     path: r.path,
   }));
   const analysis: AnalysisJson = {
@@ -108,6 +109,7 @@ function writeOut(ctx: Ctx, repInfo: RepInfo[]): Result {
     cue,
     ...(noCue ? { noCueReason: noCue } : {}),
     notes: rules.notes(movement, ruleReps(repInfo), cue),
+    ...liftTags(cueRep),
     measurements,
     failure: null,
   };
@@ -314,15 +316,17 @@ function runClean(ctx: Ctx, forceReps?: [number, number, number][]): Result {
   const up = (y: number[]) => y.map((v) => H - v);
   const wr = mid(k, L_WRI, R_WRI);
   const rack = rackMask(lowpassK(k, fps), lowpassPts(wr, fps), fps);
-  const found = findRackReps(lowpass(up(ys(wr)), fps), lowpass(up(ys(mid(k, L_KNEE, R_KNEE))), fps), rack, fps);
-  const reps = forceReps ?? found;
+  const lifts = findLifts(runs(rack, Math.max(1, int(0.3 * fps))), lowpass(up(ys(wr)), fps), lowpass(up(ys(mid(k, L_KNEE, R_KNEE))), fps),
+    lowpass(up(ys(mid(k, L_SHO, R_SHO))), fps), torsoPx(k), fps);
+  const reps = forceReps ?? lifts.map((l) => l.window);
+  const classes = forceReps ? reps.map((): StartClass => 'floor') : lifts.map((l) => l.startClass);
   const noClean = () => fail(ctx, 'unsupported_movement', 'no_reps', 'No clean found: the bar never went from the floor to a front-rack hold.');
   if (!reps.length) return noClean();
   const infos: RepInfo[] = [];
   const repCalls: (RepInfo | null | false)[] = [];
   let notLifts = 0;
   reps.forEach(([start, end], ri) => {
-    const r = analyseRep(ctx, start, end, ri + 1, 'clean');
+    const r = analyseRep(ctx, start, end, ri + 1, 'clean', classes[ri]);
     repCalls.push(r);
     if (r === false) notLifts += 1;
     if (r) infos.push(cleanInfo(r));
@@ -330,7 +334,60 @@ function runClean(ctx: Ctx, forceReps?: [number, number, number][]): Result {
   if (!infos.length && notLifts) return { ...noClean(), repCalls };
   if (!infos.length)
     return { ...fail(ctx, 'bar_out_of_frame', 'no_plate', 'Could not find the plates at the start of the lift, so the bar could not be measured.'), repCalls };
-  return { ...writeOut(ctx, infos), repCalls };
+  if (forceReps) return { ...writeOut(ctx, infos), repCalls };
+  // a jerk from the rack within 8 s of a clean's catch makes the lift a clean & jerk (design 4.1)
+  const jerks = jerkWindows(ctx);
+  const used = new Set<number>();
+  const pairs: [RepInfo, [number, number, number]][] = [];
+  infos.forEach((r, i) => {
+    const [, end, hold] = reps[i];
+    const j = jerks.findIndex(([s, , a], ji) => !used.has(ji) && a > hold && s <= end + int(8 * ctx.fps));
+    if (j >= 0) {
+      used.add(j);
+      pairs.push([r, jerks[j]]);
+    }
+  });
+  if (!pairs.length) return { ...writeOut(ctx, infos), repCalls };
+  return { ...cleanAndJerk(ctx, infos, pairs), repCalls };
+}
+
+const SEGMENT_KEYS = ['reps', 'bestRepIndex', 'cue', 'noCueReason', 'notes', 'measurements', 'pxPerCm'];
+// the clean's faults that put the bar forward explain a forward jerk that follows
+const CLEAN_EXPLAINS_JERK: [string[], string[]] = [['bar_forward_off_hips', 'jump_forward'], ['forward_dip', 'bar_forward_overhead']];
+
+// One lift, two segments, one cue (design 4.1): each segment is measured on its own; the cue is the more severe
+// segment's, unless a clean fault explains the jerk's; the other segment's cue becomes a note.
+function cleanAndJerk(ctx: Ctx, cleans: RepInfo[], pairs: [RepInfo, [number, number, number]][]): Result {
+  const pxBody = scaleFromBody(ctx.k) ?? (pairs[0][0].px_per_cm as number);
+  const jerkInfos = pairs.map(([, [s, e]], i): RepInfo => ({ ...jerkRep(ctx, i + 1, s, e, pxBody), start_class: 'shoulders' }));
+  const clean = writeOut(ctx, cleans);
+  const jerk = writeOut({ ...ctx, movement: 'jerk' }, jerkInfos, 'j');
+  const sev = (res: Result) => {
+    const c = res.analysis.cue as CueCard | null;
+    if (!c) return -1;
+    return Math.max(0, ...res.reps.map((r) => rules.fired(rules.onScreen(r.values, r.off_side_deg))[c.faultId] ?? 0));
+  };
+  const cc = clean.analysis.cue as CueCard | null;
+  const jc = jerk.analysis.cue as CueCard | null;
+  const explains = cc !== null && jc !== null && CLEAN_EXPLAINS_JERK[0].includes(cc.faultId) && CLEAN_EXPLAINS_JERK[1].includes(jc.faultId);
+  const cleanWins = !jc || (cc !== null && (explains || sev(clean) >= sev(jerk)));
+  const [main, other] = cleanWins ? [clean, jerk] : [jerk, clean];
+  const otherCue = other.analysis.cue as CueCard | null;
+  const otherNote = otherCue
+    ? [{ faultId: otherCue.faultId, text: otherCue.text, why: otherCue.why, severity: rules.pyRound(Math.max(0, sev(other)), 2), reps: 1 }]
+    : [];
+  const segment = (kind: string, res: Result) => ({ kind, ...Object.fromEntries(SEGMENT_KEYS.filter((k) => k in res.analysis).map((k) => [k, res.analysis[k]])) });
+  const analysis: AnalysisJson = {
+    ...main.analysis,
+    movement: 'clean',
+    liftKind: 'clean_and_jerk',
+    notes: [...otherNote, ...((main.analysis.notes as unknown[]) ?? [])].slice(0, 3),
+    segments: [segment('clean', clean), segment('jerk', jerk)],
+    ...liftTags(cleans[0]),
+  };
+  const cue = analysis.cue as CueCard | null;
+  if (cue && pairs.some(([c], i) => c.made && !jerkInfos[i].made)) analysis.cue = { ...cue, why: `Clean made, jerk missed. ${cue.why}` };
+  return { analysis, reps: [...cleans, ...jerkInfos], repCalls: [] };
 }
 
 function cleanInfo(r: RepInfo): RepInfo {
@@ -390,7 +447,7 @@ function cleanInfo(r: RepInfo): RepInfo {
 
 // ---------------------------------------------------------------- jerk
 
-function runJerk(ctx: Ctx, forceReps?: [number, number, number][]): Result {
+function jerkWindows(ctx: Ctx): [number, number, number][] {
   const { k, fps, H } = ctx;
   const up = (y: number[]) => y.map((v) => H - v);
   const t = torsoPx(k);
@@ -399,16 +456,20 @@ function runJerk(ctx: Ctx, forceReps?: [number, number, number][]): Result {
   const hd = lowpass(up(headY(k, t)), fps);
   // a dip and drive take under a second, so a rack hold that began with the clean's catch is cut to 1.5 s before
   // the bar goes overhead
-  const found = findJerkReps(
+  return findJerkReps(
     wr.map((w, i) => Math.abs(w - sho[i]) < 0.35 * t),
     wr.map((w, i) => w > hd[i]),
     fps,
   ).map(([s, e, a]): [number, number, number] => [Math.max(s, a - int(1.5 * fps)), e, a]);
-  const reps = forceReps ?? found;
+}
+
+function runJerk(ctx: Ctx, forceReps?: [number, number, number][]): Result {
+  const { k } = ctx;
+  const reps = forceReps ?? jerkWindows(ctx);
   if (!reps.length) return fail(ctx, 'unsupported_movement', 'no_reps', 'No jerk found: the bar never went from the shoulders to overhead.');
   const pxBody = scaleFromBody(k);
   if (!pxBody) return fail(ctx, 'too_far', 'no_body_scale', "Could not measure the lifter's body to scale the clip.");
-  const infos = reps.map(([start, end], ri) => jerkRep(ctx, ri + 1, start, end, pxBody));
+  const infos = reps.map(([start, end], ri): RepInfo => ({ ...jerkRep(ctx, ri + 1, start, end, pxBody), start_class: 'shoulders' }));
   return { ...writeOut(ctx, infos), repCalls: infos };
 }
 
@@ -419,8 +480,7 @@ function jerkRep(ctx: Ctx, repNo: number, start: number, end: number, pxPerCm: n
   const w = loadWindow(ctx, s0, e0);
   const { ksm, kr, L } = w;
   const t = torsoPx(ksm);
-  const overlap = nanmedian(kr.map((r) => dist(r[L_WRI], r[R_WRI]))) < 0.15 * w.bodyH;
-  const bar = overlap ? lowpassPts(barFromWrists(col(kr, L_WRI), col(kr, R_WRI), 0.12 * w.bodyH), fps, 6.0) : mid(ksm, L_WRI, R_WRI);
+  const bar = lowpassPts(barTrack(col(kr, L_WRI), col(kr, R_WRI), w.bodyH), fps, 6.0);
   const kneeAng = kneeAngles(ksm);
   const el = fmax(...elbows(ksm));
   const o = start - s0;
@@ -433,7 +493,7 @@ function jerkRep(ctx: Ctx, repNo: number, start: number, end: number, pxPerCm: n
   const phases = ph.map((p) => ({ ...p, startFrame: p.startFrame + o, endFrame: p.endFrame + o }));
   const ev = Object.fromEntries(Object.entries(ev0).map(([kk, v]) => [kk, v + o])) as typeof ev0;
   const fwd = ev.leave > ev.dip_start ? facing(ksm.slice(ev.dip_start, ev.leave + 1)) : facing(ksm);
-  const off = offSidePose(ksm);
+  const off = yawFromBody(ksm, 0, L - 1);
   const fs = 1 / Math.cos(radians(pyMin(off === null || off === 0 ? 0.0 : off, 60.0)));
   const cm = (px: number) => px / pxPerCm;
   const sho = mid(ksm, L_SHO, R_SHO);
@@ -510,7 +570,6 @@ function jerkRep(ctx: Ctx, repNo: number, start: number, end: number, pxPerCm: n
 
 function runGym(ctx: Ctx, forceCycles?: [number, number, number][]): Result {
   const { movement, k, fps, H } = ctx;
-  if (movement === 'kipping_hspu') throw new Error('kipping_hspu is not ported to the device');
   const up = (y: number[]) => y.map((v) => H - v);
   const t = torsoPx(k);
   const sho = lowpass(up(ys(mid(ctx.world, L_SHO, R_SHO))), fps);
@@ -518,6 +577,19 @@ function runGym(ctx: Ctx, forceCycles?: [number, number, number][]): Result {
   if (!pxPerCm) return fail(ctx, 'too_far', 'no_body_scale', "Could not measure the athlete's body to scale the clip.");
   const wri = lowpass(up(ys(mid(ctx.world, L_WRI, R_WRI))), fps);
   const rel = sho.map((v, i) => v - wri[i]);
+  if (movement === 'kipping_hspu') {
+    // a rep bottoms out with the shoulders near the hands (head on the floor) and tops out arms-length above
+    const cyc = forceCycles ?? cycleTops(sho.map((v) => -v), t, fps, 0.3).filter((c) => rel[c[1]] < 0.4 * t);
+    const noReps = () => fail(ctx, 'unsupported_movement', 'no_reps', 'No handstand push-up reps found in this clip.');
+    if (!cyc.length) return noReps();
+    const infos: RepInfo[] = [];
+    cyc.forEach(([a, bottom, b], ri) => {
+      const r = hspuRep(ctx, ri + 1, a, bottom, b, pxPerCm);
+      if (r !== null) infos.push(r);
+    });
+    if (!infos.length) return noReps();
+    return { ...writeOut(ctx, infos), repCalls: infos };
+  }
   const el = lowpass(fmin(...elbows(k)), fps);
   const topMin = movement === 'kipping_pull_up' ? -0.35 * t : 0.2 * t;
   let cyc = cycleTops(sho, t, fps, 0.4).filter(
@@ -545,6 +617,70 @@ function runGym(ctx: Ctx, forceCycles?: [number, number, number][]): Result {
   });
   if (!infos.length) return fail(ctx, 'unsupported_movement', 'no_reps', `No ${name} reps found in this clip.`);
   return { ...writeOut(ctx, infos), repCalls: infos };
+}
+
+function hspuRep(ctx: Ctx, repNo: number, top0: number, bottom: number, top1: number, pxPerCm: number): RepInfo | null {
+  const { fps, n } = ctx;
+  const s0 = Math.max(0, top0 - int(0.3 * fps));
+  const e0 = Math.min(n, top1 + int(0.3 * fps) + 1);
+  const w = loadWindow(ctx, s0, e0);
+  const { ksm, L } = w;
+  const T0 = top0 - s0;
+  const T1 = Math.min(top1 - s0, L - 1);
+  const sho = mid(ksm, L_SHO, R_SHO);
+  const hip = mid(ksm, L_HIP, R_HIP);
+  const ank = mid(ksm, L_ANK, R_ANK);
+  const wri = mid(ksm, L_WRI, R_WRI);
+  const knee = mid(ksm, L_KNEE, R_KNEE);
+  const inverted = ank.map((p, i) => p[1] < sho[i][1]);
+  const inv = inverted.slice(T0, T1 + 1);
+  if (inv.filter(Boolean).length / inv.length < 0.5) return null;
+  const wallDir = nanmedian(ank.flatMap((p, i) => (inverted[i] ? [p[0] - wri[i][0]] : []))) >= 0 ? 1.0 : -1.0;
+  const hipAng = hipAngles(ksm);
+  const kneeAng = kneeAngles(ksm);
+  const el = fmax(...elbows(ksm));
+  const ev = hspuEvents(sho.map((p) => -p[1]), hipAng, kneeAng, el, T0, T1);
+  const off = offSidePose(ksm);
+  const fs = 1 / Math.cos(radians(pyMin(off ?? 0.0, 60.0)));
+  const cm = (px: number) => px / pxPerCm;
+  const lk = ev.lockout;
+  const vals: Values = {};
+  const det: Record<string, Detail> = {};
+  vals.hspu_banana = cm(chordOffset(sho[lk], hip[lk], ank[lk], -wallDir)) * fs;
+  det.hspu_banana = { frame: lk, from: [(sho[lk][0] + ank[lk][0]) / 2, (sho[lk][1] + ank[lk][1]) / 2], to: hip[lk], caption: `hips ${pyFixed(vals.hspu_banana, 0)} cm off line` };
+  // how far the knees stayed above the hips at the deepest tuck before the kick
+  const b_ = Math.max(T0, ev.drive);
+  const gap: number[] = [];
+  for (let f = T0; f <= b_; f++) gap.push(-(knee[f][1] - hip[f][1]));
+  const tf = T0 + nanargmin(gap);
+  vals.hspu_kip_timing = cm(gap[tf - T0]);
+  det.hspu_kip_timing = { frame: tf, from: hip[tf], to: knee[tf], caption: `knees ${pyFixed(vals.hspu_kip_timing, 0)} cm above hips` };
+  const timing = timingError(ev.drive, ev.press, fps);
+  const extra: MeasRow[] = [
+    { id: 'lockout_elbow', label: 'Lockout elbow', value: pyRound(el[lk], 1), unit: 'deg', frame: s0 + lk, status: 'normal', note: 'standard: arms straight at the top (≥160°)' },
+    { id: 'tuck_hip', label: 'Tuck', value: pyRound(hipAng[ev.tuck], 1), unit: 'deg', frame: s0 + ev.tuck, status: 'normal', note: 'tightest hip angle before the drive (<90° = full tuck)' },
+    {
+      id: 'drive_press',
+      label: 'Drive to press',
+      value: pyRound((ev.press - ev.drive) / fps, 2),
+      unit: 's',
+      frame: s0 + ev.press,
+      status: 'normal',
+      note: 'press after the leg drive; 0 to 0.25 s is in time' + (timing === 0 ? '' : ` (${pyFixed(timing, 2)} s outside)`),
+    },
+    {
+      id: 'bottom_depth',
+      label: 'Shoulders above hands at bottom',
+      value: pyRound(cm(wri[ev.bottom][1] - sho[ev.bottom][1]), 1),
+      unit: 'cm',
+      frame: s0 + ev.bottom,
+      status: 'normal',
+      note: 'smaller = deeper (head to the floor)',
+    },
+  ];
+  const phases = hspuPhases(ev);
+  const keys = { tuck: ev.tuck, drive: ev.drive, press: ev.press, lockout: lk };
+  return repInfo(ctx, repNo, s0, w, hip, phases, keys, { ...ev }, vals, det, extra, pxPerCm, off, el[lk] >= 160, T1, wallDir);
 }
 
 function hangRep(ctx: Ctx, repNo: number, a: number, top: number, b: number, pxPerCm: number, last: boolean): RepInfo | null {
