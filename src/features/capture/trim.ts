@@ -1,6 +1,12 @@
+import { maxDurationS } from './compress';
+
 export type Trim = { start: number; end: number };
 
 export const MIN_TRIM_S = 1;
+// One tap of ‹ or ›: about three frames at 30 fps.
+export const NUDGE_S = 0.1;
+// Past this a clip is more than one lift: still analysable, just slower and less sharp.
+export const LONG_FOR_ONE_LIFT_S = 20;
 
 export function fullTrim(durationS: number): Trim {
   return { start: 0, end: durationS };
@@ -10,6 +16,25 @@ export function moveHandle(trim: Trim, handle: 'start' | 'end', t: number, durat
   const min = Math.min(MIN_TRIM_S, durationS);
   if (handle === 'start') return { start: clamp(t, 0, trim.end - min), end: trim.end };
   return { start: trim.start, end: clamp(t, trim.start + min, durationS) };
+}
+
+// Dragging the middle of the selection moves it whole, keeping its length.
+export function slideTrim(trim: Trim, dt: number, durationS: number): Trim {
+  const len = trim.end - trim.start;
+  const start = round2(clamp(trim.start + dt, 0, Math.max(durationS - len, 0)));
+  return { start, end: round2(start + len) };
+}
+
+export function nudgeHandle(trim: Trim, handle: 'start' | 'end', direction: 1 | -1, durationS: number): Trim {
+  const next = moveHandle(trim, handle, trim[handle] + direction * NUDGE_S, durationS);
+  return { start: round2(next.start), end: round2(next.end) };
+}
+
+// too_long would fail after preparing (prepareClip's ClipTooLongError), so it is caught here instead.
+export function trimProblem(trim: Trim, maxS: number = maxDurationS()): 'too_long' | 'long' | null {
+  const len = trimLength(trim);
+  if (len > maxS) return 'too_long';
+  return len > LONG_FOR_ONE_LIFT_S ? 'long' : null;
 }
 
 export function trimLength(trim: Trim): number {
@@ -35,6 +60,10 @@ export function trimClock(t: number): string {
   const m = Math.floor(tenths / 600);
   const s = Math.floor((tenths % 600) / 10);
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${tenths % 10}`;
+}
+
+function round2(v: number): number {
+  return Math.round(v * 100) / 100;
 }
 
 function clamp(v: number, lo: number, hi: number): number {

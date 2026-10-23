@@ -70,5 +70,12 @@ export const capture = {
   'capture.trim.cancel': "Cancel",
   'capture.trim.done': "Done",
   'capture.trim.reps': { one: "{count} rep", other: "{count} reps" },
-  'capture.trim.help': "Keep a second before the first rep and after the last. We'll find the reps inside.",
+  'capture.trim.help': "Drag the edges to trim, or the middle to move it. ‹ and › step a tenth of a second. Keep a second before the first rep and after the last.",
+  'capture.trim.window': "Trim window. Drag to move it.",
+  'capture.trim.startLabel': "Trim start",
+  'capture.trim.endLabel': "Trim end",
+  'capture.trim.earlier': "Earlier",
+  'capture.trim.later': "Later",
+  'capture.trim.long': "Long for one lift. Trim to just the lift for a faster, sharper read.",
+  'capture.trim.tooLong': "Too long to analyse. Trim to {max} s or less.",
 } as const;

@@ -73,5 +73,20 @@ export const capture: Strings<typeof en> = {
   'capture.trim.cancel': "Abbrechen",
   'capture.trim.done': "Fertig",
   'capture.trim.reps': { one: "{count} Wiederholung", other: "{count} Wiederholungen" },
-  'capture.trim.help': "Lass eine Sekunde vor der ersten und nach der letzten Wiederholung. Die Wiederholungen darin finden wir.",
+  // REVIEW
+  'capture.trim.help': "Zieh die Ränder zum Schneiden oder die Mitte zum Verschieben. ‹ und › springen eine Zehntelsekunde. Lass eine Sekunde vor der ersten und nach der letzten Wiederholung.",
+  // REVIEW
+  'capture.trim.window': "Schnittbereich. Zum Verschieben ziehen.",
+  // REVIEW
+  'capture.trim.startLabel': "Schnittanfang",
+  // REVIEW
+  'capture.trim.endLabel': "Schnittende",
+  // REVIEW
+  'capture.trim.earlier': "Früher",
+  // REVIEW
+  'capture.trim.later': "Später",
+  // REVIEW
+  'capture.trim.long': "Lang für einen Lift. Schneide auf den Lift zu, dann geht es schneller und genauer.",
+  // REVIEW
+  'capture.trim.tooLong': "Zu lang für die Analyse. Kürze auf {max} s oder weniger.",
 };

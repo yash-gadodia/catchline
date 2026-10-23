@@ -6,7 +6,7 @@ import { repOptions, setStrip, DEMO_SETS } from './sets';
 import { bytesPerSecond, secondsLeft } from './storage';
 import { activeTrim, withTrim } from './store';
 import { parseWeight, submitClip, toSubmission } from './submit';
-import { loopTime, moveHandle, timeToX, trimClock, xToTime } from './trim';
+import { loopTime, moveHandle, nudgeHandle, slideTrim, timeToX, trimClock, trimProblem, xToTime } from './trim';
 
 jest.mock('expo-file-system', () => ({ File: jest.fn(), Paths: { availableDiskSpace: 0 } }));
 
@@ -82,6 +82,27 @@ describe('trim', () => {
     expect(moveHandle(t, 'start', 7.5, 8)).toEqual({ start: 6.6, end: 7.6 });
     expect(moveHandle(t, 'end', 20, 8)).toEqual({ start: 1.4, end: 8 });
     expect(moveHandle(t, 'end', 1, 8)).toEqual({ start: 1.4, end: 2.4 });
+  });
+
+  it('slides the whole selection, keeping its length, inside the clip', () => {
+    const t = { start: 1.4, end: 7.6 };
+    expect(slideTrim(t, 1, 10)).toEqual({ start: 2.4, end: 8.6 });
+    expect(slideTrim(t, 5, 10)).toEqual({ start: 3.8, end: 10 });
+    expect(slideTrim(t, -3, 10)).toEqual({ start: 0, end: 6.2 });
+  });
+
+  it('nudges a handle a tenth of a second, still 1 s apart and inside the clip', () => {
+    const t = { start: 1.4, end: 7.6 };
+    expect(nudgeHandle(t, 'start', 1, 8)).toEqual({ start: 1.5, end: 7.6 });
+    expect(nudgeHandle(t, 'end', -1, 8)).toEqual({ start: 1.4, end: 7.5 });
+    expect(nudgeHandle({ start: 0, end: 8 }, 'start', -1, 8)).toEqual({ start: 0, end: 8 });
+    expect(nudgeHandle({ start: 6.95, end: 8 }, 'start', 1, 8)).toEqual({ start: 7, end: 8 });
+  });
+
+  it('flags a trim longer than one lift, and one too long to analyse', () => {
+    expect(trimProblem({ start: 0, end: 12 }, 86)).toBeNull();
+    expect(trimProblem({ start: 0, end: 25 }, 86)).toBe('long');
+    expect(trimProblem({ start: 0, end: 90 }, 86)).toBe('too_long');
   });
 
   it('loops playback inside the trim', () => {

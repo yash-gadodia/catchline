@@ -7,7 +7,8 @@ import ClipPlayer, { clipThumbs } from './ClipPlayer';
 import { Header, Underlined } from './hud';
 import { activeTrim, type Clip } from './store';
 import Trimmer from './Trimmer';
-import type { Trim } from './trim';
+import { trimProblem, type Trim } from './trim';
+import { maxDurationS } from './compress';
 import { t } from '../../i18n';
 
 export default function TrimScreen({
@@ -23,6 +24,7 @@ export default function TrimScreen({
   const insets = useSafeAreaInsets();
   const [trim, setTrim] = useState<Trim>(activeTrim(clip));
   const [seek, setSeek] = useState<number | undefined>(undefined);
+  const problem = trimProblem(trim);
   const reps = clip.repsFound ? t('capture.trim.reps', { count: clip.repsFound }) : '';
 
   return (
@@ -30,7 +32,11 @@ export default function TrimScreen({
       <Header
         left={<Underlined onPress={onCancel} testID="trim-cancel">{t('capture.trim.cancel')}</Underlined>}
         center={<Text style={{ color: colors.text, ...type.button }}>{t('capture.trim.title')}</Text>}
-        right={<Underlined onPress={() => onDone(trim)} testID="trim-done">{t('capture.trim.done')}</Underlined>}
+        right={
+          problem === 'too_long' ? null : (
+            <Underlined onPress={() => onDone(trim)} testID="trim-done">{t('capture.trim.done')}</Underlined>
+          )
+        }
       />
       <ClipPlayer
         uri={clip.uri}
@@ -50,6 +56,11 @@ export default function TrimScreen({
           onChange={setTrim}
           onDrag={(handle, t) => setSeek(handle ? t : undefined)}
         />
+        {problem ? (
+          <Text testID="trim-problem" style={{ color: problem === 'too_long' ? colors.flare : colors.text2, ...type.callout, paddingTop: space.s3 }}>
+            {problem === 'too_long' ? t('capture.trim.tooLong', { max: maxDurationS() }) : t('capture.trim.long')}
+          </Text>
+        ) : null}
       </View>
       <View style={{ flex: 1 }} />
       <Text

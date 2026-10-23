@@ -1,8 +1,9 @@
-import { useRef, useState } from 'react';
-import { Image, PanResponder, Text, View, type ImageSourcePropType } from 'react-native';
+import { useRef, useState, type ReactNode } from 'react';
+import { Image, PanResponder, Pressable, Text, View, type ImageSourcePropType } from 'react-native';
 import { colors, space } from '../../design/tokens';
 import { type } from '../../design/typography';
-import { moveHandle, timeToX, trimClock, trimLength, xToTime, type Trim } from './trim';
+import { moveHandle, nudgeHandle, slideTrim, timeToX, trimClock, trimLength, xToTime, type Trim } from './trim';
+import { t } from '../../i18n';
 
 type Handle = 'start' | 'end';
 
@@ -50,6 +51,28 @@ export default function Trimmer({
   };
   const start = useRef(responder('start')).current;
   const end = useRef(responder('end')).current;
+  const slide = useRef(
+    (() => {
+      let from: Trim = trim;
+      return PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: () => true,
+        onPanResponderGrant: () => {
+          from = latest.current.trim;
+          latest.current.onDrag?.('start', from.start);
+        },
+        onPanResponderMove: (_e, g) => {
+          const l = latest.current;
+          const next = slideTrim(from, l.width > 0 ? (g.dx / l.width) * l.durationS : 0, l.durationS);
+          l.onChange(next);
+          l.onDrag?.('start', next.start);
+        },
+        onPanResponderRelease: () => latest.current.onDrag?.(null, 0),
+        onPanResponderTerminate: () => latest.current.onDrag?.(null, 0),
+      });
+    })()
+  ).current;
+  const nudge = (handle: Handle, direction: 1 | -1) => onChange(nudgeHandle(trim, handle, direction, durationS));
 
   const left = timeToX(trim.start, durationS, width);
   const right = timeToX(trim.end, durationS, width);
@@ -57,6 +80,7 @@ export default function Trimmer({
     <View style={{ gap: space.s3 }} testID="trimmer">
       <View
         style={{ height: STRIP_H, flexDirection: 'row', gap: 2 }}
+        testID="trim-strip"
         onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
       >
         {thumbs.map((src, i) => {
@@ -73,29 +97,53 @@ export default function Trimmer({
         {width > 0 ? (
           <>
             <View
-              pointerEvents="none"
+              {...slide.panHandlers}
+              testID="trim-window"
+              accessibilityLabel={t('capture.trim.window')}
               style={{ position: 'absolute', left, width: right - left, top: 0, bottom: 0, borderWidth: 3, borderColor: colors.flare }}
             />
-            <Grip x={left - HANDLE_W / 2} handlers={start.panHandlers} testID="trim-start" />
-            <Grip x={right - HANDLE_W / 2} handlers={end.panHandlers} testID="trim-end" />
+            <Grip x={left - HANDLE_W / 2} handlers={start.panHandlers} label={t('capture.trim.startLabel')} value={trimClock(trim.start)} onNudge={(d) => nudge('start', d)} testID="trim-start" />
+            <Grip x={right - HANDLE_W / 2} handlers={end.panHandlers} label={t('capture.trim.endLabel')} value={trimClock(trim.end)} onNudge={(d) => nudge('end', d)} testID="trim-end" />
           </>
         ) : null}
       </View>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-        <Mono testID="trim-start-time">{trimClock(trim.start)}</Mono>
+        <Stepper onNudge={(d) => nudge('start', d)} testID="trim-start">
+          <Mono testID="trim-start-time">{trimClock(trim.start)}</Mono>
+        </Stepper>
         <Mono testID="trim-length">{`${trimLength(trim).toFixed(1)} s${label ? ` · ${label}` : ''}`}</Mono>
-        <Mono testID="trim-end-time">{trimClock(trim.end)}</Mono>
+        <Stepper onNudge={(d) => nudge('end', d)} testID="trim-end">
+          <Mono testID="trim-end-time">{trimClock(trim.end)}</Mono>
+        </Stepper>
       </View>
     </View>
   );
 }
 
-function Grip({ x, handlers, testID }: { x: number; handlers: object; testID: string }) {
+function Grip({
+  x,
+  handlers,
+  label,
+  value,
+  onNudge,
+  testID,
+}: {
+  x: number;
+  handlers: object;
+  label: string;
+  value: string;
+  onNudge: (direction: 1 | -1) => void;
+  testID: string;
+}) {
   return (
     <View
       {...handlers}
       testID={testID}
       accessibilityRole="adjustable"
+      accessibilityLabel={label}
+      accessibilityValue={{ text: value }}
+      accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+      onAccessibilityAction={(e) => onNudge(e.nativeEvent.actionName === 'increment' ? 1 : -1)}
       hitSlop={{ left: 16, right: 16, top: 8, bottom: 8 }}
       style={{
         position: 'absolute',
@@ -110,6 +158,25 @@ function Grip({ x, handlers, testID }: { x: number; handlers: object; testID: st
     >
       <View style={{ width: 2, height: 20, backgroundColor: colors.onFlare }} />
     </View>
+  );
+}
+
+// ‹ and › step a handle a tenth of a second, for the frame the lift starts on.
+function Stepper({ children, onNudge, testID }: { children: ReactNode; onNudge: (direction: 1 | -1) => void; testID: string }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s2 }}>
+      <Arrow onPress={() => onNudge(-1)} label={t('capture.trim.earlier')} testID={`${testID}-earlier`}>‹</Arrow>
+      {children}
+      <Arrow onPress={() => onNudge(1)} label={t('capture.trim.later')} testID={`${testID}-later`}>›</Arrow>
+    </View>
+  );
+}
+
+function Arrow({ children, onPress, label, testID }: { children: string; onPress: () => void; label: string; testID: string }) {
+  return (
+    <Pressable onPress={onPress} hitSlop={12} accessibilityRole="button" accessibilityLabel={label} testID={testID}>
+      <Text style={{ color: colors.text, ...type.label }}>{children}</Text>
+    </Pressable>
   );
 }
 
