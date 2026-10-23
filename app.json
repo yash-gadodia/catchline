@@ -56,7 +56,8 @@
           "isAccessMediaLocationEnabled": false
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "@sentry/react-native"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -87,7 +88,9 @@
       "policy": "appVersion"
     },
     "updates": {
-      "url": "https://u.expo.dev/5404ebf0-ec43-4fa6-80af-c1912b8e9a21"
+      "url": "https://u.expo.dev/5404ebf0-ec43-4fa6-80af-c1912b8e9a21",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
     }
   }
 }

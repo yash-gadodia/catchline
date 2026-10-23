@@ -30,7 +30,8 @@
       "channel": "production",
       "environment": "production",
       "env": {
-        "EXPO_PUBLIC_ON_DEVICE_POSE": "1"
+        "EXPO_PUBLIC_ON_DEVICE_POSE": "1",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       }
     }
   },
