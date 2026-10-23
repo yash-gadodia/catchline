@@ -10,6 +10,9 @@ Writes modules/pose-coreml/ios/models/{YoloxHuman,RTMPoseHalpe26}.mlmodelc (giti
 - YOLOX at FP16 (--precision fp16 --only YoloxHuman) runs on the Neural Engine (an FP32-typed program never does), but
   on the 5 owner clips it moved the lifter's keypoints 2.3 px p50 / 9.5 px p95 against FP32 (23-10-2026), over the 1 px
   bar: not shipped. The onnxruntime check is report-only at FP16.
+- --weights compresses weight storage only and keeps FP32 compute (23-10-2026, 5 owner clips vs FP32): fp16 (constexpr_cast)
+  passes on both models (lifter keypoints p50 0.00 / p95 2.90 / p99 3.58 px, same lifter frames) and halves them;
+  int8 per-channel fails on both (YOLOX p95 28 px, RTMPose p95 186 px, lifter lost on frames), so pal6 was not tried.
 - YOLOX is cut before its in-graph TopK/NonMaxSuppression; modules/pose-coreml does that step in Swift.
 - YOLOX's 9x9 and 13x13 SPP max-pools are rebuilt as chains of 5x5 (the same values) so the FP16 build stays on the
   Neural Engine end to end.
