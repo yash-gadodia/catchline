@@ -74,7 +74,7 @@ export const capture: Strings<typeof en> = {
   'capture.trim.done': "OK",
   'capture.trim.reps': { one: "{count} répétition", other: "{count} répétitions" },
   // REVIEW
-  'capture.trim.help': "Fais glisser les bords pour couper, ou le milieu pour déplacer. ‹ et › avancent d’un dixième de seconde. Garde une seconde avant la première répétition et après la dernière.",
+  'capture.trim.help': "Touche la vidéo pour lire ou mettre en pause, fais glisser la ligne blanche jusqu’à une image. Fais glisser les bords pour couper, ou le milieu pour déplacer. ‹ et › avancent d’un dixième de seconde. Garde une seconde avant la première répétition et après la dernière.",
   // REVIEW
   'capture.trim.window': "Zone de coupe. Fais-la glisser pour la déplacer.",
   // REVIEW
@@ -85,6 +85,12 @@ export const capture: Strings<typeof en> = {
   'capture.trim.earlier': "Plus tôt",
   // REVIEW
   'capture.trim.later': "Plus tard",
+  // REVIEW
+  'capture.trim.playhead': "Tête de lecture",
+  // REVIEW
+  'capture.trim.play': "Lire",
+  // REVIEW
+  'capture.trim.pause': "Pause",
   // REVIEW
   'capture.trim.long': "Long pour une seule levée. Coupe autour de la levée pour une lecture plus rapide et plus précise.",
   // REVIEW

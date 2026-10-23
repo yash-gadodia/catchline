@@ -74,7 +74,7 @@ export const capture: Strings<typeof en> = {
   'capture.trim.done': "Fertig",
   'capture.trim.reps': { one: "{count} Wiederholung", other: "{count} Wiederholungen" },
   // REVIEW
-  'capture.trim.help': "Zieh die Ränder zum Schneiden oder die Mitte zum Verschieben. ‹ und › springen eine Zehntelsekunde. Lass eine Sekunde vor der ersten und nach der letzten Wiederholung.",
+  'capture.trim.help': "Tipp aufs Video zum Abspielen oder Pausieren, zieh die weiße Linie zu einem Bild. Zieh die Ränder zum Schneiden oder die Mitte zum Verschieben. ‹ und › springen eine Zehntelsekunde. Lass eine Sekunde vor der ersten und nach der letzten Wiederholung.",
   // REVIEW
   'capture.trim.window': "Schnittbereich. Zum Verschieben ziehen.",
   // REVIEW
@@ -85,6 +85,12 @@ export const capture: Strings<typeof en> = {
   'capture.trim.earlier': "Früher",
   // REVIEW
   'capture.trim.later': "Später",
+  // REVIEW
+  'capture.trim.playhead': "Abspielposition",
+  // REVIEW
+  'capture.trim.play': "Abspielen",
+  // REVIEW
+  'capture.trim.pause': "Pausieren",
   // REVIEW
   'capture.trim.long': "Lang für einen Lift. Schneide auf den Lift zu, dann geht es schneller und genauer.",
   // REVIEW

@@ -1,47 +1,60 @@
 import { useRef, useState, type ReactNode } from 'react';
-import { Image, PanResponder, Pressable, Text, View, type ImageSourcePropType } from 'react-native';
+import { PanResponder, Pressable, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import { colors, space } from '../../design/tokens';
 import { type } from '../../design/typography';
-import { moveHandle, nudgeHandle, slideTrim, timeToX, trimClock, trimLength, xToTime, type Trim } from './trim';
+import { lightTick } from '../../lib/haptics';
+import type { Thumb } from './ClipPlayer';
+import { atLimit, clampToTrim, moveHandle, NUDGE_S, nudgeHandle, playheadAt, slideTrim, timeToX, trimClock, trimLength, xToTime, type Trim } from './trim';
 import { t } from '../../i18n';
 
 type Handle = 'start' | 'end';
 
 const HANDLE_W = 14;
 const STRIP_H = 64;
+const HEAD_HIT = 24;
 
 export default function Trimmer({
   durationS,
   trim,
   thumbs,
   label,
+  head,
   onChange,
+  onHead,
   onDrag,
 }: {
   durationS: number;
   trim: Trim;
-  thumbs: (ImageSourcePropType | null)[];
+  thumbs: Thumb[];
   label: string;
+  head: number;
   onChange: (t: Trim) => void;
+  onHead: (t: number) => void;
   onDrag?: (handle: Handle | null, t: number) => void;
 }) {
   const [width, setWidth] = useState(0);
-  const latest = useRef({ trim, width, durationS, onChange, onDrag });
-  latest.current = { trim, width, durationS, onChange, onDrag };
+  const latest = useRef({ trim, width, durationS, head, onChange, onHead, onDrag });
+  latest.current = { trim, width, durationS, head, onChange, onHead, onDrag };
 
   const responder = (handle: Handle) => {
     let startX = 0;
+    let limit = false;
     return PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: () => {
         const l = latest.current;
         startX = timeToX(l.trim[handle], l.durationS, l.width);
+        limit = atLimit(l.trim, handle, l.durationS);
         l.onDrag?.(handle, l.trim[handle]);
       },
       onPanResponderMove: (_e, g) => {
         const l = latest.current;
         const next = moveHandle(l.trim, handle, xToTime(startX + g.dx, l.durationS, l.width), l.durationS);
+        const hit = atLimit(next, handle, l.durationS);
+        if (hit && !limit) lightTick();
+        limit = hit;
         l.onChange(next);
         l.onDrag?.(handle, next[handle]);
       },
@@ -72,12 +85,34 @@ export default function Trimmer({
       });
     })()
   ).current;
+  const playhead = useRef(
+    (() => {
+      let startX = 0;
+      return PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: () => true,
+        onPanResponderGrant: () => {
+          const l = latest.current;
+          startX = timeToX(l.head, l.durationS, l.width);
+          l.onHead(l.head);
+        },
+        onPanResponderMove: (_e, g) => {
+          const l = latest.current;
+          l.onHead(playheadAt(startX + g.dx, l.trim, l.durationS, l.width));
+        },
+      });
+    })()
+  ).current;
   const nudge = (handle: Handle, direction: 1 | -1) => onChange(nudgeHandle(trim, handle, direction, durationS));
 
   const left = timeToX(trim.start, durationS, width);
   const right = timeToX(trim.end, durationS, width);
+  const headX = timeToX(head, durationS, width);
   return (
     <View style={{ gap: space.s3 }} testID="trimmer">
+      <Text testID="trim-head-time" style={{ color: colors.text, ...type.readout, textAlign: 'center' }}>
+        {trimClock(head)}
+      </Text>
       <View
         style={{ height: STRIP_H, flexDirection: 'row', gap: 2 }}
         testID="trim-strip"
@@ -89,7 +124,7 @@ export default function Trimmer({
           return (
             <View key={i} style={{ flex: 1, backgroundColor: colors.surface2, overflow: 'hidden' }}>
               {src ? (
-                <Image source={src} resizeMode="cover" style={{ width: '100%', height: '100%', opacity: inside ? 1 : 0.4 }} />
+                <Image source={src} contentFit="cover" testID="trim-thumb" style={{ width: '100%', height: '100%', opacity: inside ? 1 : 0.4 }} />
               ) : null}
             </View>
           );
@@ -102,6 +137,18 @@ export default function Trimmer({
               accessibilityLabel={t('capture.trim.window')}
               style={{ position: 'absolute', left, width: right - left, top: 0, bottom: 0, borderWidth: 3, borderColor: colors.flare }}
             />
+            <View
+              {...playhead.panHandlers}
+              testID="trim-playhead"
+              accessibilityRole="adjustable"
+              accessibilityLabel={t('capture.trim.playhead')}
+              accessibilityValue={{ text: trimClock(head) }}
+              accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+              onAccessibilityAction={(e) => onHead(clampToTrim(head + (e.nativeEvent.actionName === 'increment' ? NUDGE_S : -NUDGE_S), trim))}
+              style={{ position: 'absolute', left: headX - HEAD_HIT / 2, width: HEAD_HIT, top: -space.s1, bottom: -space.s1, alignItems: 'center' }}
+            >
+              <View style={{ width: 2, flex: 1, backgroundColor: colors.text }} />
+            </View>
             <Grip x={left - HANDLE_W / 2} handlers={start.panHandlers} label={t('capture.trim.startLabel')} value={trimClock(trim.start)} onNudge={(d) => nudge('start', d)} testID="trim-start" />
             <Grip x={right - HANDLE_W / 2} handlers={end.panHandlers} label={t('capture.trim.endLabel')} value={trimClock(trim.end)} onNudge={(d) => nudge('end', d)} testID="trim-end" />
           </>

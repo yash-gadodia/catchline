@@ -46,6 +46,29 @@ export function loopTime(t: number, trim: Trim): number {
   return t < trim.start || t >= trim.end ? trim.start : t;
 }
 
+// The playhead lives inside the trim: a drag past a handle stops at it.
+export function clampToTrim(t: number, trim: Trim): number {
+  return round2(clamp(t, trim.start, trim.end));
+}
+
+export function playheadAt(x: number, trim: Trim, durationS: number, width: number): number {
+  return clampToTrim(xToTime(x, durationS, width), trim);
+}
+
+// A handle that has hit the clip's edge or the minimum length: the moment for one haptic tick.
+export function atLimit(trim: Trim, handle: 'start' | 'end', durationS: number): boolean {
+  const min = Math.min(MIN_TRIM_S, durationS);
+  if (handle === 'start') return trim.start <= 0 || trim.start >= trim.end - min;
+  return trim.end >= durationS || trim.end <= trim.start + min;
+}
+
+// One filmstrip frame from the middle of each cell, so every time sits strictly inside
+// the clip: AVAssetImageGenerator only decodes exact frames for times before the end.
+export function thumbTimes(durationS: number, count: number): number[] {
+  if (durationS <= 0 || count <= 0) return [];
+  return Array.from({ length: count }, (_, i) => round2(((i + 0.5) / count) * durationS));
+}
+
 export function timeToX(t: number, durationS: number, width: number): number {
   return durationS > 0 ? (t / durationS) * width : 0;
 }

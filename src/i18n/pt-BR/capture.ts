@@ -74,7 +74,7 @@ export const capture: Strings<typeof en> = {
   'capture.trim.done': "Pronto",
   'capture.trim.reps': { one: "{count} repetição", other: "{count} repetições" },
   // REVIEW
-  'capture.trim.help': "Arraste as bordas para cortar ou o meio para mover. ‹ e › andam um décimo de segundo. Deixe um segundo antes da primeira repetição e depois da última.",
+  'capture.trim.help': "Toque no vídeo para reproduzir ou pausar, arraste a linha branca até um quadro. Arraste as bordas para cortar ou o meio para mover. ‹ e › andam um décimo de segundo. Deixe um segundo antes da primeira repetição e depois da última.",
   // REVIEW
   'capture.trim.window': "Área de corte. Arraste para mover.",
   // REVIEW
@@ -85,6 +85,12 @@ export const capture: Strings<typeof en> = {
   'capture.trim.earlier': "Antes",
   // REVIEW
   'capture.trim.later': "Depois",
+  // REVIEW
+  'capture.trim.playhead': "Cursor de reprodução",
+  // REVIEW
+  'capture.trim.play': "Reproduzir",
+  // REVIEW
+  'capture.trim.pause': "Pausar",
   // REVIEW
   'capture.trim.long': "Longo para um levantamento. Corte só o levantamento para uma leitura mais rápida e precisa.",
   // REVIEW
