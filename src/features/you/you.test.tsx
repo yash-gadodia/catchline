@@ -119,6 +119,19 @@ describe('YouScreen', () => {
     expect(nav.onWhatsNew).toHaveBeenCalledTimes(1);
   });
 
+  it('hides Help & support when Intercom is not configured', async () => {
+    const screen = await render(<YouScreen nav={nav} version="1.0.3" />);
+    expect(screen.queryByTestId('row-support')).toBeNull();
+  });
+
+  it('opens Help & support when Intercom is configured', async () => {
+    const onSupport = jest.fn();
+    const screen = await render(<YouScreen nav={{ ...nav, onSupport }} version="1.0.3" />);
+    expect(within(screen.getByTestId('row-support')).getByText('Help & support')).toBeOnTheScreen();
+    await press(screen.getByTestId('row-support'));
+    expect(onSupport).toHaveBeenCalledTimes(1);
+  });
+
   it('picks units and default lift from a sheet', async () => {
     const screen = await render(<YouScreen nav={nav} version="1.0.3" />);
     await press(screen.getByTestId('row-units'));

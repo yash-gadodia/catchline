@@ -106,6 +106,7 @@ export const you: Strings<typeof en> = {
   'you.stored.frames.onDevice': "Cinq images par mouvement pour la chronophotographie et le recadrage de preuve, sur ton téléphone seulement.",
   // REVIEW
   'you.reportProblem': "Signaler un problème",
+  'you.helpSupport': 'Aide et assistance',
   // REVIEW
   'you.report.placeholder': "Que s’est-il passé, et à quoi t’attendais-tu ?",
   // REVIEW

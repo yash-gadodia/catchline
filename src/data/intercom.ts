@@ -1,0 +1,103 @@
+import { Platform } from 'react-native';
+import Intercom from '@intercom/intercom-react-native';
+import { reportDetails } from './problemReports';
+import { useAuthUser } from '../features/auth/authUser';
+import { usePurchases } from '../features/purchases/usePurchases';
+
+const PROBE_URL = 'https://api-iam.intercom.io/';
+const PROBE_TIMEOUT_MS = 3000;
+
+let started: Promise<boolean> | null = null;
+let loggedInAs: string | null | undefined;
+
+// Both keys come from the EAS environment at build time; without them Intercom never starts.
+export function intercomConfigured(): boolean {
+  return Platform.OS === 'ios' && !!process.env.EXPO_PUBLIC_INTERCOM_APP_ID && !!process.env.EXPO_PUBLIC_INTERCOM_IOS_API_KEY;
+}
+
+// Only these reach Intercom: never the video, stills, traces or analysis.
+export function intercomAttributes(): Record<string, string> {
+  const details = reportDetails();
+  return {
+    app_version: details.appVersion,
+    ota_update_id: details.updateId,
+    device_model: details.device,
+    plan_tier: usePurchases.getState().tier,
+  };
+}
+
+export function reportMessage(liftId?: string): string {
+  const { appVersion, updateId } = reportDetails();
+  const lines = ['', '', `Catchline ${appVersion} (${updateId})`];
+  if (liftId) lines.push(`Lift ${liftId}`);
+  return lines.join('\n');
+}
+
+async function online(): Promise<boolean> {
+  const abort = new AbortController();
+  const timer = setTimeout(() => abort.abort(), PROBE_TIMEOUT_MS);
+  try {
+    await fetch(PROBE_URL, { method: 'HEAD', signal: abort.signal });
+    return true;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function start(): Promise<boolean> {
+  if (!started) {
+    started = Intercom.initialize(process.env.EXPO_PUBLIC_INTERCOM_IOS_API_KEY ?? '', process.env.EXPO_PUBLIC_INTERCOM_APP_ID ?? '').catch(() => {
+      started = null;
+      return false;
+    });
+  }
+  return started;
+}
+
+async function login(): Promise<void> {
+  const user = useAuthUser.getState();
+  const userId = !user.anonymous && user.userId ? user.userId : null;
+  if (loggedInAs === userId) {
+    await Intercom.updateUser({ customAttributes: intercomAttributes() });
+    return;
+  }
+  if (loggedInAs !== undefined) await Intercom.logout();
+  if (userId) {
+    await Intercom.loginUserWithUserAttributes({ userId, customAttributes: intercomAttributes() });
+  } else {
+    await Intercom.loginUnidentifiedUser();
+    await Intercom.updateUser({ customAttributes: intercomAttributes() });
+  }
+  loggedInAs = userId;
+}
+
+// Starts Intercom and logs the lifter in, only when configured and online. False means use the local queue.
+async function ready(): Promise<boolean> {
+  if (!intercomConfigured() || !(await online())) return false;
+  try {
+    if (!(await start())) return false;
+    await login();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function openReportInIntercom(liftId?: string): Promise<boolean> {
+  if (!(await ready())) return false;
+  return Intercom.presentMessageComposer(reportMessage(liftId)).catch(() => false);
+}
+
+export async function openIntercomMessenger(): Promise<boolean> {
+  if (!(await ready())) return false;
+  return Intercom.present().catch(() => false);
+}
+
+export async function logoutIntercom(): Promise<void> {
+  if (loggedInAs === undefined) return;
+  loggedInAs = undefined;
+  await Intercom.logout().catch(() => false);
+}
+

@@ -106,6 +106,7 @@ export const you: Strings<typeof en> = {
   'you.stored.frames.onDevice': "Fünf Standbilder pro Lift für die Stroboskop-Ansicht und den Beweisausschnitt, nur auf deinem Handy.",
   // REVIEW
   'you.reportProblem': "Problem melden",
+  'you.helpSupport': 'Hilfe & Support',
   // REVIEW
   'you.report.placeholder': "Was ist passiert, und was hast du erwartet?",
   // REVIEW
