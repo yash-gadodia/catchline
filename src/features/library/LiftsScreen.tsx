@@ -1,3 +1,4 @@
+import { pickable } from '../onboarding/lifts';
 import { backendEnabled } from '../../data/backend';
 import { usePurchases } from '../purchases/usePurchases';
 import { useUsage } from '../paywall/usageStore';
@@ -154,7 +155,7 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
           </View>
           <View style={{ marginHorizontal: -space.gutter }}>
           <FadeRow testID="movement-chips" contentContainerStyle={{ gap: space.s2, paddingHorizontal: space.gutter }}>
-            {groupMovements(group).map((m) => (
+            {groupMovements(group).filter(pickable).map((m) => (
               <Chip
                 key={m}
                 label={shortMovement(m)}
