@@ -87,12 +87,19 @@ async function ready(): Promise<boolean> {
 
 export async function openReportInIntercom(liftId?: string): Promise<boolean> {
   if (!(await ready())) return false;
-  return Intercom.presentMessageComposer(reportMessage(liftId)).catch(() => false);
+  // The SDK resolves without a value once it is on screen, so success, not the value, means opened.
+  return Intercom.presentMessageComposer(reportMessage(liftId)).then(
+    () => true,
+    () => false,
+  );
 }
 
 export async function openIntercomMessenger(): Promise<boolean> {
   if (!(await ready())) return false;
-  return Intercom.present().catch(() => false);
+  return Intercom.present().then(
+    () => true,
+    () => false,
+  );
 }
 
 export async function logoutIntercom(): Promise<void> {

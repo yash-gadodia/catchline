@@ -1,4 +1,5 @@
 import { loadLibrary } from '../library/repository';
+import * as problemReports from '../../data/problemReports';
 import { act, fireEvent, render, within } from '@testing-library/react-native';
 import { Linking, Platform, Share } from 'react-native';
 import { File } from 'expo-file-system';
@@ -130,6 +131,12 @@ describe('YouScreen', () => {
     expect(within(screen.getByTestId('row-support')).getByText('Help & support')).toBeOnTheScreen();
     await press(screen.getByTestId('row-support'));
     expect(onSupport).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the exact build at the bottom', async () => {
+    jest.spyOn(problemReports, 'reportDetails').mockReturnValue({ appVersion: '3.1', updateId: 'ota-42', device: 'iPhone19,7 iOS 27.0.1' });
+    const screen = await render(<YouScreen nav={nav} version="3.1" />);
+    expect(screen.getByTestId('you-build')).toHaveTextContent('Catchline 3.1 · update ota-42 · iPhone19,7 iOS 27.0.1');
   });
 
   it('picks units and default lift from a sheet', async () => {

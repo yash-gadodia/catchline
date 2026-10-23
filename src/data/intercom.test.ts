@@ -59,6 +59,15 @@ describe('intercom configured', () => {
     expect(sdk.presentMessageComposer).toHaveBeenCalledWith('\n\nCatchline 3.1 (ota-42)\nLift lift-9');
   });
 
+  it('counts an SDK call that resolves without a value as opened, so the local form never stacks under it', async () => {
+    const { intercom, sdk, setUser } = load(true);
+    setUser('anon-1', true);
+    sdk.presentMessageComposer.mockResolvedValueOnce(undefined);
+    sdk.present.mockResolvedValueOnce(undefined);
+    expect(await intercom.openReportInIntercom('lift-9')).toBe(true);
+    expect(await intercom.openIntercomMessenger()).toBe(true);
+  });
+
   it('logs a signed-in lifter in by their Supabase id and sends only the four attributes', async () => {
     const { intercom, sdk, setUser } = load(true);
     setUser('user-7', false);
