@@ -73,5 +73,20 @@ export const capture: Strings<typeof en> = {
   'capture.trim.cancel': "Cancelar",
   'capture.trim.done': "Listo",
   'capture.trim.reps': { one: "{count} repetición", other: "{count} repeticiones" },
-  'capture.trim.help': "Deja un segundo antes de la primera repetición y después de la última. Nosotros encontramos las repeticiones dentro.",
+  // REVIEW
+  'capture.trim.help': "Arrastra los bordes para recortar o el centro para moverlo. ‹ y › avanzan una décima de segundo. Deja un segundo antes de la primera repetición y después de la última.",
+  // REVIEW
+  'capture.trim.window': "Zona de recorte. Arrástrala para moverla.",
+  // REVIEW
+  'capture.trim.startLabel': "Inicio del recorte",
+  // REVIEW
+  'capture.trim.endLabel': "Fin del recorte",
+  // REVIEW
+  'capture.trim.earlier': "Antes",
+  // REVIEW
+  'capture.trim.later': "Después",
+  // REVIEW
+  'capture.trim.long': "Largo para un solo levantamiento. Recorta solo el levantamiento para un análisis más rápido y preciso.",
+  // REVIEW
+  'capture.trim.tooLong': "Demasiado largo para analizar. Recórtalo a {max} s o menos.",
 };

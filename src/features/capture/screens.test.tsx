@@ -297,6 +297,30 @@ describe('Trim', () => {
     await press(screen.getByTestId('trim-done'));
     expect(onDone).toHaveBeenCalledWith({ start: 1.4, end: 7.6 });
   });
+
+  it('steps each handle a tenth of a second with ‹ and ›, and by VoiceOver', async () => {
+    const onDone = jest.fn();
+    const screen = await render(<TrimScreen clip={demoClip('ok')} onCancel={jest.fn()} onDone={onDone} />);
+    await press(screen.getByTestId('trim-start-later'));
+    await press(screen.getByTestId('trim-end-earlier'));
+    expect(screen.getByTestId('trim-start-time')).toHaveTextContent('00:01.5');
+    expect(screen.getByTestId('trim-end-time')).toHaveTextContent('00:07.5');
+    await act(async () => fireEvent(screen.getByTestId('trim-strip'), 'layout', { nativeEvent: { layout: { width: 300 } } }));
+    expect(screen.getByTestId('trim-start')).toHaveProp('accessibilityValue', { text: '00:01.5' });
+    await act(async () => fireEvent(screen.getByTestId('trim-start'), 'accessibilityAction', { nativeEvent: { actionName: 'increment' } }));
+    await press(screen.getByTestId('trim-done'));
+    expect(onDone).toHaveBeenCalledWith({ start: 1.6, end: 7.5 });
+  });
+
+  it('warns on a long trim and blocks one too long to analyse', async () => {
+    const long = { ...demoClip('ok'), durationS: 120, trim: { start: 0, end: 30 }, repsFound: null };
+    const view = await render(<TrimScreen clip={long} onCancel={jest.fn()} onDone={jest.fn()} />);
+    expect(view.getByTestId('trim-problem')).toHaveTextContent('Long for one lift. Trim to just the lift for a faster, sharper read.');
+    const tooLong = { ...long, trim: { start: 0, end: 100 } };
+    const blocked = await render(<TrimScreen clip={tooLong} onCancel={jest.fn()} onDone={jest.fn()} />);
+    expect(blocked.getByTestId('trim-problem')).toHaveTextContent('Too long to analyse. Trim to 86 s or less.');
+    expect(blocked.queryByTestId('trim-done')).toBeNull();
+  });
 });
 
 describe('Import', () => {
