@@ -382,6 +382,45 @@ export type Database = {
         }
         Relationships: []
       }
+      problem_reports: {
+        Row: {
+          id: string
+          user_id: string
+          body: string
+          app_version: string | null
+          update_id: string | null
+          device: string | null
+          lift_id: string | null
+          context: string | null
+          reported_at: string
+          created_at: string
+        }
+        Insert: {
+          id: string
+          user_id?: string
+          body: string
+          app_version?: string | null
+          update_id?: string | null
+          device?: string | null
+          lift_id?: string | null
+          context?: string | null
+          reported_at: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          body?: string
+          app_version?: string | null
+          update_id?: string | null
+          device?: string | null
+          lift_id?: string | null
+          context?: string | null
+          reported_at?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string

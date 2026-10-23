@@ -103,4 +103,13 @@ export const you = {
   'you.notify.cueReminder': 'Next session: {cue}',
   'you.notify.analysed': 'Your lift is analysed',
   'you.notify.queuedAnalysed': 'Your queued lifts are analysed',
+  'you.reportProblem': "Report a problem",
+  'you.report.placeholder': "What happened, and what did you expect?",
+  'you.report.details': "Sent with Catchline {version}, update {update}, {device}",
+  'you.report.lift': "About lift {id}",
+  'you.report.noVideo': "No video is attached.",
+  'you.report.send': "Send",
+  'you.report.sent': "Sent. Thank you, we read every one.",
+  'you.report.queued': "Saved. It sends the next time you are online.",
+  'you.report.done': "Done",
 } as const;

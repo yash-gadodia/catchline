@@ -107,4 +107,22 @@ export const you: Strings<typeof en> = {
   'you.stored.originals.onDevice': "Sur ton téléphone. Analysée sur ton iPhone, jamais envoyée.",
   'you.stored.positions.onDevice': "Positions du corps et trajectoire de la barre sous forme de chiffres, pas de vidéo, gardées sur ton téléphone (et dans ta propre sauvegarde iCloud) pour que ton historique s'améliore avec l'analyse. Jamais sur nos serveurs.",
   'you.stored.frames.onDevice': "Cinq images par mouvement pour la chronophotographie et le recadrage de preuve, sur ton téléphone seulement.",
+  // REVIEW
+  'you.reportProblem': "Signaler un problème",
+  // REVIEW
+  'you.report.placeholder': "Que s’est-il passé, et à quoi t’attendais-tu ?",
+  // REVIEW
+  'you.report.details': "Envoyé avec Catchline {version}, mise à jour {update}, {device}",
+  // REVIEW
+  'you.report.lift': "À propos de la levée {id}",
+  // REVIEW
+  'you.report.noVideo': "Aucune vidéo n’est jointe.",
+  // REVIEW
+  'you.report.send': "Envoyer",
+  // REVIEW
+  'you.report.sent': "Envoyé. Merci, on lit chaque message.",
+  // REVIEW
+  'you.report.queued': "Enregistré. Il partira dès que tu seras en ligne.",
+  // REVIEW
+  'you.report.done': "Terminé",
 };

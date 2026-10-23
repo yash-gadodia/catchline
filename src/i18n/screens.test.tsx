@@ -9,7 +9,7 @@ import { setLanguage } from './index';
 
 jest.mock('../data/backend', () => ({ backendEnabled: () => false }));
 
-const nav = { onDemo: jest.fn(), onWhatIsStored: jest.fn(), onDeleteAccount: jest.fn(), onPlan: jest.fn(), onHelp: jest.fn() };
+const nav = { onDemo: jest.fn(), onWhatIsStored: jest.fn(), onDeleteAccount: jest.fn(), onPlan: jest.fn(), onReport: jest.fn(), onHelp: jest.fn() };
 
 const cue: CueRecord = {
   id: 'c1',
