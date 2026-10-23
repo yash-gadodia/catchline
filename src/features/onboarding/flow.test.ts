@@ -1,6 +1,6 @@
 import { href, nextAfter, type FlowContext } from './flow';
 
-const fresh: FlowContext = { intent: 'film', guideHidden: false, camera: 'undetermined', accountDecided: true, consented: false, completed: false };
+const fresh: FlowContext = { intent: 'film', guideHidden: false, camera: 'undetermined', accountDecided: true, consented: false, notifyDecided: true, completed: false };
 
 describe('first-run flow', () => {
   it('walks a new lifter through every step in design order', () => {
@@ -44,6 +44,17 @@ describe('first-run flow', () => {
     expect(nextAfter('account', { ...undecided, intent: 'import', consented: true })).toEqual({ kind: 'import' });
     expect(nextAfter('launch', { ...undecided, completed: true, consented: true, camera: 'granted' })).toEqual({ kind: 'step', step: 'account' });
     expect(href({ kind: 'step', step: 'account' }, 'import')).toBe('/onboarding/account?intent=import');
+  });
+
+  it('asks for notifications once, right after consent, on both paths', () => {
+    const undecided = { ...fresh, notifyDecided: false, consented: true };
+    expect(nextAfter('privacy', { ...undecided, camera: 'granted' })).toEqual({ kind: 'step', step: 'notify' });
+    expect(nextAfter('notify', { ...undecided, camera: 'granted' })).toEqual({ kind: 'capture' });
+    expect(nextAfter('notify', undecided)).toEqual({ kind: 'step', step: 'camera' });
+    expect(nextAfter('privacy', { ...undecided, intent: 'import' })).toEqual({ kind: 'step', step: 'notify' });
+    expect(nextAfter('notify', { ...undecided, intent: 'import' })).toEqual({ kind: 'import' });
+    expect(nextAfter('guide', { ...undecided, camera: 'granted' })).toEqual({ kind: 'step', step: 'notify' });
+    expect(href({ kind: 'step', step: 'notify' }, 'import')).toBe('/onboarding/notify?intent=import');
   });
 
   it('opens straight on the viewfinder after first run', () => {
