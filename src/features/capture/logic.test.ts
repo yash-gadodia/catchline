@@ -6,7 +6,7 @@ import { repOptions, setStrip, DEMO_SETS } from './sets';
 import { bytesPerSecond, secondsLeft } from './storage';
 import { activeTrim, withTrim } from './store';
 import { parseWeight, submitClip, toSubmission } from './submit';
-import { loopTime, moveHandle, nudgeHandle, slideTrim, timeToX, trimClock, trimProblem, xToTime } from './trim';
+import { atLimit, clampToTrim, loopTime, moveHandle, playheadAt, thumbTimes, nudgeHandle, slideTrim, timeToX, trimClock, trimProblem, xToTime } from './trim';
 
 jest.mock('expo-file-system', () => ({ File: jest.fn(), Paths: { availableDiskSpace: 0 } }));
 
@@ -116,6 +116,31 @@ describe('trim', () => {
     expect(timeToX(2, 8, 342)).toBe(85.5);
     expect(xToTime(85.5, 8, 342)).toBe(2);
     expect(xToTime(400, 8, 342)).toBe(8);
+  });
+
+  it('puts the playhead under the finger, held inside the trim', () => {
+    const t = { start: 1.4, end: 7.6 };
+    expect(playheadAt(171, t, 8, 342)).toBe(4);
+    expect(playheadAt(10, t, 8, 342)).toBe(1.4);
+    expect(playheadAt(342, t, 8, 342)).toBe(7.6);
+    expect(playheadAt(-50, t, 8, 342)).toBe(1.4);
+    expect(clampToTrim(5.123, t)).toBe(5.12);
+    expect(clampToTrim(9, t)).toBe(7.6);
+  });
+
+  it('knows when a handle has hit the clip edge or the minimum length', () => {
+    expect(atLimit({ start: 0, end: 5 }, 'start', 8)).toBe(true);
+    expect(atLimit({ start: 4, end: 5 }, 'start', 8)).toBe(true);
+    expect(atLimit({ start: 2, end: 5 }, 'start', 8)).toBe(false);
+    expect(atLimit({ start: 2, end: 8 }, 'end', 8)).toBe(true);
+    expect(atLimit({ start: 2, end: 3 }, 'end', 8)).toBe(true);
+    expect(atLimit({ start: 2, end: 5 }, 'end', 8)).toBe(false);
+  });
+
+  it('asks for filmstrip frames in the middle of each cell, all before the end', () => {
+    expect(thumbTimes(12, 6)).toEqual([1, 3, 5, 7, 9, 11]);
+    expect(thumbTimes(8.5, 4)).toEqual([1.06, 3.19, 5.31, 7.44]);
+    expect(thumbTimes(0, 6)).toEqual([]);
   });
 
   it('formats handle times to the tenth', () => {
