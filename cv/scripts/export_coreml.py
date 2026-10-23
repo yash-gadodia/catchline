@@ -2,7 +2,7 @@
 modules/pose-coreml, and check each against onnxruntime.
 
     cd cv && uv run --with coremltools --with onnx2torch --with torch --with onnx python scripts/export_coreml.py \
-        [--precision fp32|fp16] [--only YoloxHuman,RTMPoseHalpe26] [--out DIR]
+        [--precision fp32|fp16] [--weights fp32|fp16|int8|pal6] [--only YoloxHuman,RTMPoseHalpe26] [--out DIR]
 
 Writes modules/pose-coreml/ios/models/{YoloxHuman,RTMPoseHalpe26}.mlmodelc (gitignored, ~150 MB).
 - RTMPose stays FP32: FP16 RTMPose moved the lifter's keypoints by 13 px at p95 and flipped a made/missed call on the
@@ -10,6 +10,11 @@ Writes modules/pose-coreml/ios/models/{YoloxHuman,RTMPoseHalpe26}.mlmodelc (giti
 - YOLOX at FP16 (--precision fp16 --only YoloxHuman) runs on the Neural Engine (an FP32-typed program never does), but
   on the 5 owner clips it moved the lifter's keypoints 2.3 px p50 / 9.5 px p95 against FP32 (23-10-2026), over the 1 px
   bar: not shipped. The onnxruntime check is report-only at FP16.
+- --weights compresses weight storage only and keeps FP32 compute (23-10-2026, 5 owner clips vs FP32): fp16 (constexpr_cast)
+  passes the keypoint bar on both models (lifter p50 0.00 / p95 2.90 / p99 3.58 px, same lifter frames) and halves them,
+  but changes the cue or no-cue result on 7 of 160 eval31 clips (YOLOX fp16 alone 4, RTMPose fp16 alone 3; an FP32
+  re-run reproduces all 7), so the shipped models stay FP32. int8 per-channel fails the keypoint bar on both (YOLOX p95
+  28 px, RTMPose p95 186 px, lifter lost on frames), so pal6 was not tried.
 - YOLOX is cut before its in-graph TopK/NonMaxSuppression; modules/pose-coreml does that step in Swift.
 - YOLOX's 9x9 and 13x13 SPP max-pools are rebuilt as chains of 5x5 (the same values) so the FP16 build stays on the
   Neural Engine end to end.
@@ -21,10 +26,13 @@ import sys
 import tempfile
 
 import coremltools as ct
+import coremltools.optimize.coreml as cto
 import numpy as np
 import onnx
 import onnxruntime as ort
 import torch
+from coremltools.converters.mil import Builder as mb
+from coremltools.converters.mil.mil.scope import ScopeInfo
 from onnx2torch import convert
 from rtmlib import BodyWithFeet
 from rtmlib.tools.file import download_checkpoint
@@ -32,6 +40,7 @@ from rtmlib.tools.file import download_checkpoint
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 ap = argparse.ArgumentParser()
 ap.add_argument("--precision", choices=["fp32", "fp16"], default="fp32")
+ap.add_argument("--weights", choices=["fp32", "fp16", "int8", "pal6"], default="fp32")
 ap.add_argument("--only", default="YoloxHuman,RTMPoseHalpe26")
 ap.add_argument("--out", default=os.path.join(ROOT, "modules", "pose-coreml", "ios", "models"))
 ARGS = ap.parse_args()
@@ -60,14 +69,39 @@ def coreml(onnx_path, shape, names):
                       minimum_deployment_target=ct.target.iOS16, convert_to="mlprogram")
 
 
+def compress(ml):
+    # Weight storage only: the program still computes in FP32, the weights are expanded to FP32 when the model loads.
+    if ARGS.weights == "fp16":
+        prog = ml._mil_program
+        for fn in prog.functions.values():
+            with fn:
+                for op in list(fn.operations):
+                    v = op.outputs[0].val if op.op_type == "const" else None
+                    if isinstance(v, np.ndarray) and v.dtype == np.float32 and v.size >= 2048:
+                        with mb.scope(*[ScopeInfo(source=k, data=d) for k, d in op.scopes.items()]):
+                            x = mb.constexpr_cast(source_val=v.astype(np.float16), output_dtype="fp32", name=op.name + "_fp16",
+                                                  before_op=op)
+                        fn.replace_uses_of_var_after_op(anchor_op=op, old_var=op.outputs[0], new_var=x)
+                        fn.remove_ops([op])
+        return ct.convert(prog, convert_to="mlprogram", compute_precision=ct.precision.FLOAT32, compute_units=ct.ComputeUnit.ALL,
+                          minimum_deployment_target=ct.target.iOS16, pass_pipeline=ct.PassPipeline.EMPTY)
+    if ARGS.weights == "int8":
+        cfg = cto.OpLinearQuantizerConfig(mode="linear_symmetric", dtype="int8", granularity="per_channel", weight_threshold=2048)
+        return cto.linear_quantize_weights(ml, cto.OptimizationConfig(global_config=cfg))
+    if ARGS.weights == "pal6":
+        cfg = cto.OpPalettizerConfig(mode="kmeans", nbits=6, granularity="per_tensor", weight_threshold=2048)
+        return cto.palettize_weights(ml, cto.OptimizationConfig(global_config=cfg))
+    return ml
+
+
 def check(onnx_path, ml, shape, names, scale, shift, tol):
     x = (np.random.default_rng(0).random(shape, dtype=np.float32) * scale + shift).astype(np.float32)
     ref = ort.InferenceSession(onnx_path, providers=["CPUExecutionProvider"]).run(None, {"input": x})
     got = ml.predict({"input": x})
     for n, r in zip(names, ref):
         err = float(np.abs(got[n].reshape(r.shape) - r).max())
-        print(f"{os.path.basename(onnx_path)} {n} ({ARGS.precision}): max abs diff {err:.2e}")
-        if err > tol and ARGS.precision == "fp32":
+        print(f"{os.path.basename(onnx_path)} {n} ({ARGS.precision}, {ARGS.weights} weights): max abs diff {err:.2e}")
+        if err > tol and ARGS.precision == ARGS.weights == "fp32":
             sys.exit(f"{n} differs from onnxruntime by {err}")
 
 
@@ -90,7 +124,7 @@ with tempfile.TemporaryDirectory() as tmp:
     ):
         if name not in ARGS.only.split(","):
             continue
-        ml = coreml(path, shape, names)
+        ml = compress(coreml(path, shape, names))
         check(path, ml, shape, names, scale, shift, tol)
         pkg = os.path.join(tmp, name + ".mlpackage")
         ml.save(pkg)
