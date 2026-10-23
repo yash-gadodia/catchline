@@ -42,6 +42,12 @@ describe('LiftsScreen', () => {
     expect(queryByText(/possible/)).toBeNull();
   });
 
+  it('offers no filter chip for a movement the phone cannot analyse yet', async () => {
+    const { getByTestId, queryByTestId } = await render(<LiftsScreen nav={liftsNav()} />);
+    expect(getByTestId('movement-snatch')).toBeOnTheScreen();
+    expect(queryByTestId('movement-kipping_hspu')).toBeNull();
+  });
+
   it('shows every row state with the counter chip and the current cue', async () => {
     require('../paywall/usageStore').useUsage.setState({ usage: { lifetime: 3, month: '', thisMonth: 0 } });
     const nav = liftsNav();
