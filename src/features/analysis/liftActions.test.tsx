@@ -84,6 +84,18 @@ describe('the ··· button on the result screens', () => {
     expect(Linking.openURL).toHaveBeenCalledWith(reportUrl(snatchMock));
   });
 
+  // #86: on a clean rep (no cue) the menu's Share did nothing; it now opens the share screen like the bottom link.
+  it('cue screen: Share opens the share screen, even on a clean rep with no cue', async () => {
+    mockParams.current = { fixture: 'snatch-mock-clean' };
+    const view = await render(<CueRoute />);
+    pick = 0;
+    await act(async () => {
+      fireEvent.press(view.getByTestId('topbar-more'));
+    });
+    expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/share', params: { fixture: 'snatch-mock-clean' } });
+    expect(share).not.toHaveBeenCalled();
+  });
+
   it('low-confidence cue: Film another set leaves the result for capture', async () => {
     mockParams.current = { fixture: 'snatch-mock-low' };
     const view = await render(<CueRoute />);
