@@ -211,3 +211,20 @@ Build 26: Cues crashed and Trends was empty on a real account. Root cause: the C
 - [x] (Claude) `src/analysis/device/analyseTrace.ts`: `analyseTrace(trace, movement)` gives Python's `pipeline.run` under `trace.replaying` for a TRACE_VERSION 1 trace, `planFromMisses(trace, movement)` the windows, plate frames, plate tracks and stills the native pixel stages still owe it (trace.ts replays with Python's Replayer fallbacks: nearest plate frame, affines composed from the camera path, stitched track)
 - [x] (Claude) Parity: `cv/scripts/dump_device_parity.py` writes Python's intermediates + Analysis per trace; `parity.test.ts` holds TS to them on the 4 committed traces x 16 movement runs (exact frames/cues, floats within 1e-6, in practice ~1e-12); `npx tsx scripts/device-parity.ts <expected dir> <trace dir>` runs private sets. 22 of 22 prod traces identical, miss lists included; 507 frames analyse in 65 ms in node (parse included)
 - Gotchas: Python traces carry bare `NaN` tokens (`parseTraceJson`); refine_plate is keyed by Python's `key(plate)` float repr, so match it by value; the seed frame can read one frame later on camera-path affines than on the window's own stabilisation, so a device trace needs 3 native calls to settle. kipping_hspu is not ported (needs the two-pass pose)
+
+## 3.1.1 plan: accurate bar path first, cue when confident (owner decision 23-10-2026)
+
+Why: measurement is verifiable, advice is interpretation. A wrong cue (e.g. "bar flew 48 cm forward") costs more trust than no cue; better cues come from better measurement anyway. Edge = most accurate path + private + one cue only when right. Reference: gold-standard coaching overlay (plate-centre path, vertical start line), prototype PR #154.
+
+Scope: movements = snatch, clean, clean & jerk, (bar) muscle-up, butterfly pull-ups only (hide standalone jerk, kipping pull-up, HSPU).
+
+- [ ] (Claude) Plate-centre bar path: harden Plates.swift (start plate by edge evidence, track past misses / out of frame, re-find near the hands, optical-flow step); trained plate detector from the CC dataset (~/catchline-dataset, licences in LICENCES.csv); wrist path only as a blended fallback; path points tagged plate|wrist.
+- [ ] (Claude) Reference lines + ring in PlayerScreen (DrawLayer) and ShareRenderer: vertical start line, knee/hip/peak horizontals, ring at max forward drift.
+- [ ] (Claude) Result screen hero = bar-path replay; key numbers under it: max forward drift, hip loop, crash depth, feet movement (jump forward/back), catch height.
+- [ ] (Claude) Cue demoted to "Worth working on", shown only at high confidence; otherwise "Looks solid" / numbers only. Fix the 48 cm forward-distance bug (IMG_0073) first.
+- [ ] (Claude) Body positions as first-class measurements, drawn like the bar path (owner 23-10: "hip position, feet position, etc"): hip path + hip height at start/lift-off/hip contact, hips vs shoulders rising (hips shooting up early), shoulders over the bar at the knee, hip-to-bar contact point, knee angle at start/catch, feet position start vs catch (jump forward/back, width), catch depth. Each with an overlay marker in the player and a number under the replay.
+- [ ] (Claude) Butterfly pull-up rep/phase logic (needs owner side-on clips).
+- [ ] (Claude) Richer share video: phase labels, timeline playhead, measurement at its moment, slow-mo hip->turnover, end card.
+- [ ] (Claude) Smaller app: FP16 weight storage (passes parity, ~184 -> ~110 MB) once the zero-cue-change eval passes. (Yash) run scripts/publish-pose-models.sh for the new tag.
+- [ ] (Claude) Store: "one cue" screenshot from a true side-on clip; screenshots lead with the bar path.
+- [ ] (Claude) Intercom + Fin agent proper integration; Sentry DSN (Yash creates project).
