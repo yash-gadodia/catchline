@@ -26,6 +26,7 @@ export const you = {
   'you.deleteAccount': 'Delete account',
   'you.help': 'Help',
   'you.about': 'About · {version}',
+  'you.build': 'Catchline {version} · update {update} · {device}',
   'you.founding': 'Founding',
   'you.close': 'Close',
   'you.done': 'Done',

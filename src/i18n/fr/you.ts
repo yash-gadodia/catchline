@@ -29,6 +29,7 @@ export const you: Strings<typeof en> = {
   'you.deleteAccount': 'Supprimer le compte',
   'you.help': 'Aide',
   'you.about': 'À propos · {version}',
+  'you.build': 'Catchline {version} · mise à jour {update} · {device}',  // REVIEW
   'you.founding': 'Fondateur',
   'you.close': 'Fermer',
   'you.done': 'OK',

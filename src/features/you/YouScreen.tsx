@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 import { File, Paths } from 'expo-file-system';
 import { backendEnabled } from '../../data/backend';
+import { reportDetails } from '../../data/problemReports';
 import { movementLabel } from '../../analysis/format';
 import Btn from '../../components/Btn';
 import ListRow from '../../components/Row';
@@ -188,6 +189,7 @@ export default function YouScreen({
         {nav.onSupport ? <Row title={t('you.helpSupport')} right={<Value>›</Value>} onPress={nav.onSupport} testID="row-support" /> : null}
         <Row title={t('you.whatsNew')} right={<Value>›</Value>} onPress={nav.onWhatsNew} testID="row-whats-new" />
         <Row title={t('you.help')} muted right={<Value>{t('you.about', { version })}</Value>} onPress={nav.onHelp} last testID="row-help" />
+        <BuildLine />
       </ScrollView>
 
       {picker === 'name' && account?.name && !live ? (
@@ -431,5 +433,15 @@ function NameSheet({ initial, onSave, onClose }: { initial: string; onSave: (nam
         {t('you.save')}
       </Btn>
     </SheetFrame>
+  );
+}
+
+// The exact build a tester runs (the same line Report a problem sends), always visible at the bottom of You.
+function BuildLine() {
+  const { appVersion, updateId, device } = reportDetails();
+  return (
+    <Text style={{ color: colors.text2, ...type.readout, paddingTop: space.s4 }} selectable testID="you-build">
+      {t('you.build', { version: appVersion, update: updateId, device })}
+    </Text>
   );
 }
