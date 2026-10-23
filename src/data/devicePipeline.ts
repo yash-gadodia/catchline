@@ -4,7 +4,7 @@ import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { gunzipSync, strFromU8 } from 'fflate';
 import PoseCoreML, { type AnalysePlan, type AnalyseResult } from '../../modules/pose-coreml';
 import { analyseTrace, planFromMisses } from '../analysis/device/analyseTrace';
-import type { Plan } from '../analysis/device/trace';
+import { parseTraceJson, type Plan } from '../analysis/device/trace';
 import { parseAnalysis } from '../analysis/parse';
 import type { Analysis, Failure } from '../analysis/types';
 import type { ClipSubmission } from '../features/capture/submit';
@@ -46,7 +46,7 @@ export function failureReason(code: string): Failure['reason'] {
 }
 
 export async function readTrace(tracePath: string): Promise<unknown> {
-  return JSON.parse(strFromU8(gunzipSync(await new File(tracePath).bytes())));
+  return parseTraceJson(strFromU8(gunzipSync(await new File(tracePath).bytes())));
 }
 
 type Progress = (stage: string, fraction: number) => void;

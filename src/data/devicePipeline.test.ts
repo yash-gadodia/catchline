@@ -3,7 +3,8 @@ import { snatchMock } from '../analysis/fixtures';
 import type { Analysis } from '../analysis/types';
 import type { ClipSubmission } from '../features/capture/submit';
 import { usePipeline, startLift } from './pipeline';
-import { analyseLoop, cancelDeviceLift, failureReason, nativeCode, startDeviceLift, toNativePlan } from './devicePipeline';
+import { analyseLoop, cancelDeviceLift, failureReason, nativeCode, readTrace, startDeviceLift, toNativePlan } from './devicePipeline';
+import { strFromU8 } from 'fflate';
 
 jest.mock('expo-file-system', () => ({
   File: jest.fn(() => ({ bytes: async () => new Uint8Array([1]) })),
@@ -250,5 +251,12 @@ describe('nativeCode and failureReason', () => {
     expect(failureReason('stage_missing')).toBe('clip_unreadable');
     expect(failureReason('unknown')).toBe('clip_unreadable');
     expect(failureReason('models_unavailable')).toBe('unknown');
+  });
+});
+
+describe('readTrace', () => {
+  it('reads the bare NaN the Swift trace writes for a missing keypoint (iPhone 23-10: JSON Parse error: Unexpected character: N)', async () => {
+    jest.mocked(strFromU8).mockReturnValueOnce('{"wrist": [NaN, 1.5], "box": [Infinity, -Infinity]}');
+    expect(await readTrace('/tmp/t.json.gz')).toEqual({ wrist: [NaN, 1.5], box: [Infinity, -Infinity] });
   });
 });
