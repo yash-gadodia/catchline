@@ -27,12 +27,12 @@ import tempfile
 
 import coremltools as ct
 import coremltools.optimize.coreml as cto
-from coremltools.converters.mil import Builder as mb
-from coremltools.converters.mil.mil.scope import ScopeInfo
 import numpy as np
 import onnx
 import onnxruntime as ort
 import torch
+from coremltools.converters.mil import Builder as mb
+from coremltools.converters.mil.mil.scope import ScopeInfo
 from onnx2torch import convert
 from rtmlib import BodyWithFeet
 from rtmlib.tools.file import download_checkpoint
