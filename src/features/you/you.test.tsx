@@ -13,7 +13,6 @@ import { accountLine, createLocalAccountRepository, livePlanLabel, planLabel, us
 import { ANALYSES } from '../../analysis/fixtures';
 import { useLibraryStore } from '../library/store';
 import { backendEnabled } from '../../data/backend';
-import { recordConsent } from '../../lib/api';
 import { useOnboarding } from '../onboarding/store';
 import { useUsage } from '../paywall/usageStore';
 import { usePurchases } from '../purchases/usePurchases';
@@ -32,7 +31,6 @@ jest.mock('../../lib/api', () => ({
 }));
 
 const mockBackendEnabled = backendEnabled as jest.Mock;
-const mockRecordConsent = recordConsent as jest.Mock;
 
 const press = async (el: Parameters<typeof fireEvent.press>[0]) => {
   await act(async () => {
@@ -304,17 +302,6 @@ describe('YouScreen with the backend on', () => {
     expect(send.mock.calls[0][0].split('\n')[0]).toBe('date,lift_id,movement,load_kg,status,cue,measurement_id,measurement,value,unit,analysis_version');
   });
 
-  it('what is stored reads the real consent and records a change', async () => {
-    useOnboarding.getState().acceptConsent(false, now);
-    const screen = await render(<WhatIsStoredScreen onBack={jest.fn()} onExport={jest.fn()} />);
-    expect(screen.getByText('Only if you turned it on. Off right now.')).toBeOnTheScreen();
-    await act(async () => {
-      fireEvent(screen.getByTestId('toggle-improve'), 'valueChange', true);
-    });
-    expect(screen.getByText('Only if you turned it on. On right now.')).toBeOnTheScreen();
-    expect(useOnboarding.getState().consent?.improveAccuracy).toBe(true);
-    expect(mockRecordConsent).toHaveBeenCalledWith('model_training', '1', true);
-  });
 });
 
 describe('exportMyData', () => {
@@ -352,16 +339,12 @@ describe('exportMyData', () => {
 });
 
 describe('WhatIsStoredScreen', () => {
-  it('spells out what is kept and toggles the accuracy opt-in', async () => {
+  it('spells out what is kept, with no training opt-in', async () => {
     const onExport = jest.fn();
     const screen = await render(<WhatIsStoredScreen onBack={jest.fn()} onExport={onExport} />);
     expect(screen.getByText('On your phone. Analysed on your iPhone, never uploaded.')).toBeOnTheScreen();
     expect(screen.getAllByText('kept')).toHaveLength(4);
-    expect(screen.getByText('Only if you turned it on. Off right now.')).toBeOnTheScreen();
-    await act(async () => {
-      fireEvent(screen.getByTestId('toggle-improve'), 'valueChange', true);
-    });
-    expect(screen.getByText('Only if you turned it on. On right now.')).toBeOnTheScreen();
+    expect(screen.queryByTestId('toggle-improve')).toBeNull();
     await press(screen.getByText('Export all my data'));
     expect(onExport).toHaveBeenCalledTimes(1);
   });

@@ -32,6 +32,13 @@ export const LIFTS: Lift[] = [
   lift('kipping_hspu', 'gymnastics', 'onboarding.lifts.sub.headHip', 'onboarding.lifts.spoken.kippingHspu'),
 ];
 
+// Kipping HSPU ships after 3.1: kept in LIFTS, left out of every picker.
+export const LATER: Movement[] = ['kipping_hspu'];
+
+export function pickable(id: Movement): boolean {
+  return !LATER.includes(id);
+}
+
 export function soonLifts(): string[] {
   return [t('onboarding.lifts.soon.toesToBar'), t('onboarding.lifts.soon.chestToBar'), t('onboarding.lifts.soon.ringMuscleUp')];
 }
@@ -67,9 +74,9 @@ export function groupOf(id: Movement): LiftGroup {
 }
 
 export function liftsIn(group: LiftGroup): Lift[] {
-  return LIFTS.filter((l) => l.group === group);
+  return LIFTS.filter((l) => l.group === group && pickable(l.id));
 }
 
 export function isMovement(v: string | undefined): v is Movement {
-  return LIFTS.some((l) => l.id === v);
+  return LIFTS.some((l) => l.id === v && pickable(l.id));
 }

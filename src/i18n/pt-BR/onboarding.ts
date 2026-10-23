@@ -55,8 +55,6 @@ export const onboarding: Strings<typeof en> = {
   'onboarding.privacy.estimate': "A dica é uma estimativa da IA, não um conselho médico.",
   'onboarding.privacy.agree': "Li isto e tenho mais de 16 anos.",
   'onboarding.privacy.required': "Obrigatório.",
-  'onboarding.privacy.improve': "Permito que o Catchline use meus vídeos para melhorar a precisão.",
-  'onboarding.privacy.improveNote': "Opcional. Mude quando quiser nos ajustes.",
   'onboarding.privacy.continue': "Continuar",
   'onboarding.privacy.policy': "política de privacidade",
   'onboarding.privacy.terms': "termos",
@@ -79,5 +77,5 @@ export const onboarding: Strings<typeof en> = {
   'onboarding.demo.tryBody': "Escolha uma série filmada de lado, com o corpo inteiro e a barra no quadro.",
   'onboarding.demo.import': "Importar um vídeo",
   'onboarding.demo.record': "Gravar em vez disso",
-  'onboarding.privacy.onDevice': "Seu vídeo é analisado no seu iPhone e nunca é enviado.",
+  'onboarding.privacy.onDevice': "Seu vídeo nunca sai do seu iPhone. Analisado no aparelho, nunca usado para treinar IA.",
 };

@@ -52,7 +52,7 @@ describe('Lift picker', () => {
     );
     expect(screen.getByTestId('group-barbell')).toHaveTextContent('BARBELLSnatchbar pathCleanbar pathJerkbar path');
     expect(screen.getByTestId('group-gymnastics')).toHaveTextContent(
-      'GYMNASTICSKipping pull-uphip pathBar muscle-uphip pathKipping HSPUhead + hip'
+      'GYMNASTICSKipping pull-uphip pathBar muscle-uphip path'
     );
     expect(screen.getAllByTestId('lift-soon')).toHaveLength(3);
     expect(screen.getByText('Ring muscle-up')).toBeOnTheScreen();
@@ -147,24 +147,23 @@ describe('Account', () => {
 });
 
 describe('Privacy and consent', () => {
-  it('blocks Continue until the required box is ticked, and passes the optional choice', async () => {
+  it('blocks Continue until the required box is ticked, and offers no training opt-in', async () => {
     const onContinue = jest.fn();
-    const screen = await render(<PrivacyScreen initialImprove={false} onContinue={onContinue} />);
-    expect(screen.getByText('Your video is analysed on your iPhone and never uploaded.')).toBeOnTheScreen();
+    const screen = await render(<PrivacyScreen onContinue={onContinue} />);
+    expect(screen.getByText('Your video never leaves your iPhone. Analysed on-device, never used to train AI.')).toBeOnTheScreen();
+    expect(screen.queryByTestId('consent-improve')).toBeNull();
     expect(screen.getByTestId('privacy-continue')).toBeDisabled();
     await press(screen.getByTestId('privacy-continue'));
     expect(onContinue).not.toHaveBeenCalled();
 
     await press(screen.getByTestId('consent-required'));
-    await press(screen.getByTestId('consent-improve'));
-    expect(screen.getByTestId('consent-improve')).toBeChecked();
     await press(screen.getByTestId('privacy-continue'));
-    expect(onContinue).toHaveBeenCalledWith(true);
+    expect(onContinue).toHaveBeenCalledTimes(1);
   });
 
   it('opens the published privacy policy and terms', async () => {
     const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
-    const screen = await render(<PrivacyScreen initialImprove={false} onContinue={jest.fn()} />);
+    const screen = await render(<PrivacyScreen onContinue={jest.fn()} />);
     await press(screen.getByTestId('link-privacy'));
     expect(open).toHaveBeenLastCalledWith('https://yash-gadodia.github.io/catchline/legal/privacy.html');
     await press(screen.getByTestId('link-terms'));

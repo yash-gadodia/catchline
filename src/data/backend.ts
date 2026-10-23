@@ -19,9 +19,7 @@ export function syncConsent(): Promise<void> {
   if (!hasConsent(consent) || !consent) return Promise.reject(new Error('consent_required'));
   consentFor ??= (async () => {
     await ensureSession();
-    const version = String(CONSENT_VERSION);
-    await recordConsent('upload_privacy', version, true);
-    await recordConsent('model_training', version, consent.improveAccuracy);
+    await recordConsent('upload_privacy', String(CONSENT_VERSION), true);
   })().catch((e: unknown) => {
     consentFor = null;
     throw e;

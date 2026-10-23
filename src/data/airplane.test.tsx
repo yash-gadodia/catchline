@@ -110,7 +110,7 @@ beforeEach(() => {
   useLiftOutbox.setState({ items: [], cues: [] });
   usePurchases.setState({ tier: 'free', period: null });
   useUsage.setState({ usage: EMPTY_USAGE, variant: 'organic', queue: [] });
-  useOnboarding.setState({ consent: { version: 1, acceptedAt: '2026-10-11T07:00:00Z', improveAccuracy: false } });
+  useOnboarding.setState({ consent: { version: 1, acceptedAt: '2026-10-11T07:00:00Z' } });
   (analyseTrace as jest.Mock).mockImplementation((_t: unknown, _m: string, o: { analysisId: string }): Analysis => ({ ...(mock as unknown as Analysis), id: o.analysisId }));
 });
 

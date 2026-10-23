@@ -51,7 +51,7 @@ export default function ShareRoute() {
   }, [params.uri, captureReady]);
 
   if (!hydrated || !draft || draft.source !== 'share') return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
-  if (!hasConsent(consent)) return <PrivacyScreen initialImprove={false} onContinue={acceptConsent} />;
+  if (!hasConsent(consent)) return <PrivacyScreen onContinue={() => acceptConsent()} />;
   return (
     <ReviewScreen
       clip={draft}

@@ -5,11 +5,6 @@ import Btn from '../../components/Btn';
 import TopBar from '../../components/TopBar';
 import { colors, space } from '../../design/tokens';
 import { type } from '../../design/typography';
-import { backendEnabled } from '../../data/backend';
-import { recordConsent } from '../../lib/api';
-import { CONSENT_VERSION, useOnboarding } from '../onboarding/store';
-import { Toggle } from '../share/ui';
-import { useSettings } from './settings';
 import { t } from '../../i18n';
 import { onDeviceAnalysisEnabled } from '../../data/onDeviceAnalysis';
 
@@ -25,15 +20,6 @@ export function stored(): { id: string; title: string; body: string; keep: strin
 
 export default function WhatIsStoredScreen({ onBack, onExport }: { onBack: () => void; onExport: () => void }) {
   const insets = useSafeAreaInsets();
-  const consent = useOnboarding((s) => s.consent);
-  const settingsImprove = useSettings((s) => s.improveAccuracy);
-  const set = useSettings((s) => s.set);
-  const improve = consent ? consent.improveAccuracy : settingsImprove;
-  const setImprove = (on: boolean) => {
-    set('improveAccuracy', on);
-    useOnboarding.getState().setImproveAccuracy(on);
-    if (backendEnabled() && consent) recordConsent('model_training', String(CONSENT_VERSION), on).catch(() => undefined);
-  };
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }} testID="what-is-stored">
       <TopBar
@@ -46,11 +32,6 @@ export default function WhatIsStoredScreen({ onBack, onExport }: { onBack: () =>
         {stored().map((r) => (
           <Item key={r.id} title={r.title} body={r.body} right={<Keep>{r.keep}</Keep>} />
         ))}
-        <Item
-          title={t('you.stored.improve.title')}
-          body={improve ? t('you.stored.improve.on') : t('you.stored.improve.off')}
-          right={<Toggle value={improve} onChange={setImprove} testID="toggle-improve" />}
-        />
       </ScrollView>
       <View style={{ paddingTop: space.s4, paddingHorizontal: space.gutter, paddingBottom: space.s7 }}>
         <Btn kind="secondary" onPress={onExport} testID="stored-export">

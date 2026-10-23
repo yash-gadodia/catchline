@@ -188,7 +188,7 @@ describe('Cue detail and outcomes', () => {
   });
 
   it("offers a kind next step when a cue didn't stick", async () => {
-    const nav = { onTryNew: jest.fn(), onKeepTrying: jest.fn(), onSendToCoach: jest.fn(), onBack: jest.fn() };
+    const nav = { onTryNew: jest.fn(), onKeepTrying: jest.fn(), onBack: jest.fn() };
     const { getByText, getByTestId } = await render(<DidntStickScreen cue={cue('c-hips-mu')} nav={nav} />);
     expect(getByText("DIDN'T STICK · BAR MUSCLE-UP")).toBeOnTheScreen();
     expect(getByTestId('didnt-stick-headline')).toHaveTextContent('Six sessions and the hips are still 8 cm off the bar.');

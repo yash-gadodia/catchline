@@ -12,7 +12,6 @@ export const CONSENT_VERSION = 1;
 export type Consent = {
   version: number;
   acceptedAt: string;
-  improveAccuracy: boolean;
 };
 
 export type AccountChoice = 'apple' | 'none';
@@ -27,8 +26,7 @@ export type OnboardingState = {
   completed: boolean;
   setLifts: (lifts: Movement[], focus: string[], units: Units) => void;
   setUnits: (units: Units) => void;
-  acceptConsent: (improveAccuracy: boolean, now?: Date) => void;
-  setImproveAccuracy: (on: boolean) => void;
+  acceptConsent: (now?: Date) => void;
   hideGuide: () => void;
   setAccountChoice: (choice: AccountChoice | null) => void;
   complete: () => void;
@@ -53,10 +51,7 @@ export const useOnboarding = create<OnboardingState>()(
       ...initial,
       setLifts: (lifts, focus, units) => set({ lifts, focus, units }),
       setUnits: (units) => set({ units }),
-      acceptConsent: (improveAccuracy, now = new Date()) =>
-        set({ consent: { version: CONSENT_VERSION, acceptedAt: now.toISOString(), improveAccuracy } }),
-      setImproveAccuracy: (on) =>
-        set((s) => (s.consent ? { consent: { ...s.consent, improveAccuracy: on } } : {})),
+      acceptConsent: (now = new Date()) => set({ consent: { version: CONSENT_VERSION, acceptedAt: now.toISOString() } }),
       hideGuide: () => set({ guideHidden: true }),
       setAccountChoice: (accountChoice) => set({ accountChoice }),
       complete: () => set({ completed: true }),
