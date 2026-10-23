@@ -4,6 +4,7 @@ import { colors, space } from '../design/tokens';
 import { fontFamily } from '../design/typography';
 import Btn from './Btn';
 import { captureError } from '../lib/analytics';
+import { reportError } from '../lib/sentry';
 
 type State = { error: Error | null };
 
@@ -17,6 +18,7 @@ export class AppErrorBoundary extends React.Component<{ children: React.ReactNod
   componentDidCatch(error: Error) {
     console.error('App crashed:', error);
     captureError(error, { screen: 'unknown' });
+    reportError(error, { boundary: 'app' });
   }
 
   render() {

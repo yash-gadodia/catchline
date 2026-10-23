@@ -409,3 +409,10 @@ beforeEach(() => {
   const listen = require('react-native').AppState?.addEventListener as jest.Mock | undefined;
   listen?.mockImplementation?.(() => ({ remove: jest.fn() }));
 });
+
+jest.mock('@sentry/react-native', () => ({
+  init: jest.fn(),
+  setTags: jest.fn(),
+  captureException: jest.fn(),
+  captureMessage: jest.fn(),
+}));

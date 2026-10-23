@@ -23,11 +23,16 @@ import { installForegroundHandler, liftIdFromResponse, registerPushToken, routeF
 import { init as initAnalytics, identify, reset, track, EVENTS } from '../src/lib/analytics';
 import { startAuthUserSync } from '../src/features/auth/authUser';
 import { useLocale } from '../src/i18n';
+import { initSentry } from '../src/lib/sentry';
+import { markLaunched, startLaunchWatchdog } from '../src/lib/launch';
+import { LaunchRecovery } from '../src/components/LaunchRecovery';
 
 const LAUNCH_FAILSAFE_MS = 4000;
 
 export const unstable_settings = { initialRouteName: '(tabs)' };
 
+initSentry();
+startLaunchWatchdog();
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 installForegroundHandler();
 
@@ -107,8 +112,16 @@ export default function RootLayout() {
     return () => clearTimeout(timer);
   }, [fontsLoaded]);
 
+  useEffect(() => {
+    if (launched) markLaunched();
+  }, [launched]);
+
   if (!fontsLoaded) {
-    return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.bg }}>
+        <LaunchRecovery />
+      </View>
+    );
   }
 
   return (
@@ -121,6 +134,7 @@ export default function RootLayout() {
             {launched ? null : (
               <LaunchOverlay onShown={() => SplashScreen.hideAsync().catch(() => undefined)} onDone={() => setLaunched(true)} />
             )}
+            <LaunchRecovery />
           </AppErrorBoundary>
         </QueryClientProvider>
       </SafeAreaProvider>
