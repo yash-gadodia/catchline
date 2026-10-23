@@ -66,7 +66,7 @@ describe('ProcessingSheet', () => {
     const player = (useVideoPlayer as jest.Mock).mock.results[0].value;
     expect(player).toMatchObject({ loop: true, muted: true });
     expect(player.play).toHaveBeenCalled();
-    expect(getByTestId('processing-clip')).toHaveStyle({ opacity: 0.28 });
+    expect(getByTestId('processing-clip')).toHaveStyle({ opacity: 0.55 });
     expect(getByTestId('processing-scrim')).toHaveStyle({ backgroundColor: 'rgba(0,0,0,0.35)' });
     expect(queryByTestId('processing-art')).toBeNull();
     expect(queryByTestId('processing-path')).toBeNull();
