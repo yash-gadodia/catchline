@@ -11,6 +11,7 @@ export default function YouRoute() {
         onDeleteAccount: () => router.push('/you/delete'),
         onPlan: () => router.push('/paywall/plans'),
         onReport: () => router.push('/report' as Href),
+        onWhatsNew: () => router.push('/whats-new' as Href),
         onHelp: () => {},
       }}
     />

@@ -41,7 +41,7 @@ const press = async (el: Parameters<typeof fireEvent.press>[0]) => {
 };
 
 const initialAccount = useAccountStore.getState();
-const nav = { onDemo: jest.fn(), onWhatIsStored: jest.fn(), onDeleteAccount: jest.fn(), onPlan: jest.fn(), onReport: jest.fn(), onHelp: jest.fn() };
+const nav = { onDemo: jest.fn(), onWhatIsStored: jest.fn(), onDeleteAccount: jest.fn(), onPlan: jest.fn(), onReport: jest.fn(), onWhatsNew: jest.fn(), onHelp: jest.fn() };
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -112,11 +112,13 @@ describe('YouScreen', () => {
     await press(screen.getByTestId('row-stored'));
     await press(screen.getByTestId('row-delete'));
     await press(screen.getByTestId('row-report'));
+    await press(screen.getByTestId('row-whats-new'));
     await press(screen.getByText('See how it works'));
     expect(nav.onDemo).toHaveBeenCalledTimes(1);
     expect(nav.onWhatIsStored).toHaveBeenCalledTimes(1);
     expect(nav.onDeleteAccount).toHaveBeenCalledTimes(1);
     expect(nav.onReport).toHaveBeenCalledTimes(1);
+    expect(nav.onWhatsNew).toHaveBeenCalledTimes(1);
   });
 
   it('picks units and default lift from a sheet', async () => {

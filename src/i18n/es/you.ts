@@ -125,4 +125,15 @@ export const you: Strings<typeof en> = {
   'you.report.queued': "Guardado. Se enviará la próxima vez que tengas conexión.",
   // REVIEW
   'you.report.done': "Listo",
+  'you.whatsNew': "Novedades",
+  // REVIEW
+  'you.whatsNew.version': "Catchline {version}",
+  // REVIEW
+  'you.whatsNew.v31.onDevice': "Tu levantamiento ahora se analiza por completo en tu iPhone, y el análisis funciona sin cobertura.",
+  // REVIEW
+  'you.whatsNew.v31.privacy': "Tu vídeo nunca sale de tu iPhone. Analizado en el dispositivo, nunca se usa para entrenar IA.",
+  // REVIEW
+  'you.whatsNew.v31.reads': "Lecturas más precisas de levantamientos grabados en ángulo y desde colgado, y un dos tiempos completo se lee como un solo levantamiento.",
+  // REVIEW
+  'you.whatsNew.v31.hips': "Corregido: una barra que se frena en la cadera ya no altera la lectura.",
 };

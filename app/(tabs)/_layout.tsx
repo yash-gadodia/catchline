@@ -8,6 +8,7 @@ import { useHydrated, useOnboarding } from '../../src/features/onboarding/store'
 import { colors } from '../../src/design/tokens';
 import TabBar, { type TabName } from '../../src/features/library/TabBar';
 import { captureHref } from '../../src/features/paywall/hooks';
+import { takeWhatsNew, whenWhatsNewHydrated } from '../../src/features/whatsnew/store';
 
 export default function TabsLayout() {
   const router = useRouter();
@@ -18,6 +19,13 @@ export default function TabsLayout() {
   useEffect(() => {
     if (job?.liftId) syncLibrary().catch(() => undefined);
   }, [job?.liftId]);
+  // Once after an update, What's new opens over the library.
+  useEffect(() => {
+    if (!hydrated) return;
+    return whenWhatsNewHydrated(() => {
+      if (takeWhatsNew(completed)) router.push('/whats-new' as Href);
+    });
+  }, [hydrated]);
   if (hydrated && !completed) return <Redirect href="/onboarding" />;
   return (
     <Tabs

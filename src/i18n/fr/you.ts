@@ -125,4 +125,15 @@ export const you: Strings<typeof en> = {
   'you.report.queued': "Enregistré. Il partira dès que tu seras en ligne.",
   // REVIEW
   'you.report.done': "Terminé",
+  'you.whatsNew': "Nouveautés",
+  // REVIEW
+  'you.whatsNew.version': "Catchline {version}",
+  // REVIEW
+  'you.whatsNew.v31.onDevice': "Ta levée est maintenant analysée entièrement sur ton iPhone, et l’analyse fonctionne sans réseau.",
+  // REVIEW
+  'you.whatsNew.v31.privacy': "Ta vidéo ne quitte jamais ton iPhone. Analysée sur l’appareil, jamais utilisée pour entraîner une IA.",
+  // REVIEW
+  'you.whatsNew.v31.reads': "Lectures plus précises des levées filmées de biais et des levées depuis la suspension, et un épaulé-jeté complet est lu comme une seule levée.",
+  // REVIEW
+  'you.whatsNew.v31.hips': "Corrigé : une barre qui cale au niveau des hanches ne fausse plus la lecture.",
 };
