@@ -416,3 +416,16 @@ jest.mock('@sentry/react-native', () => ({
   captureException: jest.fn(),
   captureMessage: jest.fn(),
 }));
+
+jest.mock('@intercom/intercom-react-native', () => ({
+  __esModule: true,
+  default: {
+    initialize: jest.fn(() => Promise.resolve(true)),
+    loginUnidentifiedUser: jest.fn(() => Promise.resolve(true)),
+    loginUserWithUserAttributes: jest.fn(() => Promise.resolve(true)),
+    updateUser: jest.fn(() => Promise.resolve(true)),
+    logout: jest.fn(() => Promise.resolve(true)),
+    present: jest.fn(() => Promise.resolve(true)),
+    presentMessageComposer: jest.fn(() => Promise.resolve(true)),
+  },
+}));

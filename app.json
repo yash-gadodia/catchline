@@ -57,7 +57,14 @@
         }
       ],
       "expo-secure-store",
-      "@sentry/react-native"
+      "@sentry/react-native",
+      "./plugins/withoutIntercomPush",
+      [
+        "@intercom/intercom-react-native",
+        {
+          "useManualInit": true
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

@@ -106,6 +106,7 @@ export const you: Strings<typeof en> = {
   'you.stored.frames.onDevice': "Cinco imágenes por levantamiento para el estroboscopio y el recorte de evidencia, solo en tu teléfono.",
   // REVIEW
   'you.reportProblem': "Informar de un problema",
+  'you.helpSupport': 'Ayuda y soporte',
   // REVIEW
   'you.report.placeholder': "¿Qué pasó y qué esperabas?",
   // REVIEW

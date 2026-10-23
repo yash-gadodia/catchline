@@ -23,6 +23,7 @@ import { flushProblemReports } from '../src/data/problemReports';
 import { installForegroundHandler, liftIdFromResponse, registerPushToken, routeForLift } from '../src/features/notifications';
 import { init as initAnalytics, identify, reset, track, EVENTS } from '../src/lib/analytics';
 import { startAuthUserSync } from '../src/features/auth/authUser';
+import { logoutIntercom } from '../src/data/intercom';
 import { useLocale } from '../src/i18n';
 import { initSentry } from '../src/lib/sentry';
 import { markLaunched, startLaunchWatchdog } from '../src/lib/launch';
@@ -95,6 +96,7 @@ export default function RootLayout() {
         if (event === 'SIGNED_IN') registerPushToken();
       } else if (event === 'SIGNED_OUT') {
         reset();
+        void logoutIntercom();
       }
     });
 
