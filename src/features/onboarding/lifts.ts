@@ -32,8 +32,9 @@ export const LIFTS: Lift[] = [
   lift('kipping_hspu', 'gymnastics', 'onboarding.lifts.sub.headHip', 'onboarding.lifts.spoken.kippingHspu'),
 ];
 
-// Kipping HSPU ships after 3.1: kept in LIFTS, left out of every picker.
-export const LATER: Movement[] = ['kipping_hspu'];
+// Kept in LIFTS so their analyses still open, left out of every picker: the standalone jerk and the kipping pull-up
+// (3.1 analyses a jerk only after its clean), and the kipping HSPU, which ships after 3.1.
+export const LATER: Movement[] = ['jerk', 'kipping_pull_up', 'kipping_hspu'];
 
 export function pickable(id: Movement): boolean {
   return !LATER.includes(id);

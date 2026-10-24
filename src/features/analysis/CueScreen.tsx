@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Analysis, Cue } from '../../analysis/types';
-import { filmedAtAngle, liftTitle } from '../../analysis/format';
+import { filmedAtAngle, liftTitle, missNote } from '../../analysis/format';
 import { keyFrameAt, keyFrameForPhase, liftPath, repByIndex } from '../../analysis/timeline';
 import { noCueCopy } from './partial';
 import { toScreen } from '../../analysis/geometry';
@@ -84,6 +84,7 @@ function CueBody({
       <EvidenceStage analysis={analysis} cue={cue} box={{ width, height: width }} safeTop={insets.top} />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: space.s5, paddingHorizontal: space.gutter, gap: space.s3 }}>
         {retest ? <RetestVerdict retest={retest} onStuck={nav.onStuck} /> : null}
+        <MissNote analysis={analysis} />
         <SmallCaps>{sample ? t('analysis.cue.sampleLabel') : t('analysis.cue.oneThingLabel')}</SmallCaps>
         <Text style={[display(40), { color: colors.text }]} testID="cue-text">
           {cueText(cue.faultId, cue.text)}
@@ -199,6 +200,7 @@ function LowConfidence({ analysis, cue, nav, retest, retestable }: { analysis: A
       </View>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: space.s4, paddingHorizontal: space.gutter, gap: space.s2 }}>
         {retest ? <RetestVerdict retest={retest} onStuck={nav.onStuck} /> : null}
+        <MissNote analysis={analysis} />
         <SmallCaps>{t('analysis.cue.possible')}</SmallCaps>
         <Text style={[display(32), { color: colors.text }]}>{cueText(cue.faultId, cue.text)}</Text>
         <Text style={{ color: colors.text2, ...type.callout }}>{cueWhy(cue.faultId, cue.why)}</Text>
@@ -227,6 +229,15 @@ function LowConfidence({ analysis, cue, nav, retest, retestable }: { analysis: A
       </View>
     </View>
   );
+}
+
+function MissNote({ analysis }: { analysis: Analysis }) {
+  const note = missNote(analysis);
+  return note ? (
+    <Text testID="miss-note" style={{ color: colors.text, ...type.callout, fontFamily: fontFamily.bodyBold }}>
+      {note}
+    </Text>
+  ) : null;
 }
 
 // A clean rep: measured fine and no fault crossed its threshold. A result, not a gap: the path, then go heavier.
@@ -303,6 +314,7 @@ function Partial({ analysis, nav, retest, retestable }: { analysis: Analysis; na
       </View>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: space.s4, paddingHorizontal: space.gutter, gap: space.s2 }}>
         {retest ? <RetestVerdict retest={retest} onStuck={nav.onStuck} /> : null}
+        <MissNote analysis={analysis} />
         <SmallCaps>{t('analysis.partial.label')}</SmallCaps>
         <Text style={[display(32), { color: colors.text }]} testID="no-cue-title">
           {t('analysis.partial.title')}

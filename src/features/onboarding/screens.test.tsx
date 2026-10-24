@@ -50,10 +50,8 @@ describe('Lift picker', () => {
     const screen = await render(
       <LiftPickerScreen initial={{ lifts: ['snatch'], focus: [], units: 'kg' }} onContinue={onContinue} onSkip={jest.fn()} />
     );
-    expect(screen.getByTestId('group-barbell')).toHaveTextContent('BARBELLSnatchbar pathCleanbar pathJerkbar path');
-    expect(screen.getByTestId('group-gymnastics')).toHaveTextContent(
-      'GYMNASTICSKipping pull-uphip pathBar muscle-uphip path'
-    );
+    expect(screen.getByTestId('group-barbell')).toHaveTextContent('BARBELLSnatchbar pathCleanbar path');
+    expect(screen.getByTestId('group-gymnastics')).toHaveTextContent('GYMNASTICSBar muscle-uphip path');
     expect(screen.getAllByTestId('lift-soon')).toHaveLength(3);
     expect(screen.getByText('Ring muscle-up')).toBeOnTheScreen();
     expect(screen.getByTestId('lift-snatch')).toBeChecked();

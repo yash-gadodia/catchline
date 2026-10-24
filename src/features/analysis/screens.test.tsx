@@ -458,3 +458,32 @@ describe('RevealScreen', () => {
     expect(getByTestId('movement-note')).toHaveTextContent('Looks like a clean, not a snatch. Keep as snatch?');
   });
 });
+
+describe('a missed lift', () => {
+  const outcome = (label: string, value: number) => ({ id: 'outcome', label, value, unit: 'cm' as const, frame: snatchMockMiss.cue!.evidence.frame, status: 'normal' as const, note: 'bar vs mid-foot when it left you (+ = in front)' });
+  const front = { ...snatchMockMiss, measurements: [...snatchMockMiss.measurements, outcome('Missed forward', 31)] };
+  const behind = { ...snatchMockMiss, cue: { ...snatchMockMiss.cue!, confidence: 'low' as const }, measurements: [...snatchMockMiss.measurements, outcome('Missed behind', -12)] };
+
+  it('says so plainly above the cue on the result, the reveal and the player', async () => {
+    const result = await render(<CueScreen analysis={front} nav={nav} />);
+    expect(result.getByTestId('miss-note')).toHaveTextContent('Missed lift: the bar came down in front.');
+    const reveal = await render(<RevealScreen analysis={front} onDone={jest.fn()} reduceMotion />);
+    expect(reveal.getByTestId('miss-note')).toHaveTextContent('Missed lift: the bar came down in front.');
+    const player = await render(<PlayerScreen analysis={front} onBack={noop} onCompare={jest.fn()} onShare={noop} />);
+    expect(player.getByTestId('miss-note')).toHaveTextContent('Missed lift: the bar came down in front.');
+  });
+
+  it('names the side on a possible cue and on a held-back one too', async () => {
+    const { getByTestId } = await render(<CueScreen analysis={behind} nav={nav} />);
+    expect(getByTestId('low-confidence')).toBeOnTheScreen();
+    expect(getByTestId('miss-note')).toHaveTextContent('Missed lift: the bar came down behind.');
+    const partial = await render(<CueScreen analysis={{ ...behind, cue: null, noCueReason: { code: 'unclear_miss' } }} nav={nav} />);
+    expect(partial.getByTestId('partial-result')).toBeOnTheScreen();
+    expect(partial.getByTestId('miss-note')).toHaveTextContent('Missed lift: the bar came down behind.');
+  });
+
+  it('says nothing on a made lift', async () => {
+    const { queryByTestId } = await render(<CueScreen analysis={snatchMock} nav={nav} />);
+    expect(queryByTestId('miss-note')).toBeNull();
+  });
+});

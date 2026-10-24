@@ -57,7 +57,7 @@ import {
   radians,
   where,
 } from './num';
-import { CAUSE_CUE, behindCause, behindCopy, classify, peakUpSpeed, speedMeasurement } from './outcome';
+import { CAUSE_CUE, behindCause, behindCopy, classify, droppedAt, peakUpSpeed, speedMeasurement } from './outcome';
 import {
   PhaseOut,
   SNATCH_PHASES,
@@ -534,17 +534,32 @@ export function analyseRep(
     made = false;
     for (let f = ev.caught; f < L; f++) if (rack[f] && kneeAng[f] > 155 && hipAng[f] > 155) made = true;
   }
-  const released = ev.hold_end < L;
+  // the hands below mid-torso for 0.2 s after the catch, within 1 s of an unmade catch or before the stand-up of a made
+  // snatch: the bar came down, so the lift was missed (its side: where the bar was furthest from mid-foot above the
+  // shoulders)
+  const midTorso = sho.map((p, i) => (p[1] + hip[i][1]) / 2);
+  const dropTo = !made ? Math.min(L, ev.caught + int(1.0 * fps) + 1) : kind === 'snatch' ? ev.recovered : ev.caught;
+  const dropF = droppedAt(barY, midTorso, ev.caught, dropTo, Math.max(2, int(0.2 * fps)));
+  let missF = fEnd;
+  if (dropF !== null) {
+    made = false;
+    missF = dropF;
+    for (let f = ev.peak; f < dropF; f++)
+      if (barY[f] < sho[f][1] && Math.abs(bar[f][0] - midfoot[f][0]) > Math.abs(bar[missF][0] - midfoot[missF][0])) missF = f;
+  }
+  const missVsMid = cm(fwd * (bar[missF][0] - midfoot[missF][0])) * foreshort;
+  const missVx = cm(fwd * (bar[missF][0] - bar[Math.max(0, missF - kBack)][0])) * foreshort;
+  const released = ev.hold_end < L || dropF !== null;
   const cutOff = (s0 === 0 && lo < int(0.3 * fps)) || (s0 + L >= n && !released && !made);
-  const outcomeKind = made || released ? classify(made, barVsMid, barVx) : 'unknown';
+  const outcomeKind = dropF !== null ? (missVsMid >= 0 ? 'missed_forward' : 'missed_behind') : made || released ? classify(made, barVsMid, barVx) : 'unknown';
   const lean = (f: number) => 90.0 - trunk[f];
   const ahead = (f: number) => fwd * (sho[f][0] - hip[f][0]) > 0;
   const vx = gradient(bar.map((p) => fwd * p[0])).map((g) => ((g * fps) / pxPerCm) * foreshort);
   const swingF = contact + argmax(xsFwd);
   const miss: Miss = {
-    bar_vs_midfoot: barVsMid,
-    bar_vx: barVx,
-    frame: fEnd,
+    bar_vs_midfoot: missVsMid,
+    bar_vx: missVx,
+    frame: missF,
     fwd_excursion: vals.bar_forward_off_hips,
     pvx_minus: min(vx.slice(swingF, Math.min(L, ev.caught + int(0.3 * fps)) + 1)),
     hip_past_ankle: cm(fwd * (hip[ev.second_ext][0] - ank[ev.second_ext][0])) * foreshort,
@@ -553,8 +568,8 @@ export function analyseRep(
     trunk_fwd_catch: ahead(ev.caught) ? lean(ev.caught) : 0.0,
     max_hip: max(hipAng.slice(lo, ev.peak + 1)),
     bar_behind: -cm(fwd * (bar[ev.peak][0] - sho[ev.peak][0])) * foreshort,
-    midfoot: midfoot[fEnd],
-    bar: bar[fEnd],
+    midfoot: midfoot[missF],
+    bar: bar[missF],
   };
   if (outcomeKind === 'missed_behind') vals.jump_forward = null;
   const g = (f: number) => s0 + int(f);

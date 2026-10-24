@@ -66,6 +66,14 @@ export function movementNote(a: Analysis): string | null {
   return t('format.note.keepAs', { looks, movement: t(`format.bare.${a.movement}`) });
 }
 
+// One line for a missed lift (the bar came down in front or behind), so a cue below reads as why it was missed.
+export function missNote(a: Analysis): string | null {
+  const label = a.measurements.find((m) => m.id === 'outcome')?.label;
+  if (label === 'Missed forward') return t('format.note.missedForward');
+  if (label === 'Missed behind') return t('format.note.missedBehind');
+  return null;
+}
+
 export function phaseLabel(p: PhaseName): string {
   return t(`format.phase.${p}`);
 }
