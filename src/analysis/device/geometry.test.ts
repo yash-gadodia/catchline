@@ -16,6 +16,12 @@ describe('the bar from the hands', () => {
   it('keeps the wrist that continues the bar when the two disagree in height', () => {
     const lw: Pt[] = [[0, 0], [0, 0], [0, 0], [0, 0]];
     const rw: Pt[] = [[2, 0], [2, 0], [2, 40], [2, 40]];
-    expect(barTrack(lw, rw, 100)).toEqual([[1, 0], [1, 0], [0, 0], [0, 0]]);
+    expect(barTrack(lw, rw, 100)).toEqual([[1, 0], [1, 0], [1, 0], [1, 0]]);
+  });
+
+  it('keeps a lone wrist where the midpoint was across the frame, so a grip apart off side-on is not a bar move', () => {
+    const lw: Pt[] = [[400, 700], [400, 600], [400, 500], [400, 400], [400, 300]];
+    const rw: Pt[] = [[660, 700], [660, 660], [660, 630], [660, 600], [660, 570]];
+    expect(barTrack(lw, rw, 1000).map((p) => p[0])).toEqual([530, 530, 530, 530, 530]);
   });
 });

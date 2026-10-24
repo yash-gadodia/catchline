@@ -3,7 +3,7 @@ import { PanResponder, Pressable, ScrollView, Text, View, useWindowDimensions } 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Rect } from 'react-native-svg';
 import type { Analysis, Measurement, Phase, PhaseName } from '../../analysis/types';
-import { confidenceLine, fmt, liftTitle, measurementLabel, peakSpeed, phaseLabel, seconds, speedText } from '../../analysis/format';
+import { confidenceLine, fmt, liftTitle, measurementLabel, missNote, peakSpeed, phaseLabel, seconds, speedText } from '../../analysis/format';
 import { toScreen } from '../../analysis/geometry';
 import {
   clampFrame,
@@ -71,6 +71,7 @@ export default function PlayerScreen({
   const cue = analysis.cue;
   const rep = repByIndex(analysis, cue?.evidence.rep ?? analysis.bestRepIndex);
   const partial = cue ? null : noCueCopy(analysis);
+  const miss = rep.made ? null : missNote(analysis);
   const cuePhase = cue ? phaseOfFrame(rep, cue.evidence.frame) : null;
   const openFrame = initialFrame ?? (rep.phases[0] ? phaseFrame(rep, rep.phases[0].name) : rep.startFrame);
   const [frame, setFrameState] = useState(clampFrame(rep, openFrame));
@@ -307,6 +308,11 @@ export default function PlayerScreen({
         style={{ flex: 1, borderTopWidth: stroke.hairline, borderTopColor: colors.hairline }}
         contentContainerStyle={{ paddingTop: space.s3, paddingHorizontal: space.gutter, paddingBottom: Math.max(insets.bottom, space.s4), gap: space.s2 }}
       >
+        {miss ? (
+          <Text testID="miss-note" style={{ ...type.callout, color: colors.text }}>
+            {miss}
+          </Text>
+        ) : null}
         {phase ? <PhaseHead phase={phase} fps={analysis.video.fps} /> : null}
         {cue && phase && phase.name === cuePhase ? (
           <View testID="player-cue" style={{ borderLeftWidth: stroke.outline, borderLeftColor: colors.flare, paddingLeft: space.s3, paddingVertical: space.s2, gap: space.s1 }}>

@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Movement } from '../../analysis/types';
+import { pickable } from '../onboarding/lifts';
 import type { CheckId } from './checks';
 import { fullTrim, type Trim } from './trim';
 
@@ -85,6 +86,10 @@ export const useCapture = create<CaptureState>()(
       name: 'catchline.capture',
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (s) => ({ movement: s.movement, lastWeight: s.lastWeight, originals: s.originals }),
+      merge: (saved, current) => {
+        const s = { ...current, ...(saved as Partial<CaptureState>) };
+        return pickable(s.movement) ? s : { ...s, movement: 'snatch' };
+      },
     }
   )
 );

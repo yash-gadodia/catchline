@@ -20,6 +20,8 @@ export const format = {
   'format.note.looksLike': 'Looks like {detected}, not {chosen}.',
   'format.note.analysedAs': '{looks} Analysed as {movement}.',
   'format.note.keepAs': '{looks} Keep as {movement}?',
+  'format.note.missedForward': 'Missed lift: the bar came down in front.',
+  'format.note.missedBehind': 'Missed lift: the bar came down behind.',
   'format.phase.setup': 'Setup',
   'format.phase.first_pull': '1st pull',
   'format.phase.transition': 'Transition',

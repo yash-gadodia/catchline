@@ -46,6 +46,10 @@ describe('LiftsScreen', () => {
     const { getByTestId, queryByTestId } = await render(<LiftsScreen nav={liftsNav()} />);
     expect(getByTestId('movement-snatch')).toBeOnTheScreen();
     expect(queryByTestId('movement-kipping_hspu')).toBeNull();
+    expect(queryByTestId('movement-jerk')).toBeNull();
+    await press(getByTestId('group-gymnastics'));
+    expect(getByTestId('movement-bar_muscle_up')).toBeOnTheScreen();
+    expect(queryByTestId('movement-kipping_pull_up')).toBeNull();
   });
 
   it('shows every row state with the counter chip and the current cue', async () => {
@@ -82,11 +86,11 @@ describe('LiftsScreen', () => {
     expect(queryByTestId('lift-l-snatch-today')).toBeNull();
     expect(queryByTestId('movement-snatch')).toBeNull();
     await press(getByTestId('group-barbell'));
-    await press(getByTestId('movement-jerk'));
     expect(getByTestId('lift-l-jerk')).toBeOnTheScreen();
-    expect(queryByTestId('lift-l-snatch-today')).toBeNull();
     await press(getByTestId('movement-clean'));
     expect(getByTestId('lift-l-clean')).toBeOnTheScreen();
+    expect(queryByTestId('lift-l-jerk')).toBeNull();
+    expect(queryByTestId('lift-l-snatch-today')).toBeNull();
     expect(queryByText('Bar muscle-up · 5 reps')).toBeNull();
   });
 

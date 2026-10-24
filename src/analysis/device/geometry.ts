@@ -67,15 +67,23 @@ export function riseRatio(refY: number[], otherY: number[]): number | null {
   return den > 0 ? sum(a.map((v, i) => v * b[i])) / den : null;
 }
 
+// One wrist stands for the bar where the other is missing or more than maxGap off in height, at its own height but
+// moved across by its offset from the midpoint on the last frame both agreed: off side-on the hands are a grip apart,
+// and a lone wrist read as the bar moves it half a grip sideways, which reads as forward or back.
 export function barFromWrists(lw: Pt[], rw: Pt[], maxGap: number): Pt[] {
   const out: Pt[] = lw.map((p, i) => midPt(p, rw[i]));
+  let toMid = [0, 0];
   for (let f = 0; f < out.length; f++) {
+    const l: Pt = [lw[f][0] + toMid[0], lw[f][1]];
+    const r: Pt = [rw[f][0] + toMid[1], rw[f][1]];
     if (!(finitePt(lw[f]) && finitePt(rw[f]))) {
-      out[f] = finitePt(lw[f]) ? [...lw[f]] : [...rw[f]];
-    } else if (Math.abs(lw[f][1] - rw[f][1]) > maxGap && f > 0 && finitePt(out[f - 1])) {
+      out[f] = finitePt(lw[f]) ? l : r;
+    } else if (Math.abs(lw[f][1] - rw[f][1]) <= maxGap) {
+      toMid = [out[f][0] - lw[f][0], out[f][0] - rw[f][0]];
+    } else if (f > 0 && finitePt(out[f - 1])) {
       const prev = out[f - 1];
       // min() keeps the first on a tie
-      out[f] = dist(lw[f], prev) <= dist(rw[f], prev) ? [...lw[f]] : [...rw[f]];
+      out[f] = dist(l, prev) <= dist(r, prev) ? l : r;
     }
   }
   return out;
