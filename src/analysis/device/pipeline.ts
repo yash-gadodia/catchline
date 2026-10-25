@@ -403,15 +403,22 @@ export function analyseRep(
 
   // plates on the setup frames only, a booster: a yaw estimate beside the body's, and the scale side-on when both
   // plates' outlines hold and agree with the body; the body sizes everything else
-  const seed = Math.max(0, lo - 3);
+  let seed = Math.max(0, lo - 3);
   const setupH = nanmedian(boxH(s0 + Math.max(0, lo - 24), s0 + lo + 1));
   const platesAt = (f: number): Plate[] => source.plates(s0 + f, kw[f][L_WRI], kw[f][R_WRI], bodyH, setupH).map((p) => ({ ...p }));
-  const plates = platesAt(seed);
+  let plates = platesAt(seed);
+  // no plate at setup (the bar came into frame late, or the plate was hidden): the first frame of the pull that shows one
+  const searched = source.platesSearched?.(s0 + seed) ?? true;
+  for (let f = lo; searched && !plates.length && f <= ev.peak; f += 3) {
+    plates = platesAt(f);
+    if (plates.length) seed = f;
+  }
   const bodyScale = scaleFromBody(kw);
-  // no plate at setup: the body sizes the lift and the pose gives the angle, as for a plate not on the lifter's bar
+  // no plate in the lift: the body sizes the lift and the pose gives the angle, as for a plate not on the lifter's bar
   if (!plates.length && !bodyScale) return null;
   const samples: Plate[][] = [];
-  if (plates.length) for (let f = Math.max(0, lo - 24); f < lo; f += 3) samples.push(platesAt(f));
+  const [sa, sb] = seed >= lo ? [seed + 3, Math.min(ev.peak + 1, seed + 25)] : [Math.max(0, lo - 24), lo];
+  if (plates.length) for (let f = sa; f < sb; f += 3) samples.push(platesAt(f));
   plates.forEach((pl, i) => {
     const fits = [plates, ...samples].filter((s) => s.length === plates.length && s[i].side === pl.side).map((s) => s[i]);
     const [axes, diameter] = plateDiameter(fits, bodyScale);
