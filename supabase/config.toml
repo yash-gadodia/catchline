@@ -69,3 +69,6 @@ verify_jwt = true
 
 [functions.apple-token]
 verify_jwt = true
+
+[functions.intercom-hash]
+verify_jwt = true

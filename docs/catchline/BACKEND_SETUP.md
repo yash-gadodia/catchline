@@ -10,6 +10,7 @@ The backend is **hosted** since 2026-10-11: Supabase project `slowxjhvrdswdabjfy
 | Plan sync (`apply_plan`, `founding`, `revenuecat_events`) + `founding_seats()` | `supabase/migrations/0004_plan_sync.sql` | `supabase/tests/plan_sync_test.sql` (22) |
 | RevenueCat webhook -> `profiles.plan` | `supabase/functions/revenuecat-webhook/` | `deno test` in that folder (11) |
 | Plan sync on demand (`sync-plan`: caller's JWT -> RevenueCat `GET /v1/subscribers/{uid}` -> `apply_plan`, upgrades only) | `supabase/functions/sync-plan/` | `deno test` in that folder (12) |
+| Intercom identity verification (`intercom-hash`: caller's JWT, non-anonymous -> HMAC-SHA256(user id) with `INTERCOM_IOS_IDV_SECRET`; the app calls `Intercom.setUserHash` before login, stays anonymous if it fails) | `supabase/functions/intercom-hash/` | `deno test` in that folder (6), `src/data/intercom.test.ts` |
 | Parallax history (not applied) | `supabase/archive-parallax/` | kept for the record; excluded from tsc |
 | Worker (pgmq job -> `cv/catchline_cv` -> analysis + cue) | `worker/catchline_worker/` | `uv run pytest` (14), `ruff check` + `ruff format --check` |
 | Modal worker (live) | `worker/modal_app.py` | test lift ba636a80 queued -> done in 80 s on Modal (18 Oct) |

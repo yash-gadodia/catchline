@@ -60,6 +60,12 @@ export async function deleteAccount(): Promise<void> {
   await supabase.auth.signOut({ scope: 'local' });
 }
 
+export async function intercomUserHash(): Promise<string> {
+  const { data, error } = await supabase.functions.invoke('intercom-hash');
+  if (error) throw toApiError(error);
+  return (data as { hash: string }).hash;
+}
+
 /** Founding seats sold so far (public RPC, no PII). */
 export async function foundingSeats(): Promise<{ taken: number; cap: number }> {
   const { data, error } = await supabase.rpc('founding_seats');

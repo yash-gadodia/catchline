@@ -31,6 +31,7 @@ export {
   getAllowance,
   syncPlan,
   deleteAccount,
+  intercomUserHash,
   foundingSeats,
   type Allowance,
   type PlanSync,

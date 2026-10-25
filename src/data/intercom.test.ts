@@ -3,14 +3,14 @@ jest.mock('expo-updates', () => ({ updateId: 'ota-42' }));
 jest.mock('expo-constants', () => ({ __esModule: true, default: { expoConfig: { version: '3.1' } } }));
 
 type IntercomModule = typeof import('./intercom');
-type Sdk = Record<'initialize' | 'loginUnidentifiedUser' | 'loginUserWithUserAttributes' | 'updateUser' | 'logout' | 'present' | 'presentMessageComposer', jest.Mock>;
+type Sdk = Record<'initialize' | 'loginUnidentifiedUser' | 'loginUserWithUserAttributes' | 'setUserHash' | 'updateUser' | 'logout' | 'present' | 'presentMessageComposer', jest.Mock>;
 
 const ATTRIBUTES = { app_version: '3.1', ota_update_id: 'ota-42', device_model: 'iPhone16,1 iOS 26.1', plan_tier: 'free' };
 const env = process.env;
 const fetchMock = jest.fn();
 global.fetch = fetchMock;
 
-function load(keys: boolean): { intercom: IntercomModule; sdk: Sdk; setUser: (userId: string | null, anonymous: boolean) => void } {
+function load(keys: boolean): { intercom: IntercomModule; sdk: Sdk; invoke: jest.Mock; setUser: (userId: string | null, anonymous: boolean) => void } {
   jest.resetModules();
   process.env = { ...env };
   if (keys) {
@@ -23,7 +23,10 @@ function load(keys: boolean): { intercom: IntercomModule; sdk: Sdk; setUser: (us
   const intercom = require('./intercom') as IntercomModule;
   const sdk = (jest.requireMock('@intercom/intercom-react-native') as { default: Sdk }).default;
   const { useAuthUser } = require('../features/auth/authUser') as typeof import('../features/auth/authUser');
-  return { intercom, sdk, setUser: (userId, anonymous) => useAuthUser.setState({ userId, anonymous, displayName: null }) };
+  const { supabase } = require('../lib/supabase') as typeof import('../lib/supabase');
+  const invoke = jest.fn(() => Promise.resolve({ data: { hash: 'hash-7' }, error: null }));
+  (supabase.functions as unknown as { invoke: jest.Mock }).invoke = invoke;
+  return { intercom, sdk, invoke, setUser: (userId, anonymous) => useAuthUser.setState({ userId, anonymous, displayName: null }) };
 }
 
 beforeEach(() => {
@@ -75,6 +78,46 @@ describe('intercom configured', () => {
     expect(sdk.loginUserWithUserAttributes).toHaveBeenCalledWith({ userId: 'user-7', customAttributes: ATTRIBUTES });
     expect(sdk.loginUnidentifiedUser).not.toHaveBeenCalled();
     expect(sdk.present).toHaveBeenCalledTimes(1);
+  });
+
+  it('sets the identity-verification hash from intercom-hash before logging the lifter in', async () => {
+    const { intercom, sdk, invoke, setUser } = load(true);
+    setUser('user-7', false);
+    await intercom.openIntercomMessenger();
+    expect(invoke).toHaveBeenCalledWith('intercom-hash');
+    expect(sdk.setUserHash).toHaveBeenCalledWith('hash-7');
+    expect(sdk.setUserHash.mock.invocationCallOrder[0]).toBeLessThan(sdk.loginUserWithUserAttributes.mock.invocationCallOrder[0]);
+  });
+
+  it('never asks for a hash for an anonymous lifter', async () => {
+    const { intercom, sdk, invoke, setUser } = load(true);
+    setUser('anon-1', true);
+    await intercom.openIntercomMessenger();
+    expect(invoke).not.toHaveBeenCalled();
+    expect(sdk.setUserHash).not.toHaveBeenCalled();
+  });
+
+  it('stays anonymous in Intercom when the hash call fails, and still opens without retrying', async () => {
+    const { intercom, sdk, invoke, setUser } = load(true);
+    invoke.mockResolvedValue({ data: null, error: new Error('not deployed') });
+    setUser('user-7', false);
+    expect(await intercom.openIntercomMessenger()).toBe(true);
+    expect(sdk.setUserHash).not.toHaveBeenCalled();
+    expect(sdk.loginUserWithUserAttributes).not.toHaveBeenCalled();
+    expect(sdk.loginUnidentifiedUser).toHaveBeenCalledTimes(1);
+    expect(sdk.updateUser).toHaveBeenCalledWith({ customAttributes: ATTRIBUTES });
+    expect(await intercom.openIntercomMessenger()).toBe(true);
+    expect(invoke).toHaveBeenCalledTimes(1);
+    expect(sdk.logout).not.toHaveBeenCalled();
+  });
+
+  it('stays anonymous when the hash call throws offline', async () => {
+    const { intercom, sdk, invoke, setUser } = load(true);
+    invoke.mockRejectedValue(new TypeError('Network request failed'));
+    setUser('user-7', false);
+    expect(await intercom.openReportInIntercom()).toBe(true);
+    expect(sdk.loginUnidentifiedUser).toHaveBeenCalledTimes(1);
+    expect(sdk.presentMessageComposer).toHaveBeenCalledTimes(1);
   });
 
   it('starts once and logs in once across opens, and logs out on sign-out', async () => {

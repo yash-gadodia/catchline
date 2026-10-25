@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 import Intercom from '@intercom/intercom-react-native';
 import { reportDetails } from './problemReports';
+import { intercomUserHash } from '../lib/api';
 import { useAuthUser } from '../features/auth/authUser';
 import { usePurchases } from '../features/purchases/usePurchases';
 import type { Analysis } from '../analysis/types';
@@ -92,7 +93,9 @@ async function login(): Promise<void> {
     return;
   }
   if (loggedInAs !== undefined) await Intercom.logout();
-  if (userId) {
+  const hash = userId ? await intercomUserHash().catch(() => null) : null;
+  if (userId && hash) {
+    await Intercom.setUserHash(hash);
     await Intercom.loginUserWithUserAttributes({ userId, customAttributes: intercomAttributes() });
   } else {
     await Intercom.loginUnidentifiedUser();

@@ -423,6 +423,7 @@ jest.mock('@intercom/intercom-react-native', () => ({
     initialize: jest.fn(() => Promise.resolve(true)),
     loginUnidentifiedUser: jest.fn(() => Promise.resolve(true)),
     loginUserWithUserAttributes: jest.fn(() => Promise.resolve(true)),
+    setUserHash: jest.fn(() => Promise.resolve(true)),
     updateUser: jest.fn(() => Promise.resolve(true)),
     logout: jest.fn(() => Promise.resolve(true)),
     present: jest.fn(() => Promise.resolve(true)),
