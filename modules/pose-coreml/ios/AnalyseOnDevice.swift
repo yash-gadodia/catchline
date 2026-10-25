@@ -14,11 +14,13 @@ struct AnalysePlan {
   struct Window { let s0: Int; let count: Int }
   struct PlateRequest { let frame: Int; let wristA: Point; let wristB: Point; let bodyH: Double; let setupH: Double? }
   struct TrackRequest { let s0: Int; let n: Int; let start: Int; let plate: Plate }
+  struct FollowRequest { let s0: Int; let n: Int; let seed: Int; let wrists: [Point]; let wristA: Point; let wristB: Point; let bodyH: Double; let setupH: Double }
   struct KeyframeRequest { let name: String; let frame: Int }
 
   var windows: [Window] = []
   var plates: [PlateRequest] = []
   var tracks: [TrackRequest] = []
+  var follows: [FollowRequest] = []
   var keyframes: [KeyframeRequest] = []
 
   init() {}
@@ -51,6 +53,11 @@ struct AnalysePlan {
       let plate = Plate(centre: point(pl["centre"]), axes: ((axes[0] as? NSNumber)?.doubleValue ?? .nan, (axes[1] as? NSNumber)?.doubleValue ?? .nan),
                         score: try num(pl, "score"), side: pl["side"] as? String ?? "near", fitInliers: nil)
       tracks.append(TrackRequest(s0: try int(t, "s0"), n: try int(t, "n"), start: try int(t, "start"), plate: plate))
+    }
+    for t in json["follows"] as? [[String: Any]] ?? [] {
+      follows.append(FollowRequest(s0: try int(t, "s0"), n: try int(t, "n"), seed: try int(t, "seed"),
+                                   wrists: (t["wrists"] as? [Any] ?? []).map(point), wristA: point(t["wristA"]), wristB: point(t["wristB"]),
+                                   bodyH: try num(t, "bodyH"), setupH: try num(t, "setupH")))
     }
     for k in json["keyframes"] as? [[String: Any]] ?? [] {
       guard let name = k["name"] as? String else { throw StageError.invalid("plan: keyframe name missing") }
@@ -296,14 +303,30 @@ final class DeviceAnalyser {
         scores[t.start] = t.plate.score
       }
     }
+    final class FollowState {
+      let req: AnalysePlan.FollowRequest
+      var follow: PlateFollow?
+      var start: Plate?
+      var centres: [Double]
+      var fit: [Double]
+      var src: [Double]
+      init(_ f: AnalysePlan.FollowRequest) {
+        req = f
+        centres = [Double](repeating: .nan, count: f.n * 2)
+        fit = [Double](repeating: .nan, count: f.n * 4)
+        src = [Double](repeating: 0, count: f.n)
+      }
+      func wrist(_ i: Int) -> Point { i < req.wrists.count ? req.wrists[i] : Point(.nan, .nan) }
+    }
     let windows = plan.windows.map { WindowState($0, total: total, boxes: r.lifter.boxes) }
+    let follows = plan.follows.map { FollowState($0) }
     let tracks = plan.tracks.map { TrackState($0) }
     var plateFrames: [Int: AnalysePlan.PlateRequest] = [:]
     for p in plan.plates { plateFrames[p.frame] = p }
     var keyframes: [Int: [String]] = [:]
     for k in plan.keyframes { keyframes[min(max(k.frame, 0), total - 1), default: []].append(k.name) }
     let last = max(windows.map { $0.s0 + $0.n }.max() ?? 0, tracks.map { $0.req.s0 + $0.req.n }.max() ?? 0,
-                   (plateFrames.keys.max() ?? -1) + 1, (keyframes.keys.max() ?? -1) + 1)
+                   (plateFrames.keys.max() ?? -1) + 1, (keyframes.keys.max() ?? -1) + 1, follows.map { $0.req.s0 + $0.req.n }.max() ?? 0)
     try FileManager.default.createDirectory(at: stillsDir, withIntermediateDirectories: true)
     var stills: [String: URL] = [:]
     var sent = -1.0
@@ -348,6 +371,29 @@ final class DeviceAnalyser {
         t.centres[i * 2 + 1] = t.track.centre.y
         t.scores[i] = t.track.score
       }
+      for t in follows where f >= t.req.s0 + t.req.seed && f < t.req.s0 + t.req.n {
+        let i = f - t.req.s0
+        let gray = grayscale(image())
+        if i == t.req.seed {
+          if let p = try startPlate(image(), gray, wrist: t.wrist(i), wristA: t.req.wristA, wristB: t.req.wristB, bodyH: t.req.bodyH, setupH: t.req.setupH) {
+            t.start = p
+            t.follow = PlateFollow(seed: p, wrist: t.wrist(i), gray: gray)
+            t.centres[i * 2] = p.centre.x
+            t.centres[i * 2 + 1] = p.centre.y
+            t.src[i] = 1
+          }
+        } else if t.follow != nil {
+          t.src[i] = Double(followPlateStep(image(), gray, &t.follow!, wrist: t.wrist(i)))
+          if t.src[i] > 0 {
+            t.centres[i * 2] = t.follow!.centre.x
+            t.centres[i * 2 + 1] = t.follow!.centre.y
+          }
+        }
+        if t.src[i] > 0, let st = t.start {
+          let fit = plateFit(gray, Point(t.centres[i * 2], t.centres[i * 2 + 1]), t.follow!.major, st.axes.1 / st.axes.0)
+          t.fit.replaceSubrange(i * 4 ..< i * 4 + 4, with: [t.follow!.major, fit.rim, fit.polarity, fit.interior])
+        }
+      }
       if let names = keyframes[f] {
         let still = uprightBGR(pb, rotation: clip.rotation, outW: W1080, outH: keyframeHeight)
         let jpeg = try keyframeJPEG(still, blur: [])
@@ -365,6 +411,10 @@ final class DeviceAnalyser {
     for t in tracks {
       r.calls["track_plate", default: [:]]["\(t.req.s0):\(t.req.n):\(t.req.start):None", default: []]
         .append(tup([nd([t.req.n, 2], t.centres), nd([t.req.n], t.scores)]))
+    }
+    for t in follows {
+      r.calls["follow_plate", default: [:]]["\(t.req.s0):\(t.req.n):\(t.req.seed)", default: []]
+        .append(tup([nd([t.req.n, 2], t.centres), nd([t.req.n], t.src), nd([t.req.n, 4], t.fit), t.start.map(plateDict) ?? NSNull()]))
     }
     progress("pixels", 1)
     run = r

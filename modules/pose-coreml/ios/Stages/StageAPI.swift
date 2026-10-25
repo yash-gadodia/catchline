@@ -72,6 +72,31 @@ struct PlateTrack {
   }
 }
 
+struct PlateFollow {
+  var major: Double
+  let ratio: Double
+  var centre: Point
+  var velocity = Point(0, 0)
+  var offset: Point
+  let home: Point
+  let side: Double
+  var lost = 0
+  var flowRun = 0
+  var prev: GrayImage?
+  var features: [(Float, Float)] = []
+
+  init(seed: Plate, wrist: Point, gray: GrayImage) {
+    major = seed.axes.0
+    ratio = min(seed.axes.1 / seed.axes.0, 1.0)
+    centre = seed.centre
+    offset = wrist.x.isFinite && wrist.y.isFinite ? seed.centre - wrist : Point(0, 0)
+    home = offset
+    side = abs(offset.x) > 0.5 * seed.axes.0 ? (offset.x > 0 ? 1 : -1) : 0
+    prev = gray
+    features = discFeatures(gray, seed.centre, seed.axes.0)
+  }
+}
+
 // goodFeaturesToTrack / calcOpticalFlowPyrLK / estimateAffinePartial2D parameters
 struct KLTParams {
   let maxCorners: Int
