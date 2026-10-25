@@ -16,6 +16,7 @@ import EvidenceStage from './EvidenceStage';
 import WhyDrawer from './WhyDrawer';
 import CueNotes, { Disclaimer } from './CueNotes';
 import DrillCard from '../drills/DrillCard';
+import DrillLine from '../drills/DrillLine';
 import { isSample } from '../../analysis/fixtures';
 import { baselineSentence } from './baseline';
 import { useLibrary } from '../library/repository';
@@ -92,6 +93,7 @@ function CueBody({
         <Text style={[display(40), { color: colors.text }]} testID="cue-text">
           {cueText(cue.faultId, cue.text)}
         </Text>
+        <DrillLine faultId={cue.faultId} />
         <Text style={{ color: colors.text2, ...type.body }}>{cueWhy(cue.faultId, cue.why)}</Text>
         {baseline ? (
           <Text testID="cue-baseline" style={{ color: colors.text2, ...type.body }}>
@@ -207,6 +209,7 @@ function LowConfidence({ analysis, cue, nav, retest, retestable }: { analysis: A
         <MissNote analysis={analysis} />
         <SmallCaps>{t('analysis.cue.possible')}</SmallCaps>
         <Text style={[display(32), { color: colors.text }]}>{cueText(cue.faultId, cue.text)}</Text>
+        <DrillLine faultId={cue.faultId} />
         <Text style={{ color: colors.text2, ...type.callout }}>{cueWhy(cue.faultId, cue.why)}</Text>
         <CueNotes notes={analysis.notes} />
         <Reanalysed analysis={analysis} />

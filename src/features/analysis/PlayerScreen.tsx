@@ -31,6 +31,7 @@ import { CurrentDot, FlarePath, KeyDots, OverlaySvg, RefLine } from './overlays'
 import Filmstrip, { type PhaseMark } from './Filmstrip';
 import FadeRow from './FadeRow';
 import DrillCard from '../drills/DrillCard';
+import DrillLine from '../drills/DrillLine';
 import CueNotes, { Disclaimer } from './CueNotes';
 import { useRetestable } from './RetestVerdict';
 import DrawLayer from './DrawLayer';
@@ -342,6 +343,7 @@ export default function PlayerScreen({
           )
         ) : null}
         {cue && phase && phase.name === cuePhase ? <DrillCard faultId={cue.faultId} /> : null}
+        {cue && phase && phase.name === cuePhase ? <DrillLine faultId={cue.faultId} /> : null}
         {partial ? (
           <>
             <Text style={[display(26), { color: colors.text }]} numberOfLines={2}>

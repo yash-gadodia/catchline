@@ -10,6 +10,7 @@ import type { Analysis } from '../../analysis/types';
 import Btn from '../../components/Btn';
 import WhyDrawer from '../analysis/WhyDrawer';
 import DrillCard from '../drills/DrillCard';
+import DrillLine from '../drills/DrillLine';
 import Readout from '../../components/Readout';
 import SmallCaps from '../../components/SmallCaps';
 import TopBar from '../../components/TopBar';
@@ -108,6 +109,7 @@ export default function CueDetailScreen({ cue, nav }: { cue: CueRecord; nav: Cue
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: space.s4 }}>
       <View style={{ paddingTop: space.s2, paddingBottom: space.s4, paddingHorizontal: space.gutter, gap: space.s3 }}>
         <Text style={[display(36), { color: colors.text }]}>{cueText(cue.metricId, cue.text)}</Text>
+        <DrillLine faultId={cue.metricId} />
         {cue.why ? (
           <View style={{ gap: space.s1 }}>
             <SmallCaps size={11}>{t('library.aiEstimate')}</SmallCaps>
