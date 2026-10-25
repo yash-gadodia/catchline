@@ -123,7 +123,7 @@ const LABELS: Record<string, [string, string]> = {
   early_arm_bend: ['Early arm bend', 'elbows bent before the hips finished (+ = early)'],
   incomplete_extension: ['Extension short', 'hip angle short of 170° at the top of the pull'],
   forward_dip: ['Bar forward in dip', 'bar, dip start to dip bottom'],
-  press_out: ['Press-out', "elbow straightening after the hips' lowest point"],
+  press_out: ['Press-out: elbows re-bent overhead', 'elbows straightened again after bending with the bar overhead'],
   chest_dive: ['Chest forward in catch', 'trunk lean from vertical when landing'],
   bar_forward_overhead: ['Bar forward overhead', 'bar vs shoulders at lockout'],
   leg_kip: ['Knee bend in the swing', 'knee range, arch to top'],
@@ -473,6 +473,28 @@ function runJerk(ctx: Ctx, forceReps?: [number, number, number][]): Result {
   return { ...writeOut(ctx, infos), repCalls: infos };
 }
 
+// With the bar overhead from the landing on: the most the elbows re-straightened after bending (a press-out; 0 when they
+// arrived locked and stayed locked), the frame they were most bent before it, and the first frame they were locked after.
+export function overheadLockout(el: number[], overhead: boolean[], from: number, to: number, lockDeg = 165): { pressOut: number; bent: number; lock: number | null } {
+  let a = from;
+  while (a <= to && !overhead[a]) a++;
+  let b = a;
+  while (b + 1 <= to && overhead[b + 1]) b++;
+  if (a > to) return { pressOut: 0.0, bent: from, lock: null };
+  let bent = a;
+  let pressOut = 0.0;
+  let top = el[b];
+  for (let f = b; f >= a; f--) {
+    top = Math.max(top, el[f]);
+    if (el[f] < lockDeg && top - el[f] > pressOut) {
+      pressOut = top - el[f];
+      bent = f;
+    }
+  }
+  const locked = where(el.slice(bent, b + 1).map((v) => v >= lockDeg));
+  return { pressOut, bent, lock: locked.length ? bent + locked[0] : null };
+}
+
 function jerkRep(ctx: Ctx, repNo: number, start: number, end: number, pxPerCm: number): RepInfo {
   const { fps, n } = ctx;
   const s0 = Math.max(0, start - int(0.3 * fps));
@@ -505,18 +527,17 @@ function jerkRep(ctx: Ctx, repNo: number, start: number, end: number, pxPerCm: n
   const fd = cm(fwd * (bar[db][0] - bar[ds][0])) * fs;
   vals.forward_dip = fd;
   det.forward_dip = { frame: db, from: bar[ds], to: bar[db], caption: `dip · ${pyFixed(fd, 0)} cm fwd` };
-  const hipH = hip.map((p) => -p[1]);
-  const hm = land + argmin(hipH.slice(land, Math.min(L, land + int(0.6 * fps) + 1)));
-  const rise = where(hipH.slice(hm).map((v) => v > hipH[hm] + 0.05 * t));
-  const he = hm + (rise.length ? rise[0] : 0);
-  const po = el[hm] < 165 ? max(el.slice(hm, he + 1)) - el[hm] : 0.0;
+  const head = headY(ksm, t);
+  const ol = overheadLockout(el, bar.map((p, i) => p[1] < head[i]), land, Math.min(L - 1, ev.hold_end - 1));
+  const hm = ol.bent;
+  const po = ol.pressOut;
   vals.press_out = po;
   det.press_out = {
     frame: hm,
     from: mid(ksm, L_ELB, R_ELB)[hm],
     to: bar[hm],
     elbow_land: el[hm],
-    caption: `elbow ${pyFixed(el[hm], 0)}° at the bottom, +${pyFixed(po, 0)}° after`,
+    caption: `elbow ${pyFixed(el[hm], 0)}° overhead, +${pyFixed(po, 0)}° after`,
   };
   const lean = 90.0 - trunkAngle1(sho[land], hip[land]);
   const leanFwd = fwd * (sho[land][0] - hip[land][0]) > 0;
@@ -536,6 +557,9 @@ function jerkRep(ctx: Ctx, repNo: number, start: number, end: number, pxPerCm: n
   const extra: MeasRow[] = [
     { id: 'dip_depth', label: 'Dip depth', value: pyRound(cm(rackH - -bar[db][1]), 1), unit: 'cm', frame: s0 + db, status: 'normal', note: 'bar drop from the rack' },
     { id: 'catch_style', label: 'Foot split', value: pyRound(cm(catchSep), 1), unit: 'cm', frame: s0 + land, status: 'normal', note: `${style} jerk (ankles apart front to back)` },
+    ...(ol.lock !== null
+      ? [{ id: 'lockout_time', label: 'Drive to lockout', value: pyRound((ol.lock - db) / fps, 2), unit: 's', frame: s0 + ol.lock, status: 'normal', note: 'dip bottom to elbows locked overhead' }]
+      : []),
     { id: 'lockout_elbow', label: 'Lockout elbow', value: pyRound(el[lock], 1), unit: 'deg', frame: s0 + lock, status: 'normal', note: 'standard: arms straight overhead' },
     {
       id: 'dip_knee',

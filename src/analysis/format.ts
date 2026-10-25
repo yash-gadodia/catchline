@@ -11,6 +11,8 @@ const MEASUREMENT: Record<string, Key> = {
   'Extension short': 'format.measurement.extensionShort',
   'Bar forward in dip': 'format.measurement.barForwardInDip',
   'Press-out': 'format.measurement.pressOut',
+  'Press-out: elbows re-bent overhead': 'format.measurement.pressOutOverhead',
+  'Drive to lockout': 'format.measurement.driveToLockout',
   'Chest forward in catch': 'format.measurement.chestForwardInCatch',
   'Bar forward overhead': 'format.measurement.barForwardOverhead',
   'Knee bend in the swing': 'format.measurement.kneeBendInSwing',

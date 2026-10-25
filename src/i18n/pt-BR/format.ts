@@ -124,4 +124,6 @@ export const format: Strings<typeof en> = {
   'format.confidence.hidden': 'barra parcialmente escondida',
   'format.confidence.oneRep': 'só uma repetição',
   'format.confidence.seenOn': { one: 'vista em {seen} de {count} repetição', other: 'vista em {seen} de {count} repetições' },
+  'format.measurement.pressOutOverhead': "Empurrada final: cotovelos dobrados de novo acima da cabeça",
+  'format.measurement.driveToLockout': "Impulso até o travamento",
 };

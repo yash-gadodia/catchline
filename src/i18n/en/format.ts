@@ -56,6 +56,8 @@ export const format = {
   'format.measurement.extensionShort': 'Extension short',
   'format.measurement.barForwardInDip': 'Bar forward in dip',
   'format.measurement.pressOut': 'Press-out',
+  'format.measurement.pressOutOverhead': 'Press-out: elbows re-bent overhead',
+  'format.measurement.driveToLockout': 'Drive to lockout',
   'format.measurement.chestForwardInCatch': 'Chest forward in catch',
   'format.measurement.barForwardOverhead': 'Bar forward overhead',
   'format.measurement.kneeBendInSwing': 'Knee bend in the swing',

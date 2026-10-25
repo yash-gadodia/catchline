@@ -124,4 +124,6 @@ export const format: Strings<typeof en> = {
   'format.confidence.hidden': 'barre en partie cachée',
   'format.confidence.oneRep': 'une seule répétition',
   'format.confidence.seenOn': { one: 'vue sur {seen} répétition sur {count}', other: 'vue sur {seen} répétitions sur {count}' },
+  'format.measurement.pressOutOverhead': "Fin en développé : coudes refléchis au-dessus de la tête",
+  'format.measurement.driveToLockout': "Impulsion jusqu'au verrouillage",
 };
