@@ -10,6 +10,8 @@ export const EVENTS = {
   PURCHASE_COMPLETED: 'purchase_completed',
   ACCOUNT_DELETED: 'account_deleted',
   FRAMING_CHECKED: 'framing_checked',
+  ANALYSIS_COMPLETED: 'analysis_completed',
+  ANALYSIS_FAILED: 'analysis_failed',
 } as const;
 
 export type EventName = (typeof EVENTS)[keyof typeof EVENTS];

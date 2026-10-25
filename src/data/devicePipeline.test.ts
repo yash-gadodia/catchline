@@ -40,6 +40,7 @@ jest.mock('expo-crypto', () => ({ randomUUID: () => 'lift-1' }));
 jest.mock('./liftOutbox', () => ({ queueLiftSync: jest.fn(async () => 1) }));
 jest.mock('./freeLifts', () => ({ writeFreeUsed: jest.fn(async () => undefined) }));
 jest.mock('../features/purchases/usePurchases', () => ({ usePurchases: { getState: () => ({ tier: 'free' }) } }));
+jest.mock('../lib/analytics', () => ({ ...jest.requireActual('../lib/analytics'), track: jest.fn() }));
 
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { analyseTrace, planFromMisses } from '../analysis/device/analyseTrace';
@@ -48,6 +49,7 @@ import { writeFreeUsed } from './freeLifts';
 import { useUsage } from '../features/paywall/usageStore';
 import { ClipTooLongError, prepareClip } from './prepare';
 import { saveLocalLift } from './localLifts';
+import { track } from '../lib/analytics';
 
 const native = PoseCoreML as NonNullable<typeof PoseCoreML>;
 const mockAnalyse = native.analyseOnDevice as jest.Mock;
@@ -105,6 +107,13 @@ describe('startDeviceLift, the happy path', () => {
     expect(job?.fraction).toBe(1);
     expect(activateKeepAwakeAsync).toHaveBeenCalledTimes(1);
     expect(deactivateKeepAwake).toHaveBeenCalledTimes(1);
+    expect(track).toHaveBeenCalledWith('analysis_completed', {
+      movement: 'snatch',
+      cue_confidence: snatchMock.cue?.confidence,
+      no_cue_code: 'none',
+      made: snatchMock.reps[snatchMock.bestRepIndex].made,
+    });
+    expect(track).toHaveBeenCalledTimes(1);
   });
 
   it('sends why there was no cue for a partial result', async () => {
@@ -174,6 +183,7 @@ describe('startDeviceLift when the analysis fails', () => {
     expect(job?.status).toBe('failed');
     expect(job?.error).toBe('analysis_failed');
     expect(job?.result?.failure?.reason).toBe('clip_cut_off');
+    expect(track).toHaveBeenCalledWith('analysis_failed', { movement: 'snatch', code: 'no_reps' });
   });
 
   it('sends a native read error to the could-not-read screen, counting and syncing nothing', async () => {
@@ -185,6 +195,7 @@ describe('startDeviceLift when the analysis fails', () => {
     expect(job?.error).toBe('analysis_failed');
     expect(job?.failureReason).toBe('clip_unreadable');
     expect(deactivateKeepAwake).toHaveBeenCalledTimes(1);
+    expect(track).toHaveBeenCalledWith('analysis_failed', { movement: 'snatch', code: 'no_video_track' });
   });
 
   it('offers a retry when the models could not be loaded', async () => {
