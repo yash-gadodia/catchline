@@ -23,6 +23,8 @@ export const format: Strings<typeof en> = {
   'format.note.looksLike': 'Parece {detected}, no {chosen}.',
   'format.note.analysedAs': '{looks} Analizado como {movement}.',
   'format.note.keepAs': '{looks} ¿Mantener como {movement}?',
+  'format.note.missedForward': 'Levantamiento fallido: la barra cayó por delante.',
+  'format.note.missedBehind': 'Levantamiento fallido: la barra cayó por detrás.',
   'format.phase.setup': 'Posición inicial',
   'format.phase.first_pull': '1.er tirón',
   'format.phase.transition': 'Transición',

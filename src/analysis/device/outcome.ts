@@ -50,6 +50,17 @@ export function behindCopy(barBehindMidfoot: number, cause: string | null, m: { 
   return `${head} ${body[cause ?? 'none']} ${BAIL_BEHIND}`;
 }
 
+// The first frame from `from` (before `to`) where the hands, so the bar, sat below `lowY` (image y, down positive) for
+// `need` frames: let go of, not held overhead or in the rack.
+export function droppedAt(barY: number[], lowY: number[], from: number, to: number, need: number): number | null {
+  for (let f = Math.max(0, from); f < Math.min(to, barY.length - need + 1); f++) {
+    let held = 0;
+    while (held < need && barY[f + held] > lowY[f + held]) held++;
+    if (held === need) return f;
+  }
+  return null;
+}
+
 // speed.py
 const PLAUSIBLE: [number, number] = [0.5, 4.0];
 

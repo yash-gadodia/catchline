@@ -13,7 +13,7 @@ import Animated, {
 import type { Analysis, KeyFrame } from '../../analysis/types';
 import { coverFit, polylineLength, svgPath, toScreen, type Fit, type Size } from '../../analysis/geometry';
 import { frameSource } from '../../analysis/frames';
-import { heroValue, movementNote } from '../../analysis/format';
+import { heroValue, missNote, movementNote } from '../../analysis/format';
 import { keyFrameAt, keyFrameForPhase, liftPath, repByIndex } from '../../analysis/timeline';
 import SmallCaps from '../../components/SmallCaps';
 import { impact } from '../../lib/haptics';
@@ -172,6 +172,7 @@ export default function RevealScreen({
   const lineStyle = useAnimatedStyle(() => ({ opacity: line.value }));
   const path = liftPath(rep).map(s);
   const note = movementNote(analysis);
+  const miss = missNote(analysis);
 
   return (
     <Pressable style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top + 56 }} onPress={onTap} testID="reveal-screen">
@@ -203,6 +204,11 @@ export default function RevealScreen({
         {note ? (
           <Text testID="movement-note" style={{ color: colors.text2, ...type.readout }}>
             {note}
+          </Text>
+        ) : null}
+        {miss ? (
+          <Text testID="miss-note" style={{ color: colors.text, ...type.readout }}>
+            {miss}
           </Text>
         ) : null}
         {typed > 0 ? (

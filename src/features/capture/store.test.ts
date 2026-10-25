@@ -23,7 +23,7 @@ describe('capture store', () => {
 
   it('reports hydration only once the saved movement is back from disk', async () => {
     useCapture.setState({ movement: 'snatch' });
-    const release = slowDisk('jerk');
+    const release = slowDisk('clean');
     const rehydrated = useCapture.persist.rehydrate();
     const { result } = await renderHook(() => useCaptureHydrated());
     expect([result.current, useCapture.getState().movement]).toEqual([false, 'snatch']);
@@ -32,6 +32,17 @@ describe('capture store', () => {
       await rehydrated;
     });
     await waitFor(() => expect(result.current).toBe(true));
-    expect(useCapture.getState().movement).toBe('jerk');
+    expect(useCapture.getState().movement).toBe('clean');
+  });
+
+  it('starts on the snatch when the saved movement is no longer offered', async () => {
+    useCapture.setState({ movement: 'clean' });
+    const release = slowDisk('jerk');
+    const rehydrated = useCapture.persist.rehydrate();
+    await act(async () => {
+      release();
+      await rehydrated;
+    });
+    expect(useCapture.getState().movement).toBe('snatch');
   });
 });
