@@ -210,6 +210,7 @@ export async function startDeviceLift(sub: ClipSubmission & { uri: string }): Pr
     } else {
       track(EVENTS.ANALYSIS_COMPLETED, { movement: sub.movement, cue_confidence: local.cue?.confidence ?? 'none', no_cue_code: record.noCueCode ?? 'none', made: record.made ?? 'unknown' });
       void logIntercomEvent('analysis_completed', { movement: sub.movement, made: record.made ?? 'unknown', cue_shown: !!local.cue });
+      if (useUsage.getState().usage.lifetime === 5) void logIntercomEvent('fifth_analysis', { movement: sub.movement });
       patch({ status: 'done', result: local });
     }
   } catch (e) {

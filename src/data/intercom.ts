@@ -140,7 +140,7 @@ export async function openIntercomMessenger(): Promise<boolean> {
   );
 }
 
-export type IntercomEvent = 'analysis_failed' | 'analysis_completed' | 'paywall_viewed' | 'trial_ending';
+export type IntercomEvent = 'analysis_failed' | 'analysis_completed' | 'paywall_viewed' | 'trial_ending' | 'fifth_analysis' | 'subscription_cancel_viewed';
 
 export function intercomEventsEnabled(): boolean {
   return process.env.EXPO_PUBLIC_INTERCOM_EVENTS !== 'off';

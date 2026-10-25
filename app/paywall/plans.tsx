@@ -3,6 +3,7 @@ import { usePurchases, presentCustomerCenter } from '../../src/features/purchase
 import PlansScreen from '../../src/features/paywall/PlansScreen';
 import { renewalDate } from '../../src/features/paywall/copy';
 import type { Tier } from '../../src/features/paywall/entitlements';
+import { logIntercomEvent } from '../../src/data/intercom';
 
 export default function PlansRoute() {
   const { tier: demoTier } = useLocalSearchParams<{ tier?: Tier }>();
@@ -22,7 +23,10 @@ export default function PlansRoute() {
       renews={renews}
       onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))}
       onChangePlan={async () => {
-        if (current !== 'free' && (await presentCustomerCenter())) return;
+        if (current !== 'free' && (await presentCustomerCenter())) {
+          void logIntercomEvent('subscription_cancel_viewed', { plan_tier: current });
+          return;
+        }
         router.push('/paywall');
       }}
     />

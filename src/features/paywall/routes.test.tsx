@@ -7,6 +7,7 @@ import { startLift } from '../../data/pipeline';
 import QuizRoute from '../../../app/paywall/funnel/quiz';
 import PaywallRoute from '../../../app/paywall/index';
 import CapRoute from '../../../app/paywall/cap';
+import PlansRoute from '../../../app/paywall/plans';
 
 const params: { current: Record<string, string> } = { current: {} };
 
@@ -21,6 +22,10 @@ jest.mock('../../data/intercom', () => ({
   ...jest.requireActual('../../data/intercom'),
   logIntercomEvent: jest.fn(() => Promise.resolve(true)),
   openHelpInIntercom: jest.fn(() => Promise.resolve(false)),
+}));
+jest.mock('../purchases/usePurchases', () => ({
+  ...jest.requireActual('../purchases/usePurchases'),
+  presentCustomerCenter: jest.fn(() => Promise.resolve(false)),
 }));
 jest.mock('./seats', () => ({
   ...jest.requireActual('./seats'),
@@ -66,6 +71,28 @@ describe('paywall support', () => {
     const view = await render(<PaywallRoute />);
     await press(view.getByTestId('purchase-help'));
     expect(mockNav.push).toHaveBeenCalledWith({ pathname: '/report', params: { context: 'purchase: free' } });
+  });
+});
+
+describe('managing a subscription', () => {
+  const { presentCustomerCenter } = jest.requireMock('../purchases/usePurchases') as { presentCustomerCenter: jest.Mock };
+  const { logIntercomEvent } = jest.requireMock('../../data/intercom') as { logIntercomEvent: jest.Mock };
+
+  it('logs subscription_cancel_viewed once the Customer Center was shown', async () => {
+    usePurchases.setState({ tier: 'pull', period: 'annual' });
+    presentCustomerCenter.mockResolvedValueOnce(true);
+    const view = await render(<PlansRoute />);
+    await press(view.getByTestId('change-plan'));
+    expect(logIntercomEvent).toHaveBeenCalledWith('subscription_cancel_viewed', { plan_tier: 'pull' });
+    expect(mockNav.push).not.toHaveBeenCalled();
+  });
+
+  it('logs nothing for a free lifter, who goes to the paywall', async () => {
+    const view = await render(<PlansRoute />);
+    await press(view.getByTestId('change-plan'));
+    expect(presentCustomerCenter).not.toHaveBeenCalled();
+    expect(logIntercomEvent).not.toHaveBeenCalledWith('subscription_cancel_viewed', expect.anything());
+    expect(mockNav.push).toHaveBeenCalledWith('/paywall');
   });
 });
 

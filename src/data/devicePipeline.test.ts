@@ -119,6 +119,18 @@ describe('startDeviceLift, the happy path', () => {
     expect(logIntercomEvent).toHaveBeenCalledWith('analysis_completed', { movement: 'snatch', made: snatchMock.reps[snatchMock.bestRepIndex].made, cue_shown: true });
   });
 
+  it('logs fifth_analysis to Intercom when this result is the fifth', async () => {
+    useUsage.setState({ usage: { ...useUsage.getState().usage, lifetime: 4 } });
+    await startDeviceLift(SUB);
+    expect(logIntercomEvent).toHaveBeenCalledWith('fifth_analysis', { movement: 'snatch' });
+  });
+
+  it('does not log fifth_analysis on any other count', async () => {
+    useUsage.setState({ usage: { ...useUsage.getState().usage, lifetime: 5 } });
+    await startDeviceLift(SUB);
+    expect(logIntercomEvent).not.toHaveBeenCalledWith('fifth_analysis', expect.anything());
+  });
+
   it('sends why there was no cue for a partial result', async () => {
     mockTrace.mockReturnValue({ ...snatchMock, cue: null, noCueReason: { code: 'off_side_on', offSideDeg: 40 } });
     await startDeviceLift(SUB);
