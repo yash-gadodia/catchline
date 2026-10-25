@@ -69,7 +69,9 @@ export function riseRatio(refY: number[], otherY: number[]): number | null {
 
 // One wrist stands for the bar where the other is missing or more than maxGap off in height, at its own height but
 // moved across by its offset from the midpoint on the last frame both agreed: off side-on the hands are a grip apart,
-// and a lone wrist read as the bar moves it half a grip sideways, which reads as forward or back.
+// and a lone wrist read as the bar moves it half a grip sideways, which reads as forward or back. Where both are seen
+// and still within half to 1.5 grips apart across the frame, the bar keeps their midpoint across: the grip looks wider
+// as the bar rises above a low camera, and the frozen offset read that as the bar moving forward.
 export function barFromWrists(lw: Pt[], rw: Pt[], maxGap: number): Pt[] {
   const out: Pt[] = lw.map((p, i) => midPt(p, rw[i]));
   let toMid = [0, 0];
@@ -83,7 +85,9 @@ export function barFromWrists(lw: Pt[], rw: Pt[], maxGap: number): Pt[] {
     } else if (f > 0 && finitePt(out[f - 1])) {
       const prev = out[f - 1];
       // min() keeps the first on a tie
-      out[f] = dist(l, prev) <= dist(r, prev) ? l : r;
+      const pick = dist(l, prev) <= dist(r, prev) ? l : r;
+      const grips = (lw[f][0] - rw[f][0]) / (toMid[1] - toMid[0]);
+      out[f] = grips >= 0.5 && grips <= 1.5 ? [out[f][0], pick[1]] : pick;
     }
   }
   return out;

@@ -24,4 +24,16 @@ describe('the bar from the hands', () => {
     const rw: Pt[] = [[660, 700], [660, 660], [660, 630], [660, 600], [660, 570]];
     expect(barTrack(lw, rw, 1000).map((p) => p[0])).toEqual([530, 530, 530, 530, 530]);
   });
+
+  it('keeps the midpoint across when the grip looks wider as the bar rises off side-on', () => {
+    const lw: Pt[] = [[400, 700], [400, 600], [410, 500], [420, 400], [430, 300]];
+    const rw: Pt[] = [[660, 700], [660, 660], [690, 630], [720, 600], [750, 570]];
+    expect(barTrack(lw, rw, 1000).map((p) => p[0])).toEqual([530, 530, 550, 570, 590]);
+  });
+
+  it('falls back to the lone wrist when the other is read far more than a grip away', () => {
+    const lw: Pt[] = [[400, 700], [400, 600], [400, 500], [400, 400], [400, 300]];
+    const rw: Pt[] = [[660, 700], [660, 660], [1000, 630], [1000, 600], [1000, 570]];
+    expect(barTrack(lw, rw, 1000).map((p) => p[0])).toEqual([530, 530, 530, 530, 530]);
+  });
 });
