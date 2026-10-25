@@ -430,5 +430,6 @@ jest.mock('@intercom/intercom-react-native', () => ({
     present: jest.fn(() => Promise.resolve(true)),
     presentMessageComposer: jest.fn(() => Promise.resolve(true)),
     sendTokenToIntercom: jest.fn(() => Promise.resolve(true)),
+    logEvent: jest.fn(() => Promise.resolve(true)),
   },
 }));

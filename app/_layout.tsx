@@ -23,7 +23,7 @@ import { flushProblemReports } from '../src/data/problemReports';
 import { installForegroundHandler, isIntercomPush, liftIdFromResponse, registerPushToken, routeForLift } from '../src/features/notifications';
 import { init as initAnalytics, identify, reset, track, EVENTS } from '../src/lib/analytics';
 import { startAuthUserSync } from '../src/features/auth/authUser';
-import { logoutIntercom, openIntercomMessenger } from '../src/data/intercom';
+import { logoutIntercom, openIntercomMessenger, watchTrialEnding } from '../src/data/intercom';
 import { useLocale } from '../src/i18n';
 import { initSentry } from '../src/lib/sentry';
 import { markLaunched, startLaunchWatchdog } from '../src/lib/launch';
@@ -70,10 +70,11 @@ export default function RootLayout() {
 
     // Initialise RevenueCat once (real SDK in a dev build; no-op in Expo Go).
     usePurchases.getState().configure();
+    const stopTrialWatch = watchTrialEnding();
 
     if (!backendEnabled()) {
       void syncServerUsage();
-      return;
+      return stopTrialWatch;
     }
     const stopAuthUserSync = startAuthUserSync();
     void flushProblemReports();
@@ -107,6 +108,7 @@ export default function RootLayout() {
     return () => {
       subscription.unsubscribe();
       stopAuthUserSync();
+      stopTrialWatch();
     };
   }, []);
 

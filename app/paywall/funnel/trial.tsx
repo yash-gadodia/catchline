@@ -5,6 +5,7 @@ import TrialPaywall from '../../../src/features/paywall/TrialPaywall';
 import { purchasePlan, storePlatform } from '../../../src/features/paywall/hooks';
 import { WEB_CHECKOUT_URL, webCheckoutEnabled } from '../../../src/features/paywall/flags';
 import { track, EVENTS } from '../../../src/lib/analytics';
+import { logIntercomEvent } from '../../../src/data/intercom';
 import { submitDraft } from '../../../src/features/capture/submit';
 
 export default function TrialRoute() {
@@ -13,6 +14,7 @@ export default function TrialRoute() {
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
   useEffect(() => {
     track(EVENTS.PAYWALL_VIEWED, { surface: 'ad_trial' });
+    void logIntercomEvent('paywall_viewed', { surface: 'ad_trial' });
   }, []);
   return (
     <TrialPaywall

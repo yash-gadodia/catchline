@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import Intercom from '@intercom/intercom-react-native';
+import type { CustomerInfo } from 'react-native-purchases';
 import * as Notifications from 'expo-notifications';
 import { reportDetails } from './problemReports';
 import { intercomUserHash } from '../lib/api';
@@ -9,6 +10,7 @@ import type { Analysis } from '../analysis/types';
 
 const PROBE_URL = 'https://api-iam.intercom.io/';
 const PROBE_TIMEOUT_MS = 3000;
+const TRIAL_ENDING_MS = 2 * 24 * 60 * 60 * 1000;
 
 let started: Promise<boolean> | null = null;
 let loggedInAs: string | null | undefined;
@@ -136,6 +138,44 @@ export async function openIntercomMessenger(): Promise<boolean> {
     () => true,
     () => false,
   );
+}
+
+export type IntercomEvent = 'analysis_failed' | 'analysis_completed' | 'paywall_viewed' | 'trial_ending';
+
+export function intercomEventsEnabled(): boolean {
+  return process.env.EXPO_PUBLIC_INTERCOM_EVENTS !== 'off';
+}
+
+export async function logIntercomEvent(name: IntercomEvent, meta: Record<string, string | number | boolean> = {}): Promise<boolean> {
+  if (!intercomEventsEnabled()) return false;
+  try {
+    if (!(await ready())) return false;
+    return await Intercom.logEvent(name, meta);
+  } catch {
+    return false;
+  }
+}
+
+export function trialEndingAt(info: CustomerInfo | null, now: Date): string | null {
+  for (const ent of Object.values(info?.entitlements?.active ?? {})) {
+    if (ent.periodType !== 'TRIAL' || !ent.expirationDate) continue;
+    const left = Date.parse(ent.expirationDate) - now.getTime();
+    if (left > 0 && left <= TRIAL_ENDING_MS) return ent.expirationDate;
+  }
+  return null;
+}
+
+let trialEndingLogged: string | null = null;
+
+export function watchTrialEnding(): () => void {
+  const check = (info: CustomerInfo | null) => {
+    const at = trialEndingAt(info, new Date());
+    if (!at || at === trialEndingLogged) return;
+    trialEndingLogged = at;
+    void logIntercomEvent('trial_ending', { plan_tier: usePurchases.getState().tier, expires_at: Math.floor(Date.parse(at) / 1000) });
+  };
+  check(usePurchases.getState().customerInfo);
+  return usePurchases.subscribe((s) => check(s.customerInfo));
 }
 
 export async function sendPushTokenToIntercom(): Promise<boolean> {

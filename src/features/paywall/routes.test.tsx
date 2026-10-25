@@ -17,6 +17,11 @@ jest.mock('expo-router', () => {
 const mockNav = jest.requireMock('expo-router').router as { push: jest.Mock; replace: jest.Mock; back: jest.Mock };
 jest.mock('../../data/backend', () => ({ backendEnabled: () => true }));
 jest.mock('../../data/pipeline', () => ({ startLift: jest.fn() }));
+jest.mock('../../data/intercom', () => ({
+  ...jest.requireActual('../../data/intercom'),
+  logIntercomEvent: jest.fn(() => Promise.resolve(true)),
+  openHelpInIntercom: jest.fn(() => Promise.resolve(false)),
+}));
 jest.mock('./seats', () => ({
   ...jest.requireActual('./seats'),
   getFoundingSeats: jest.fn(async () => ({ total: 500, remaining: 137 })),
@@ -49,6 +54,20 @@ async function finishQuiz(view: Awaited<ReturnType<typeof render>>) {
   await press(view.getByText('Sometimes'));
   await press(view.getByTestId('quiz-next'));
 }
+
+describe('paywall support', () => {
+  it('logs paywall_viewed to Intercom with the surface only', async () => {
+    const { logIntercomEvent } = jest.requireMock('../../data/intercom') as { logIntercomEvent: jest.Mock };
+    await render(<PaywallRoute />);
+    expect(logIntercomEvent).toHaveBeenCalledWith('paywall_viewed', { surface: 'video4' });
+  });
+
+  it('Purchase problem? falls back to the report form with the plan tier', async () => {
+    const view = await render(<PaywallRoute />);
+    await press(view.getByTestId('purchase-help'));
+    expect(mockNav.push).toHaveBeenCalledWith({ pathname: '/report', params: { context: 'purchase: free' } });
+  });
+});
 
 // Prod bug (14-10-2026): finishing the ad quiz opened /analysis/processing bare, which
 // plays the bundled snatch instead of the clip the lifter had just picked.

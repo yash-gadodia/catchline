@@ -3,7 +3,7 @@ jest.mock('expo-updates', () => ({ updateId: 'ota-42' }));
 jest.mock('expo-constants', () => ({ __esModule: true, default: { expoConfig: { version: '3.1' } } }));
 
 type IntercomModule = typeof import('./intercom');
-type Sdk = Record<'initialize' | 'loginUnidentifiedUser' | 'loginUserWithUserAttributes' | 'setUserHash' | 'sendTokenToIntercom' | 'updateUser' | 'logout' | 'present' | 'presentMessageComposer', jest.Mock>;
+type Sdk = Record<'logEvent' | 'initialize' | 'loginUnidentifiedUser' | 'loginUserWithUserAttributes' | 'setUserHash' | 'sendTokenToIntercom' | 'updateUser' | 'logout' | 'present' | 'presentMessageComposer', jest.Mock>;
 
 const ATTRIBUTES = { app_version: '3.1', ota_update_id: 'ota-42', device_model: 'iPhone16,1 iOS 26.1', plan_tier: 'free' };
 const env = process.env;
@@ -213,5 +213,66 @@ describe('Intercom push token', () => {
     notifications.getDevicePushTokenAsync.mockRejectedValueOnce(new Error('no aps-environment'));
     expect(await intercom.sendPushTokenToIntercom()).toBe(false);
     expect(sdk.sendTokenToIntercom).not.toHaveBeenCalled();
+  });
+});
+
+describe('Intercom events', () => {
+  it('logs an event with metadata once Intercom is up', async () => {
+    const { intercom, sdk, setUser } = load(true);
+    setUser('anon-1', true);
+    expect(await intercom.logIntercomEvent('analysis_failed', { movement: 'snatch', error_code: 'no_reps' })).toBe(true);
+    expect(sdk.logEvent).toHaveBeenCalledWith('analysis_failed', { movement: 'snatch', error_code: 'no_reps' });
+  });
+
+  it('one flag turns every event off without touching the network', async () => {
+    const { intercom, sdk } = load(true);
+    process.env.EXPO_PUBLIC_INTERCOM_EVENTS = 'off';
+    expect(intercom.intercomEventsEnabled()).toBe(false);
+    expect(await intercom.logIntercomEvent('paywall_viewed', { surface: 'video4' })).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(sdk.logEvent).not.toHaveBeenCalled();
+  });
+
+  it('is on by default and silent without Intercom keys', async () => {
+    const { intercom, sdk } = load(false);
+    expect(intercom.intercomEventsEnabled()).toBe(true);
+    expect(await intercom.logIntercomEvent('paywall_viewed')).toBe(false);
+    expect(sdk.logEvent).not.toHaveBeenCalled();
+  });
+
+  it('swallows an SDK failure', async () => {
+    const { intercom, sdk, setUser } = load(true);
+    setUser('anon-1', true);
+    sdk.logEvent.mockRejectedValueOnce(new Error('boom'));
+    expect(await intercom.logIntercomEvent('paywall_viewed')).toBe(false);
+  });
+});
+
+describe('trial_ending', () => {
+  const NOW = new Date('2026-10-25T09:00:00Z');
+  const info = (periodType: string, expirationDate: string | null) =>
+    ({ entitlements: { active: { pull: { periodType, expirationDate } } } }) as unknown as import('react-native-purchases').CustomerInfo;
+
+  it('is due inside the last two days of a free trial only', () => {
+    const { intercom } = load(true);
+    expect(intercom.trialEndingAt(info('TRIAL', '2026-10-27T08:00:00Z'), NOW)).toBe('2026-10-27T08:00:00Z');
+    expect(intercom.trialEndingAt(info('TRIAL', '2026-10-28T09:00:00Z'), NOW)).toBeNull();
+    expect(intercom.trialEndingAt(info('TRIAL', '2026-10-25T08:00:00Z'), NOW)).toBeNull();
+    expect(intercom.trialEndingAt(info('NORMAL', '2026-10-26T09:00:00Z'), NOW)).toBeNull();
+    expect(intercom.trialEndingAt(null, NOW)).toBeNull();
+  });
+
+  it('logs once per trial with the tier and expiry as a unix time', async () => {
+    const { intercom, sdk, setUser } = load(true);
+    setUser('anon-1', true);
+    const { usePurchases } = require('../features/purchases/usePurchases') as typeof import('../features/purchases/usePurchases');
+    const at = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const stop = intercom.watchTrialEnding();
+    usePurchases.setState({ tier: 'pull', customerInfo: info('TRIAL', at) });
+    usePurchases.setState({ customerInfo: info('TRIAL', at) });
+    for (let i = 0; i < 20 && sdk.logEvent.mock.calls.length === 0; i++) await new Promise((r) => setTimeout(r, 0));
+    stop();
+    expect(sdk.logEvent).toHaveBeenCalledTimes(1);
+    expect(sdk.logEvent).toHaveBeenCalledWith('trial_ending', { plan_tier: 'pull', expires_at: Math.floor(Date.parse(at) / 1000) });
   });
 });
