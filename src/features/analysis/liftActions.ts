@@ -8,6 +8,26 @@ export function reportContext(analysis: Analysis): string {
   return `${movementLabel(analysis.movementUsed ?? analysis.movement)} · cue: ${analysis.cue?.text ?? 'none'}`;
 }
 
+const round = (n: number) => Math.round(n * 100) / 100;
+
+export function analysisSummary(a: Analysis): string {
+  const rep = a.reps.find((r) => r.index === a.bestRepIndex) ?? a.reps[0];
+  const fps = a.video.fps || 30;
+  return JSON.stringify({
+    movement: a.movementUsed ?? a.movement,
+    phases: rep ? rep.phases.map((p) => `${p.name} ${round((p.endFrame - p.startFrame) / fps)}s`) : [],
+    made: rep ? rep.made : null,
+    angle: a.noCueReason?.offSideDeg != null ? `${Math.round(a.noCueReason.offSideDeg)}deg` : a.yawBucket ?? null,
+    confidence: a.cue?.confidence ?? null,
+    detected: a.detectedMovement ? `${a.detectedMovement.movement} ${Math.round(a.detectedMovement.confidence * 100)}%` : null,
+    cue: a.cue?.faultId ?? null,
+    noCue: a.noCueReason?.code ?? null,
+    error: a.failure ? a.failure.code ?? a.failure.reason : null,
+    measured: Object.fromEntries(a.measurements.slice(0, 12).map((m) => [m.id, m.status === 'not_seen' ? 'not seen' : `${round(m.value)}${m.unit}`])),
+    version: a.analysisVersion ?? null,
+  });
+}
+
 export function reportHref(analysis: Analysis) {
   return { pathname: '/report', params: { lift: analysis.id, context: reportContext(analysis) } } as const;
 }

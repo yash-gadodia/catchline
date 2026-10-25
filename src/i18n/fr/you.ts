@@ -116,6 +116,7 @@ export const you: Strings<typeof en> = {
   'you.report.lift': "À propos de la levée {id}",
   // REVIEW
   'you.report.noVideo': "Aucune vidéo n’est jointe.",
+  'you.report.attachNumbers': "Joindre les chiffres de l'analyse (sans vidéo)",
   // REVIEW
   'you.report.send': "Envoyer",
   // REVIEW

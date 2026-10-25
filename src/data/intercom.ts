@@ -119,8 +119,8 @@ async function ready(): Promise<boolean> {
   }
 }
 
-export function openReportInIntercom(liftId?: string): Promise<boolean> {
-  return openHelpInIntercom(reportMessage(liftId));
+export function openReportInIntercom(liftId?: string, body = ''): Promise<boolean> {
+  return openHelpInIntercom(`${body}${reportMessage(liftId)}`);
 }
 
 export async function openHelpInIntercom(message: string): Promise<boolean> {

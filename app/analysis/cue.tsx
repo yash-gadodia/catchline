@@ -5,7 +5,7 @@ import AnalysisPlaceholder from '../../src/features/analysis/AnalysisPlaceholder
 import CueScreen from '../../src/features/analysis/CueScreen';
 import { captureHref, routeAfterAnalysis } from '../../src/features/paywall/hooks';
 import { openLiftActions, reportHref } from '../../src/features/analysis/liftActions';
-import { askWhyHelp, openHelpInIntercom, openReportInIntercom } from '../../src/data/intercom';
+import { askWhyHelp, openHelpInIntercom } from '../../src/data/intercom';
 import { markStuck } from '../../src/features/library/repository';
 
 export default function CueRoute() {
@@ -53,10 +53,7 @@ export default function CueRoute() {
               if (analysis.cue) Share.share({ message: analysis.cue.text });
             },
             onFilmAnother: filmAgain,
-            onReport: () =>
-              void openReportInIntercom(analysis.id).then((opened) => {
-                if (!opened) router.push(reportHref(analysis));
-              }),
+            onReport: () => router.push(reportHref(analysis)),
           }),
       }}
     />
