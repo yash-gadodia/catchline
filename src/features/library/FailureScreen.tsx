@@ -22,6 +22,7 @@ export default function FailureScreen({
   refCode,
   detail,
   onAction,
+  onHelp,
 }: {
   reason: FailureReason;
   header: string;
@@ -29,6 +30,7 @@ export default function FailureScreen({
   // The lift's own refusal line from the worker, shown on the stage in place of a canned readout.
   detail?: string;
   onAction: (a: FailureAction) => void;
+  onHelp?: () => void;
 }) {
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
@@ -86,6 +88,13 @@ export default function FailureScreen({
             </Underlined>
           )}
         </View>
+        {onHelp ? (
+          <View style={{ alignItems: 'center' }}>
+            <Underlined onPress={onHelp} testID="failure-help">
+              {t('library.failure.getHelp')}
+            </Underlined>
+          </View>
+        ) : null}
       </View>
     </View>
   );

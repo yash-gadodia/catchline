@@ -9,6 +9,7 @@ import { purchasePlan, storePlatform, useFoundingSeats, useVideosLeft } from '..
 import { FOUNDING_SEATS_TOTAL } from '../../src/features/paywall/entitlements';
 import { submitDraft } from '../../src/features/capture/submit';
 import type { Phase } from '../../src/features/paywall/ui';
+import { logIntercomEvent, openHelpInIntercom, purchaseHelp } from '../../src/data/intercom';
 
 // Paywall at video 4. The capture flow saves the clip first, then opens
 // /paywall?clip=<id>&movement=snatch over Review.
@@ -34,6 +35,7 @@ export default function PaywallRoute() {
 
   useEffect(() => {
     track(EVENTS.PAYWALL_VIEWED, { surface: 'video4' });
+    void logIntercomEvent('paywall_viewed', { surface: 'video4' });
   }, []);
   useEffect(() => {
     if (demo && p.outcome) usePurchases.getState().setDemoOutcome(p.outcome);
@@ -60,6 +62,11 @@ export default function PaywallRoute() {
       onWatch={() => {
         if (!submitDraft({ replace: true })) router.replace('/analysis/processing');
       }}
+      onPurchaseHelp={() =>
+        void openHelpInIntercom(purchaseHelp()).then((opened) => {
+          if (!opened) router.push({ pathname: '/report', params: { context: `purchase: ${usePurchases.getState().tier}` } });
+        })
+      }
     />
   );
 }

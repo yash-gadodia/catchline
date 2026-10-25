@@ -4,7 +4,6 @@ import { useAnalysis } from '../../src/analysis/useAnalysis';
 import AnalysisPlaceholder from '../../src/features/analysis/AnalysisPlaceholder';
 import PlayerScreen from '../../src/features/analysis/PlayerScreen';
 import { openLiftActions, reportHref } from '../../src/features/analysis/liftActions';
-import { openReportInIntercom } from '../../src/data/intercom';
 import { captureHref } from '../../src/features/paywall/hooks';
 
 export default function PlayerRoute() {
@@ -37,10 +36,7 @@ export default function PlayerRoute() {
         openLiftActions(analysis, {
           onShare: share,
           onFilmAnother: () => router.push(captureHref('/capture') as Href),
-          onReport: () =>
-            void openReportInIntercom(analysis.id).then((opened) => {
-              if (!opened) router.push(reportHref(analysis));
-            }),
+          onReport: () => router.push(reportHref(analysis)),
         })
       }
     />

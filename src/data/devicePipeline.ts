@@ -16,6 +16,7 @@ import { EVENTS, track } from '../lib/analytics';
 import { useUsage } from '../features/paywall/usageStore';
 import { writeFreeUsed } from './freeLifts';
 import { queueLiftSync } from './liftOutbox';
+import { logIntercomEvent } from './intercom';
 import { syncConsent } from './backend';
 import { saveLocalLift } from './localLifts';
 import { usePipeline } from './pipeline';
@@ -204,14 +205,18 @@ export async function startDeviceLift(sub: ClipSubmission & { uri: string }): Pr
     void queueLiftSync({ id: liftId, lift: record });
     if (local.failure) {
       track(EVENTS.ANALYSIS_FAILED, { movement: sub.movement, code: record.failureCode ?? 'unknown' });
+      void logIntercomEvent('analysis_failed', { movement: sub.movement, error_code: record.failureCode ?? 'unknown' });
       patch({ status: 'failed', error: 'analysis_failed', result: local });
     } else {
       track(EVENTS.ANALYSIS_COMPLETED, { movement: sub.movement, cue_confidence: local.cue?.confidence ?? 'none', no_cue_code: record.noCueCode ?? 'none', made: record.made ?? 'unknown' });
+      void logIntercomEvent('analysis_completed', { movement: sub.movement, made: record.made ?? 'unknown', cue_shown: !!local.cue });
+      if (useUsage.getState().usage.lifetime === 5) void logIntercomEvent('fifth_analysis', { movement: sub.movement });
       patch({ status: 'done', result: local });
     }
   } catch (e) {
     const code = e instanceof ClipTooLongError ? 'clip_too_long' : nativeCode(e);
     track(EVENTS.ANALYSIS_FAILED, { movement: sub.movement, code });
+    void logIntercomEvent('analysis_failed', { movement: sub.movement, error_code: code });
     if (e instanceof ClipTooLongError) patch({ status: 'failed', error: 'clip_too_long', maxS: e.maxS });
     else if (code === 'cancelled' || code === MODELS_UNAVAILABLE) patch({ status: 'failed', error: code });
     else patch({ status: 'failed', error: 'analysis_failed', failureReason: failureReason(code), failureDetail: e instanceof Error ? e.message : String(e) });

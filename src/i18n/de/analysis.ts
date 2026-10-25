@@ -75,6 +75,7 @@ export const analysis: Strings<typeof en> = {
   'analysis.partial.tip.low_confidence': "Von der Seite filmen, Handy auf Höhe der Hantel.",
   'analysis.partial.tip.bar_lost': "Film von der Seite, die ganze Stange auch über Kopf im Bild, und halte das Handy ruhig.",
   'analysis.partial.filmAgain': "Nochmal filmen",
+  'analysis.partial.askWhy': "Warum?",
   'analysis.placeholder.loadingTitle': 'Dein Lift wird geladen',
   'analysis.placeholder.loadingBody': 'Einen Moment.',
   'analysis.placeholder.missingTitle': 'Dieser Lift wurde nicht gefunden.',

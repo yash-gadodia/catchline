@@ -41,6 +41,7 @@ jest.mock('./liftOutbox', () => ({ queueLiftSync: jest.fn(async () => 1) }));
 jest.mock('./freeLifts', () => ({ writeFreeUsed: jest.fn(async () => undefined) }));
 jest.mock('../features/purchases/usePurchases', () => ({ usePurchases: { getState: () => ({ tier: 'free' }) } }));
 jest.mock('../lib/analytics', () => ({ ...jest.requireActual('../lib/analytics'), track: jest.fn() }));
+jest.mock('./intercom', () => ({ logIntercomEvent: jest.fn(() => Promise.resolve(true)) }));
 
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { analyseTrace, planFromMisses } from '../analysis/device/analyseTrace';
@@ -50,6 +51,7 @@ import { useUsage } from '../features/paywall/usageStore';
 import { ClipTooLongError, prepareClip } from './prepare';
 import { saveLocalLift } from './localLifts';
 import { track } from '../lib/analytics';
+import { logIntercomEvent } from './intercom';
 
 const native = PoseCoreML as NonNullable<typeof PoseCoreML>;
 const mockAnalyse = native.analyseOnDevice as jest.Mock;
@@ -114,6 +116,19 @@ describe('startDeviceLift, the happy path', () => {
       made: snatchMock.reps[snatchMock.bestRepIndex].made,
     });
     expect(track).toHaveBeenCalledTimes(1);
+    expect(logIntercomEvent).toHaveBeenCalledWith('analysis_completed', { movement: 'snatch', made: snatchMock.reps[snatchMock.bestRepIndex].made, cue_shown: true });
+  });
+
+  it('logs fifth_analysis to Intercom when this result is the fifth', async () => {
+    useUsage.setState({ usage: { ...useUsage.getState().usage, lifetime: 4 } });
+    await startDeviceLift(SUB);
+    expect(logIntercomEvent).toHaveBeenCalledWith('fifth_analysis', { movement: 'snatch' });
+  });
+
+  it('does not log fifth_analysis on any other count', async () => {
+    useUsage.setState({ usage: { ...useUsage.getState().usage, lifetime: 5 } });
+    await startDeviceLift(SUB);
+    expect(logIntercomEvent).not.toHaveBeenCalledWith('fifth_analysis', expect.anything());
   });
 
   it('sends why there was no cue for a partial result', async () => {
@@ -121,6 +136,7 @@ describe('startDeviceLift, the happy path', () => {
     await startDeviceLift(SUB);
     expect(queueLiftSync).toHaveBeenCalledWith({ id: 'lift-1', lift: expect.objectContaining({ cue: null, noCueCode: 'off_side_on', failureCode: null }) });
     expect(usePipeline.getState().job?.status).toBe('done');
+    expect(logIntercomEvent).toHaveBeenCalledWith('analysis_completed', expect.objectContaining({ cue_shown: false }));
   });
 
   it('is the path startLift takes when the flag is on', async () => {
@@ -184,6 +200,7 @@ describe('startDeviceLift when the analysis fails', () => {
     expect(job?.error).toBe('analysis_failed');
     expect(job?.result?.failure?.reason).toBe('clip_cut_off');
     expect(track).toHaveBeenCalledWith('analysis_failed', { movement: 'snatch', code: 'no_reps' });
+    expect(logIntercomEvent).toHaveBeenCalledWith('analysis_failed', { movement: 'snatch', error_code: 'no_reps' });
   });
 
   it('sends a native read error to the could-not-read screen, counting and syncing nothing', async () => {
@@ -196,6 +213,7 @@ describe('startDeviceLift when the analysis fails', () => {
     expect(job?.failureReason).toBe('clip_unreadable');
     expect(deactivateKeepAwake).toHaveBeenCalledTimes(1);
     expect(track).toHaveBeenCalledWith('analysis_failed', { movement: 'snatch', code: 'no_video_track' });
+    expect(logIntercomEvent).toHaveBeenCalledWith('analysis_failed', { movement: 'snatch', error_code: 'no_video_track' });
   });
 
   it('offers a retry when the models could not be loaded', async () => {

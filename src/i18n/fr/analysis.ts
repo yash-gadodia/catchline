@@ -75,6 +75,7 @@ export const analysis: Strings<typeof en> = {
   'analysis.partial.tip.low_confidence': "Filme de profil, téléphone à hauteur de la barre.",
   'analysis.partial.tip.bar_lost': "Filme de côté avec toute la barre dans le cadre au-dessus de la tête, et garde le téléphone immobile.",
   'analysis.partial.filmAgain': "Refilmer",
+  'analysis.partial.askWhy': "Demander pourquoi",
   'analysis.placeholder.loadingTitle': 'Chargement de ton mouvement',
   'analysis.placeholder.loadingBody': 'Un instant.',
   'analysis.placeholder.missingTitle': 'Mouvement introuvable.',

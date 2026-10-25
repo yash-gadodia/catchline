@@ -116,6 +116,7 @@ export const you: Strings<typeof en> = {
   'you.report.lift': "Sobre el levantamiento {id}",
   // REVIEW
   'you.report.noVideo': "No se adjunta ningún vídeo.",
+  'you.report.attachNumbers': "Adjuntar los números del análisis (sin vídeo)",
   // REVIEW
   'you.report.send': "Enviar",
   // REVIEW

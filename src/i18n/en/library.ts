@@ -151,6 +151,7 @@ export const library = {
   'library.cueRoute.shareStuck': 'Stuck: {cue}. Catchline',
   'library.failure.frame': 'frame {frame}',
   'library.failure.copied': 'Copied ref',
+  'library.failure.getHelp': "Get help",
   'library.failure.ref': 'ref {code}',
   'library.failure.copyHint': 'Copies the reference',
   'library.failure.couldntAnalyse': "Couldn't analyse",

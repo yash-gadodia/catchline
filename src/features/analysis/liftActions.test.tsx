@@ -4,7 +4,7 @@ import { snatchMock, snatchMockLow } from '../../analysis/fixtures';
 import { loadLibrary } from '../library/repository';
 import PlayerRoute from '../../../app/analysis/player';
 import CueRoute from '../../../app/analysis/cue';
-import { openLiftActions, reportContext, reportHref } from './liftActions';
+import { analysisSummary, openLiftActions, reportContext, reportHref } from './liftActions';
 
 const mockRouter = { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true), dismissTo: jest.fn() };
 const mockParams: { current: Record<string, string> } = { current: {} };
@@ -94,3 +94,40 @@ describe('the ··· button on the result screens', () => {
     expect(mockRouter.push).toHaveBeenCalledWith(reportHref(snatchMockLow));
   });
 });
+
+describe('analysisSummary', () => {
+  it('is the compact numbers of a lift, never frames, stills, pose or the bar path', () => {
+    const { snatchMockPartial } = jest.requireActual('../../analysis/fixtures') as typeof import('../../analysis/fixtures');
+    const json = analysisSummary(snatchMockPartial);
+    expect(JSON.parse(json)).toEqual({
+      movement: 'snatch',
+      phases: ['setup 0.5s', 'first_pull 0.42s', 'transition 0.22s', 'second_pull 0.18s', 'turnover 0.22s', 'catch 0.33s', 'recovery 0.8s'],
+      made: true,
+      angle: '34deg',
+      confidence: null,
+      detected: null,
+      cue: null,
+      noCue: 'off_side_on',
+      error: null,
+      measured: {
+        hips_rise_early: '0.12s',
+        bar_drift_hip: 'not seen',
+        early_arm_bend: 'not seen',
+        jump_forward: 'not seen',
+        catch_depth: '4cm',
+        turnover_time: '0.21s',
+        pull_time: '0.59s',
+        bar_speed: '1.82m/s',
+      },
+      version: null,
+    });
+    expect(json).not.toMatch(/asset:|file:|uri|path|keyFrames|"x"/);
+    expect(json.length).toBe(479);
+  });
+
+  it('carries the failure code of a failed lift', () => {
+    const failed = { ...snatchMock, reps: [], measurements: [], failure: { reason: 'clip_cut_off' as const, message: 'm', code: 'no_reps' } };
+    expect(JSON.parse(analysisSummary(failed))).toMatchObject({ phases: [], made: null, error: 'no_reps', measured: {} });
+  });
+});
+

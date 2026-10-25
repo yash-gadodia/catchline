@@ -6,6 +6,7 @@ import TopBar from '../../components/TopBar';
 import { colors, shape, space } from '../../design/tokens';
 import { fontFamily, type } from '../../design/typography';
 import { queueProblemReport, reportDetails } from '../../data/problemReports';
+import { Checkbox } from '../onboarding/ui';
 import { t } from '../../i18n';
 
 export const REPORT_MAX = 4000;
@@ -13,20 +14,30 @@ export const REPORT_MAX = 4000;
 export default function ReportProblemScreen({
   liftId,
   context,
+  numbers,
   back,
   onBack,
+  sendToIntercom,
 }: {
   liftId?: string;
   context?: string;
+  numbers?: string;
   back: string;
   onBack: () => void;
+  sendToIntercom?: (body: string) => Promise<boolean>;
 }) {
   const insets = useSafeAreaInsets();
   const [text, setText] = useState('');
+  const [attach, setAttach] = useState(false);
   const [result, setResult] = useState<'sent' | 'queued' | null>(null);
   const details = reportDetails();
   const send = async () => {
-    const sent = await queueProblemReport({ body: text, liftId, context });
+    const body = attach && numbers ? `${text.trim()}\n\n${numbers}`.slice(0, REPORT_MAX) : text;
+    if (sendToIntercom && (await sendToIntercom(body))) {
+      onBack();
+      return;
+    }
+    const sent = await queueProblemReport({ body, liftId, context });
     setResult(sent > 0 ? 'sent' : 'queued');
   };
   return (
@@ -82,6 +93,18 @@ export default function ReportProblemScreen({
               ) : null}
               <Text style={{ color: colors.text2, ...type.small }}>{t('you.report.noVideo')}</Text>
             </View>
+            {numbers ? (
+              <View style={{ gap: space.s2 }}>
+                <Checkbox checked={attach} onToggle={() => setAttach((a) => !a)} testID="report-attach">
+                  <Text style={{ color: colors.text, ...type.body }}>{t('you.report.attachNumbers')}</Text>
+                </Checkbox>
+                {attach ? (
+                  <Text style={{ color: colors.text2, ...type.readout }} testID="report-attach-preview" selectable>
+                    {numbers}
+                  </Text>
+                ) : null}
+              </View>
+            ) : null}
             <Btn onPress={send} disabled={text.trim().length === 0} testID="report-send">
               {t('you.report.send')}
             </Btn>

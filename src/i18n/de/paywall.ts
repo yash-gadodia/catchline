@@ -97,6 +97,7 @@ export const paywall: Strings<typeof en> = {
   'paywall.notNowQueued': "Nicht jetzt, in der Warteschlange lassen",
   'paywall.notNow': "Nicht jetzt",
   'paywall.restore': "Wiederherstellen",
+  'paywall.purchaseProblem': "Problem beim Kauf?",
   'paywall.terms': "Nutzungsbedingungen",
   'paywall.privacy': "Datenschutzerklärung",
   'paywall.cap.title': "Du hast deine {count} für diesen Monat genutzt.",

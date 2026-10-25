@@ -94,6 +94,7 @@ export const paywall = {
   'paywall.notNowQueued': "Not now, keep it queued",
   'paywall.notNow': "Not now",
   'paywall.restore': "Restore",
+  'paywall.purchaseProblem': "Purchase problem?",
   'paywall.terms': "Terms of Use",
   'paywall.privacy': "Privacy Policy",
   'paywall.cap.title': "You've used your {count} this month.",

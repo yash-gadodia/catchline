@@ -216,6 +216,7 @@ describe('CueScreen', () => {
     expect(queryByText('Analyse')).toBeNull();
     expect(queryByText('Film another set')).toBeNull();
     expect(queryByTestId('film-again')).toBeNull();
+    expect(queryByTestId('ask-why')).toBeNull();
     await press(getByTestId('see-breakdown'));
     expect(onKeep).toHaveBeenCalledTimes(1);
     expect(nav.onTry).toHaveBeenCalledTimes(1);
@@ -228,6 +229,15 @@ describe('CueScreen', () => {
     await press(getByTestId('film-again'));
     expect(nav.onFilmAgain).toHaveBeenCalledTimes(1);
     expect(nav.onTry).not.toHaveBeenCalled();
+  });
+
+  it('low confidence from the camera angle offers Ask why when it is wired', async () => {
+    const angled = { ...snatchMockLow, cue: { ...snatchMockLow.cue!, confidence: 'low' as const, confidenceText: 'Seen on 1 of 2 reps, filmed ~36° off side-on: film from the side to confirm' } };
+    const onAskWhy = jest.fn();
+    const { getByTestId } = await render(<CueScreen analysis={angled} nav={{ ...nav, onAskWhy }} />);
+    expect(getByTestId('ask-why')).toHaveTextContent('Ask why');
+    await press(getByTestId('ask-why'));
+    expect(onAskWhy).toHaveBeenCalledTimes(1);
   });
 });
 

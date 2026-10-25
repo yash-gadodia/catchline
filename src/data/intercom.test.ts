@@ -3,14 +3,14 @@ jest.mock('expo-updates', () => ({ updateId: 'ota-42' }));
 jest.mock('expo-constants', () => ({ __esModule: true, default: { expoConfig: { version: '3.1' } } }));
 
 type IntercomModule = typeof import('./intercom');
-type Sdk = Record<'initialize' | 'loginUnidentifiedUser' | 'loginUserWithUserAttributes' | 'updateUser' | 'logout' | 'present' | 'presentMessageComposer', jest.Mock>;
+type Sdk = Record<'logEvent' | 'initialize' | 'loginUnidentifiedUser' | 'loginUserWithUserAttributes' | 'setUserHash' | 'sendTokenToIntercom' | 'updateUser' | 'logout' | 'present' | 'presentMessageComposer', jest.Mock>;
 
 const ATTRIBUTES = { app_version: '3.1', ota_update_id: 'ota-42', device_model: 'iPhone16,1 iOS 26.1', plan_tier: 'free' };
 const env = process.env;
 const fetchMock = jest.fn();
 global.fetch = fetchMock;
 
-function load(keys: boolean): { intercom: IntercomModule; sdk: Sdk; setUser: (userId: string | null, anonymous: boolean) => void } {
+function load(keys: boolean): { intercom: IntercomModule; sdk: Sdk; invoke: jest.Mock; setUser: (userId: string | null, anonymous: boolean) => void } {
   jest.resetModules();
   process.env = { ...env };
   if (keys) {
@@ -23,7 +23,10 @@ function load(keys: boolean): { intercom: IntercomModule; sdk: Sdk; setUser: (us
   const intercom = require('./intercom') as IntercomModule;
   const sdk = (jest.requireMock('@intercom/intercom-react-native') as { default: Sdk }).default;
   const { useAuthUser } = require('../features/auth/authUser') as typeof import('../features/auth/authUser');
-  return { intercom, sdk, setUser: (userId, anonymous) => useAuthUser.setState({ userId, anonymous, displayName: null }) };
+  const { supabase } = require('../lib/supabase') as typeof import('../lib/supabase');
+  const invoke = jest.fn(() => Promise.resolve({ data: { hash: 'hash-7' }, error: null }));
+  (supabase.functions as unknown as { invoke: jest.Mock }).invoke = invoke;
+  return { intercom, sdk, invoke, setUser: (userId, anonymous) => useAuthUser.setState({ userId, anonymous, displayName: null }) };
 }
 
 beforeEach(() => {
@@ -77,6 +80,46 @@ describe('intercom configured', () => {
     expect(sdk.present).toHaveBeenCalledTimes(1);
   });
 
+  it('sets the identity-verification hash from intercom-hash before logging the lifter in', async () => {
+    const { intercom, sdk, invoke, setUser } = load(true);
+    setUser('user-7', false);
+    await intercom.openIntercomMessenger();
+    expect(invoke).toHaveBeenCalledWith('intercom-hash');
+    expect(sdk.setUserHash).toHaveBeenCalledWith('hash-7');
+    expect(sdk.setUserHash.mock.invocationCallOrder[0]).toBeLessThan(sdk.loginUserWithUserAttributes.mock.invocationCallOrder[0]);
+  });
+
+  it('never asks for a hash for an anonymous lifter', async () => {
+    const { intercom, sdk, invoke, setUser } = load(true);
+    setUser('anon-1', true);
+    await intercom.openIntercomMessenger();
+    expect(invoke).not.toHaveBeenCalled();
+    expect(sdk.setUserHash).not.toHaveBeenCalled();
+  });
+
+  it('stays anonymous in Intercom when the hash call fails, and still opens without retrying', async () => {
+    const { intercom, sdk, invoke, setUser } = load(true);
+    invoke.mockResolvedValue({ data: null, error: new Error('not deployed') });
+    setUser('user-7', false);
+    expect(await intercom.openIntercomMessenger()).toBe(true);
+    expect(sdk.setUserHash).not.toHaveBeenCalled();
+    expect(sdk.loginUserWithUserAttributes).not.toHaveBeenCalled();
+    expect(sdk.loginUnidentifiedUser).toHaveBeenCalledTimes(1);
+    expect(sdk.updateUser).toHaveBeenCalledWith({ customAttributes: ATTRIBUTES });
+    expect(await intercom.openIntercomMessenger()).toBe(true);
+    expect(invoke).toHaveBeenCalledTimes(1);
+    expect(sdk.logout).not.toHaveBeenCalled();
+  });
+
+  it('stays anonymous when the hash call throws offline', async () => {
+    const { intercom, sdk, invoke, setUser } = load(true);
+    invoke.mockRejectedValue(new TypeError('Network request failed'));
+    setUser('user-7', false);
+    expect(await intercom.openReportInIntercom()).toBe(true);
+    expect(sdk.loginUnidentifiedUser).toHaveBeenCalledTimes(1);
+    expect(sdk.presentMessageComposer).toHaveBeenCalledTimes(1);
+  });
+
   it('starts once and logs in once across opens, and logs out on sign-out', async () => {
     const { intercom, sdk, setUser } = load(true);
     setUser('user-7', false);
@@ -114,5 +157,122 @@ describe('intercom configured', () => {
     const { intercom, sdk } = load(true);
     await intercom.logoutIntercom();
     expect(sdk.logout).not.toHaveBeenCalled();
+  });
+});
+
+describe('help messages', () => {
+  it('prefills a failure with the code, movement, lift and app ids', () => {
+    const { intercom } = load(true);
+    expect(intercom.failureHelp('no_reps', 'snatch', 'lift-9')).toBe('\n\nAnalysis failed: no_reps\nMovement: snatch\nLift lift-9\nCatchline 3.1 (ota-42)');
+  });
+
+  it('prefills Ask why with the angle and confidence of a partial result', () => {
+    const { intercom } = load(true);
+    const { snatchMockPartial } = require('../analysis/fixtures') as typeof import('../analysis/fixtures');
+    expect(intercom.askWhyHelp({ ...snatchMockPartial, detectedMovement: { movement: 'snatch', confidence: 0.82 } })).toBe(
+      '\n\nAsk why: no cue (off_side_on)\nMovement: snatch\nAngle: 34° off side-on\nConfidence: movement 82%\nLift snatch-mock-partial\nCatchline 3.1 (ota-42)'
+    );
+  });
+
+  it('reads the angle of an off-angle cue from its confidence line', () => {
+    const { intercom } = load(true);
+    const { snatchMockLow } = require('../analysis/fixtures') as typeof import('../analysis/fixtures');
+    const angled = { ...snatchMockLow, cue: { ...snatchMockLow.cue!, confidence: 'low' as const, confidenceText: 'Seen on 1 of 2 reps, filmed ~36° off side-on' } };
+    expect(intercom.askWhyHelp(angled)).toBe('\n\nAsk why: cue bar_drift_knee\nMovement: snatch\nAngle: 36° off side-on\nConfidence: low\nLift snatch-mock-low\nCatchline 3.1 (ota-42)');
+  });
+
+  it('prefills a purchase problem with the plan tier and opens the composer with it', async () => {
+    const { intercom, sdk, setUser } = load(true);
+    setUser('anon-1', true);
+    expect(intercom.purchaseHelp()).toBe('\n\nPurchase problem\nPlan: free\nCatchline 3.1 (ota-42)');
+    expect(await intercom.openHelpInIntercom(intercom.purchaseHelp())).toBe(true);
+    expect(sdk.presentMessageComposer).toHaveBeenCalledWith('\n\nPurchase problem\nPlan: free\nCatchline 3.1 (ota-42)');
+  });
+});
+
+describe('Intercom push token', () => {
+  it('sends the raw APNs device token once Intercom is up', async () => {
+    const { intercom, sdk, setUser } = load(true);
+    setUser('anon-1', true);
+    const notifications = jest.requireMock('expo-notifications') as { getDevicePushTokenAsync: jest.Mock };
+    notifications.getDevicePushTokenAsync.mockResolvedValueOnce({ data: 'a1b2c3', type: 'ios' });
+    expect(await intercom.sendPushTokenToIntercom()).toBe(true);
+    expect(sdk.sendTokenToIntercom).toHaveBeenCalledWith('a1b2c3');
+  });
+
+  it('does nothing without Intercom keys', async () => {
+    const { intercom, sdk } = load(false);
+    expect(await intercom.sendPushTokenToIntercom()).toBe(false);
+    expect(sdk.sendTokenToIntercom).not.toHaveBeenCalled();
+  });
+
+  it('swallows a token failure', async () => {
+    const { intercom, sdk, setUser } = load(true);
+    setUser('anon-1', true);
+    const notifications = jest.requireMock('expo-notifications') as { getDevicePushTokenAsync: jest.Mock };
+    notifications.getDevicePushTokenAsync.mockRejectedValueOnce(new Error('no aps-environment'));
+    expect(await intercom.sendPushTokenToIntercom()).toBe(false);
+    expect(sdk.sendTokenToIntercom).not.toHaveBeenCalled();
+  });
+});
+
+describe('Intercom events', () => {
+  it('logs an event with metadata once Intercom is up', async () => {
+    const { intercom, sdk, setUser } = load(true);
+    setUser('anon-1', true);
+    expect(await intercom.logIntercomEvent('analysis_failed', { movement: 'snatch', error_code: 'no_reps' })).toBe(true);
+    expect(sdk.logEvent).toHaveBeenCalledWith('analysis_failed', { movement: 'snatch', error_code: 'no_reps' });
+  });
+
+  it('one flag turns every event off without touching the network', async () => {
+    const { intercom, sdk } = load(true);
+    process.env.EXPO_PUBLIC_INTERCOM_EVENTS = 'off';
+    expect(intercom.intercomEventsEnabled()).toBe(false);
+    expect(await intercom.logIntercomEvent('paywall_viewed', { surface: 'video4' })).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(sdk.logEvent).not.toHaveBeenCalled();
+  });
+
+  it('is on by default and silent without Intercom keys', async () => {
+    const { intercom, sdk } = load(false);
+    expect(intercom.intercomEventsEnabled()).toBe(true);
+    expect(await intercom.logIntercomEvent('paywall_viewed')).toBe(false);
+    expect(sdk.logEvent).not.toHaveBeenCalled();
+  });
+
+  it('swallows an SDK failure', async () => {
+    const { intercom, sdk, setUser } = load(true);
+    setUser('anon-1', true);
+    sdk.logEvent.mockRejectedValueOnce(new Error('boom'));
+    expect(await intercom.logIntercomEvent('paywall_viewed')).toBe(false);
+  });
+});
+
+describe('trial_ending', () => {
+  const NOW = new Date('2026-10-25T09:00:00Z');
+  const info = (periodType: string, expirationDate: string | null) =>
+    ({ entitlements: { active: { pull: { periodType, expirationDate } } } }) as unknown as import('react-native-purchases').CustomerInfo;
+
+  it('is due inside the last two days of a free trial only', () => {
+    const { intercom } = load(true);
+    expect(intercom.trialEndingAt(info('TRIAL', '2026-10-27T08:00:00Z'), NOW)).toBe('2026-10-27T08:00:00Z');
+    expect(intercom.trialEndingAt(info('TRIAL', '2026-10-28T09:00:00Z'), NOW)).toBeNull();
+    expect(intercom.trialEndingAt(info('TRIAL', '2026-10-25T08:00:00Z'), NOW)).toBeNull();
+    expect(intercom.trialEndingAt(info('NORMAL', '2026-10-26T09:00:00Z'), NOW)).toBeNull();
+    expect(intercom.trialEndingAt(null, NOW)).toBeNull();
+  });
+
+  it('logs once per trial with the tier and expiry as a unix time', async () => {
+    const { intercom, sdk, setUser } = load(true);
+    setUser('anon-1', true);
+    const { usePurchases } = require('../features/purchases/usePurchases') as typeof import('../features/purchases/usePurchases');
+    const at = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const stop = intercom.watchTrialEnding();
+    usePurchases.setState({ tier: 'pull', customerInfo: info('TRIAL', at) });
+    usePurchases.setState({ customerInfo: info('TRIAL', at) });
+    for (let i = 0; i < 20 && sdk.logEvent.mock.calls.length === 0; i++) await new Promise((r) => setTimeout(r, 0));
+    stop();
+    expect(sdk.logEvent).toHaveBeenCalledTimes(1);
+    expect(sdk.logEvent).toHaveBeenCalledWith('trial_ending', { plan_tier: 'pull', expires_at: Math.floor(Date.parse(at) / 1000) });
   });
 });

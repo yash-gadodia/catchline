@@ -107,6 +107,7 @@ export const you = {
   'you.report.details': "Sent with Catchline {version}, update {update}, {device}",
   'you.report.lift': "About lift {id}",
   'you.report.noVideo': "No video is attached.",
+  'you.report.attachNumbers': "Attach analysis numbers (no video)",
   'you.report.send': "Send",
   'you.report.sent': "Sent. Thank you, we read every one.",
   'you.report.queued': "Saved. It sends the next time you are online.",
