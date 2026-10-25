@@ -95,4 +95,5 @@ export const capture: Strings<typeof en> = {
   'capture.trim.long': "Lang für einen Lift. Schneide auf den Lift zu, dann geht es schneller und genauer.",
   // REVIEW
   'capture.trim.tooLong': "Zu lang für die Analyse. Kürze auf {max} s oder weniger.",
+  'capture.viewfinder.framingGuide': "Von der Seite, ganze Stange im Bild, Handy auf Höhe der Stange",
 };

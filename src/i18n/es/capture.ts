@@ -95,4 +95,5 @@ export const capture: Strings<typeof en> = {
   'capture.trim.long': "Largo para un solo levantamiento. Recorta solo el levantamiento para un análisis más rápido y preciso.",
   // REVIEW
   'capture.trim.tooLong': "Demasiado largo para analizar. Recórtalo a {max} s o menos.",
+  'capture.viewfinder.framingGuide': "De lado, toda la barra en el encuadre, el móvil a la altura de la barra",
 };

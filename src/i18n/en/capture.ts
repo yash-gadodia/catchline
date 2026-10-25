@@ -17,6 +17,7 @@ export const capture = {
   'capture.liftSheet.close': "Close",
   'capture.liftSheet.soon': "soon · {lifts}",
   'capture.viewfinder.fps': "{fps} fps",
+  'capture.viewfinder.framingGuide': "Side-on, whole bar in frame, phone level with the bar",
   'capture.viewfinder.tooLongTitle': "Over 30 seconds",
   'capture.viewfinder.tooLongBody': "We analyse one set per clip. Stop here and we'll trim to the reps, or keep going and pick the set on the next screen.",
   'capture.viewfinder.oneRep': "1 rep",
