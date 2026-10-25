@@ -6,6 +6,7 @@ import { putLiveAnalysis } from '../../analysis/live';
 import { syncLibrary } from '../../data/library';
 import { getAnalysis, getLift } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
+import { sendPushTokenToIntercom } from '../../data/intercom';
 
 // GATE: fully fires only once EAS/APNs creds are added by Yash.
 // All functions no-op gracefully when:
@@ -52,6 +53,7 @@ export async function registerPushToken(promptIfNeeded = false): Promise<void> {
       ? await requestPermissions()
       : (await Notifications.getPermissionsAsync()).status === 'granted';
     if (!granted) return;
+    void sendPushTokenToIntercom();
 
     // Standalone (EAS) builds need the project ID to mint a push token, or this
     // throws and no token is ever registered. Read it from app.json (set by eas init).
@@ -79,6 +81,12 @@ export async function registerPushToken(promptIfNeeded = false): Promise<void> {
 export function liftIdFromResponse(response: Notifications.NotificationResponse): string | null {
   const id = response.notification.request.content.data?.liftId;
   return typeof id === 'string' && id ? id : null;
+}
+
+export function isIntercomPush(response: Notifications.NotificationResponse): boolean {
+  const { trigger, content } = response.notification.request;
+  const payload = trigger && 'payload' in trigger ? trigger.payload : undefined;
+  return payload?.intercom_push_type != null || content.data?.intercom_push_type != null;
 }
 
 // Where a tapped "your lift is ready" notification should land: the reveal for

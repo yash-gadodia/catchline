@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import Intercom from '@intercom/intercom-react-native';
+import * as Notifications from 'expo-notifications';
 import { reportDetails } from './problemReports';
 import { intercomUserHash } from '../lib/api';
 import { useAuthUser } from '../features/auth/authUser';
@@ -135,6 +136,17 @@ export async function openIntercomMessenger(): Promise<boolean> {
     () => true,
     () => false,
   );
+}
+
+export async function sendPushTokenToIntercom(): Promise<boolean> {
+  try {
+    if (!(await ready())) return false;
+    const { data } = await Notifications.getDevicePushTokenAsync();
+    if (typeof data !== 'string' || !data) return false;
+    return await Intercom.sendTokenToIntercom(data);
+  } catch {
+    return false;
+  }
 }
 
 export async function logoutIntercom(): Promise<void> {

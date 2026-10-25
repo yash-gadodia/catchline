@@ -3,7 +3,7 @@ jest.mock('expo-updates', () => ({ updateId: 'ota-42' }));
 jest.mock('expo-constants', () => ({ __esModule: true, default: { expoConfig: { version: '3.1' } } }));
 
 type IntercomModule = typeof import('./intercom');
-type Sdk = Record<'initialize' | 'loginUnidentifiedUser' | 'loginUserWithUserAttributes' | 'setUserHash' | 'updateUser' | 'logout' | 'present' | 'presentMessageComposer', jest.Mock>;
+type Sdk = Record<'initialize' | 'loginUnidentifiedUser' | 'loginUserWithUserAttributes' | 'setUserHash' | 'sendTokenToIntercom' | 'updateUser' | 'logout' | 'present' | 'presentMessageComposer', jest.Mock>;
 
 const ATTRIBUTES = { app_version: '3.1', ota_update_id: 'ota-42', device_model: 'iPhone16,1 iOS 26.1', plan_tier: 'free' };
 const env = process.env;
@@ -187,5 +187,31 @@ describe('help messages', () => {
     expect(intercom.purchaseHelp()).toBe('\n\nPurchase problem\nPlan: free\nCatchline 3.1 (ota-42)');
     expect(await intercom.openHelpInIntercom(intercom.purchaseHelp())).toBe(true);
     expect(sdk.presentMessageComposer).toHaveBeenCalledWith('\n\nPurchase problem\nPlan: free\nCatchline 3.1 (ota-42)');
+  });
+});
+
+describe('Intercom push token', () => {
+  it('sends the raw APNs device token once Intercom is up', async () => {
+    const { intercom, sdk, setUser } = load(true);
+    setUser('anon-1', true);
+    const notifications = jest.requireMock('expo-notifications') as { getDevicePushTokenAsync: jest.Mock };
+    notifications.getDevicePushTokenAsync.mockResolvedValueOnce({ data: 'a1b2c3', type: 'ios' });
+    expect(await intercom.sendPushTokenToIntercom()).toBe(true);
+    expect(sdk.sendTokenToIntercom).toHaveBeenCalledWith('a1b2c3');
+  });
+
+  it('does nothing without Intercom keys', async () => {
+    const { intercom, sdk } = load(false);
+    expect(await intercom.sendPushTokenToIntercom()).toBe(false);
+    expect(sdk.sendTokenToIntercom).not.toHaveBeenCalled();
+  });
+
+  it('swallows a token failure', async () => {
+    const { intercom, sdk, setUser } = load(true);
+    setUser('anon-1', true);
+    const notifications = jest.requireMock('expo-notifications') as { getDevicePushTokenAsync: jest.Mock };
+    notifications.getDevicePushTokenAsync.mockRejectedValueOnce(new Error('no aps-environment'));
+    expect(await intercom.sendPushTokenToIntercom()).toBe(false);
+    expect(sdk.sendTokenToIntercom).not.toHaveBeenCalled();
   });
 });

@@ -20,10 +20,10 @@ import { moveServerAnalysesToDevice } from '../src/data/migrateToDevice';
 import { syncServerUsage } from '../src/features/paywall/hooks';
 import { flushLiftOutbox } from '../src/data/liftOutbox';
 import { flushProblemReports } from '../src/data/problemReports';
-import { installForegroundHandler, liftIdFromResponse, registerPushToken, routeForLift } from '../src/features/notifications';
+import { installForegroundHandler, isIntercomPush, liftIdFromResponse, registerPushToken, routeForLift } from '../src/features/notifications';
 import { init as initAnalytics, identify, reset, track, EVENTS } from '../src/lib/analytics';
 import { startAuthUserSync } from '../src/features/auth/authUser';
-import { logoutIntercom } from '../src/data/intercom';
+import { logoutIntercom, openIntercomMessenger } from '../src/data/intercom';
 import { useLocale } from '../src/i18n';
 import { initSentry } from '../src/lib/sentry';
 import { markLaunched, startLaunchWatchdog } from '../src/lib/launch';
@@ -45,10 +45,14 @@ export default function RootLayout() {
   const locale = useLocale((s) => s.locale);
 
   // A tapped "your lift is ready" push lands on that lift (warm, or cold via the
-  // last response).
+  // last response); a tapped Intercom reply opens the messenger.
   useEffect(() => {
     if (!backendEnabled()) return;
     const open = (response: Notifications.NotificationResponse | null) => {
+      if (response && isIntercomPush(response)) {
+        void openIntercomMessenger();
+        return;
+      }
       const liftId = response && liftIdFromResponse(response);
       if (!liftId) return;
       routeForLift(liftId)

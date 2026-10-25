@@ -310,6 +310,7 @@ jest.mock('expo-notifications', () => ({
   scheduleNotificationAsync: jest.fn(() => Promise.resolve('catchline-nudge')),
   cancelScheduledNotificationAsync: jest.fn(() => Promise.resolve()),
   getExpoPushTokenAsync: jest.fn(() => Promise.resolve({ data: 'ExponentPushToken[test-token]', type: 'expo' })),
+  getDevicePushTokenAsync: jest.fn(() => Promise.resolve({ data: 'a1b2c3', type: 'ios' })),
   getLastNotificationResponseAsync: jest.fn(() => Promise.resolve(null)),
   addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
   SchedulableTriggerInputTypes: { DAILY: 'daily' },
@@ -428,5 +429,6 @@ jest.mock('@intercom/intercom-react-native', () => ({
     logout: jest.fn(() => Promise.resolve(true)),
     present: jest.fn(() => Promise.resolve(true)),
     presentMessageComposer: jest.fn(() => Promise.resolve(true)),
+    sendTokenToIntercom: jest.fn(() => Promise.resolve(true)),
   },
 }));

@@ -1,7 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import { liveAnalysis } from '../../analysis/live';
 import { snatchMock } from '../../analysis/fixtures';
-import { foregroundBehavior, installForegroundHandler, liftIdFromResponse, requestPermissions, registerPushToken, routeForLift } from './index';
+import { foregroundBehavior, installForegroundHandler, isIntercomPush, liftIdFromResponse, requestPermissions, registerPushToken, routeForLift } from './index';
 
 jest.mock('expo-notifications');
 const mockProfileEq = jest.fn(() => Promise.resolve({ data: null, error: null }));
@@ -19,6 +19,8 @@ jest.mock('../../lib/supabase', () => ({
 }));
 jest.mock('../../lib/api', () => ({ getLift: jest.fn(), getAnalysis: jest.fn() }));
 jest.mock('../../data/library', () => ({ syncLibrary: jest.fn(() => Promise.resolve()) }));
+jest.mock('../../data/intercom', () => ({ sendPushTokenToIntercom: jest.fn(() => Promise.resolve(true)) }));
+import { sendPushTokenToIntercom } from '../../data/intercom';
 import { supabase } from '../../lib/supabase';
 import * as api from '../../lib/api';
 import { syncLibrary } from '../../data/library';
@@ -99,6 +101,14 @@ describe('registerPushToken', () => {
     } as never);
     await registerPushToken();
     expect(mockNotifications.getExpoPushTokenAsync).toHaveBeenCalledTimes(0);
+    expect(sendPushTokenToIntercom).not.toHaveBeenCalled();
+  });
+
+  it('hands the device token to Intercom once permission is granted, even with no profile to write', async () => {
+    mockNotifications.getPermissionsAsync.mockResolvedValueOnce({ status: 'granted', granted: true, canAskAgain: false, expires: 'never' } as never);
+    await registerPushToken();
+    expect(sendPushTokenToIntercom).toHaveBeenCalledTimes(1);
+    expect(mockProfileUpdate).not.toHaveBeenCalled();
   });
 
   it('writes the minted token to the signed-in profile', async () => {
@@ -125,6 +135,22 @@ describe('liftIdFromResponse', () => {
   it('is null for any other notification', () => {
     expect(liftIdFromResponse(response({}))).toBeNull();
     expect(liftIdFromResponse(response({ liftId: 7 }))).toBeNull();
+  });
+});
+
+describe('isIntercomPush', () => {
+  const response = (request: Record<string, unknown>) => ({ notification: { request } }) as unknown as Notifications.NotificationResponse;
+
+  it('spots an Intercom reply by the APNs payload', () => {
+    expect(isIntercomPush(response({ content: { data: {} }, trigger: { type: 'push', payload: { intercom_push_type: 'notification', aps: {} } } }))).toBe(true);
+  });
+
+  it('spots it in the data too', () => {
+    expect(isIntercomPush(response({ content: { data: { intercom_push_type: 'notification' } }, trigger: null }))).toBe(true);
+  });
+
+  it('leaves the lift-ready push alone', () => {
+    expect(isIntercomPush(response({ content: { data: { liftId: 'lift-1' } }, trigger: { type: 'push', payload: { body: { liftId: 'lift-1' } } } }))).toBe(false);
   });
 });
 
