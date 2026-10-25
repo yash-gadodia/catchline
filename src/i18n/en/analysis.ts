@@ -87,7 +87,7 @@ export const analysis = {
   'analysis.player.lasted': 'Lasted {seconds} s.',
   'analysis.player.frames': 'f {start}–{end}',
   'analysis.player.clearDrawings': 'Clear drawings',
-  'analysis.player.compare': 'Compare',
+  'analysis.player.compare': 'vs your best',
   'analysis.player.share': 'Share',
   'analysis.player.drawSurface': 'Drawing surface: drag for a line, tap three points for an angle',
   'analysis.player.pause': 'Pause',

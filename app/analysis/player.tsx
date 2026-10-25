@@ -3,6 +3,7 @@ import { useLocalSearchParams, useNavigation, useRouter, type Href } from 'expo-
 import { useAnalysis } from '../../src/analysis/useAnalysis';
 import AnalysisPlaceholder from '../../src/features/analysis/AnalysisPlaceholder';
 import PlayerScreen from '../../src/features/analysis/PlayerScreen';
+import { useBestLift } from '../../src/features/analysis/bestLift';
 import { openLiftActions, reportHref } from '../../src/features/analysis/liftActions';
 import { openReportInIntercom } from '../../src/data/intercom';
 import { captureHref } from '../../src/features/paywall/hooks';
@@ -18,6 +19,7 @@ export default function PlayerRoute() {
     return () => stacks.forEach((n) => n?.setOptions({ fullScreenGestureEnabled: undefined }));
   }, [navigation]);
   const load = useAnalysis(fixture);
+  const best = useBestLift(load.status === 'ready' ? load.analysis : null);
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
   if (load.status !== 'ready') return <AnalysisPlaceholder status={load.status} onBack={back} />;
   const analysis = load.analysis;
@@ -28,8 +30,14 @@ export default function PlayerRoute() {
       analysis={analysis}
       initialFrame={frame ? Number(frame) : undefined}
       onBack={back}
-      // Compare targets are fixture variants, not the lifter's history: dev preview only.
-      onCompare={__DEV__ ? () => router.push({ pathname: '/analysis/compare', params: { fixture: analysis.id, mode: 'ghost' } }) : undefined}
+      // Today's path on the lifter's best made lift; without one, the fixture compare stays a dev preview.
+      onCompare={
+        best?.analysisId
+          ? () => router.push({ pathname: '/analysis/compare', params: { fixture: analysis.id, best: best.analysisId } })
+          : __DEV__
+            ? () => router.push({ pathname: '/analysis/compare', params: { fixture: analysis.id, mode: 'ghost' } })
+            : undefined
+      }
       onShare={share}
       retestCueId={retest}
       onRetest={(id) => router.push(captureHref(`/capture?retest=${id}`) as Href)}

@@ -93,7 +93,7 @@ export const analysis: Strings<typeof en> = {
   'analysis.player.lasted': 'Duró {seconds} s.',
   'analysis.player.frames': 'f {start}–{end}',
   'analysis.player.clearDrawings': 'Borrar dibujos',
-  'analysis.player.compare': 'Comparar',
+  'analysis.player.compare': 'vs tu mejor',
   'analysis.player.share': 'Compartir',
   'analysis.player.drawSurface': 'Zona de dibujo: arrastra para una línea, toca tres puntos para un ángulo',
   'analysis.player.pause': 'Pausa',
