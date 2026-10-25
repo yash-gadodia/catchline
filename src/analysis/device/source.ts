@@ -25,6 +25,12 @@ export type PlateTrack = {
   scores: number[];
 };
 
+export type PlateFollow = {
+  centres: Pt[];
+  src: number[];
+  fit: [number, number, number, number][];
+};
+
 export interface FrameSource {
   // Frames [start, start + count) of the clip (fewer when the clip ends sooner): per frame the 2x3 affine mapping its
   // inference px to the window's first frame (background motion, people masked), and the RANSAC inlier count of each
@@ -41,6 +47,7 @@ export interface FrameSource {
   // Follow the near plate through a window from its seed frame (window index) to stop (window index, exclusive; null =
   // the window's end). Returns one entry per window frame.
   trackPlate(windowStart: number, windowLength: number, seed: number, plate: PlateObservation, stop: number | null): PlateTrack;
+  followPlate?(windowStart: number, windowLength: number, seed: number, wrists: Pt[], hands: [Pt, Pt], bodyH: number, setupH: number): PlateFollow;
 }
 
 export type Lifter = {

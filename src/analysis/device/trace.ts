@@ -4,7 +4,7 @@
 // a plate track stitched from the recorded one).
 import { Affine, Pt } from './num';
 import { FAMILY } from './movement';
-import { DeviceInput, FrameSource, PlateObservation, PlateTrack } from './source';
+import { DeviceInput, FrameSource, PlateFollow, PlateObservation, PlateTrack } from './source';
 
 export const TRACE_VERSION = 1;
 
@@ -17,6 +17,7 @@ export type Plan = {
   windows: { s0: number; count: number }[];
   plates: { frame: number; wristA: [N, N]; wristB: [N, N]; bodyH: number; setupH: N }[];
   tracks: { s0: number; n: number; start: number; plate: { centre: Pt; axes: [number, number]; score: number } }[];
+  follows: { s0: number; n: number; seed: number; wrists: [N, N][]; wristA: [N, N]; wristB: [N, N]; bodyH: number; setupH: number }[];
   keyframes: { name: string; frame: number }[];
 };
 type PlateArgs = { wristA: Pt; wristB: Pt; bodyH: number; setupH: number };
@@ -118,7 +119,7 @@ export class Replayer {
   calls: Calls;
   used = new Map<string, number>();
   misses: string[] = [];
-  plan: Plan = { windows: [], plates: [], tracks: [], keyframes: [] };
+  plan: Plan = { windows: [], plates: [], tracks: [], follows: [], keyframes: [] };
   trace: Trace;
 
   constructor(trace: Trace) {
@@ -229,6 +230,15 @@ export class Replayer {
     scores[start] = plate.score;
     return { centres, scores };
   }
+
+  followPlate(s0: number, n: number, seed: number, wrists: Pt[], hands: [Pt, Pt], bodyH: number, setupH: number): PlateFollow {
+    const out = this.get('follow_plate', `${s0}:${n}:${seed}`) as [Pt[], number[], [number, number, number, number][], unknown] | undefined;
+    if (out) return { centres: out[0], src: out[1], fit: out[2] };
+    this.miss(`follow_plate ${s0 + seed}`);
+    const w = (p: Pt): [N, N] => [nn(p[0]), nn(p[1])];
+    this.plan.follows.push({ s0, n, seed, wrists: wrists.map(w), wristA: w(hands[0]), wristB: w(hands[1]), bodyH, setupH });
+    return { centres: Array.from({ length: n }, (): Pt => [NaN, NaN]), src: new Array<number>(n).fill(0), fit: Array.from({ length: n }, (): [number, number, number, number] => [NaN, NaN, NaN, NaN]) };
+  }
 }
 
 // pipeline.run's reads of the video for one movement, answered from the trace
@@ -252,6 +262,9 @@ export function traceInput(trace: Trace, movement: string): DeviceInput & { repl
     },
     trackPlate(windowStart, windowLength, seed, plate, stop) {
       return rp.trackPlate(windowStart, windowLength, seed, plate, stop);
+    },
+    followPlate(windowStart, windowLength, seed, wrists, hands, bodyH, setupH) {
+      return rp.followPlate(windowStart, windowLength, seed, wrists, hands, bodyH, setupH);
     },
     platesSearched(frame) {
       return Boolean(rp.calls.find_plates?.[String(frame)]?.length);

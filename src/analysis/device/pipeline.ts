@@ -3,7 +3,7 @@
 import { MAX_YAW_DEG, cleanPullValues, hipAngles, kneeAngles, rackMask, scaleFromBody, yawFromBody } from './body';
 import { detect, Detected } from './detect';
 import { lowpass, lowpassPts } from './filter';
-import { angle, barFromWrists, barTrack, dist, finitePt, fromRef, normalise, toRef, toWorld, trunkAngle } from './geometry';
+import { angle, barFromWrists, barTrack, dist, finitePt, fromRef, fusePath, normalise, onPlate, toRef, toWorld, trunkAngle } from './geometry';
 import {
   FAMILY,
   K,
@@ -76,10 +76,11 @@ import {
 } from './phases';
 import * as rules from './rules';
 import { DeviceInput, PlateObservation } from './source';
-import type { RepGuides } from '../types';
+import type { PathSource, RepGuides } from '../types';
 
 export const KEYFRAME_H = 1080;
 const PLATE_CM = 45.0;
+const PLATE_PATH_MAX_DEG = 20;
 const PLATE_SPAN_CM = 150.0;
 const PLATE_FIT_SPREAD = 0.15;
 const SCALE_VS_BODY: [number, number] = [0.75, 1.75];
@@ -169,7 +170,7 @@ export type RepInfo = {
   phases: PhaseOut[];
   keys: Record<string, number>;
   events: Record<string, number | boolean>;
-  path: ({ frame: number } & Point)[];
+  path: ({ frame: number; src?: PathSource } & Point)[];
   values: Values;
   detail: Record<string, Detail>;
   px_per_cm: number | null;
@@ -379,7 +380,8 @@ export function analyseRep(
   })();
   const ksm = lowpassK(kr, fps, 6.0);
   const handsOverlap = nanmedian(kr.map((r) => dist(r[L_WRI], r[R_WRI]))) < 0.15 * bodyH;
-  const bar: Pt[] = lowpassPts(barTrack(col(kr, L_WRI), col(kr, R_WRI), bodyH), fps, 6.0);
+  const barRaw = barTrack(col(kr, L_WRI), col(kr, R_WRI), bodyH);
+  const bar: Pt[] = lowpassPts(barRaw, fps, 6.0);
   const barY = ys(bar);
   const kneeAng = kneeAngles(ksm);
   const hipAng = hipAngles(ksm);
@@ -422,6 +424,11 @@ export function analyseRep(
     plates = platesAt(f);
     if (plates.length) seed = f;
   }
+  const wristsW = barFromWrists(col(kw, L_WRI), col(kw, R_WRI), 0.12 * bodyH);
+  const follow =
+    Number.isFinite(setupH) && Number.isFinite(bodyH)
+      ? source.followPlate?.(s0, L, seed, wristsW, [kw[seed][L_WRI], kw[seed][R_WRI]], bodyH, setupH)
+      : undefined;
   const bodyScale = scaleFromBody(kw);
   // no plate in the lift: the body sizes the lift and the pose gives the angle, as for a plate not on the lifter's bar
   if (!plates.length && !bodyScale) return null;
@@ -589,13 +596,20 @@ export function analyseRep(
   };
   if (outcomeKind === 'missed_behind') vals.jump_forward = null;
   const g = (f: number) => s0 + int(f);
+  const ok = follow && offSide <= PLATE_PATH_MAX_DEG && follow.src[seed] === 1 ? onPlate(follow.src, follow.fit, follow.centres, wristsW, seed) : null;
+  const platePts = follow && ok ? toRef(follow.centres.map((p, f): Pt => (ok[f] ? p : [NaN, NaN])), Ms) : null;
+  const fused = platePts ? fusePath(platePts, barRaw) : null;
+  const drawn: Pt[] = fused ? lowpassPts(fused.path, fps, 6.0) : bar;
   const path: RepInfo['path'] = [];
-  for (let f = phases[0].startFrame; f < L; f++) if (f <= ev.recovered) path.push({ frame: g(f), ...normalise(fromRef(bar[f], Ms[f]), W, H) });
+  for (let f = phases[0].startFrame; f < L; f++)
+    if (f <= ev.recovered) path.push({ frame: g(f), ...normalise(fromRef(drawn[f], Ms[f]), W, H), src: fused?.plate[f] ? 'plate' : 'wrist' });
   const pull2 = phases.find((ph) => ph.name === 'second_pull');
   const sp = peakUpSpeed(barY, fps, pxPerCm, pull2 ? pull2.startFrame : ev.liftoff, ev.second_ext);
   const drift = bar.slice(lo, ev.caught + 1).map((p) => fwd * (p[0] - bar[lo][0]));
   const driftF = lo + argmax(drift);
   const at = (p: Pt, f: number) => normalise(fromRef(p, Ms[f]), W, H);
+  const drawnDrift = drawn.slice(lo, ev.caught + 1).map((p) => fwd * (p[0] - drawn[lo][0]));
+  const ringF = lo + argmax(drawnDrift);
   const avgSpeed = pullSpeed(barY, fps, pxPerCm, lo, ev.second_ext);
   const barLost = kind === 'snatch' && bar[ev.peak][1] > sho[ev.peak][1];
   const catchEnd = Math.max(ev.caught, depthEnd);
@@ -630,11 +644,11 @@ export function analyseRep(
     scale_method: scaleMethod,
     cut_off: cutOff,
     guides: {
-      startX: at(bar[lo], lo).x,
+      startX: at(drawn[lo], lo).x,
       kneeY: at(knee[lo], lo).y,
       hipY: at(hip[contact], contact).y,
-      peakY: at(bar[ev.peak], ev.peak).y,
-      ring: { frame: g(driftF), ...at(bar[driftF], driftF) },
+      peakY: at(drawn[ev.peak], ev.peak).y,
+      ring: { frame: g(ringF), ...at(drawn[ringF], ringF) },
     },
     bar_lost: barLost,
     miss,

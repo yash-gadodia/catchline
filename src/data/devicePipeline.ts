@@ -96,6 +96,7 @@ export function toNativePlan(plan: Plan): AnalysePlan {
     windows: plan.windows,
     plates: plan.plates.map((p) => ({ frame: p.frame, wristA: pair(p.wristA), wristB: pair(p.wristB), bodyH: p.bodyH, setupH: p.setupH })),
     tracks: plan.tracks,
+    follows: plan.follows.map((f) => ({ ...f, wrists: f.wrists.map(pair), wristA: pair(f.wristA), wristB: pair(f.wristB) })),
     keyframes: plan.keyframes,
   };
 }

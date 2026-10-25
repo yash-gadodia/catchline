@@ -124,6 +124,59 @@ export function barTrack(lw: Pt[], rw: Pt[], bodyH: number): Pt[] {
   });
 }
 
+// A followed plate frame counts only inside a run of at least PLATE_RUN frames that each look like the setup plate:
+// the rim has edges (median over +-2 frames) of one polarity, the size holds, the plate stays near the hands as at
+// setup, its inside keeps the setup plate's grey, and flow has not carried it alone for long. Edges of mixed polarity
+// are a window frame or a silhouette; a one-sided silhouette edge shows through the grey inside.
+const PLATE_RIM = 0.3;
+const PLATE_POLARITY = 0.5;
+const PLATE_GREY = 40;
+const PLATE_SIZE: [number, number] = [0.8, 1.3];
+const PLATE_LEASH = 1.0;
+const PLATE_FLOW_RUN = 5;
+const PLATE_RUN = 4;
+
+export function onPlate(src: number[], fit: [number, number, number, number][], centres: Pt[], wrists: Pt[], seed: number): boolean[] {
+  const M0 = fit[seed][0], home = dist(centres[seed], wrists[seed]);
+  const med = (k: number, f: number) => {
+    const v: number[] = [];
+    for (let i = f; i >= Math.max(0, f - 2) && src[i] > 0; i--) v.push(fit[i][k]);
+    for (let i = f + 1; i <= Math.min(src.length - 1, f + 2) && src[i] > 0; i++) v.push(fit[i][k]);
+    const s = v.filter(Number.isFinite).sort((a, b) => a - b);
+    return s.length ? s[Math.floor(s.length / 2)] : NaN;
+  };
+  let run = 0;
+  const pass = src.map((s, f) => {
+    run = s === 2 ? run + 1 : 0;
+    if (!(s > 0) || !finitePt(wrists[f])) return false;
+    const size = fit[f][0] / M0;
+    return med(1, f) >= PLATE_RIM && med(2, f) >= PLATE_POLARITY && Math.abs(med(3, f) - fit[seed][3]) <= PLATE_GREY && size >= PLATE_SIZE[0] && size <= PLATE_SIZE[1] &&
+      dist(centres[f], wrists[f]) - home <= PLATE_LEASH * M0 && run <= PLATE_FLOW_RUN;
+  });
+  const ok = pass.slice();
+  for (let f = 0; f < pass.length; ) {
+    let e = f;
+    while (e < pass.length && pass[e] === pass[f]) e++;
+    if (pass[f] && e - f < PLATE_RUN) ok.fill(false, f, e);
+    f = e;
+  }
+  return ok;
+}
+
+export function fusePath(plate: Pt[], wrist: Pt[]): { path: Pt[]; plate: boolean[] } {
+  const isPlate = plate.map(finitePt);
+  const known = plate.flatMap((p, i) => (isPlate[i] && finitePt(wrist[i]) ? [i] : []));
+  if (!known.length) return { path: wrist, plate: plate.map(() => false) };
+  const d = (i: number, j: number) => plate[i][j] - wrist[i][j];
+  const off = (f: number, j: number) => {
+    const k = known.findIndex((i) => i >= f);
+    if (k <= 0) return d(known[k === 0 ? 0 : known.length - 1], j);
+    const a = known[k - 1], b = known[k];
+    return d(a, j) + ((d(b, j) - d(a, j)) * (f - a)) / (b - a);
+  };
+  return { path: plate.map((p, f): Pt => (isPlate[f] ? p : [wrist[f][0] + off(f, 0), wrist[f][1] + off(f, 1)])), plate: isPlate };
+}
+
 export const toRef =(points: Pt[], Ms: Affine[]): Pt[] =>
   points.map((p, i) => (finitePt(p) ? applyAffine(Ms[i], p) : NAN_PT));
 
