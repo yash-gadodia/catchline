@@ -315,4 +315,11 @@ export const library: Strings<typeof en> = {
   'library.metric.bar_crash.short': "chute",
   'library.metric.bar_crash.caption': "Chute de la barre depuis son point haut jusqu'au verrouillage des coudes, cm.",
   'library.lifts.madeCounts': "{made} réussis · {missed} manqués",
+  'library.metric.bar_speed_avg.label': "Vitesse moyenne du tirage",
+  'library.metric.bar_speed_avg.short': "vit. moy.",
+  'library.metric.bar_speed_avg.caption': "Vitesse moyenne de la barre du décollé à l'extension complète, m/s.",
+  'library.trends.allLoads': "Toutes les charges",
+  'library.metric.bar_peak_pct.label': "Point haut de la barre, % de ta taille",
+  'library.metric.bar_peak_pct.short': "hauteur %",
+  'library.metric.bar_peak_pct.caption': "Le point le plus haut de la barre par rapport à ta taille debout.",
 };

@@ -69,6 +69,8 @@ export const format = {
   'format.measurement.hipsOffBodyLine': 'Hips off the body line',
   'format.measurement.tuckBeforeKick': 'Tuck before the kick',
   'format.measurement.barPeakHeight': 'Bar peak height',
+  'format.measurement.averagePullSpeed': 'Average pull speed',
+  'format.measurement.barPeakPct': 'Bar peak, % of height',
   'format.measurement.catchDepth': 'Catch depth',
   'format.measurement.extensionToRack': 'Extension to rack',
   'format.measurement.extensionToCatch': 'Extension to catch',

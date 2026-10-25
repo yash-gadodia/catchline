@@ -63,6 +63,8 @@ export function droppedAt(barY: number[], lowY: number[], from: number, to: numb
 
 // speed.py
 const PLAUSIBLE: [number, number] = [0.5, 4.0];
+const AVG_PLAUSIBLE: [number, number] = [0.3, 3.0];
+const PCT_PLAUSIBLE: [number, number] = [40, 110];
 
 export function peakUpSpeed(y: number[], fps: number, pxPerCm: number, start: number, end: number): [number, number] | null {
   const lo = Math.max(0, int(start));
@@ -79,12 +81,27 @@ export function peakUpSpeed(y: number[], fps: number, pxPerCm: number, start: nu
   return [v[i], lo + i];
 }
 
-export type SpeedRow = { id: string; label: string; value: number; unit: 'm/s'; frame: number; status: string; note: string };
+export function pullSpeed(y: number[], fps: number, pxPerCm: number, start: number, end: number): number | null {
+  const lo = Math.max(0, int(start));
+  const hi = Math.min(y.length - 1, int(end));
+  if (hi - lo < 2 || !pxPerCm || !fps) return null;
+  const v = (y[lo] - y[hi]) / pxPerCm / 100.0 / ((hi - lo) / fps);
+  return finite(v) ? v : null;
+}
 
-export function speedMeasurement(barSpeed: [number, number] | null, scaleMethod: string, secondExt: number): SpeedRow {
-  const hidden = (note: string): SpeedRow => ({ id: 'bar_speed', label: 'Peak bar speed', value: 0, unit: 'm/s', frame: secondExt, status: 'not_seen', note });
-  if (barSpeed === null || scaleMethod.startsWith('near plate only') || scaleMethod.startsWith('body segments'))
-    return hidden('scale too uncertain to time the bar');
-  if (!(PLAUSIBLE[0] <= barSpeed[0] && barSpeed[0] <= PLAUSIBLE[1])) return hidden('bar track too unsteady to time');
-  return { id: 'bar_speed', label: 'Peak bar speed', value: pyRound(barSpeed[0], 2), unit: 'm/s', frame: barSpeed[1], status: 'normal', note: 'peak upward speed in the pull' };
+export type SpeedRow = { id: string; label: string; value: number; unit: 'm/s' | '%'; frame: number; status: string; note: string };
+export type Speeds = { peak: [number, number] | null; avg: number | null; peakPct: number | null };
+
+// Shown only on a scale the cue trusts (scaleOk, as cueConfidence reads it) and a plausible reading; otherwise not_seen.
+export function speedMeasurements(s: Speeds, scaleOk: boolean, frames: { secondExt: number; peak: number }): SpeedRow[] {
+  const row = (id: string, label: string, unit: 'm/s' | '%', v: number | null, ok: [number, number], frame: number, note: string, nd: number): SpeedRow => {
+    if (v === null || !scaleOk) return { id, label, value: 0, unit, frame, status: 'not_seen', note: 'scale too uncertain to time the bar' };
+    if (!(ok[0] <= v && v <= ok[1])) return { id, label, value: 0, unit, frame, status: 'not_seen', note: 'bar track too unsteady to time' };
+    return { id, label, value: pyRound(v, nd), unit, frame, status: 'normal', note };
+  };
+  return [
+    row('bar_speed', 'Peak bar speed', 'm/s', s.peak ? s.peak[0] : null, PLAUSIBLE, s.peak ? s.peak[1] : frames.secondExt, 'peak upward speed in the second pull', 2),
+    row('bar_speed_avg', 'Average pull speed', 'm/s', s.avg, AVG_PLAUSIBLE, frames.secondExt, 'lift-off to full extension', 2),
+    row('bar_peak_pct', 'Bar peak, % of height', '%', s.peakPct, PCT_PLAUSIBLE, frames.peak, "bar's highest point vs your standing height", 0),
+  ];
 }

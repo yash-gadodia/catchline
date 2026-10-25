@@ -2,7 +2,7 @@ import type { Movement } from '../../analysis/types';
 import { ANALYSES } from '../../analysis/fixtures';
 import { liveAnalysis } from '../../analysis/live';
 import { isPartial } from '../../analysis/parse';
-import { fmt, movementLabel, speedText } from '../../analysis/format';
+import { fmt, movementLabel, valueText } from '../../analysis/format';
 import { formatDate, getLocale, t } from '../../i18n';
 import { cueText } from '../../i18n/cues';
 import { failureMessage } from './failures';
@@ -74,7 +74,7 @@ export function liftTitle(l: Lift): string {
 
 export function metricText(id: string, value: number): string {
   const m = metricFor(id);
-  if (m.unit === 'm/s') return speedText(value);
+  if (m.unit === 'm/s' || m.unit === '%') return valueText({ unit: m.unit, value });
   return m.unit === 'deg' ? `${fmt(value)}°` : `${fmt(value)} ${m.unit}`;
 }
 

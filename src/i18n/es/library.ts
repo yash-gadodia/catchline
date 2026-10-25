@@ -315,4 +315,11 @@ export const library: Strings<typeof en> = {
   'library.metric.bar_crash.short': "caída",
   'library.metric.bar_crash.caption': "Caída de la barra desde su punto más alto hasta bloquear los codos, cm.",
   'library.lifts.madeCounts': "{made} válidos · {missed} fallados",
+  'library.metric.bar_speed_avg.label': "Velocidad media del tirón",
+  'library.metric.bar_speed_avg.short': "vel. media",
+  'library.metric.bar_speed_avg.caption': "Velocidad media de la barra desde el despegue hasta la extensión completa, m/s.",
+  'library.trends.allLoads': "Todas las cargas",
+  'library.metric.bar_peak_pct.label': "Punto más alto de la barra, % de tu altura",
+  'library.metric.bar_peak_pct.short': "altura %",
+  'library.metric.bar_peak_pct.caption': "El punto más alto de la barra respecto a tu altura de pie.",
 };

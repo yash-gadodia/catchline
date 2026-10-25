@@ -46,7 +46,7 @@ export type Measurement = {
   id: string;
   label: string;
   value: number;
-  unit: 'cm' | 's' | 'deg' | 'm/s';
+  unit: 'cm' | 's' | 'deg' | 'm/s' | '%';
   best?: number;
   frame: number;
   status: 'cue' | 'follows' | 'normal' | 'not_seen' | 'best';

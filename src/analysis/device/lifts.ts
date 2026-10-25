@@ -47,7 +47,7 @@ import {
   radians,
   where,
 } from './num';
-import { speedMeasurement } from './outcome';
+import { speedMeasurements } from './outcome';
 import { PhaseOut, StartClass, findJerkReps, findLifts, jerkKeyFrames, runs, segmentJerk } from './phases';
 import {
   AnalysisJson,
@@ -440,7 +440,10 @@ function cleanInfo(r: RepInfo): RepInfo {
       note: `${sn.catch_kind} clean, hip ${sn.catch_depth > 0 ? 'below' : 'above'} knee, knee ${pyFixed(sn.catch_knee_min, 0)}°`,
     },
     { id: 'turnover_time', label: 'Extension to rack', value: pyRound(sn.turnover_s, 2), unit: 's', frame: ev.second_ext as number, status: 'normal', note: '± 1 frame at 30 fps' },
-    speedMeasurement(sn.bar_speed, r.scale_method as string, ev.second_ext as number),
+    ...speedMeasurements({ peak: sn.bar_speed, avg: sn.bar_speed_avg, peakPct: sn.peak_pct }, r.scale_ok ?? false, {
+      secondExt: ev.second_ext as number,
+      peak: ev.peak as number,
+    }),
   ];
   return r;
 }

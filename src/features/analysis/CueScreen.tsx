@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Analysis, Cue } from '../../analysis/types';
-import { filmedAtAngle, liftTitle, missNote } from '../../analysis/format';
+import { filmedAtAngle, liftTitle, missNote, speedRows } from '../../analysis/format';
+import ResultNumbers from './ResultNumbers';
 import { keyFrameAt, keyFrameForPhase, liftPath, repByIndex } from '../../analysis/timeline';
 import { noCueCopy } from './partial';
 import { toScreen } from '../../analysis/geometry';
@@ -87,6 +88,7 @@ function CueBody({
       <EvidenceStage analysis={analysis} cue={cue} box={{ width, height: width }} safeTop={insets.top} />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: space.s5, paddingHorizontal: space.gutter, gap: space.s3 }}>
         {retest ? <RetestVerdict retest={retest} onStuck={nav.onStuck} /> : null}
+        <ResultNumbers rows={speedRows(analysis)} />
         <MadeCall analysis={analysis} />
         <MissNote analysis={analysis} />
         <SmallCaps>{sample ? t('analysis.cue.sampleLabel') : t('analysis.cue.oneThingLabel')}</SmallCaps>
@@ -205,6 +207,7 @@ function LowConfidence({ analysis, cue, nav, retest, retestable }: { analysis: A
       </View>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: space.s4, paddingHorizontal: space.gutter, gap: space.s2 }}>
         {retest ? <RetestVerdict retest={retest} onStuck={nav.onStuck} /> : null}
+        <ResultNumbers rows={speedRows(analysis)} />
         <MadeCall analysis={analysis} />
         <MissNote analysis={analysis} />
         <SmallCaps>{t('analysis.cue.possible')}</SmallCaps>
@@ -290,6 +293,7 @@ function Clean({ analysis, nav, retest }: { analysis: Analysis; nav: Nav; retest
       </View>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: space.s4, paddingHorizontal: space.gutter, gap: space.s2 }}>
         {retest ? <RetestVerdict retest={retest} onStuck={nav.onStuck} /> : null}
+        <ResultNumbers rows={speedRows(analysis)} />
         <MadeCall analysis={analysis} />
         <SmallCaps>{t('analysis.clean.label')}</SmallCaps>
         <Text style={[display(40), { color: colors.text }]} testID="clean-title">
@@ -343,6 +347,7 @@ function Partial({ analysis, nav, retest, retestable }: { analysis: Analysis; na
       </View>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: space.s4, paddingHorizontal: space.gutter, gap: space.s2 }}>
         {retest ? <RetestVerdict retest={retest} onStuck={nav.onStuck} /> : null}
+        <ResultNumbers rows={speedRows(analysis)} />
         <MadeCall analysis={analysis} />
         <MissNote analysis={analysis} />
         <SmallCaps>{t('analysis.partial.label')}</SmallCaps>
@@ -385,6 +390,7 @@ function NoCue({ analysis, nav, retest, retestable }: { analysis: Analysis; nav:
       <TopBar title={liftTitle(analysis)} onBack={nav.onBack} />
       <View style={{ flex: 1, padding: space.gutter, gap: space.s2 }}>
         {retest ? <RetestVerdict retest={retest} onStuck={nav.onStuck} /> : null}
+        <ResultNumbers rows={speedRows(analysis)} />
         <Text style={[display(32), { color: colors.text }]}>
           {analysis.failure ? t('analysis.cue.couldNotRead') : t('analysis.cue.nothingToFix')}
         </Text>

@@ -126,4 +126,6 @@ export const format: Strings<typeof en> = {
   'format.confidence.seenOn': { one: 'in {seen} von {count} Wiederholung gesehen', other: 'in {seen} von {count} Wiederholungen gesehen' },
   'format.measurement.pressOutOverhead': "Nachdrücken: Ellbogen über Kopf wieder gebeugt",
   'format.measurement.driveToLockout': "Antrieb bis zur Streckung",
+  'format.measurement.averagePullSpeed': "Mittlere Zuggeschwindigkeit",
+  'format.measurement.barPeakPct': "Stangenhöchstpunkt, % der Körpergröße",
 };

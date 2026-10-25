@@ -126,4 +126,6 @@ export const format: Strings<typeof en> = {
   'format.confidence.seenOn': { one: 'vista en {seen} de {count} repetición', other: 'vista en {seen} de {count} repeticiones' },
   'format.measurement.pressOutOverhead': "Empuje final: codos flexionados de nuevo arriba",
   'format.measurement.driveToLockout': "Impulso hasta el bloqueo",
+  'format.measurement.averagePullSpeed': "Velocidad media del tirón",
+  'format.measurement.barPeakPct': "Punto más alto de la barra, % de tu altura",
 };

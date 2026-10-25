@@ -270,6 +270,25 @@ describe('TrendsScreen', () => {
     expect(getByText('Trends need two lifts of the same movement. Film the next one and this fills in.')).toBeOnTheScreen();
   });
 
+  it('narrows a bar speed to one load, so speed at a weight reads over time', async () => {
+    const lib = useLibraryStore.getState();
+    const at = (id: string, date: string, loadKg: number, speed: number) => ({ id, movement: 'snatch' as const, date, loadKg, values: { bar_speed: speed } });
+    lib.load({ ...lib, sessions: [at('s1', '2026-10-01', 60, 1.7), at('s2', '2026-10-05', 70, 1.5), at('s3', '2026-10-08', 60, 1.82), at('s4', '2026-10-10', 70, 1.55)] });
+    const { getByTestId, getByText } = await render(<TrendsScreen initialMovement="snatch" />);
+    await press(getByTestId('metric-bar_speed'));
+    expect(getByTestId('trend-hero')).toHaveTextContent('1.55 m/s');
+    await press(getByTestId('load-60'));
+    expect(getByTestId('trend-hero')).toHaveTextContent('1.82 m/s');
+    expect(getByText('Peak bar speed in the second pull, m/s. Higher is better. 2 sessions.')).toBeOnTheScreen();
+    await press(getByTestId('load-all'));
+    expect(getByTestId('trend-hero')).toHaveTextContent('1.55 m/s');
+    await press(getByTestId('metric-bar_speed'));
+    expect(getByTestId('load-chips')).toBeOnTheScreen();
+    lib.load({ ...lib, sessions: [at('s1', '2026-10-01', 60, 1.7), at('s3', '2026-10-08', 60, 1.82)] });
+    const one = await render(<TrendsScreen initialMovement="snatch" />);
+    expect(one.queryByTestId('load-chips')).toBeNull();
+  });
+
   it('a lift with no analysis still lands on its movement', async () => {
     const { getByText } = await render(<TrendsScreen initialMovement="jerk" />);
     expect(getByText('No jerks yet.')).toBeOnTheScreen();

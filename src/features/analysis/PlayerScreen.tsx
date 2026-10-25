@@ -3,7 +3,7 @@ import { PanResponder, Pressable, ScrollView, Text, View, useWindowDimensions } 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Rect } from 'react-native-svg';
 import type { Analysis, Measurement, Phase, PhaseName } from '../../analysis/types';
-import { confidenceLine, fmt, liftTitle, measurementLabel, missNote, peakSpeed, phaseLabel, seconds, speedText } from '../../analysis/format';
+import { SPEED_IDS, confidenceLine, fmt, liftTitle, measurementLabel, missNote, phaseLabel, seconds, speedRows, valueText } from '../../analysis/format';
 import { toScreen } from '../../analysis/geometry';
 import {
   clampFrame,
@@ -83,10 +83,10 @@ export default function PlayerScreen({
   const [shapes, setShapes] = useState<Shape[]>([]);
   const frameRef = useRef(frame);
   const retestable = useRetestable(analysis, retestCueId);
-  const showSpeed = peakSpeed(analysis) !== null;
+  const shown = speedRows(analysis);
   const byPhase = measurementsByPhase(
     rep,
-    analysis.measurements.filter((m) => showSpeed || m.id !== 'bar_speed'),
+    analysis.measurements.filter((m) => !SPEED_IDS.includes(m.id) || shown.includes(m)),
   );
   const marks: Partial<Record<PhaseName, PhaseMark>> = {};
   for (const p of rep.phases) {
@@ -389,9 +389,9 @@ function PhaseHead({ phase, fps }: { phase: Phase; fps: number }) {
   );
 }
 
-function valueText(m: Measurement): string {
+function readout(m: Measurement): string {
   if (m.status === 'not_seen') return t('format.status.notSeen');
-  return m.unit === 'm/s' ? speedText(m.value) : `${fmt(m.value)} ${m.unit}`;
+  return valueText(m);
 }
 
 function MeasurementRow({ m, last }: { m: Measurement; last: boolean }) {
@@ -411,7 +411,7 @@ function MeasurementRow({ m, last }: { m: Measurement; last: boolean }) {
           ) : null}
         </View>
         <Text style={{ ...type.title, fontFamily: fontFamily.mono, color: m.status === 'cue' ? colors.flare : colors.text, fontVariant: ['tabular-nums'] }}>
-          {valueText(m)}
+          {readout(m)}
         </Text>
       </View>
       {m.note || m.best != null ? (

@@ -57,7 +57,7 @@ import {
   radians,
   where,
 } from './num';
-import { CAUSE_CUE, behindCause, behindCopy, classify, droppedAt, peakUpSpeed, speedMeasurement } from './outcome';
+import { CAUSE_CUE, behindCause, behindCopy, classify, droppedAt, peakUpSpeed, pullSpeed, speedMeasurements } from './outcome';
 import {
   PhaseOut,
   SNATCH_PHASES,
@@ -207,6 +207,8 @@ export type SnatchExtras = {
   turnover_s: number;
   standing_h: number;
   bar_speed: [number, number] | null;
+  bar_speed_avg: number | null;
+  peak_pct: number | null;
   hands_overlap: boolean;
   stab_inliers_min: number;
   ref: Ref;
@@ -582,7 +584,9 @@ export function analyseRep(
   const g = (f: number) => s0 + int(f);
   const path: RepInfo['path'] = [];
   for (let f = phases[0].startFrame; f < L; f++) if (f <= ev.recovered) path.push({ frame: g(f), ...normalise(fromRef(bar[f], Ms[f]), W, H) });
-  const sp = peakUpSpeed(barY, fps, pxPerCm, ev.liftoff, ev.caught);
+  const pull2 = phases.find((ph) => ph.name === 'second_pull');
+  const sp = peakUpSpeed(barY, fps, pxPerCm, pull2 ? pull2.startFrame : ev.liftoff, ev.second_ext);
+  const avgSpeed = pullSpeed(barY, fps, pxPerCm, lo, ev.second_ext);
   const barLost = kind === 'snatch' && bar[ev.peak][1] > sho[ev.peak][1];
   const catchEnd = Math.max(ev.caught, depthEnd);
   const events: Record<string, number | boolean> = {};
@@ -630,6 +634,8 @@ export function analyseRep(
       turnover_s: turnoverS,
       standing_h: standingH,
       bar_speed: sp ? [sp[0], g(sp[1])] : null,
+      bar_speed_avg: avgSpeed,
+      peak_pct: startClass === 'floor' ? ((PLATE_CM / 2 + peakH) / standingH) * 100 : null,
       hands_overlap: handsOverlap,
       stab_inliers_min: inliers.length ? int(min(inliers)) : 0,
       ref: { s0, Ms, ksm, bar, knee_ang: kneeAng, hip_ang: hipAng, trunk, hip, sho, ank, elbow, lo, contact, knee_pass: kneePass, rack },
@@ -790,7 +796,10 @@ function buildCue(r: RepInfo, reps: RepInfo[], best: RepInfo, W: number, H: numb
       note: `${sn.catch_kind} catch, hip ${sn.catch_depth > 0 ? 'below' : 'above'} knee, knee ${pyFixed(sn.catch_knee_min, 0)}°`,
     },
     { id: 'turnover_time', label: 'Extension to catch', value: pyRound(sn.turnover_s, 2), unit: 's', frame: r.events.second_ext as number, status: 'normal', note: '± 1 frame at 30 fps' },
-    speedMeasurement(sn.bar_speed, r.scale_method as string, r.events.second_ext as number),
+    ...speedMeasurements({ peak: sn.bar_speed, avg: sn.bar_speed_avg, peakPct: sn.peak_pct }, r.scale_ok ?? false, {
+      secondExt: r.events.second_ext as number,
+      peak: r.events.peak as number,
+    }),
   );
   if (r.outcome === 'missed_behind') return missBehindCard(r, meas, W, H);
   if (r.outcome === 'missed_forward') {

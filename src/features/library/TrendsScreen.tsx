@@ -32,6 +32,7 @@ export default function TrendsScreen({ initialMovement }: { initialMovement?: Mo
   const cueFor = latestCue(cues, movement);
   const [metricId, setMetricId] = useState(cueFor?.metricId ?? '');
   const [range, setRange] = useState<Range>(30);
+  const [load, setLoad] = useState<number | null>(null);
   const chips = measuredMetrics(sessions, movement);
   const metric = metricFor(chips.includes(metricId) ? metricId : (chips[0] ?? PRIMARY_METRIC[movement]));
   const count = sessions.filter((s) => s.movement === movement).length;
@@ -65,7 +66,11 @@ export default function TrendsScreen({ initialMovement }: { initialMovement?: Mo
       </Pressable>
     ) : null;
 
-  const all = seriesFor(sessions, movement, metric.id);
+  const series = seriesFor(sessions, movement, metric.id);
+  // A speed only compares at one load: the lifter can narrow it to the weight on the bar.
+  const loads = metric.unit === 'm/s' ? [...new Set(series.flatMap((p) => (p.session.loadKg != null ? [p.session.loadKg] : [])))].sort((a, b) => a - b) : [];
+  const atLoad = load !== null && loads.includes(load) ? load : null;
+  const all = atLoad === null ? series : series.filter((p) => p.session.loadKg === atLoad);
   const visible = inRange(all, today, range);
   const best = bestOf(all, metric.id);
   const pinnedId = chips.includes(PRIMARY_METRIC[movement]) ? PRIMARY_METRIC[movement] : metric.id;
@@ -172,6 +177,16 @@ export default function TrendsScreen({ initialMovement }: { initialMovement?: Mo
               ))}
             </FadeRow>
             </View>
+            {loads.length > 1 ? (
+              <View style={{ marginHorizontal: -space.gutter }}>
+                <FadeRow testID="load-chips" contentContainerStyle={{ gap: 6, paddingHorizontal: space.gutter }}>
+                  <Chip label={t('library.trends.allLoads')} height={36} selected={atLoad === null} onPress={() => setLoad(null)} testID="load-all" />
+                  {loads.map((kg) => (
+                    <Chip key={kg} label={`${fmt(kg)} kg`} height={36} selected={atLoad === kg} onPress={() => setLoad(kg)} testID={`load-${kg}`} />
+                  ))}
+                </FadeRow>
+              </View>
+            ) : null}
           </View>
           <View style={{ paddingTop: space.s5, gap: space.s3 }}>
             {recap ? (
