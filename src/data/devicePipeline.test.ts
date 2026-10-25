@@ -33,7 +33,7 @@ jest.mock('./localLifts', () => ({
   saveLocalLift: jest.fn((_id: string, a: Analysis) => a),
 }));
 jest.mock('../analysis/device/analyseTrace', () => ({
-  planFromMisses: jest.fn(() => ({ windows: [], plates: [], tracks: [], keyframes: [], misses: [] })),
+  planFromMisses: jest.fn(() => ({ windows: [], plates: [], tracks: [], follows: [], keyframes: [], misses: [] })),
   analyseTrace: jest.fn(),
 }));
 jest.mock('expo-crypto', () => ({ randomUUID: () => 'lift-1' }));
@@ -137,7 +137,7 @@ describe('startDeviceLift, the happy path', () => {
 
 describe('analyseLoop', () => {
   it('runs native again with the plan built from the misses, merging the stills, until nothing is missing', async () => {
-    const p1 = { windows: [{ s0: 0, count: 10 }], plates: [], tracks: [], keyframes: [], misses: ['find_plates'] };
+    const p1 = { windows: [{ s0: 0, count: 10 }], plates: [], tracks: [], follows: [], keyframes: [], misses: ['find_plates'] };
     const p2 = { ...p1, keyframes: [{ name: 'r1-1-setup.jpg', frame: 12 }], misses: ['export_keyframes'] };
     mockPlan.mockReturnValueOnce(p1).mockReturnValueOnce(p2).mockReturnValueOnce({ ...p2, misses: [] });
     mockAnalyse
@@ -148,8 +148,8 @@ describe('analyseLoop', () => {
     const out = await analyseLoop('file:///c.mp4', 'clean', 'lift-9', (stage, f) => progress.push([stage, f]));
     expect(mockAnalyse.mock.calls).toEqual([
       ['file:///c.mp4', 'clean', undefined],
-      ['file:///c.mp4', 'clean', { windows: [{ s0: 0, count: 10 }], plates: [], tracks: [], keyframes: [] }],
-      ['file:///c.mp4', 'clean', { windows: [{ s0: 0, count: 10 }], plates: [], tracks: [], keyframes: [{ name: 'r1-1-setup.jpg', frame: 12 }] }],
+      ['file:///c.mp4', 'clean', { windows: [{ s0: 0, count: 10 }], plates: [], tracks: [], follows: [], keyframes: [] }],
+      ['file:///c.mp4', 'clean', { windows: [{ s0: 0, count: 10 }], plates: [], tracks: [], follows: [], keyframes: [{ name: 'r1-1-setup.jpg', frame: 12 }] }],
     ]);
     expect(mockPlan).toHaveBeenLastCalledWith({ traceVersion: 1, frames: [] }, 'clean', { analysisId: 'lift-9', assetPrefix: 'lift-9' });
     expect(out.tracePath).toBe('file:///t3.gz');
@@ -158,7 +158,7 @@ describe('analyseLoop', () => {
   });
 
   it('spreads each pass over its third of the progress', async () => {
-    const empty = { windows: [], plates: [], tracks: [], keyframes: [] };
+    const empty = { windows: [], plates: [], tracks: [], follows: [], keyframes: [] };
     mockPlan.mockReturnValueOnce({ ...empty, misses: ['x'] }).mockReturnValueOnce({ ...empty, misses: [] });
     const progress: number[] = [];
     await analyseLoop('file:///c.mp4', 'snatch', 'l', (_s, f) => progress.push(f));
@@ -166,7 +166,7 @@ describe('analyseLoop', () => {
   });
 
   it('stops after three passes even if misses remain', async () => {
-    mockPlan.mockReturnValue({ windows: [], plates: [], tracks: [], keyframes: [], misses: ['x'] });
+    mockPlan.mockReturnValue({ windows: [], plates: [], tracks: [], follows: [], keyframes: [], misses: ['x'] });
     await analyseLoop('file:///c.mp4', 'snatch', 'l', () => undefined);
     expect(mockAnalyse).toHaveBeenCalledTimes(3);
   });
@@ -238,12 +238,14 @@ describe('toNativePlan', () => {
       windows: [{ s0: 3, count: 40 }],
       plates: [{ frame: 3, wristA: [10, 20] as [number, number], wristB: [null, 5] as [null, number], bodyH: 400, setupH: null }],
       tracks: [],
+      follows: [{ s0: 3, n: 2, seed: 0, wrists: [[11, 21], [null, 22]] as [number | null, number | null][], wristA: [10, 20] as [number, number], wristB: [null, 5] as [null, number], bodyH: 400, setupH: 380 }],
       keyframes: [{ name: 'r1-6-catch.jpg', frame: 30 }],
     };
     expect(toNativePlan(plan)).toEqual({
       windows: [{ s0: 3, count: 40 }],
       plates: [{ frame: 3, wristA: [10, 20], wristB: null, bodyH: 400, setupH: null }],
       tracks: [],
+      follows: [{ s0: 3, n: 2, seed: 0, wrists: [[11, 21], null], wristA: [10, 20], wristB: null, bodyH: 400, setupH: 380 }],
       keyframes: [{ name: 'r1-6-catch.jpg', frame: 30 }],
     });
   });

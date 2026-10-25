@@ -1,4 +1,4 @@
-import { barTrack, median3 } from './geometry';
+import { barTrack, fusePath, median3, onPlate } from './geometry';
 import { Pt } from './num';
 
 describe('the bar from the hands', () => {
@@ -35,5 +35,68 @@ describe('the bar from the hands', () => {
     const lw: Pt[] = [[400, 700], [400, 600], [400, 500], [400, 400], [400, 300]];
     const rw: Pt[] = [[660, 700], [660, 660], [1000, 630], [1000, 600], [1000, 570]];
     expect(barTrack(lw, rw, 1000).map((p) => p[0])).toEqual([530, 530, 530, 530, 530]);
+  });
+});
+
+describe('the drawn bar path from the plate, the wrists filling its gaps', () => {
+  const N: Pt = [NaN, NaN];
+
+  it('keeps the plate where it was seen and shifts the wrists by the plate-to-wrist offset, interpolated across a gap', () => {
+    const plate: Pt[] = [[10, 0], N, N, [16, 3], N];
+    const wrist: Pt[] = [[0, 0], [1, 1], [2, 2], [3, 3], [4, 4]];
+    expect(fusePath(plate, wrist)).toEqual({
+      path: [[10, 0], [12, 1], [14, 2], [16, 3], [17, 4]],
+      plate: [true, false, false, true, false],
+    });
+  });
+
+  it('holds the first offset before the plate is found', () => {
+    expect(fusePath([N, [5, 5]], [[0, 0], [1, 1]]).path).toEqual([[4, 4], [5, 5]]);
+  });
+
+  it('is the wrist path when the plate was never seen', () => {
+    const wrist: Pt[] = [[0, 0], [1, 1]];
+    expect(fusePath([N, N], wrist)).toEqual({ path: wrist, plate: [false, false] });
+  });
+});
+
+describe('which followed plate frames are on the plate', () => {
+  type Fit = [number, number, number, number];
+  const n = 8;
+  const wrists: Pt[] = Array.from({ length: n }, (_, f): Pt => [100, 100 - 10 * f]);
+  const centres: Pt[] = wrists.map(([x, y]): Pt => [x, y + 50]);
+  const good: Fit = [100, 0.7, 0.8, 30];
+  const fits = (at: Record<number, Fit>) => Array.from({ length: n }, (_, f): Fit => at[f] ?? good);
+  const detected = new Array<number>(n).fill(1);
+
+  it('keeps a run of frames that look like the setup plate', () => {
+    expect(onPlate(detected, fits({}), centres, wrists, 0)).toEqual([true, true, true, true, true, true, true, true]);
+  });
+
+  it('drops frames whose rim edges disagree in polarity, a window frame or a silhouette', () => {
+    const mixed: Fit = [100, 0.7, 0.1, 30];
+    expect(onPlate(detected, fits({ 4: mixed, 5: mixed, 6: mixed, 7: mixed }), centres, wrists, 0)).toEqual([true, true, true, true, false, false, false, false]);
+  });
+
+  it('rides out one blurred frame, the evidence taken as a median over neighbours', () => {
+    expect(onPlate(detected, fits({ 3: [100, 0.1, 0, 30] }), centres, wrists, 0)).toEqual([true, true, true, true, true, true, true, true]);
+  });
+
+  it('drops a stretch whose inside is far from the setup plate grey, a one-sided edge against a bright window', () => {
+    const bright: Fit = [100, 0.7, 0.8, 140];
+    expect(onPlate(detected, fits({ 4: bright, 5: bright, 6: bright, 7: bright }), centres, wrists, 0)).toEqual([true, true, true, true, false, false, false, false]);
+  });
+
+  it('drops a plate that grew past the setup size or wandered over a plate width from the hands', () => {
+    const far = centres.map(([x, y], f): Pt => (f >= 4 ? [x + 160, y] : [x, y]));
+    expect(onPlate(detected, fits({ 7: [140, 0.7, 0.8, 30] }), centres, wrists, 0)).toEqual([true, true, true, true, true, true, true, false]);
+    expect(onPlate(detected, fits({}), far, wrists, 0)).toEqual([true, true, true, true, false, false, false, false]);
+  });
+
+  it('drops runs shorter than four frames and long flow-only runs', () => {
+    const src = [1, 1, 1, 0, 1, 2, 2, 2];
+    expect(onPlate(src, fits({}), centres, wrists, 0)).toEqual([false, false, false, false, true, true, true, true]);
+    const flow = [1, 2, 2, 2, 2, 2, 2, 2];
+    expect(onPlate(flow, fits({}), centres, wrists, 0)).toEqual([true, true, true, true, true, true, false, false]);
   });
 });

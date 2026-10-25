@@ -20,6 +20,7 @@ export type AnalysePlan = {
   windows?: { s0: number; count: number }[];
   plates?: { frame: number; wristA: [number, number] | null; wristB: [number, number] | null; bodyH: number; setupH: number | null }[];
   tracks?: { s0: number; n: number; start: number; plate: { centre: [number, number]; axes: [number, number]; score: number } }[];
+  follows?: { s0: number; n: number; seed: number; wrists: ([number, number] | null)[]; wristA: [number, number] | null; wristB: [number, number] | null; bodyH: number; setupH: number }[];
   keyframes?: { name: string; frame: number }[];
 };
 
