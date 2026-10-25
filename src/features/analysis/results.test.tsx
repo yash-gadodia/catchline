@@ -206,6 +206,31 @@ describe('release build: a result route with no id never plays the demo', () => 
     expect(miss.queryByTestId('miss-compare')).toBeNull();
   });
 
+  it('player: "vs your best" opens today\'s path on the lifter\'s best made lift in one tap', async () => {
+    const { useLibraryStore } = require('../library/store');
+    const { useMadeLog } = require('../library/madeLog');
+    useMadeLog.setState({ made: {} });
+    putLiveAnalysis(parseAnalysis(serverAnalysis(liftId(8))));
+    putLiveAnalysis(parseAnalysis(serverAnalysis(liftId(9))));
+    const lib = useLibraryStore.getState();
+    const row = (id: string, loadKg: number, made: boolean) => ({ id, movement: 'snatch', date: '2026-10-20', loadKg, status: 'done', analysisId: id, made });
+    lib.load({ ...lib, lifts: [row(liftId(9), 70, true), row('other', 80, false)] });
+    params.current = { fixture: liftId(8) };
+    const player = await render(<PlayerRoute />);
+    expect(player.getByTestId('player-compare')).toHaveTextContent('vs your best');
+    const { act, fireEvent } = require('@testing-library/react-native');
+    await act(async () => fireEvent.press(player.getByTestId('player-compare')));
+    expect(nav.push).toHaveBeenCalledWith({ pathname: '/analysis/compare', params: { fixture: liftId(8), best: liftId(9) } });
+
+    params.current = { fixture: liftId(8), best: liftId(9) };
+    const compare = await render(<CompareRoute />);
+    expect(compare.queryByTestId('redirect')).toBeNull();
+    expect(compare.getByTestId('compare-ghost')).toBeOnTheScreen();
+    expect(compare.getByTestId('ghost-path')).toBeOnTheScreen();
+    expect(compare.getByText('vs Your best · 70 kg · 20 Oct')).toBeOnTheScreen();
+    lib.load({ ...lib, lifts: [] });
+  });
+
   it('the sample lift still opens, labelled as the sample', async () => {
     params.current = { fixture: 'snatch-sample' };
     const view = await render(<CueRoute />);

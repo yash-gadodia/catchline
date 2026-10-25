@@ -11,11 +11,12 @@ import {
   liftTitle,
   measurementReadout,
   movementNote,
-  peakSpeed,
+  speedRows,
   phaseLabel,
   processingSteps,
   signedCm,
   speedText,
+  valueText,
   syncCaption,
 } from './format';
 import { snatchMock } from './fixtures';
@@ -114,12 +115,13 @@ describe('bar speed', () => {
     expect(speedText(2)).toBe('2.00 m/s');
   });
 
-  it('reads the clip peak, and nothing when it was not measured or not sent', () => {
-    const a = (measurements: Measurement[]) => ({ measurements }) as Parameters<typeof peakSpeed>[0];
-    expect(peakSpeed(a([m({ id: 'bar_speed', value: 1.82, unit: 'm/s' })]))).toBeNull();
-    expect(peakSpeed(a([m({ id: 'bar_speed', value: 1.82, unit: 'm/s' })]), true)).toBe('1.82 m/s');
-    expect(peakSpeed(a([m({ id: 'bar_speed', value: 0, unit: 'm/s', status: 'not_seen' })]), true)).toBeNull();
-    expect(peakSpeed(a([m({ value: 3 })]), true)).toBeNull();
+  it('reads the measured speed rows in order, and nothing when not measured, not sent or switched off', () => {
+    const a = (measurements: Measurement[]) => ({ measurements }) as Parameters<typeof speedRows>[0];
+    const peak = m({ id: 'bar_speed', value: 1.82, unit: 'm/s' });
+    const pct = m({ id: 'bar_peak_pct', value: 67.4, unit: '%' });
+    expect(speedRows(a([pct, m({ value: 3 }), peak])).map(valueText)).toEqual(['1.82 m/s', '67%']);
+    expect(speedRows(a([peak]), false)).toEqual([]);
+    expect(speedRows(a([m({ id: 'bar_speed', value: 0, unit: 'm/s', status: 'not_seen' })]))).toEqual([]);
   });
 });
 

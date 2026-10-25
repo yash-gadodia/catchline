@@ -34,6 +34,7 @@ import { shortMovement } from './metrics';
 import { t } from '../../i18n';
 import { cueText } from '../../i18n/cues';
 import { useLibrary } from './repository';
+import { madeCounts, useMadeLog } from './madeLog';
 import type { Lift, Session, CueRecord } from './types';
 import { Chip, Frame, Pulse, StatusDot, Title, Underlined } from './ui';
 import FadeRow from '../analysis/FadeRow';
@@ -54,6 +55,7 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
   const lib = useLibrary();
   const [group, setGroup] = useState<Group>('all');
   const [movement, setMovement] = useState<Movement | null>(null);
+  const own = useMadeLog((s) => s.made);
   const tier = usePurchases((s) => s.tier);
   const used = useUsage((s) => s.usage.lifetime);
   // With a backend, the live plan, so a purchase shows at once, not after the next library sync.
@@ -98,6 +100,7 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
   const cue = activeCue(lib.cues);
   const visible = filterLifts(lib.lifts, group, movement);
   const days = groupByDay(visible, lib.today);
+  const tally = madeCounts(visible, own);
   const newest = newestDone(lib.lifts);
   return (
     <ScrollView
@@ -166,6 +169,11 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
             ))}
           </FadeRow>
           </View>
+          {tally.made + tally.missed > 0 ? (
+            <Text testID="made-counts" style={{ color: colors.text2, ...type.readout }}>
+              {t('library.lifts.madeCounts', { made: tally.made, missed: tally.missed })}
+            </Text>
+          ) : null}
         </View>
       </View>
       <View style={{ paddingTop: space.s2 }}>

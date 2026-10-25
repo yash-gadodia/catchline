@@ -11,6 +11,7 @@ export type Lift = {
   loadKg?: number;
   reps?: number;
   status: LiftStatus;
+  made?: boolean;
   analysisId?: string;
   thumb?: string;
   failure?: Failure;

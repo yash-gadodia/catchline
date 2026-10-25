@@ -155,7 +155,11 @@ export default function ViewfinderScreen({
             <Note scrim testID="check-hint" style={{ position: 'absolute', left: space.gutter, right: space.gutter, bottom: 200 + insets.bottom }}>
               {hint}
             </Note>
-          ) : null}
+          ) : (
+            <Note scrim testID="framing-guide" style={{ position: 'absolute', left: space.gutter, right: space.gutter, bottom: 200 + insets.bottom }}>
+              {t('capture.viewfinder.framingGuide')}
+            </Note>
+          )}
         </>
       ) : null}
 

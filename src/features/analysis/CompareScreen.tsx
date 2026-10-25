@@ -13,6 +13,7 @@ import { colors, shape, space } from '../../design/tokens';
 import { fontFamily, type } from '../../design/typography';
 import Stage from './Stage';
 import { FlarePath, GhostPath, HeroNumber, OverlaySvg } from './overlays';
+import { aligner } from './bestLift';
 import { t } from '../../i18n';
 
 export type CompareMode = 'ghost' | 'side';
@@ -49,7 +50,7 @@ export default function CompareScreen({
   target: CompareTarget;
   mode: CompareMode;
   onMode: (m: CompareMode) => void;
-  onTarget: () => void;
+  onTarget?: () => void;
   onBack: () => void;
 }) {
   const { width } = useWindowDimensions();
@@ -92,7 +93,7 @@ export default function CompareScreen({
           <Text style={{ color: colors.text, ...type.label }}>
             {t('analysis.compare.target', { target: t(target.kind === 'best' ? 'analysis.compare.yourBest' : 'analysis.compare.lastSession'), load: fmt(other.loadKg ?? 0), date: target.dateLabel })}
           </Text>
-          <Text style={{ color: colors.text2, ...type.small }}>▾</Text>
+          {onTarget ? <Text style={{ color: colors.text2, ...type.small }}>▾</Text> : null}
         </Pressable>
       </View>
       {mode === 'ghost' ? (
@@ -127,16 +128,19 @@ function Ghost({ analysis, other, sync, box, label }: { analysis: Analysis; othe
         ]}
       >
         {(fit) => {
+          const tPath = liftPath(sync.today.rep);
+          const oPath = liftPath(sync.other.rep);
+          const align = aligner(other, analysis, oPath[0] ?? { x: 0, y: 0 }, tPath[0] ?? { x: 0, y: 0 });
           const t = pointAt(sync.today.rep.path, sync.today.frame)!;
-          const o = pointAt(sync.other.rep.path, sync.other.frame)!;
+          const o = align(pointAt(sync.other.rep.path, sync.other.frame)!);
           const ts = toScreen(t, fit);
           const os = toScreen({ x: o.x, y: t.y }, fit);
           const deltaCm = ((t.x - o.x) * analysis.video.width) / (analysis.pxPerCm ?? 1);
           return (
             <>
               <OverlaySvg box={box}>
-                <GhostPath points={liftPath(sync.other.rep).map((p) => toScreen(p, fit))} testID="ghost-path" />
-                <FlarePath points={liftPath(sync.today.rep).map((p) => toScreen(p, fit))} />
+                <GhostPath points={oPath.map((p) => toScreen(align(p), fit))} testID="ghost-path" />
+                <FlarePath points={tPath.map((p) => toScreen(p, fit))} />
                 <FlarePath points={[os, ts]} halo={false} />
               </OverlaySvg>
               <HeroNumber text={signedCm(deltaCm)} at={{ x: Math.max(ts.x, os.x) + 8, y: ts.y + 18 }} size={36} box={box} />

@@ -9,7 +9,7 @@ import type { CueRecord, Lift, Session } from './types';
 export const RETESTS_TO_STICK = 2;
 
 // A change smaller than this is measurement noise: "Same."
-export const SAME_WITHIN: Record<Metric['unit'], number> = { cm: 2, s: 0.03, deg: 3, 'm/s': 0.05 };
+export const SAME_WITHIN: Record<Metric['unit'], number> = { cm: 2, s: 0.03, deg: 3, 'm/s': 0.05, '%': 2 };
 
 export type VerdictKind = 'better' | 'same' | 'worse' | 'not_measured' | 'no_baseline';
 

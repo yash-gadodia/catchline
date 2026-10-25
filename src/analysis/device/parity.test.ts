@@ -52,6 +52,15 @@ describe('the device analysis on the committed lift traces', () => {
     expect(after.analysis.pxPerCm).toBe(before.analysis.pxPerCm);
   });
 
+  it('times the bar in the second pull, not in the turnover where the wrists whip round it', () => {
+    const rows = (name: string) =>
+      (analyseTrace(loadTrace(name), 'snatch') as { measurements: { id: string; value: number; status: string }[] }).measurements
+        .filter((m) => ['bar_speed', 'bar_speed_avg', 'bar_peak_pct'].includes(m.id))
+        .map((m) => `${m.id} ${m.value} ${m.status}`);
+    expect(rows('2026-10-05_21B27BAF.mov')).toEqual(['bar_speed 2.65 normal', 'bar_speed_avg 1.23 normal', 'bar_peak_pct 105 normal']);
+    expect(rows('2026-10-05_21B27BAF.mp4')).toEqual(['bar_speed 2.83 normal', 'bar_speed_avg 1.29 normal', 'bar_peak_pct 103 normal']);
+  });
+
   it('refuses a trace of another version', () => {
     expect(() => analyseTrace({ traceVersion: 2 }, 'snatch')).toThrow('trace version 2');
   });

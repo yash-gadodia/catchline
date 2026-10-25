@@ -96,6 +96,15 @@ describe('Viewfinder', () => {
     expect(screen.getByTestId(id)).toBeOnTheScreen();
   });
 
+  it('guides the framing: a plate on the side-on figure and one line, which a failing check replaces', async () => {
+    const guide = await render(viewfinder().ui);
+    expect(guide.getByTestId('silhouette-plate')).toBeOnTheScreen();
+    expect(guide.getByTestId('framing-guide')).toHaveTextContent('Side-on, whole bar in frame, phone level with the bar');
+    const failing = await render(viewfinder({ checker: fixedChecker(['whole_body']) }).ui);
+    expect(failing.queryByTestId('framing-guide')).toBeNull();
+    expect(failing.getByTestId('check-hint')).toBeOnTheScreen();
+  });
+
   it('changes lift from the selector', async () => {
     const { props, ui } = viewfinder();
     const screen = await render(ui);

@@ -3,7 +3,7 @@ import { PanResponder, Pressable, ScrollView, Text, View, useWindowDimensions } 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Rect } from 'react-native-svg';
 import type { Analysis, Measurement, Phase, PhaseName } from '../../analysis/types';
-import { confidenceLine, fmt, liftTitle, measurementLabel, missNote, peakSpeed, phaseLabel, seconds, speedText } from '../../analysis/format';
+import { SPEED_IDS, confidenceLine, fmt, liftTitle, measurementLabel, missNote, phaseLabel, seconds, speedRows, valueText } from '../../analysis/format';
 import { toScreen } from '../../analysis/geometry';
 import {
   clampFrame,
@@ -27,10 +27,11 @@ import { impact } from '../../lib/haptics';
 import { colors, control, opacity, shape, space, stroke } from '../../design/tokens';
 import { display, fontFamily, type } from '../../design/typography';
 import Stage, { type StageLayer } from './Stage';
-import { CurrentDot, FlarePath, KeyDots, OverlaySvg, RefLine } from './overlays';
+import { CurrentDot, FlarePath, Guides, KeyDots, OverlaySvg, RefLine } from './overlays';
 import Filmstrip, { type PhaseMark } from './Filmstrip';
 import FadeRow from './FadeRow';
 import DrillCard from '../drills/DrillCard';
+import DrillLine from '../drills/DrillLine';
 import CueNotes, { Disclaimer } from './CueNotes';
 import { useRetestable } from './RetestVerdict';
 import DrawLayer from './DrawLayer';
@@ -82,10 +83,10 @@ export default function PlayerScreen({
   const [shapes, setShapes] = useState<Shape[]>([]);
   const frameRef = useRef(frame);
   const retestable = useRetestable(analysis, retestCueId);
-  const showSpeed = peakSpeed(analysis) !== null;
+  const shown = speedRows(analysis);
   const byPhase = measurementsByPhase(
     rep,
-    analysis.measurements.filter((m) => showSpeed || m.id !== 'bar_speed'),
+    analysis.measurements.filter((m) => !SPEED_IDS.includes(m.id) || shown.includes(m)),
   );
   const marks: Partial<Record<PhaseName, PhaseMark>> = {};
   for (const p of rep.phases) {
@@ -191,7 +192,10 @@ export default function PlayerScreen({
                 <>
                   <OverlaySvg box={box}>
                     {overlays.lines ? (
-                      <RefLine x={s(rep.path[0]).x} top={box.height * 0.08} bottom={box.height * 0.94} alpha={0.4} />
+                      <>
+                        <RefLine x={s(rep.guides && Number.isFinite(rep.guides.startX) ? { x: rep.guides.startX, y: 0 } : rep.path[0]).x} top={box.height * 0.08} bottom={box.height * 0.94} alpha={0.4} />
+                        {rep.guides ? <Guides guides={rep.guides} toScreen={s} box={box} ring={(analysis.keyNumbers ?? []).includes('max_forward_drift')} /> : null}
+                      </>
                     ) : null}
                     {overlays.path ? (
                       <>
@@ -342,6 +346,7 @@ export default function PlayerScreen({
           )
         ) : null}
         {cue && phase && phase.name === cuePhase ? <DrillCard faultId={cue.faultId} /> : null}
+        {cue && phase && phase.name === cuePhase ? <DrillLine faultId={cue.faultId} /> : null}
         {partial ? (
           <>
             <Text style={[display(26), { color: colors.text }]} numberOfLines={2}>
@@ -387,9 +392,9 @@ function PhaseHead({ phase, fps }: { phase: Phase; fps: number }) {
   );
 }
 
-function valueText(m: Measurement): string {
+function readout(m: Measurement): string {
   if (m.status === 'not_seen') return t('format.status.notSeen');
-  return m.unit === 'm/s' ? speedText(m.value) : `${fmt(m.value)} ${m.unit}`;
+  return valueText(m);
 }
 
 function MeasurementRow({ m, last }: { m: Measurement; last: boolean }) {
@@ -409,7 +414,7 @@ function MeasurementRow({ m, last }: { m: Measurement; last: boolean }) {
           ) : null}
         </View>
         <Text style={{ ...type.title, fontFamily: fontFamily.mono, color: m.status === 'cue' ? colors.flare : colors.text, fontVariant: ['tabular-nums'] }}>
-          {valueText(m)}
+          {readout(m)}
         </Text>
       </View>
       {m.note || m.best != null ? (

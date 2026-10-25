@@ -253,6 +253,9 @@ export function traceInput(trace: Trace, movement: string): DeviceInput & { repl
     trackPlate(windowStart, windowLength, seed, plate, stop) {
       return rp.trackPlate(windowStart, windowLength, seed, plate, stop);
     },
+    platesSearched(frame) {
+      return Boolean(rp.calls.find_plates?.[String(frame)]?.length);
+    },
   };
   return {
     meta: { width: trace.meta.width, height: trace.meta.height, fps: trace.meta.fps, frameCount: trace.meta.frameCount },

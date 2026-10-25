@@ -35,6 +35,9 @@ export interface FrameSource {
   // the wrist line beyond either hand, or side-on around both hands; bodyH is the lifter's median box height over the
   // rep window, setupH over the second before lift-off.
   plates(frame: number, wristA: Pt, wristB: Pt, bodyH: number, setupH: number): PlateObservation[];
+  // Whether this clip frame was really searched for plates (absent: always). A replay that has not asked the phone yet
+  // answers plates() from the nearest frame it has, so an empty answer there does not mean there is no plate.
+  platesSearched?(frame: number): boolean;
   // Follow the near plate through a window from its seed frame (window index) to stop (window index, exclusive; null =
   // the window's end). Returns one entry per window frame.
   trackPlate(windowStart: number, windowLength: number, seed: number, plate: PlateObservation, stop: number | null): PlateTrack;

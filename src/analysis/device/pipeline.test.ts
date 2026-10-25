@@ -3,7 +3,7 @@ import { missNote } from '../format';
 import { analyse } from './analyse';
 import { JOINTS, L_ANK, L_BIGTOE, L_ELB, L_HEEL, L_HIP, L_KNEE, L_SHO, L_WRI, R_ANK, R_BIGTOE, R_ELB, R_HEEL, R_HIP, R_KNEE, R_SHO, R_WRI } from './movement';
 import { Pt } from './num';
-import { DeviceInput } from './source';
+import { DeviceInput, PlateObservation } from './source';
 
 // A synthetic lifter facing +x at 30 fps, inference px (1280 tall, ~4.4 px a cm): leg and trunk angles in degrees from
 // straight up (+ = forward), the bar (the hands) in px forward of and above the ankle, the elbows bent `bend` px off
@@ -149,5 +149,74 @@ describe('a snatch filmed off side-on with the phone low', () => {
     const angled = run(MADE, 40, 1050);
     expect([forward(side), forward(angled)]).toEqual([0.6, 0.9]);
     expect([angled.cue, angled.noCueReason]).toEqual([null, { code: 'off_side_on', offSideDeg: 40 }]);
+  });
+});
+
+// A clip where the plates only come into view once the bar is moving (the bar rolled in late, or a plate stand hid it at
+// setup): the lift is measured from the first frame of the pull that shows them, not failed or left unsized.
+describe('a snatch whose plates first show mid-pull', () => {
+  const D = 198;
+  const both = (from: number) => (frame: number, a: Pt): PlateObservation[] =>
+    frame < from
+      ? []
+      : [
+          { centre: [a[0], a[1]], axes: [D, D], score: 1, side: 'a', fitInliers: 0.9 },
+          { centre: [a[0] + 60, a[1]], axes: [D, D], score: 1, side: 'b', fitInliers: 0.9 },
+        ];
+  const withPlates = (from: number) => {
+    const input = lifter(MADE);
+    const asked: number[] = [];
+    input.source.plates = (frame, a) => {
+      asked.push(frame);
+      return both(from)(frame, a);
+    };
+    return { res: analyse(input, 'snatch'), asked };
+  };
+
+  it('sizes the lift from the plates found in the pull', () => {
+    const setup = withPlates(0).res.reps[0];
+    const { res, asked } = withPlates(100);
+    const late = res.reps[0];
+    expect(Math.max(...asked)).toBeGreaterThanOrEqual(100);
+    expect([setup.scale_method, late.scale_method]).toEqual(['harmonic mean of near and far plates', 'harmonic mean of near and far plates']);
+    expect(late.snatch?.plates.length).toBe(2);
+    expect(res.analysis.failure).toBeNull();
+  });
+
+  it('asks for no later frames while the setup frame itself is still unanswered (the first replay of a phone trace)', () => {
+    const input = lifter(MADE);
+    const asked: number[] = [];
+    input.source.plates = (frame) => {
+      asked.push(frame);
+      return [];
+    };
+    input.source.platesSearched = () => false;
+    analyse(input, 'snatch');
+    expect(Math.max(...asked)).toBeLessThan(90);
+  });
+
+  it('falls back to the body when no frame of the lift shows a plate', () => {
+    const { res } = withPlates(10_000);
+    expect([res.reps[0].scale_method, res.analysis.failure]).toEqual(['body segments', null]);
+  });
+});
+
+describe('the coaching guides and key numbers of a snatch', () => {
+  it('places the start line, the knee, hip and peak heights and the ring at the furthest-forward bar', () => {
+    const a = run(MADE);
+    const g = a.reps[0].guides!;
+    const path = a.reps[0].path;
+    expect(g.kneeY).toBeGreaterThan(g.hipY);
+    expect(g.hipY).toBeGreaterThan(g.peakY);
+    expect(g.startX).toBeCloseTo(path[0].x, 1);
+    expect(Math.max(...path.filter((p) => p.frame <= g.ring.frame + 1).map((p) => p.x))).toBeCloseTo(g.ring.x, 2);
+    expect(a.measurements.filter((m) => ['max_forward_drift', 'catch_height'].includes(m.id)).map((m) => m.id)).toEqual(['max_forward_drift', 'catch_height']);
+  });
+
+  it('lists only the confidently measured numbers, and no forward/back ones off side-on', () => {
+    const side = run(MADE);
+    expect(side.keyNumbers).toEqual(['max_forward_drift', 'bar_forward_off_hips', 'bar_crash', 'jump_forward', 'catch_height']);
+    expect(run(MADE, 40, 1050).keyNumbers).toEqual(['bar_crash', 'catch_height']);
+    expect(run(DROPPED_BEHIND).keyNumbers).not.toContain('jump_forward');
   });
 });

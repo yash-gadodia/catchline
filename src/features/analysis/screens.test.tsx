@@ -257,11 +257,23 @@ describe('PlayerScreen', () => {
     expect(queryByTestId('player-cue')).toBeNull();
   });
 
-  it('keeps the peak bar speed hidden until it is validated against a sensor', async () => {
-    const { getByTestId, queryByTestId } = await render(<PlayerScreen analysis={snatchMock} initialFrame={snatchMock.cue!.evidence.frame} {...props} />);
+  it('shows the peak bar speed when it was measured on a trusted scale, and leaves it out otherwise', async () => {
+    const { getByTestId } = await render(<PlayerScreen analysis={snatchMock} initialFrame={snatchMock.cue!.evidence.frame} {...props} />);
     await press(getByTestId('frame-second_pull'));
-    expect(queryByTestId('measure-bar_speed')).toBeNull();
-    expect(getByTestId('phase-empty')).toHaveTextContent('Nothing measured in this phase. Lasted 0.18 s.');
+    expect(getByTestId('measure-bar_speed')).toHaveTextContent(/^Peak bar speed1\.82 m\/s/);
+    const unsure = { ...snatchMock, measurements: snatchMock.measurements.map((m) => (m.id === 'bar_speed' ? { ...m, value: 0, status: 'not_seen' as const } : m)) };
+    const hidden = await render(<PlayerScreen analysis={unsure} initialFrame={snatchMock.cue!.evidence.frame} {...props} />);
+    await press(hidden.getByTestId('frame-second_pull'));
+    expect(hidden.queryByTestId('measure-bar_speed')).toBeNull();
+    expect(hidden.getByTestId('phase-empty')).toHaveTextContent('Nothing measured in this phase. Lasted 0.18 s.');
+  });
+
+  it('puts the confident speed numbers under the path on the result', async () => {
+    const withAvg = { ...snatchMock, measurements: [...snatchMock.measurements, { id: 'bar_speed_avg', label: 'Average pull speed', value: 1.05, unit: 'm/s' as const, frame: 430, status: 'normal' as const, note: '' }, { id: 'bar_peak_pct', label: 'Bar peak, % of height', value: 0, unit: '%' as const, frame: 440, status: 'not_seen' as const, note: '' }] };
+    const { getByTestId, queryByTestId } = await render(<CueScreen analysis={withAvg} nav={nav} />);
+    expect(getByTestId('result-number-bar_speed')).toHaveTextContent('PEAK BAR SPEED1.82 m/s');
+    expect(getByTestId('result-number-bar_speed_avg')).toHaveTextContent('AVERAGE PULL SPEED1.05 m/s');
+    expect(queryByTestId('result-number-bar_peak_pct')).toBeNull();
   });
 
   it('jumps to a phase from its filmstrip frame with a rigid tick', async () => {
@@ -480,6 +492,21 @@ describe('a missed lift', () => {
     const partial = await render(<CueScreen analysis={{ ...behind, cue: null, noCueReason: { code: 'unclear_miss' } }} nav={nav} />);
     expect(partial.getByTestId('partial-result')).toBeOnTheScreen();
     expect(partial.getByTestId('miss-note')).toHaveTextContent('Missed lift: the bar came down behind.');
+  });
+
+  it('lets the lifter call it made or missed in one tap, kept over the detection', async () => {
+    const { useMadeLog } = require('../library/madeLog');
+    useMadeLog.setState({ made: {} });
+    const { getByTestId, queryByTestId } = await render(<CueScreen analysis={front} nav={nav} />);
+    expect(getByTestId('made-call-missed')).toHaveProp('accessibilityState', { selected: true });
+    await press(getByTestId('made-call-made'));
+    expect(useMadeLog.getState().made).toEqual({ [front.id]: true });
+    expect(getByTestId('made-call-made')).toHaveProp('accessibilityState', { selected: true });
+    expect(queryByTestId('miss-note')).toBeNull();
+    const clean = await render(<CueScreen analysis={{ ...snatchMock, cue: null }} nav={nav} />);
+    expect(clean.getByTestId('made-call-made')).toHaveProp('accessibilityState', { selected: true });
+    const sample = await render(<CueScreen analysis={snatchSample} nav={nav} />);
+    expect(sample.queryByTestId('made-call')).toBeNull();
   });
 
   it('says nothing on a made lift', async () => {

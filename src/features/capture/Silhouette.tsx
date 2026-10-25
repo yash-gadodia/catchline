@@ -31,6 +31,7 @@ export default function Silhouette({ movement, width, height }: { movement: Move
             <Circle cx={195} cy={300} r={22} />
             <Path d="M175 326 L215 326 L228 440 L216 560 L196 560 L198 470 L186 470 L180 560 L160 560 L166 440Z" />
           </G>
+          <Circle cx={196} cy={524} r={36} fill="none" stroke={colors.text} strokeWidth={1.5} strokeDasharray="4 4" opacity={0.6} testID="silhouette-plate" />
         </>
       ) : null}
       {pose === 'hanging' ? (

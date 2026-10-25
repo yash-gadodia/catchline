@@ -57,7 +57,7 @@ import {
   radians,
   where,
 } from './num';
-import { CAUSE_CUE, behindCause, behindCopy, classify, droppedAt, peakUpSpeed, speedMeasurement } from './outcome';
+import { CAUSE_CUE, behindCause, behindCopy, classify, droppedAt, peakUpSpeed, pullSpeed, speedMeasurements } from './outcome';
 import {
   PhaseOut,
   SNATCH_PHASES,
@@ -76,6 +76,7 @@ import {
 } from './phases';
 import * as rules from './rules';
 import { DeviceInput, PlateObservation } from './source';
+import type { RepGuides } from '../types';
 
 export const KEYFRAME_H = 1080;
 const PLATE_CM = 45.0;
@@ -193,6 +194,7 @@ export type RepInfo = {
   outcome_frame?: number;
   outcome_detail?: OutcomeDetail;
   snatch?: SnatchExtras;
+  guides?: RepGuides;
 };
 export type SnatchExtras = {
   off_side_estimates: number[];
@@ -207,6 +209,11 @@ export type SnatchExtras = {
   turnover_s: number;
   standing_h: number;
   bar_speed: [number, number] | null;
+  bar_speed_avg: number | null;
+  peak_pct: number | null;
+  max_drift: number;
+  max_drift_frame: number;
+  catch_h: number;
   hands_overlap: boolean;
   stab_inliers_min: number;
   ref: Ref;
@@ -302,6 +309,7 @@ export function runSnatch(ctx: Ctx, forceReps?: [number, number, number][]): Res
       image: `${ctx.assetPrefix}/r${r.index}-${pi + 1}-${phase}.jpg`,
     })),
     path: r.path,
+    ...(r.guides ? { guides: r.guides } : {}),
   }));
   const analysis: AnalysisJson = {
     ...base(ctx.analysisId, ctx.input.meta, ctx.n),
@@ -313,6 +321,7 @@ export function runSnatch(ctx: Ctx, forceReps?: [number, number, number][]): Res
     notes: rules.notes('snatch', ruleReps(repInfo), cue),
     ...liftTags(cueRep),
     measurements,
+    keyNumbers: keyNumbers(cueRep, measurements),
     failure: null,
   };
   return { analysis, reps: repInfo, repCalls };
@@ -403,15 +412,22 @@ export function analyseRep(
 
   // plates on the setup frames only, a booster: a yaw estimate beside the body's, and the scale side-on when both
   // plates' outlines hold and agree with the body; the body sizes everything else
-  const seed = Math.max(0, lo - 3);
+  let seed = Math.max(0, lo - 3);
   const setupH = nanmedian(boxH(s0 + Math.max(0, lo - 24), s0 + lo + 1));
   const platesAt = (f: number): Plate[] => source.plates(s0 + f, kw[f][L_WRI], kw[f][R_WRI], bodyH, setupH).map((p) => ({ ...p }));
-  const plates = platesAt(seed);
+  let plates = platesAt(seed);
+  // no plate at setup (the bar came into frame late, or the plate was hidden): the first frame of the pull that shows one
+  const searched = source.platesSearched?.(s0 + seed) ?? true;
+  for (let f = lo; searched && !plates.length && f <= ev.peak; f += 3) {
+    plates = platesAt(f);
+    if (plates.length) seed = f;
+  }
   const bodyScale = scaleFromBody(kw);
-  // no plate at setup: the body sizes the lift and the pose gives the angle, as for a plate not on the lifter's bar
+  // no plate in the lift: the body sizes the lift and the pose gives the angle, as for a plate not on the lifter's bar
   if (!plates.length && !bodyScale) return null;
   const samples: Plate[][] = [];
-  if (plates.length) for (let f = Math.max(0, lo - 24); f < lo; f += 3) samples.push(platesAt(f));
+  const [sa, sb] = seed >= lo ? [seed + 3, Math.min(ev.peak + 1, seed + 25)] : [Math.max(0, lo - 24), lo];
+  if (plates.length) for (let f = sa; f < sb; f += 3) samples.push(platesAt(f));
   plates.forEach((pl, i) => {
     const fits = [plates, ...samples].filter((s) => s.length === plates.length && s[i].side === pl.side).map((s) => s[i]);
     const [axes, diameter] = plateDiameter(fits, bodyScale);
@@ -575,7 +591,12 @@ export function analyseRep(
   const g = (f: number) => s0 + int(f);
   const path: RepInfo['path'] = [];
   for (let f = phases[0].startFrame; f < L; f++) if (f <= ev.recovered) path.push({ frame: g(f), ...normalise(fromRef(bar[f], Ms[f]), W, H) });
-  const sp = peakUpSpeed(barY, fps, pxPerCm, ev.liftoff, ev.caught);
+  const pull2 = phases.find((ph) => ph.name === 'second_pull');
+  const sp = peakUpSpeed(barY, fps, pxPerCm, pull2 ? pull2.startFrame : ev.liftoff, ev.second_ext);
+  const drift = bar.slice(lo, ev.caught + 1).map((p) => fwd * (p[0] - bar[lo][0]));
+  const driftF = lo + argmax(drift);
+  const at = (p: Pt, f: number) => normalise(fromRef(p, Ms[f]), W, H);
+  const avgSpeed = pullSpeed(barY, fps, pxPerCm, lo, ev.second_ext);
   const barLost = kind === 'snatch' && bar[ev.peak][1] > sho[ev.peak][1];
   const catchEnd = Math.max(ev.caught, depthEnd);
   const events: Record<string, number | boolean> = {};
@@ -608,6 +629,13 @@ export function analyseRep(
     scale_ok: scaleOk,
     scale_method: scaleMethod,
     cut_off: cutOff,
+    guides: {
+      startX: at(bar[lo], lo).x,
+      kneeY: at(knee[lo], lo).y,
+      hipY: at(hip[contact], contact).y,
+      peakY: at(bar[ev.peak], ev.peak).y,
+      ring: { frame: g(driftF), ...at(bar[driftF], driftF) },
+    },
     bar_lost: barLost,
     miss,
     snatch: {
@@ -623,6 +651,11 @@ export function analyseRep(
       turnover_s: turnoverS,
       standing_h: standingH,
       bar_speed: sp ? [sp[0], g(sp[1])] : null,
+      bar_speed_avg: avgSpeed,
+      max_drift: cm(drift[driftF - lo]) * foreshort,
+      max_drift_frame: g(driftF),
+      catch_h: cm(bar[lo][1] - bar[ev.caught][1]),
+      peak_pct: startClass === 'floor' ? ((PLATE_CM / 2 + peakH) / standingH) * 100 : null,
       hands_overlap: handsOverlap,
       stab_inliers_min: inliers.length ? int(min(inliers)) : 0,
       ref: { s0, Ms, ksm, bar, knee_ang: kneeAng, hip_ang: hipAng, trunk, hip, sho, ank, elbow, lo, contact, knee_pass: kneePass, rack },
@@ -783,7 +816,11 @@ function buildCue(r: RepInfo, reps: RepInfo[], best: RepInfo, W: number, H: numb
       note: `${sn.catch_kind} catch, hip ${sn.catch_depth > 0 ? 'below' : 'above'} knee, knee ${pyFixed(sn.catch_knee_min, 0)}°`,
     },
     { id: 'turnover_time', label: 'Extension to catch', value: pyRound(sn.turnover_s, 2), unit: 's', frame: r.events.second_ext as number, status: 'normal', note: '± 1 frame at 30 fps' },
-    speedMeasurement(sn.bar_speed, r.scale_method as string, r.events.second_ext as number),
+    ...guideRows(sn),
+    ...speedMeasurements({ peak: sn.bar_speed, avg: sn.bar_speed_avg, peakPct: sn.peak_pct }, r.scale_ok ?? false, {
+      secondExt: r.events.second_ext as number,
+      peak: r.events.peak as number,
+    }),
   );
   if (r.outcome === 'missed_behind') return missBehindCard(r, meas, W, H);
   if (r.outcome === 'missed_forward') {
@@ -950,3 +987,26 @@ export function missBehindCard(r: RepInfo, meas: MeasRow[], W: number, H: number
   const [cause, sev] = behindCause(m.fwd_excursion, m.pvx_minus, m.hip_past_ankle, m.trunk_back, m.foot_dx, m.trunk_fwd_catch, m.max_hip, m.bar_behind);
   return [meas, missCard(r, 'missed_behind', meas, W, H, cause, sev)];
 }
+
+export function guideRows(sn: SnatchExtras): MeasRow[] {
+  const row = (id: string, label: string, v: number, frame: number, note: string): MeasRow =>
+    Number.isFinite(v)
+      ? { id, label, value: pyRound(v, 1), unit: 'cm', frame, status: 'normal', note }
+      : { id, label, value: 0, unit: 'cm', frame, status: 'not_seen', note: 'could not measure' };
+  return [
+    row('max_forward_drift', 'Max forward drift', sn.max_drift, sn.max_drift_frame, 'bar furthest in front of where it left the floor'),
+    row('catch_height', 'Catch height', sn.catch_h, sn.catch_depth_frame, 'bar above lift-off when you caught it'),
+  ];
+}
+
+const KEY_NUMBERS = ['max_forward_drift', 'bar_forward_off_hips', 'bar_crash', 'jump_forward', 'catch_height'];
+const KEY_FORWARD = new Set(['max_forward_drift', 'bar_forward_off_hips', 'jump_forward']);
+
+// The result's key numbers: measured on a scale the cue trusts, on a whole rep with the bar in view, and forward/back
+// distances only when filmed side-on.
+export function keyNumbers(r: RepInfo, meas: MeasRow[]): string[] {
+  if (!r.snatch || !r.scale_ok || r.bar_lost || r.cut_off) return [];
+  const side = (r.off_side_deg ?? 0) <= 20;
+  return KEY_NUMBERS.filter((id) => meas.some((m) => m.id === id && m.status !== 'not_seen') && (side || !KEY_FORWARD.has(id)));
+}
+

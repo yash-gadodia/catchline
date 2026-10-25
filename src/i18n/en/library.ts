@@ -308,4 +308,13 @@ export const library = {
   'library.metric.bar_crash.label': 'Bar drop into the catch',
   'library.metric.bar_crash.short': 'drop',
   'library.metric.bar_crash.caption': 'Bar drop from its peak to elbow lockout, cm.',
+  'library.lifts.madeCounts': '{made} made · {missed} missed',
+  'library.metric.bar_speed_avg.label': "Average pull speed",
+  'library.metric.bar_speed_avg.short': "avg speed",
+  'library.metric.bar_speed_avg.caption': "Average bar speed from lift-off to full extension, m/s.",
+  'library.trends.allLoads': "All loads",
+  'library.metric.bar_peak_pct.label': "Bar peak, % of height",
+  'library.metric.bar_peak_pct.short': "peak %",
+  'library.metric.bar_peak_pct.caption': "The bar's highest point as a share of your standing height.",
+  'library.trends.load': "{kg} kg",
 } as const;

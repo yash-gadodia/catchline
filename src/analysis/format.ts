@@ -11,6 +11,8 @@ const MEASUREMENT: Record<string, Key> = {
   'Extension short': 'format.measurement.extensionShort',
   'Bar forward in dip': 'format.measurement.barForwardInDip',
   'Press-out': 'format.measurement.pressOut',
+  'Press-out: elbows re-bent overhead': 'format.measurement.pressOutOverhead',
+  'Drive to lockout': 'format.measurement.driveToLockout',
   'Chest forward in catch': 'format.measurement.chestForwardInCatch',
   'Bar forward overhead': 'format.measurement.barForwardOverhead',
   'Knee bend in the swing': 'format.measurement.kneeBendInSwing',
@@ -22,6 +24,8 @@ const MEASUREMENT: Record<string, Key> = {
   'Hips off the body line': 'format.measurement.hipsOffBodyLine',
   'Tuck before the kick': 'format.measurement.tuckBeforeKick',
   'Bar peak height': 'format.measurement.barPeakHeight',
+  'Average pull speed': 'format.measurement.averagePullSpeed',
+  'Bar peak, % of height': 'format.measurement.barPeakPct',
   'Catch depth': 'format.measurement.catchDepth',
   'Extension to rack': 'format.measurement.extensionToRack',
   'Extension to catch': 'format.measurement.extensionToCatch',
@@ -88,16 +92,23 @@ export function speedText(v: number): string {
   return `${formatNumber(v, undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m/s`;
 }
 
-// Off until the reading is checked against a bar-speed sensor: on the reference clips a snatch read
-// 3.40 m/s (real peaks are ~1.7-2.2) and two others had no trustworthy scale (15-10-2026).
-export const SHOW_BAR_SPEED = false;
+// On since 25-10-2026: the peak is read in the second pull only (the turnover's wrist whip read 3.40 m/s), and every
+// speed row needs the scale the cue trusts.
+export const SHOW_BAR_SPEED = true;
+export const SPEED_IDS = ['bar_speed', 'bar_speed_avg', 'bar_peak_pct'];
 
-// The clip's peak bar speed, or null when it was not measured (gymnastics, jerk, or a scale too uncertain).
-export function peakSpeed(a: Analysis, show: boolean = SHOW_BAR_SPEED): string | null {
-  if (!show) return null;
-  const m = a.measurements.find((x) => x.id === 'bar_speed');
-  return m && m.status !== 'not_seen' ? speedText(m.value) : null;
+// The bar speed rows measured on this lift, in order; none when speed is off.
+export function speedRows(a: Analysis, show: boolean = SHOW_BAR_SPEED): Measurement[] {
+  if (!show) return [];
+  return SPEED_IDS.map((id) => a.measurements.find((m) => m.id === id)).filter((m): m is Measurement => !!m && m.status !== 'not_seen');
 }
+
+export function valueText(m: Pick<Measurement, 'unit' | 'value'>): string {
+  if (m.unit === 'm/s') return speedText(m.value);
+  if (m.unit === '%') return `${fmt(Math.round(m.value))}%`;
+  return `${fmt(m.value)} ${m.unit}`;
+}
+
 
 export function seconds(s: number): string {
   return formatNumber(s, undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -132,7 +143,7 @@ const STATUS_TEXT: Partial<Record<Measurement['status'], Key>> = {
 
 export function measurementReadout(m: Measurement): string {
   if (m.status === 'not_seen') return t('format.status.notSeen');
-  const parts = [m.unit === 'm/s' ? speedText(m.value) : `${fmt(m.value)} ${m.unit}`];
+  const parts = [valueText(m)];
   if (m.note) parts.push(m.note);
   const showBest = m.status === 'normal' && m.best != null;
   if (showBest) parts.push(t('format.status.bestValue', { value: fmt(m.best!) }));

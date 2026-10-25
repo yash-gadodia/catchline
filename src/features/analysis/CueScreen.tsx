@@ -2,24 +2,25 @@ import { useState } from 'react';
 import { Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Analysis, Cue } from '../../analysis/types';
-import { filmedAtAngle, liftTitle, missNote } from '../../analysis/format';
-import { keyFrameAt, keyFrameForPhase, liftPath, repByIndex } from '../../analysis/timeline';
+import { evidenceReadout, filmedAtAngle, heroValue, liftTitle, missNote } from '../../analysis/format';
+import ResultNumbers from './ResultNumbers';
+import { repByIndex } from '../../analysis/timeline';
 import { noCueCopy } from './partial';
-import { toScreen } from '../../analysis/geometry';
 import Btn from '../../components/Btn';
+import Segmented from '../../components/Segmented';
 import SmallCaps from '../../components/SmallCaps';
 import TopBar from '../../components/TopBar';
 import { colors, space } from '../../design/tokens';
 import { display, fontFamily, type } from '../../design/typography';
-import EvidenceStage from './EvidenceStage';
+import PathReplay from './PathReplay';
 import WhyDrawer from './WhyDrawer';
 import CueNotes, { Disclaimer } from './CueNotes';
 import DrillCard from '../drills/DrillCard';
+import DrillLine from '../drills/DrillLine';
 import { isSample } from '../../analysis/fixtures';
 import { baselineSentence } from './baseline';
 import { useLibrary } from '../library/repository';
-import Stage from './Stage';
-import { FlarePath, OverlaySvg } from './overlays';
+import { setMade, useMade, useMadeLog } from '../library/madeLog';
 import RetestVerdict, { useRetest, useRetestable, type Retest } from './RetestVerdict';
 import type { CueRecord } from '../library/types';
 import { formatDate, t } from '../../i18n';
@@ -81,15 +82,28 @@ function CueBody({
   const baseline = sample ? null : baselineSentence(analysis, lifts, sessions);
   return (
     <>
-      <EvidenceStage analysis={analysis} cue={cue} box={{ width, height: width }} safeTop={insets.top} />
+      <View style={{ paddingTop: insets.top }}>
+        <PathReplay analysis={analysis} rep={repByIndex(analysis, cue.evidence.rep)} box={{ width, height: width }} />
+      </View>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: space.s5, paddingHorizontal: space.gutter, gap: space.s3 }}>
         {retest ? <RetestVerdict retest={retest} onStuck={nav.onStuck} /> : null}
+        <ResultNumbers analysis={analysis} />
+        <MadeCall analysis={analysis} />
         <MissNote analysis={analysis} />
         <SmallCaps>{sample ? t('analysis.cue.sampleLabel') : t('analysis.cue.oneThingLabel')}</SmallCaps>
         <Text style={[display(40), { color: colors.text }]} testID="cue-text">
           {cueText(cue.faultId, cue.text)}
         </Text>
+        <DrillLine faultId={cue.faultId} />
         <Text style={{ color: colors.text2, ...type.body }}>{cueWhy(cue.faultId, cue.why)}</Text>
+        <View testID="cue-evidence" style={{ flexDirection: 'row', alignItems: 'baseline', gap: space.s3 }}>
+          <Text testID="hero-number" style={[display(32, true), { color: colors.text }]}>
+            {heroValue(cue)}
+          </Text>
+          <Text testID="evidence-readout" style={{ flex: 1, color: colors.text2, ...type.readout }}>
+            {evidenceReadout(cue)}
+          </Text>
+        </View>
         {baseline ? (
           <Text testID="cue-baseline" style={{ color: colors.text2, ...type.body }}>
             {baseline}
@@ -162,9 +176,7 @@ function LowConfidence({ analysis, cue, nav, retest, retestable }: { analysis: A
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const rep = repByIndex(analysis, cue.evidence.rep);
-  const key = keyFrameAt(rep, cue.evidence.frame);
   const box = { width, height: Math.round(width * (330 / 390)) };
-  const src = { width: analysis.video.width, height: analysis.video.height };
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }} testID="low-confidence">
       <TopBar title={liftTitle(analysis)} onBack={nav.onBack} onMore={nav.onMore} />
@@ -189,20 +201,15 @@ function LowConfidence({ analysis, cue, nav, retest, retestable }: { analysis: A
         </Text>
         <Text style={{ color: colors.text2, ...type.readout }}>{t('analysis.cue.dashedPath')}</Text>
       </View>
-      <View>
-        <Stage src={src} box={box} focus={{ x: 0.5, y: 0.45 }} layers={[{ image: key.image }]}>
-          {(fit) => (
-            <OverlaySvg box={box}>
-              <FlarePath points={liftPath(rep).map((p) => toScreen(p, fit))} dashed testID="dashed-path" />
-            </OverlaySvg>
-          )}
-        </Stage>
-      </View>
+      <PathReplay analysis={analysis} rep={rep} box={box} dashed pathTestID="dashed-path" />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: space.s4, paddingHorizontal: space.gutter, gap: space.s2 }}>
         {retest ? <RetestVerdict retest={retest} onStuck={nav.onStuck} /> : null}
+        <ResultNumbers analysis={analysis} />
+        <MadeCall analysis={analysis} />
         <MissNote analysis={analysis} />
         <SmallCaps>{t('analysis.cue.possible')}</SmallCaps>
         <Text style={[display(32), { color: colors.text }]}>{cueText(cue.faultId, cue.text)}</Text>
+        <DrillLine faultId={cue.faultId} />
         <Text style={{ color: colors.text2, ...type.callout }}>{cueWhy(cue.faultId, cue.why)}</Text>
         <CueNotes notes={analysis.notes} />
         <Reanalysed analysis={analysis} />
@@ -231,8 +238,29 @@ function LowConfidence({ analysis, cue, nav, retest, retestable }: { analysis: A
   );
 }
 
+// The lift made or missed, as detected; one tap and the lifter's own call is kept instead.
+function MadeCall({ analysis }: { analysis: Analysis }) {
+  const made = useMade(analysis);
+  if (made === null || isSample(analysis)) return null;
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }} testID="made-call-row">
+      <SmallCaps>{t('analysis.made.label')}</SmallCaps>
+      <Segmented
+        testID="made-call"
+        value={made ? 'made' : 'missed'}
+        onChange={(v) => setMade(analysis.id, v === 'made')}
+        options={[
+          { value: 'made', label: t('analysis.made.made') },
+          { value: 'missed', label: t('analysis.made.missed') },
+        ]}
+      />
+    </View>
+  );
+}
+
 function MissNote({ analysis }: { analysis: Analysis }) {
-  const note = missNote(analysis);
+  const own = useMadeLog((s) => s.made[analysis.id]);
+  const note = own === true ? null : missNote(analysis);
   return note ? (
     <Text testID="miss-note" style={{ color: colors.text, ...type.callout, fontFamily: fontFamily.bodyBold }}>
       {note}
@@ -245,23 +273,15 @@ function Clean({ analysis, nav, retest }: { analysis: Analysis; nav: Nav; retest
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const rep = repByIndex(analysis, analysis.bestRepIndex);
-  const key = keyFrameForPhase(rep, 'catch') ?? rep.keyFrames[rep.keyFrames.length - 1];
   const box = { width, height: Math.round(width * (330 / 390)) };
-  const src = { width: analysis.video.width, height: analysis.video.height };
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }} testID="clean-result">
       <TopBar title={liftTitle(analysis)} onBack={nav.onBack} onMore={nav.onMore} />
-      <View>
-        <Stage src={src} box={box} focus={{ x: 0.5, y: 0.45 }} layers={[{ image: key?.image }]}>
-          {(fit) => (
-            <OverlaySvg box={box}>
-              <FlarePath points={liftPath(rep).map((p) => toScreen(p, fit))} testID="clean-path" />
-            </OverlaySvg>
-          )}
-        </Stage>
-      </View>
+      <PathReplay analysis={analysis} rep={rep} box={box} pathTestID="clean-path" />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: space.s4, paddingHorizontal: space.gutter, gap: space.s2 }}>
         {retest ? <RetestVerdict retest={retest} onStuck={nav.onStuck} /> : null}
+        <ResultNumbers analysis={analysis} />
+        <MadeCall analysis={analysis} />
         <SmallCaps>{t('analysis.clean.label')}</SmallCaps>
         <Text style={[display(40), { color: colors.text }]} testID="clean-title">
           {t('analysis.clean.title')}
@@ -297,23 +317,15 @@ function Partial({ analysis, nav, retest, retestable }: { analysis: Analysis; na
   const insets = useSafeAreaInsets();
   const copy = noCueCopy(analysis);
   const rep = repByIndex(analysis, analysis.bestRepIndex);
-  const key = keyFrameForPhase(rep, 'catch') ?? rep.keyFrames[rep.keyFrames.length - 1];
   const box = { width, height: Math.round(width * (330 / 390)) };
-  const src = { width: analysis.video.width, height: analysis.video.height };
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }} testID="partial-result">
       <TopBar title={liftTitle(analysis)} onBack={nav.onBack} onMore={nav.onMore} />
-      <View>
-        <Stage src={src} box={box} focus={{ x: 0.5, y: 0.45 }} layers={[{ image: key.image }]}>
-          {(fit) => (
-            <OverlaySvg box={box}>
-              <FlarePath points={liftPath(rep).map((p) => toScreen(p, fit))} testID="partial-path" />
-            </OverlaySvg>
-          )}
-        </Stage>
-      </View>
+      <PathReplay analysis={analysis} rep={rep} box={box} pathTestID="partial-path" />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: space.s4, paddingHorizontal: space.gutter, gap: space.s2 }}>
         {retest ? <RetestVerdict retest={retest} onStuck={nav.onStuck} /> : null}
+        <ResultNumbers analysis={analysis} />
+        <MadeCall analysis={analysis} />
         <MissNote analysis={analysis} />
         <SmallCaps>{t('analysis.partial.label')}</SmallCaps>
         <Text style={[display(32), { color: colors.text }]} testID="no-cue-title">
@@ -355,6 +367,7 @@ function NoCue({ analysis, nav, retest, retestable }: { analysis: Analysis; nav:
       <TopBar title={liftTitle(analysis)} onBack={nav.onBack} />
       <View style={{ flex: 1, padding: space.gutter, gap: space.s2 }}>
         {retest ? <RetestVerdict retest={retest} onStuck={nav.onStuck} /> : null}
+        <ResultNumbers analysis={analysis} />
         <Text style={[display(32), { color: colors.text }]}>
           {analysis.failure ? t('analysis.cue.couldNotRead') : t('analysis.cue.nothingToFix')}
         </Text>

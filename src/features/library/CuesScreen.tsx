@@ -11,6 +11,7 @@ import { agoLabel, bestOf, cueWindow, pastCueSummary, seriesFor, sessionsCounter
 import { metricFor, singularMovement } from './metrics';
 import { t } from '../../i18n';
 import { cueText } from '../../i18n/cues';
+import DrillLine from '../drills/DrillLine';
 import { useLibrary } from './repository';
 import TrendChart from './TrendChart';
 import type { CueRecord, Day, Session } from './types';
@@ -127,6 +128,7 @@ function ActiveCue({ cue, sessions, today, onOpen }: { cue: CueRecord; sessions:
         </Text>
       </View>
       <Text style={[display(32), { color: colors.text }]}>{cueText(cue.metricId, cue.text)}</Text>
+      <DrillLine faultId={cue.metricId} />
       {series.length > 1 ? (
         <TrendChart
           testID="cue-sparkline"

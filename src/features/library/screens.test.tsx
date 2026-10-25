@@ -42,6 +42,26 @@ describe('LiftsScreen', () => {
     expect(queryByText(/possible/)).toBeNull();
   });
 
+  it('counts made and missed lifts in the list shown, the lifter call first', async () => {
+    const { useMadeLog } = require('./madeLog');
+    useMadeLog.setState({ made: {} });
+    const lib = useLibraryStore.getState();
+    const done = lib.lifts.filter((l) => l.status === 'done' && l.analysisId);
+    lib.load({ ...lib, lifts: done.slice(0, 3).map((l, i) => ({ ...l, made: i !== 1 })) });
+    const { getByTestId } = await render(<LiftsScreen nav={liftsNav()} />);
+    expect(getByTestId('made-counts')).toHaveTextContent('2 made · 1 missed');
+    await act(async () => useMadeLog.setState({ made: { [done[1].analysisId as string]: true } }));
+    expect(getByTestId('made-counts')).toHaveTextContent('3 made · 0 missed');
+  });
+
+  it('shows no count when no lift has an outcome', async () => {
+    require('./madeLog').useMadeLog.setState({ made: {} });
+    const lib = useLibraryStore.getState();
+    lib.load({ ...lib, lifts: lib.lifts.map((l) => ({ ...l, made: undefined })) });
+    const { queryByTestId } = await render(<LiftsScreen nav={liftsNav()} />);
+    expect(queryByTestId('made-counts')).toBeNull();
+  });
+
   it('offers no filter chip for a movement the phone cannot analyse yet', async () => {
     const { getByTestId, queryByTestId } = await render(<LiftsScreen nav={liftsNav()} />);
     expect(getByTestId('movement-snatch')).toBeOnTheScreen();
@@ -248,6 +268,25 @@ describe('TrendsScreen', () => {
     await press(getByTestId('pick-clean'));
     expect(getByText('One clean so far.')).toBeOnTheScreen();
     expect(getByText('Trends need two lifts of the same movement. Film the next one and this fills in.')).toBeOnTheScreen();
+  });
+
+  it('narrows a bar speed to one load, so speed at a weight reads over time', async () => {
+    const lib = useLibraryStore.getState();
+    const at = (id: string, date: string, loadKg: number, speed: number) => ({ id, movement: 'snatch' as const, date, loadKg, values: { bar_speed: speed } });
+    lib.load({ ...lib, sessions: [at('s1', '2026-10-01', 60, 1.7), at('s2', '2026-10-05', 70, 1.5), at('s3', '2026-10-08', 60, 1.82), at('s4', '2026-10-10', 70, 1.55)] });
+    const { getByTestId, getByText } = await render(<TrendsScreen initialMovement="snatch" />);
+    await press(getByTestId('metric-bar_speed'));
+    expect(getByTestId('trend-hero')).toHaveTextContent('1.55 m/s');
+    await press(getByTestId('load-60'));
+    expect(getByTestId('trend-hero')).toHaveTextContent('1.82 m/s');
+    expect(getByText('Peak bar speed in the second pull, m/s. Higher is better. 2 sessions.')).toBeOnTheScreen();
+    await press(getByTestId('load-all'));
+    expect(getByTestId('trend-hero')).toHaveTextContent('1.55 m/s');
+    await press(getByTestId('metric-bar_speed'));
+    expect(getByTestId('load-chips')).toBeOnTheScreen();
+    lib.load({ ...lib, sessions: [at('s1', '2026-10-01', 60, 1.7), at('s3', '2026-10-08', 60, 1.82)] });
+    const one = await render(<TrendsScreen initialMovement="snatch" />);
+    expect(one.queryByTestId('load-chips')).toBeNull();
   });
 
   it('a lift with no analysis still lands on its movement', async () => {

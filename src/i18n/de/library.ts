@@ -314,4 +314,13 @@ export const library: Strings<typeof en> = {
   'library.metric.bar_crash.label': "Stangenfall in die Annahme",
   'library.metric.bar_crash.short': "Fall",
   'library.metric.bar_crash.caption': "Fall der Stange vom Hochpunkt bis zum Aussperren der Ellbogen, cm.",
+  'library.lifts.madeCounts': "{made} geschafft · {missed} verfehlt",
+  'library.metric.bar_speed_avg.label': "Mittlere Zuggeschwindigkeit",
+  'library.metric.bar_speed_avg.short': "Ø Tempo",
+  'library.metric.bar_speed_avg.caption': "Mittlere Stangengeschwindigkeit vom Abheben bis zur vollen Streckung, m/s.",
+  'library.trends.allLoads': "Alle Gewichte",
+  'library.metric.bar_peak_pct.label': "Stangenhöchstpunkt, % der Körpergröße",
+  'library.metric.bar_peak_pct.short': "Höhe %",
+  'library.metric.bar_peak_pct.caption': "Der höchste Punkt der Stange im Verhältnis zu deiner Körpergröße.",
+  'library.trends.load': "{kg} kg",
 };
