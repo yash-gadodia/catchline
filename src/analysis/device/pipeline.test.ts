@@ -200,3 +200,23 @@ describe('a snatch whose plates first show mid-pull', () => {
     expect([res.reps[0].scale_method, res.analysis.failure]).toEqual(['body segments', null]);
   });
 });
+
+describe('the coaching guides and key numbers of a snatch', () => {
+  it('places the start line, the knee, hip and peak heights and the ring at the furthest-forward bar', () => {
+    const a = run(MADE);
+    const g = a.reps[0].guides!;
+    const path = a.reps[0].path;
+    expect(g.kneeY).toBeGreaterThan(g.hipY);
+    expect(g.hipY).toBeGreaterThan(g.peakY);
+    expect(g.startX).toBeCloseTo(path[0].x, 1);
+    expect(Math.max(...path.filter((p) => p.frame <= g.ring.frame + 1).map((p) => p.x))).toBeCloseTo(g.ring.x, 2);
+    expect(a.measurements.filter((m) => ['max_forward_drift', 'catch_height'].includes(m.id)).map((m) => m.id)).toEqual(['max_forward_drift', 'catch_height']);
+  });
+
+  it('lists only the confidently measured numbers, and no forward/back ones off side-on', () => {
+    const side = run(MADE);
+    expect(side.keyNumbers).toEqual(['max_forward_drift', 'bar_forward_off_hips', 'bar_crash', 'jump_forward', 'catch_height']);
+    expect(run(MADE, 40, 1050).keyNumbers).toEqual(['bar_crash', 'catch_height']);
+    expect(run(DROPPED_BEHIND).keyNumbers).not.toContain('jump_forward');
+  });
+});

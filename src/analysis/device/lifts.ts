@@ -63,6 +63,8 @@ import {
   base,
   bestRep,
   fail,
+  guideRows,
+  keyNumbers,
   KEYFRAME_H,
   liftTags,
   maxBy,
@@ -100,6 +102,7 @@ function writeOut(ctx: Ctx, repInfo: RepInfo[], tag = 'r'): Result {
     phases: r.phases,
     keyFrames: Object.entries(r.keys).map(([phase, f], pi) => ({ phase, frame: f, image: `${ctx.assetPrefix}/${tag}${r.index}-${pi + 1}-${phase}.jpg` })),
     path: r.path,
+    ...(r.guides ? { guides: r.guides } : {}),
   }));
   const analysis: AnalysisJson = {
     ...base(ctx.analysisId, ctx.input.meta, ctx.n, movement),
@@ -111,6 +114,7 @@ function writeOut(ctx: Ctx, repInfo: RepInfo[], tag = 'r'): Result {
     notes: rules.notes(movement, ruleReps(repInfo), cue),
     ...liftTags(cueRep),
     measurements,
+    keyNumbers: keyNumbers(cueRep, measurements),
     failure: null,
   };
   return { analysis, reps: repInfo, repCalls: [] };
@@ -351,7 +355,7 @@ function runClean(ctx: Ctx, forceReps?: [number, number, number][]): Result {
   return { ...cleanAndJerk(ctx, infos, pairs), repCalls };
 }
 
-const SEGMENT_KEYS = ['reps', 'bestRepIndex', 'cue', 'noCueReason', 'notes', 'measurements', 'pxPerCm'];
+const SEGMENT_KEYS = ['reps', 'bestRepIndex', 'cue', 'noCueReason', 'notes', 'measurements', 'keyNumbers', 'pxPerCm'];
 // the clean's faults that put the bar forward explain a forward jerk that follows
 const CLEAN_EXPLAINS_JERK: [string[], string[]] = [['bar_forward_off_hips', 'jump_forward'], ['forward_dip', 'bar_forward_overhead']];
 
@@ -440,6 +444,7 @@ function cleanInfo(r: RepInfo): RepInfo {
       note: `${sn.catch_kind} clean, hip ${sn.catch_depth > 0 ? 'below' : 'above'} knee, knee ${pyFixed(sn.catch_knee_min, 0)}°`,
     },
     { id: 'turnover_time', label: 'Extension to rack', value: pyRound(sn.turnover_s, 2), unit: 's', frame: ev.second_ext as number, status: 'normal', note: '± 1 frame at 30 fps' },
+    ...guideRows(sn),
     ...speedMeasurements({ peak: sn.bar_speed, avg: sn.bar_speed_avg, peakPct: sn.peak_pct }, r.scale_ok ?? false, {
       secondExt: ev.second_ext as number,
       peak: ev.peak as number,

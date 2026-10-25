@@ -27,7 +27,7 @@ import { impact } from '../../lib/haptics';
 import { colors, control, opacity, shape, space, stroke } from '../../design/tokens';
 import { display, fontFamily, type } from '../../design/typography';
 import Stage, { type StageLayer } from './Stage';
-import { CurrentDot, FlarePath, KeyDots, OverlaySvg, RefLine } from './overlays';
+import { CurrentDot, FlarePath, Guides, KeyDots, OverlaySvg, RefLine } from './overlays';
 import Filmstrip, { type PhaseMark } from './Filmstrip';
 import FadeRow from './FadeRow';
 import DrillCard from '../drills/DrillCard';
@@ -192,7 +192,10 @@ export default function PlayerScreen({
                 <>
                   <OverlaySvg box={box}>
                     {overlays.lines ? (
-                      <RefLine x={s(rep.path[0]).x} top={box.height * 0.08} bottom={box.height * 0.94} alpha={0.4} />
+                      <>
+                        <RefLine x={s(rep.guides && Number.isFinite(rep.guides.startX) ? { x: rep.guides.startX, y: 0 } : rep.path[0]).x} top={box.height * 0.08} bottom={box.height * 0.94} alpha={0.4} />
+                        {rep.guides ? <Guides guides={rep.guides} toScreen={s} box={box} ring={(analysis.keyNumbers ?? []).includes('max_forward_drift')} /> : null}
+                      </>
                     ) : null}
                     {overlays.path ? (
                       <>

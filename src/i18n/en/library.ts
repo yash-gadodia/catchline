@@ -316,4 +316,5 @@ export const library = {
   'library.metric.bar_peak_pct.label': "Bar peak, % of height",
   'library.metric.bar_peak_pct.short': "peak %",
   'library.metric.bar_peak_pct.caption': "The bar's highest point as a share of your standing height.",
+  'library.trends.load': "{kg} kg",
 } as const;

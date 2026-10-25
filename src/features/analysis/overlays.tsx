@@ -1,10 +1,11 @@
 import type { ReactNode } from 'react';
 import { Text } from 'react-native';
-import Svg, { Circle, G, Line, Path, Polyline } from 'react-native-svg';
-import type { Point } from '../../analysis/types';
+import Svg, { Circle, G, Line, Path, Polyline, Text as SvgText } from 'react-native-svg';
+import type { Point, RepGuides } from '../../analysis/types';
 import { svgPath } from '../../analysis/geometry';
 import { colors, opacity, stroke } from '../../design/tokens';
 import { fontFamily } from '../../design/typography';
+import { t } from '../../i18n';
 import type { Size } from '../../analysis/geometry';
 
 export function OverlaySvg({ box, children }: { box: Size; children: ReactNode }) {
@@ -161,3 +162,37 @@ export function HeroNumber({
     </Text>
   );
 }
+
+const inFrame = (v: number | null) => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 1;
+
+// The coaching reference lines on a barbell rep (PR #154 reel): knee, hip and peak heights across the frame, labelled
+// at the left, and the ring on the bar where it was furthest forward when `ring` is on.
+export function Guides({ guides, toScreen, box, ring }: { guides: RepGuides; toScreen: (p: Point) => Point; box: Size; ring: boolean }) {
+  const rows = (
+    [
+      ['knee', guides.kneeY],
+      ['hip', guides.hipY],
+      ['peak', guides.peakY],
+    ] as const
+  ).filter(([, y]) => inFrame(y));
+  const r = guides.ring;
+  return (
+    <G testID="guides">
+      {rows.map(([name, y]) => {
+        const sy = toScreen({ x: 0, y }).y;
+        return (
+          <G key={name} testID={`guide-${name}`} opacity={opacity.lines}>
+            <Line x1={0} y1={sy} x2={box.width} y2={sy} stroke={colors.text} strokeWidth={stroke.hairline} strokeDasharray="2 5" />
+            <SvgText x={8} y={sy - 4} fill={colors.text} fontSize={10} fontFamily={fontFamily.mono}>
+              {t(`analysis.guides.${name}`)}
+            </SvgText>
+          </G>
+        );
+      })}
+      {ring && inFrame(r.x) && inFrame(r.y) ? (
+        <Circle testID="guide-ring" cx={toScreen(r).x} cy={toScreen(r).y} r={14} stroke={colors.flare} strokeWidth={stroke.outline} fill="none" />
+      ) : null}
+    </G>
+  );
+}
+

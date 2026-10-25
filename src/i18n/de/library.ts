@@ -322,4 +322,5 @@ export const library: Strings<typeof en> = {
   'library.metric.bar_peak_pct.label': "Stangenhöchstpunkt, % der Körpergröße",
   'library.metric.bar_peak_pct.short': "Höhe %",
   'library.metric.bar_peak_pct.caption': "Der höchste Punkt der Stange im Verhältnis zu deiner Körpergröße.",
+  'library.trends.load': "{kg} kg",
 };

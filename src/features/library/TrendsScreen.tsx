@@ -179,10 +179,10 @@ export default function TrendsScreen({ initialMovement }: { initialMovement?: Mo
             </View>
             {loads.length > 1 ? (
               <View style={{ marginHorizontal: -space.gutter }}>
-                <FadeRow testID="load-chips" contentContainerStyle={{ gap: 6, paddingHorizontal: space.gutter }}>
+                <FadeRow testID="load-chips" contentContainerStyle={{ gap: space.s2, paddingHorizontal: space.gutter }}>
                   <Chip label={t('library.trends.allLoads')} height={36} selected={atLoad === null} onPress={() => setLoad(null)} testID="load-all" />
                   {loads.map((kg) => (
-                    <Chip key={kg} label={`${fmt(kg)} kg`} height={36} selected={atLoad === kg} onPress={() => setLoad(kg)} testID={`load-${kg}`} />
+                    <Chip key={kg} label={t('library.trends.load', { kg: fmt(kg) })} height={36} selected={atLoad === kg} onPress={() => setLoad(kg)} testID={`load-${kg}`} />
                   ))}
                 </FadeRow>
               </View>

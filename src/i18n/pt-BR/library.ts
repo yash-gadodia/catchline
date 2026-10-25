@@ -322,4 +322,5 @@ export const library: Strings<typeof en> = {
   'library.metric.bar_peak_pct.label': "Ponto mais alto da barra, % da sua altura",
   'library.metric.bar_peak_pct.short': "altura %",
   'library.metric.bar_peak_pct.caption': "O ponto mais alto da barra em relação à sua altura em pé.",
+  'library.trends.load': "{kg} kg",
 };

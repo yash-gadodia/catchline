@@ -53,6 +53,10 @@ export type Measurement = {
   note: string;
 };
 
+// Coaching reference lines for a barbell rep, normalised to the frame: the vertical through the bar at lift-off, the
+// knee at lift-off, the hip at hip contact and the bar at its highest, and the bar where it was furthest forward.
+export type RepGuides = { startX: number; kneeY: number; hipY: number; peakY: number; ring: TracePoint };
+
 export type Rep = {
   index: number;
   startFrame: number;
@@ -61,6 +65,7 @@ export type Rep = {
   phases: Phase[];
   keyFrames: KeyFrame[];
   path: TracePoint[];
+  guides?: RepGuides;
 };
 
 export type Cue = {
@@ -140,6 +145,8 @@ export type Analysis = {
   // Absent on analyses made before sub-notes shipped.
   notes?: Note[];
   measurements: Measurement[];
+  // The ids of the measurements confident enough to show as the result's key numbers (3.1 on-device; absent before).
+  keyNumbers?: string[];
   failure: Failure | null;
   // The CV rule set that measured this lift ("cv-2026.10.16") and the worker revision it ran on.
   // Absent on analyses made before versions were stamped.
@@ -155,6 +162,6 @@ export type Analysis = {
   segments?: AnalysisSegment[];
 };
 
-export type AnalysisSegment = Pick<Analysis, 'reps' | 'bestRepIndex' | 'cue' | 'noCueReason' | 'notes' | 'measurements' | 'pxPerCm'> & {
+export type AnalysisSegment = Pick<Analysis, 'reps' | 'bestRepIndex' | 'cue' | 'noCueReason' | 'notes' | 'measurements' | 'keyNumbers' | 'pxPerCm'> & {
   kind: 'clean' | 'jerk';
 };
