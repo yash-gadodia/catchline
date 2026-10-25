@@ -1,4 +1,5 @@
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
+import { failureHelp, openHelpInIntercom } from '../../src/data/intercom';
 import { fmt, movementLabel } from '../../src/analysis/format';
 import FailureScreen from '../../src/features/library/FailureScreen';
 import { FAILURE_COPY, failureMessage, type FailureAction, type FailureReason } from '../../src/features/library/failures';
@@ -32,5 +33,10 @@ export default function FailureRoute() {
     } else if (a === 'partial' && partial) router.replace({ pathname: '/analysis/player', params: { fixture: partial } });
     else back();
   };
-  return <FailureScreen reason={r} header={header} refCode={(id ?? '').slice(0, 7)} detail={detail} onAction={onAction} />;
+  const code = lift?.failure?.code ?? r;
+  const onHelp = () =>
+    void openHelpInIntercom(failureHelp(code, lift?.movement ?? 'unknown', id)).then((opened) => {
+      if (!opened) router.push({ pathname: '/report', params: { lift: id, context: `failure: ${code}` } });
+    });
+  return <FailureScreen reason={r} header={header} refCode={(id ?? '').slice(0, 7)} detail={detail} onAction={onAction} onHelp={onHelp} />;
 }

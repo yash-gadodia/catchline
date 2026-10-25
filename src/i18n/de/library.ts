@@ -157,6 +157,7 @@ export const library: Strings<typeof en> = {
   'library.cueRoute.shareStuck': "Sitzt: {cue}. Catchline",
   'library.failure.frame': "Frame {frame}",
   'library.failure.copied': "Ref kopiert",
+  'library.failure.getHelp': "Hilfe holen",
   'library.failure.ref': "Ref {code}",
   'library.failure.copyHint': "Kopiert die Referenz",
   'library.failure.couldntAnalyse': "Analyse nicht möglich",

@@ -69,6 +69,7 @@ export const analysis = {
   'analysis.partial.tip.low_confidence': "Film from the side, phone level with the bar.",
   'analysis.partial.tip.bar_lost': "Film from the side with the whole bar in frame overhead, and keep the phone still.",
   'analysis.partial.filmAgain': "Film again",
+  'analysis.partial.askWhy': "Ask why",
   'analysis.placeholder.loadingTitle': 'Loading your lift',
   'analysis.placeholder.loadingBody': 'One moment.',
   'analysis.placeholder.missingTitle': "Couldn't find this lift.",

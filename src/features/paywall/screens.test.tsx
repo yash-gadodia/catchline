@@ -174,6 +174,19 @@ describe('PaywallSheet', () => {
     expect(h.onRestore).toHaveBeenCalledTimes(1);
   });
 
+  it('has no Purchase problem? link when it is not wired', async () => {
+    const { queryByTestId } = await renderPaywall(handlers());
+    expect(queryByTestId('purchase-help')).toBeNull();
+  });
+
+  it('offers Purchase problem? under Restore', async () => {
+    const onPurchaseHelp = jest.fn();
+    const { getByTestId } = await renderPaywall(handlers(), { onPurchaseHelp });
+    expect(getByTestId('purchase-help')).toHaveTextContent('Purchase problem?');
+    await press(getByTestId('purchase-help'));
+    expect(onPurchaseHelp).toHaveBeenCalledTimes(1);
+  });
+
   it('uses store price strings when offerings loaded', async () => {
     const { getByText } = await renderPaywall(handlers(), {
       priceFor: (p) => (p.kind === 'sub' && p.tier === 'pull' ? 'S$78.98' : '$1'),

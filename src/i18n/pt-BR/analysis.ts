@@ -75,6 +75,7 @@ export const analysis: Strings<typeof en> = {
   'analysis.partial.tip.low_confidence': "Filme de lado, com o celular na altura da barra.",
   'analysis.partial.tip.bar_lost': "Grave de lado com a barra inteira no quadro acima da cabeça e mantenha o celular parado.",
   'analysis.partial.filmAgain': "Filmar de novo",
+  'analysis.partial.askWhy': "Perguntar por quê",
   'analysis.placeholder.loadingTitle': 'Carregando seu levantamento',
   'analysis.placeholder.loadingBody': 'Um momento.',
   'analysis.placeholder.missingTitle': 'Não encontramos este levantamento.',

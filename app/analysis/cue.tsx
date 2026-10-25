@@ -5,7 +5,7 @@ import AnalysisPlaceholder from '../../src/features/analysis/AnalysisPlaceholder
 import CueScreen from '../../src/features/analysis/CueScreen';
 import { captureHref, routeAfterAnalysis } from '../../src/features/paywall/hooks';
 import { openLiftActions, reportHref } from '../../src/features/analysis/liftActions';
-import { openReportInIntercom } from '../../src/data/intercom';
+import { askWhyHelp, openHelpInIntercom, openReportInIntercom } from '../../src/data/intercom';
 import { markStuck } from '../../src/features/library/repository';
 
 export default function CueRoute() {
@@ -43,6 +43,10 @@ export default function CueRoute() {
         onBack: back,
         onFilmAgain: filmAgain,
         onShare: () => router.push({ pathname: '/share', params: { fixture: analysis.id } }),
+        onAskWhy: () =>
+          void openHelpInIntercom(askWhyHelp(analysis)).then((opened) => {
+            if (!opened) router.push(reportHref(analysis));
+          }),
         onMore: () =>
           openLiftActions(analysis, {
             onShare: () => {

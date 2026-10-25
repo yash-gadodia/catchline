@@ -35,6 +35,7 @@ type Nav = {
   onRetest?: (cueId: string) => void;
   onShare?: () => void;
   onStuck?: (cueId: string) => void;
+  onAskWhy?: () => void;
 };
 
 type RetestProps = { retest: Retest | null; retestable?: CueRecord };
@@ -220,10 +221,15 @@ function LowConfidence({ analysis, cue, nav, retest, retestable }: { analysis: A
         </Btn>
         <RetestButton cue={retestable} nav={nav} />
         {filmedAtAngle(cue) ? (
-          <View style={{ alignItems: 'center' }}>
+          <View style={{ flexDirection: 'row', justifyContent: nav.onAskWhy ? 'space-between' : 'center' }}>
             <TextAction onPress={nav.onFilmAgain} testID="film-again">
               {t('analysis.cue.filmAgain')}
             </TextAction>
+            {nav.onAskWhy ? (
+              <TextAction onPress={nav.onAskWhy} testID="ask-why">
+                {t('analysis.partial.askWhy')}
+              </TextAction>
+            ) : null}
           </View>
         ) : null}
       </View>
@@ -343,6 +349,13 @@ function Partial({ analysis, nav, retest, retestable }: { analysis: Analysis; na
         <Btn kind="secondary" onPress={nav.onTry} testID="see-breakdown">
           {t('analysis.cue.seeBreakdown')}
         </Btn>
+        {nav.onAskWhy ? (
+          <View style={{ alignItems: 'center' }}>
+            <TextAction onPress={nav.onAskWhy} testID="ask-why">
+              {t('analysis.partial.askWhy')}
+            </TextAction>
+          </View>
+        ) : null}
       </View>
     </View>
   );

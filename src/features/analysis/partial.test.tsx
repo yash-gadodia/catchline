@@ -78,6 +78,16 @@ describe('a partial result (path and phases, no cue)', () => {
     expect(mockRouter.push).toHaveBeenLastCalledWith('/capture');
   });
 
+  it('Ask why falls back to the report form with the lift when Intercom is not set up', async () => {
+    const screen = await render(<CueRoute />);
+    expect(screen.getByTestId('ask-why')).toHaveTextContent('Ask why');
+    await press(screen.getByTestId('ask-why'));
+    expect(mockRouter.push).toHaveBeenLastCalledWith({
+      pathname: '/report',
+      params: { lift: 'snatch-mock-partial', context: 'Snatch · cue: none' },
+    });
+  });
+
   it('leads with Retest when the lift was a retest of a trying cue', async () => {
     useLibraryStore.getState().load({ ...emptyLibrary(), today: '2026-10-17', cues: [trying] });
     mockParams.current = { fixture: 'snatch-mock-partial', retest: 'c1' };

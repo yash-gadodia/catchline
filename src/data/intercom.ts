@@ -3,6 +3,7 @@ import Intercom from '@intercom/intercom-react-native';
 import { reportDetails } from './problemReports';
 import { useAuthUser } from '../features/auth/authUser';
 import { usePurchases } from '../features/purchases/usePurchases';
+import type { Analysis } from '../analysis/types';
 
 const PROBE_URL = 'https://api-iam.intercom.io/';
 const PROBE_TIMEOUT_MS = 3000;
@@ -31,6 +32,33 @@ export function reportMessage(liftId?: string): string {
   const lines = ['', '', `Catchline ${appVersion} (${updateId})`];
   if (liftId) lines.push(`Lift ${liftId}`);
   return lines.join('\n');
+}
+
+export function helpMessage(facts: string[]): string {
+  const { appVersion, updateId } = reportDetails();
+  return ['', '', ...facts, `Catchline ${appVersion} (${updateId})`].join('\n');
+}
+
+export function failureHelp(code: string, movement: string, liftId?: string): string {
+  return helpMessage([`Analysis failed: ${code}`, `Movement: ${movement}`, ...(liftId ? [`Lift ${liftId}`] : [])]);
+}
+
+export function askWhyHelp(a: Analysis): string {
+  const seen = /(\d+)° off side-on/.exec(a.cue?.confidenceText ?? '');
+  const deg = a.noCueReason?.offSideDeg ?? (seen ? Number(seen[1]) : undefined);
+  const angle = deg != null ? `${Math.round(deg)}° off side-on` : a.yawBucket ?? 'unknown';
+  const confidence = a.cue?.confidence ?? (a.detectedMovement ? `movement ${Math.round(a.detectedMovement.confidence * 100)}%` : 'unknown');
+  return helpMessage([
+    a.cue ? `Ask why: cue ${a.cue.faultId}` : `Ask why: no cue (${a.noCueReason?.code ?? 'none'})`,
+    `Movement: ${a.movementUsed ?? a.movement}`,
+    `Angle: ${angle}`,
+    `Confidence: ${confidence}`,
+    `Lift ${a.id}`,
+  ]);
+}
+
+export function purchaseHelp(): string {
+  return helpMessage(['Purchase problem', `Plan: ${usePurchases.getState().tier}`]);
 }
 
 async function online(): Promise<boolean> {
@@ -85,10 +113,14 @@ async function ready(): Promise<boolean> {
   }
 }
 
-export async function openReportInIntercom(liftId?: string): Promise<boolean> {
+export function openReportInIntercom(liftId?: string): Promise<boolean> {
+  return openHelpInIntercom(reportMessage(liftId));
+}
+
+export async function openHelpInIntercom(message: string): Promise<boolean> {
   if (!(await ready())) return false;
   // The SDK resolves without a value once it is on screen, so success, not the value, means opened.
-  return Intercom.presentMessageComposer(reportMessage(liftId)).then(
+  return Intercom.presentMessageComposer(message).then(
     () => true,
     () => false,
   );

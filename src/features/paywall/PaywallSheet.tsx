@@ -29,6 +29,7 @@ type Props = {
   onNotNow: () => void;
   onRestore: () => void;
   onWatch: () => void;
+  onPurchaseHelp?: () => void;
 };
 
 type Choice = 'pull' | 'founding';
@@ -54,6 +55,7 @@ export default function PaywallSheet({
   onNotNow,
   onRestore,
   onWatch,
+  onPurchaseHelp,
 }: Props) {
   const { height } = useWindowDimensions();
   const [period, setPeriod] = useState<Period>(initialPeriod);
@@ -159,6 +161,11 @@ export default function PaywallSheet({
                 {t('paywall.restore')}
               </Btn>
             </View>
+            {onPurchaseHelp ? (
+              <Btn kind="text" onPress={onPurchaseHelp} testID="purchase-help">
+                {t('paywall.purchaseProblem')}
+              </Btn>
+            ) : null}
             <LegalLinks />
           </ScrollView>
         )}

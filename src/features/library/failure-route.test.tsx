@@ -101,3 +101,33 @@ it('a refused lift shows its own refusal line, not a canned movement', async () 
   expect(view.getByTestId('failure-readout')).toHaveTextContent('No floor-to-overhead lift found in this clip.');
   expect(view.queryByText(/wall walk/i)).toBeNull();
 });
+
+describe('Get help on a failed lift', () => {
+  const failed = () =>
+    useLibraryStore.setState({
+      lifts: [{ id: 'lift-9', movement: 'snatch', date: '2026-10-18', status: 'failed',
+        failure: { reason: 'unsupported_movement', code: 'no_reps', message: 'No floor-to-overhead lift found in this clip.' } }],
+    });
+
+  it('opens Intercom with the error code, movement, lift and app ids prefilled', async () => {
+    failed();
+    const intercom = jest.requireActual('../../data/intercom') as typeof import('../../data/intercom');
+    const open = jest.spyOn(intercom, 'openHelpInIntercom').mockResolvedValue(true);
+    params.current = { id: 'lift-9' };
+    const view = await render(<FailureRoute />);
+    expect(view.getByTestId('failure-help')).toHaveTextContent('Get help');
+    await press(view.getByTestId('failure-help'));
+    expect(open).toHaveBeenCalledWith(intercom.failureHelp('no_reps', 'snatch', 'lift-9'));
+    expect(intercom.failureHelp('no_reps', 'snatch', 'lift-9')).toMatch(/^\n\nAnalysis failed: no_reps\nMovement: snatch\nLift lift-9\nCatchline \S+ \(\S+\)$/);
+    expect(mockNav.push).not.toHaveBeenCalled();
+    open.mockRestore();
+  });
+
+  it('falls back to the report form with the code when Intercom is not set up', async () => {
+    failed();
+    params.current = { id: 'lift-9' };
+    const view = await render(<FailureRoute />);
+    await press(view.getByTestId('failure-help'));
+    expect(mockNav.push).toHaveBeenCalledWith({ pathname: '/report', params: { lift: 'lift-9', context: 'failure: no_reps' } });
+  });
+});

@@ -116,3 +116,33 @@ describe('intercom configured', () => {
     expect(sdk.logout).not.toHaveBeenCalled();
   });
 });
+
+describe('help messages', () => {
+  it('prefills a failure with the code, movement, lift and app ids', () => {
+    const { intercom } = load(true);
+    expect(intercom.failureHelp('no_reps', 'snatch', 'lift-9')).toBe('\n\nAnalysis failed: no_reps\nMovement: snatch\nLift lift-9\nCatchline 3.1 (ota-42)');
+  });
+
+  it('prefills Ask why with the angle and confidence of a partial result', () => {
+    const { intercom } = load(true);
+    const { snatchMockPartial } = require('../analysis/fixtures') as typeof import('../analysis/fixtures');
+    expect(intercom.askWhyHelp({ ...snatchMockPartial, detectedMovement: { movement: 'snatch', confidence: 0.82 } })).toBe(
+      '\n\nAsk why: no cue (off_side_on)\nMovement: snatch\nAngle: 34° off side-on\nConfidence: movement 82%\nLift snatch-mock-partial\nCatchline 3.1 (ota-42)'
+    );
+  });
+
+  it('reads the angle of an off-angle cue from its confidence line', () => {
+    const { intercom } = load(true);
+    const { snatchMockLow } = require('../analysis/fixtures') as typeof import('../analysis/fixtures');
+    const angled = { ...snatchMockLow, cue: { ...snatchMockLow.cue!, confidence: 'low' as const, confidenceText: 'Seen on 1 of 2 reps, filmed ~36° off side-on' } };
+    expect(intercom.askWhyHelp(angled)).toBe('\n\nAsk why: cue bar_drift_knee\nMovement: snatch\nAngle: 36° off side-on\nConfidence: low\nLift snatch-mock-low\nCatchline 3.1 (ota-42)');
+  });
+
+  it('prefills a purchase problem with the plan tier and opens the composer with it', async () => {
+    const { intercom, sdk, setUser } = load(true);
+    setUser('anon-1', true);
+    expect(intercom.purchaseHelp()).toBe('\n\nPurchase problem\nPlan: free\nCatchline 3.1 (ota-42)');
+    expect(await intercom.openHelpInIntercom(intercom.purchaseHelp())).toBe(true);
+    expect(sdk.presentMessageComposer).toHaveBeenCalledWith('\n\nPurchase problem\nPlan: free\nCatchline 3.1 (ota-42)');
+  });
+});
