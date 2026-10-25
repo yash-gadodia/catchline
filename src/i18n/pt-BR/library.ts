@@ -314,4 +314,5 @@ export const library: Strings<typeof en> = {
   'library.metric.bar_crash.label': "Queda da barra na recepção",
   'library.metric.bar_crash.short': "queda",
   'library.metric.bar_crash.caption': "Queda da barra do ponto mais alto até travar os cotovelos, cm.",
+  'library.lifts.madeCounts': "{made} válidos · {missed} perdidos",
 };

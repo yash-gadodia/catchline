@@ -482,6 +482,21 @@ describe('a missed lift', () => {
     expect(partial.getByTestId('miss-note')).toHaveTextContent('Missed lift: the bar came down behind.');
   });
 
+  it('lets the lifter call it made or missed in one tap, kept over the detection', async () => {
+    const { useMadeLog } = require('../library/madeLog');
+    useMadeLog.setState({ made: {} });
+    const { getByTestId, queryByTestId } = await render(<CueScreen analysis={front} nav={nav} />);
+    expect(getByTestId('made-call-missed')).toHaveProp('accessibilityState', { selected: true });
+    await press(getByTestId('made-call-made'));
+    expect(useMadeLog.getState().made).toEqual({ [front.id]: true });
+    expect(getByTestId('made-call-made')).toHaveProp('accessibilityState', { selected: true });
+    expect(queryByTestId('miss-note')).toBeNull();
+    const clean = await render(<CueScreen analysis={{ ...snatchMock, cue: null }} nav={nav} />);
+    expect(clean.getByTestId('made-call-made')).toHaveProp('accessibilityState', { selected: true });
+    const sample = await render(<CueScreen analysis={snatchSample} nav={nav} />);
+    expect(sample.queryByTestId('made-call')).toBeNull();
+  });
+
   it('says nothing on a made lift', async () => {
     const { queryByTestId } = await render(<CueScreen analysis={snatchMock} nav={nav} />);
     expect(queryByTestId('miss-note')).toBeNull();

@@ -308,4 +308,5 @@ export const library = {
   'library.metric.bar_crash.label': 'Bar drop into the catch',
   'library.metric.bar_crash.short': 'drop',
   'library.metric.bar_crash.caption': 'Bar drop from its peak to elbow lockout, cm.',
+  'library.lifts.madeCounts': '{made} made · {missed} missed',
 } as const;

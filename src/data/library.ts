@@ -7,6 +7,7 @@ import { deleteLocalLift, listLocalAnalyses } from './localLifts';
 import { flushLiftOutbox, useLiftOutbox, type OutboxItem } from './liftOutbox';
 import type { CueRow, Lift as LiftRow } from '../types/db';
 import { FAILURE_COPY } from '../features/library/failures';
+import { detectedMade } from '../features/library/madeLog';
 import { useLibraryStore } from '../features/library/store';
 import type { CueRecord, CueStatus, Day, Lift, LiftStatus, Session } from '../features/library/types';
 import { useUsage } from '../features/paywall/usageStore';
@@ -61,6 +62,7 @@ export function toLift(row: LiftRow, a: Analysis | undefined, now: number = Date
     loadKg: row.load_kg ?? undefined,
     reps: a && !a.failure ? a.reps.length : undefined,
     status,
+    made: (a ? detectedMade(a) : row.made) ?? undefined,
     analysisId: a && !a.failure ? a.id : undefined,
     thumb: catchImage(a),
     failure: a?.failure ?? (stuck ? { reason: 'unknown', message: t('library.detail.uploadStuck') } : status === 'failed' ? workerFailure(row) : undefined),

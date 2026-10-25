@@ -136,4 +136,7 @@ export const analysis: Strings<typeof en> = {
   'analysis.processing.offlineTitle': "Analyse wird vorbereitet",
   'analysis.processing.offlineBody': "Die Analyse braucht einen einmaligen Download, der nicht fertig wurde. Prüfe deine Verbindung (und den Datensparmodus) und versuche es noch einmal. Das hat keines deiner Videos verbraucht.",
   'analysis.processing.retry': "Noch einmal versuchen",
+  'analysis.made.label': "Dieser Versuch",
+  'analysis.made.made': "Geschafft",
+  'analysis.made.missed': "Verfehlt",
 };

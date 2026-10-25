@@ -314,4 +314,5 @@ export const library: Strings<typeof en> = {
   'library.metric.bar_crash.label': "Stangenfall in die Annahme",
   'library.metric.bar_crash.short': "Fall",
   'library.metric.bar_crash.caption': "Fall der Stange vom Hochpunkt bis zum Aussperren der Ellbogen, cm.",
+  'library.lifts.madeCounts': "{made} geschafft · {missed} verfehlt",
 };

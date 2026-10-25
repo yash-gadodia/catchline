@@ -130,4 +130,7 @@ export const analysis = {
   'analysis.why.title': 'Why this and not something else?',
   'analysis.why.body': 'We pick the earliest fault that explains the rest. Everything else we measured:',
   'analysis.why.close': 'Close',
+  'analysis.made.label': 'This lift',
+  'analysis.made.made': 'Made',
+  'analysis.made.missed': 'Missed',
 } as const;

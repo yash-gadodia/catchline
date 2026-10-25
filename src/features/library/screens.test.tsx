@@ -42,6 +42,26 @@ describe('LiftsScreen', () => {
     expect(queryByText(/possible/)).toBeNull();
   });
 
+  it('counts made and missed lifts in the list shown, the lifter call first', async () => {
+    const { useMadeLog } = require('./madeLog');
+    useMadeLog.setState({ made: {} });
+    const lib = useLibraryStore.getState();
+    const done = lib.lifts.filter((l) => l.status === 'done' && l.analysisId);
+    lib.load({ ...lib, lifts: done.slice(0, 3).map((l, i) => ({ ...l, made: i !== 1 })) });
+    const { getByTestId } = await render(<LiftsScreen nav={liftsNav()} />);
+    expect(getByTestId('made-counts')).toHaveTextContent('2 made · 1 missed');
+    await act(async () => useMadeLog.setState({ made: { [done[1].analysisId as string]: true } }));
+    expect(getByTestId('made-counts')).toHaveTextContent('3 made · 0 missed');
+  });
+
+  it('shows no count when no lift has an outcome', async () => {
+    require('./madeLog').useMadeLog.setState({ made: {} });
+    const lib = useLibraryStore.getState();
+    lib.load({ ...lib, lifts: lib.lifts.map((l) => ({ ...l, made: undefined })) });
+    const { queryByTestId } = await render(<LiftsScreen nav={liftsNav()} />);
+    expect(queryByTestId('made-counts')).toBeNull();
+  });
+
   it('offers no filter chip for a movement the phone cannot analyse yet', async () => {
     const { getByTestId, queryByTestId } = await render(<LiftsScreen nav={liftsNav()} />);
     expect(getByTestId('movement-snatch')).toBeOnTheScreen();

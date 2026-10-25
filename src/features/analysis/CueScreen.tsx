@@ -7,6 +7,7 @@ import { keyFrameAt, keyFrameForPhase, liftPath, repByIndex } from '../../analys
 import { noCueCopy } from './partial';
 import { toScreen } from '../../analysis/geometry';
 import Btn from '../../components/Btn';
+import Segmented from '../../components/Segmented';
 import SmallCaps from '../../components/SmallCaps';
 import TopBar from '../../components/TopBar';
 import { colors, space } from '../../design/tokens';
@@ -18,6 +19,7 @@ import DrillCard from '../drills/DrillCard';
 import { isSample } from '../../analysis/fixtures';
 import { baselineSentence } from './baseline';
 import { useLibrary } from '../library/repository';
+import { setMade, useMade, useMadeLog } from '../library/madeLog';
 import Stage from './Stage';
 import { FlarePath, OverlaySvg } from './overlays';
 import RetestVerdict, { useRetest, useRetestable, type Retest } from './RetestVerdict';
@@ -84,6 +86,7 @@ function CueBody({
       <EvidenceStage analysis={analysis} cue={cue} box={{ width, height: width }} safeTop={insets.top} />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: space.s5, paddingHorizontal: space.gutter, gap: space.s3 }}>
         {retest ? <RetestVerdict retest={retest} onStuck={nav.onStuck} /> : null}
+        <MadeCall analysis={analysis} />
         <MissNote analysis={analysis} />
         <SmallCaps>{sample ? t('analysis.cue.sampleLabel') : t('analysis.cue.oneThingLabel')}</SmallCaps>
         <Text style={[display(40), { color: colors.text }]} testID="cue-text">
@@ -200,6 +203,7 @@ function LowConfidence({ analysis, cue, nav, retest, retestable }: { analysis: A
       </View>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: space.s4, paddingHorizontal: space.gutter, gap: space.s2 }}>
         {retest ? <RetestVerdict retest={retest} onStuck={nav.onStuck} /> : null}
+        <MadeCall analysis={analysis} />
         <MissNote analysis={analysis} />
         <SmallCaps>{t('analysis.cue.possible')}</SmallCaps>
         <Text style={[display(32), { color: colors.text }]}>{cueText(cue.faultId, cue.text)}</Text>
@@ -231,8 +235,29 @@ function LowConfidence({ analysis, cue, nav, retest, retestable }: { analysis: A
   );
 }
 
+// The lift made or missed, as detected; one tap and the lifter's own call is kept instead.
+function MadeCall({ analysis }: { analysis: Analysis }) {
+  const made = useMade(analysis);
+  if (made === null || isSample(analysis)) return null;
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }} testID="made-call-row">
+      <SmallCaps>{t('analysis.made.label')}</SmallCaps>
+      <Segmented
+        testID="made-call"
+        value={made ? 'made' : 'missed'}
+        onChange={(v) => setMade(analysis.id, v === 'made')}
+        options={[
+          { value: 'made', label: t('analysis.made.made') },
+          { value: 'missed', label: t('analysis.made.missed') },
+        ]}
+      />
+    </View>
+  );
+}
+
 function MissNote({ analysis }: { analysis: Analysis }) {
-  const note = missNote(analysis);
+  const own = useMadeLog((s) => s.made[analysis.id]);
+  const note = own === true ? null : missNote(analysis);
   return note ? (
     <Text testID="miss-note" style={{ color: colors.text, ...type.callout, fontFamily: fontFamily.bodyBold }}>
       {note}
@@ -262,6 +287,7 @@ function Clean({ analysis, nav, retest }: { analysis: Analysis; nav: Nav; retest
       </View>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: space.s4, paddingHorizontal: space.gutter, gap: space.s2 }}>
         {retest ? <RetestVerdict retest={retest} onStuck={nav.onStuck} /> : null}
+        <MadeCall analysis={analysis} />
         <SmallCaps>{t('analysis.clean.label')}</SmallCaps>
         <Text style={[display(40), { color: colors.text }]} testID="clean-title">
           {t('analysis.clean.title')}
@@ -314,6 +340,7 @@ function Partial({ analysis, nav, retest, retestable }: { analysis: Analysis; na
       </View>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: space.s4, paddingHorizontal: space.gutter, gap: space.s2 }}>
         {retest ? <RetestVerdict retest={retest} onStuck={nav.onStuck} /> : null}
+        <MadeCall analysis={analysis} />
         <MissNote analysis={analysis} />
         <SmallCaps>{t('analysis.partial.label')}</SmallCaps>
         <Text style={[display(32), { color: colors.text }]} testID="no-cue-title">

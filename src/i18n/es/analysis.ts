@@ -136,4 +136,7 @@ export const analysis: Strings<typeof en> = {
   'analysis.processing.offlineTitle': "Preparando el análisis",
   'analysis.processing.offlineBody': "El análisis necesita una descarga única que no terminó. Revisa tu conexión (y el modo de datos reducidos) y vuelve a intentarlo. Esto no gastó uno de tus vídeos.",
   'analysis.processing.retry': "Volver a intentar",
+  'analysis.made.label': "Este levantamiento",
+  'analysis.made.made': "Válido",
+  'analysis.made.missed': "Fallado",
 };

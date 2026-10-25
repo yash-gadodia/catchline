@@ -18,6 +18,7 @@ import { queueLiftSync } from './liftOutbox';
 import { syncConsent } from './backend';
 import { saveLocalLift } from './localLifts';
 import { usePipeline } from './pipeline';
+import { detectedMade } from '../features/library/madeLog';
 import { ClipTooLongError, discardPrepared, prepareClip } from './prepare';
 
 // The native loop: pose + camera path first, then a plan built from what the replay
@@ -148,7 +149,7 @@ export function syncRecord(a: Analysis, sub: ClipSubmission, analysedAt: Date): 
   return {
     movement: sub.movement,
     loadKg: sub.loadKg ?? null,
-    made: a.failure ? null : (a.reps[a.bestRepIndex]?.made ?? null),
+    made: detectedMade(a),
     cue: a.failure ? null : deviceCue(a),
     noCueCode: a.noCueReason?.code ?? null,
     startClass: extras.startClass ?? null,
