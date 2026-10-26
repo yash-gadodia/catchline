@@ -1,15 +1,19 @@
+import { useState } from 'react';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { fmt, movementLabel } from '../../src/analysis/format';
-import FailureScreen from '../../src/features/library/FailureScreen';
+import FailureScreen, { type Share } from '../../src/features/library/FailureScreen';
 import { FAILURE_COPY, failureMessage, type FailureAction, type FailureReason } from '../../src/features/library/failures';
 import { useLift } from '../../src/features/library/repository';
 import { submitDraft } from '../../src/features/capture/submit';
+import { localClipUri } from '../../src/data/localLifts';
+import { shareFailedClip } from '../../src/data/shareClip';
 import { t } from '../../src/i18n';
 
 // A failed lift by id; `?reason=` previews any failure variant (dev entry). The
 // design header for an unknown lift is a dev preview only.
 export default function FailureRoute() {
-  const { id, reason, native } = useLocalSearchParams<{ id: string; reason?: string; native?: string }>();
+  // `?share=1` previews the send-this-clip line (dev entry).
+  const { id, reason, native, share: previewShare } = useLocalSearchParams<{ id: string; reason?: string; native?: string; share?: string }>();
   const router = useRouter();
   const lift = useLift(id);
   const r = (reason && reason in FAILURE_COPY ? reason : lift?.failure?.reason ?? 'unknown') as FailureReason;
@@ -32,5 +36,23 @@ export default function FailureRoute() {
     } else if (a === 'partial' && partial) router.replace({ pathname: '/analysis/player', params: { fixture: partial } });
     else back();
   };
-  return <FailureScreen reason={r} header={header} refCode={(id ?? '').slice(0, 7)} detail={detail} onAction={onAction} />;
+  const [share, setShare] = useState<Pick<Share, 'state' | 'fraction'>>({ state: 'idle', fraction: 0 });
+  const canShare = (__DEV__ && previewShare === '1') || (id ? localClipUri(id) !== null : false);
+  const onSend = () => {
+    setShare({ state: 'sending', fraction: 0 });
+    shareFailedClip(id, lift?.failure?.code ?? null, (fraction) => setShare({ state: 'sending', fraction })).then(
+      () => setShare({ state: 'sent', fraction: 1 }),
+      () => setShare({ state: 'failed', fraction: 0 })
+    );
+  };
+  return (
+    <FailureScreen
+      reason={r}
+      header={header}
+      refCode={(id ?? '').slice(0, 7)}
+      detail={detail}
+      share={canShare ? { ...share, onSend } : undefined}
+      onAction={onAction}
+    />
+  );
 }

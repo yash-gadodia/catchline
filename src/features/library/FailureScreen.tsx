@@ -16,11 +16,14 @@ import { t } from '../../i18n';
 // Anything outside the closed set (a raw worker string, an older build's code) shows the generic copy.
 const known = (reason: string): FailureReason => (reason in FAILURE_COPY ? (reason as FailureReason) : 'unknown');
 
+export type Share = { state: 'idle' | 'sending' | 'sent' | 'failed'; fraction: number; onSend: () => void };
+
 export default function FailureScreen({
   reason: rawReason,
   header,
   refCode,
   detail,
+  share,
   onAction,
 }: {
   reason: FailureReason;
@@ -28,6 +31,8 @@ export default function FailureScreen({
   refCode: string;
   // The lift's own refusal line from the worker, shown on the stage in place of a canned readout.
   detail?: string;
+  // "Send this clip so we can fix it", when the failed lift's clip is still on the phone.
+  share?: Share;
   onAction: (a: FailureAction) => void;
 }) {
   const insets = useSafeAreaInsets();
@@ -60,6 +65,7 @@ export default function FailureScreen({
         ) : null}
       </ScrollView>
       <View style={{ paddingTop: space.s4, paddingHorizontal: space.gutter, paddingBottom: Math.max(insets.bottom, space.s7), gap: space.s3 }}>
+        {share ? <ShareClip share={share} /> : null}
         {copy.alt ? (
           <View style={{ flexDirection: 'row', gap: space.s2 }}>
             <Btn style={{ flex: 1 }} onPress={() => onAction(copy.primary.action)} testID="failure-primary">
@@ -230,6 +236,32 @@ function FailureStage({ reason, detail, width, height }: { reason: FailureReason
           {detail}
         </Readout>
       ) : null}
+    </View>
+  );
+}
+
+// Opt in per clip: only this clip, only to us, gone after 30 days. The server never gets a clip otherwise.
+function ShareClip({ share }: { share: Share }) {
+  const label =
+    share.state === 'sending'
+      ? t('library.failure.sending', { pct: Math.round(share.fraction * 100) })
+      : share.state === 'sent'
+        ? t('library.failure.sent')
+        : share.state === 'failed'
+          ? t('library.failure.sendFailed')
+          : t('library.failure.sendClip');
+  return (
+    <View style={{ gap: space.s1 }} testID="failure-share">
+      {share.state === 'sending' || share.state === 'sent' ? (
+        <Text style={{ color: colors.text2, ...type.readout }} testID="failure-share-state">
+          {label}
+        </Text>
+      ) : (
+        <Underlined onPress={share.onSend} testID="failure-share-send">
+          {label}
+        </Underlined>
+      )}
+      <Text style={{ color: colors.text3, ...type.small }}>{t('library.failure.sendClipNote')}</Text>
     </View>
   );
 }

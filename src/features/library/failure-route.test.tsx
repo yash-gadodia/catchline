@@ -16,6 +16,8 @@ jest.mock('expo-router', () => {
 const mockNav = jest.requireMock('expo-router').router as { push: jest.Mock; replace: jest.Mock; back: jest.Mock };
 jest.mock('../../data/backend', () => ({ backendEnabled: () => true }));
 jest.mock('../../data/pipeline', () => ({ startLift: jest.fn() }));
+jest.mock('../../data/localLifts', () => ({ localClipUri: jest.fn(() => null) }));
+jest.mock('../../data/shareClip', () => ({ shareFailedClip: jest.fn() }));
 
 const press = async (el: Parameters<typeof fireEvent.press>[0]) => {
   await act(async () => {
@@ -100,4 +102,42 @@ it('a refused lift shows its own refusal line, not a canned movement', async () 
 
   expect(view.getByTestId('failure-readout')).toHaveTextContent('No floor-to-overhead lift found in this clip.');
   expect(view.queryByText(/wall walk/i)).toBeNull();
+});
+
+// 26-10: the server never sees a clip, so a failure it cannot reproduce needs the lifter to choose to send it.
+describe('Send this clip so we can fix it', () => {
+  const clipMock = jest.requireMock('../../data/localLifts') as { localClipUri: jest.Mock };
+  const shareMock = jest.requireMock('../../data/shareClip') as { shareFailedClip: jest.Mock };
+  beforeEach(() => {
+    params.current = { id: 'lift-7', reason: 'unsupported_movement' };
+    clipMock.localClipUri.mockReturnValue('file:///lifts/lift-7/clip.mp4');
+  });
+
+  it('is offered only when the failed clip is still on the phone', async () => {
+    clipMock.localClipUri.mockReturnValue(null);
+    const view = await render(<FailureRoute />);
+    expect(view.queryByTestId('failure-share')).toBeNull();
+  });
+
+  it('sends the clip with its progress and says when it is there', async () => {
+    let resolve: () => void = () => undefined;
+    shareMock.shareFailedClip.mockImplementation((_id: string, _code: string | null, onProgress: (f: number) => void) => {
+      onProgress(0.4);
+      return new Promise<void>((r) => (resolve = r));
+    });
+    const view = await render(<FailureRoute />);
+    expect(view.getByText('Only this clip, only to us, deleted after 30 days.')).toBeOnTheScreen();
+    await press(view.getByTestId('failure-share-send'));
+    expect(shareMock.shareFailedClip).toHaveBeenCalledWith('lift-7', null, expect.any(Function));
+    expect(view.getByTestId('failure-share-state')).toHaveTextContent('Sending 40%');
+    await act(async () => resolve());
+    expect(view.getByTestId('failure-share-state')).toHaveTextContent('Sent. Thank you');
+  });
+
+  it('says so when the send fails, and offers it again', async () => {
+    shareMock.shareFailedClip.mockRejectedValue(new Error('offline'));
+    const view = await render(<FailureRoute />);
+    await press(view.getByTestId('failure-share-send'));
+    expect(view.getByTestId('failure-share-send')).toHaveTextContent("Couldn't send. Try again when online");
+  });
 });
