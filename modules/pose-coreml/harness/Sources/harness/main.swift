@@ -1,12 +1,13 @@
 import Foundation
 
-// catchline-harness pose    <clip> --models <dir> --out <trace.json.gz> [--movement snatch] [--no-camera] [--all-people] [--pose-json <path>]
+// catchline-harness pose    <clip> --models <dir> --out <trace.json.gz> [--movement snatch] [--no-camera] [--all-people] [--detect-every N] [--pose-json <path>]
 // catchline-harness analyse <clip> --models <dir> --plan <plan.json> --out <trace.json.gz> [--stills <dir>] [--movement snatch]
 //
 // pose: the first analyseOnDevice call (pose + lifter + camera path). analyse: the same, then the pixel
 // stages on the frames the plan names (the plan is what src/analysis/device planFromMisses writes).
 // --no-camera skips track.py camera_path (until CameraMotion.swift lands) so the lifter can be compared alone.
 // --all-people poses every detection (the app poses only the lifter's candidates after the first second).
+// --detect-every N runs the person detector on every Nth frame (1: every frame; default the app's detectInterval).
 
 func usage() -> Never {
   FileHandle.standardError.write(Data("usage: catchline-harness pose|analyse <clip> --models <dir> --out <trace.json.gz> [--plan <plan.json>] [--stills <dir>] [--movement <m>] [--no-camera] [--all-people] [--pose-json <path>]\n".utf8))
@@ -44,6 +45,7 @@ let stillsDir = URL(fileURLWithPath: opts["--stills"] ?? FileManager.default.tem
 
 let analyser = DeviceAnalyser(models: models)
 analyser.poseEveryone = flags.contains("--all-people")
+if let n = opts["--detect-every"].flatMap(Int.init) { analyser.detectEvery = n }
 let sem = DispatchSemaphore(value: 0)
 var failure: Error?
 var lastStage = ""

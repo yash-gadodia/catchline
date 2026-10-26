@@ -148,6 +148,66 @@ func lifterCandidates(_ boxes: [[Float]]) -> [Int] {
   return boxes.indices.filter { boxes[$0][3] - boxes[$0][1] >= lifterSizeFraction * tallest }
 }
 
+// The detector runs on every detectInterval-th frame (and whenever a carried pose weakens); the frames between pose the
+// people it found in boxes carried from their own keypoints. Off (1): at 4 the detector cost fell 26 -> 7 ms/frame but
+// RTMPose moves ~2 px whenever its box is not the detector's own (p50 1.55 px vs the 1 px bar) and 3 of 13 eval cues changed.
+let detectInterval = 1
+let trackScoreDrop: Float = 0.75
+private let boundsMinScore: Float = 0.3
+
+private func meanScore(_ s: [Float]) -> Float { s.reduce(0, +) / Float(s.count) }
+
+private func stripped(_ p: PosePerson) -> PosePerson {
+  var p = p
+  for j in headIdx { p.kpts[j * 2] = .nan; p.kpts[j * 2 + 1] = .nan; p.scores[j] = 0 }
+  return p
+}
+
+// One detection carried forward: its box, and for a posed person the detector box's margins around the keypoint
+// bounds (in bound heights) and the mean score at detection
+struct Tracked {
+  let box: [Float]
+  let person: PosePerson?
+  let margins: [Float]
+  let score: Float
+
+  init(_ p: PosePerson?, box: [Float]) {
+    self.box = box
+    person = p
+    if let p, let k = keypointBounds(p) {
+      let h = k[3] - k[1]
+      margins = [(box[0] - k[0]) / h, (box[1] - k[1]) / h, (box[2] - k[2]) / h, (box[3] - k[3]) / h]
+      score = meanScore(p.scores)
+    } else {
+      margins = []
+      score = .infinity
+    }
+  }
+
+  private init(box: [Float], person: PosePerson, margins: [Float], score: Float) {
+    self.box = box; self.person = person; self.margins = margins; self.score = score
+  }
+
+  func box(around p: PosePerson) -> [Float]? {
+    guard margins.count == 4, let k = keypointBounds(p) else { return nil }
+    let h = k[3] - k[1]
+    return [k[0] + margins[0] * h, k[1] + margins[1] * h, k[2] + margins[2] * h, k[3] + margins[3] * h]
+  }
+
+  func moved(to p: PosePerson) -> Tracked { Tracked(box: p.box, person: p, margins: margins, score: score) }
+}
+
+// x1 y1 x2 y2 of the keypoints scored at least boundsMinScore, head included; nil under 6 points or a flat box
+private func keypointBounds(_ p: PosePerson) -> [Float]? {
+  var b: [Float] = [.infinity, .infinity, -.infinity, -.infinity]
+  var n = 0
+  for j in 0 ..< 26 where p.scores[j] >= boundsMinScore && p.kpts[j * 2].isFinite && p.kpts[j * 2 + 1].isFinite {
+    b = [min(b[0], p.kpts[j * 2]), min(b[1], p.kpts[j * 2 + 1]), max(b[2], p.kpts[j * 2]), max(b[3], p.kpts[j * 2 + 1])]
+    n += 1
+  }
+  return n >= 6 && b[3] - b[1] > 1 ? b : nil
+}
+
 // What the first pass read, kept so a planned pass needs no second inference
 struct PoseRun {
   let url: URL
@@ -172,6 +232,7 @@ final class DeviceAnalyser {
   var run: PoseRun?  // settable so the harness can reload a cached pose pass
   private(set) var timing = PoseTiming()
   var poseEveryone = false  // harness only: the full pose pass, for parity against lifter-only
+  var detectEvery = detectInterval  // harness only: 1 detects every frame, for parity against tracking
 
   init(models: PoseModels) { self.models = models }
 
@@ -214,25 +275,57 @@ final class DeviceAnalyser {
     var tm = PoseTiming()
     var tick = Date()
     func lap() -> Double { let now = Date(); defer { tick = now }; return now.timeIntervalSince(tick) }
+    let tracking = detectEvery > 1 && !poseEveryone && !twoPass
+    var tracked: [Tracked] = []
+    var lastDetect = Int.min / 2
+    // Between detections each posed person's box is carried from its own pose: the keypoint bounds with the margins the
+    // detector's box had around them. Unposed people keep their last detected box (the camera path's masks). A carried
+    // pose whose mean score falls under trackScoreDrop of its detection frame's sends the frame back to the detector.
+    func carry(_ img: BGRImage, from prev: [Tracked]) throws -> ([PosePerson], [Tracked])? {
+      guard prev.contains(where: { $0.person != nil }) else { return nil }
+      var row: [PosePerson] = [], next: [Tracked] = []
+      for t in prev {
+        if t.person == nil { row.append(.unposed(box: t.box)); next.append(t); continue }
+        let (k, sc) = try estimatePose(img, box: t.box, models, stripHead: false)
+        let p = PosePerson(box: t.box, kpts: k, scores: sc)
+        guard meanScore(sc) >= trackScoreDrop * t.score, let box = t.box(around: p) else { return nil }
+        let moved = PosePerson(box: box, kpts: k, scores: sc)
+        row.append(stripped(moved))
+        next.append(t.moved(to: moved))
+      }
+      return (row, next)
+    }
     let n = try clip.read { f, pb in
       tm.decode += lap()
       let planes = UprightPlanes(pb, rotation: clip.rotation)
       let img = uprightBGR(planes, outW: outW, outH: poseInferHeight)
       tm.upright += lap()
       var row: [PosePerson] = []
-      let boxes = try detectPeople(img, models)
-      tm.detect += lap()
-      let pick = poseEveryone || twoPass ? Array(boxes.indices) : lifterCandidates(boxes)
-      for (i, box) in boxes.enumerated() {
-        guard pick.contains(i) else { row.append(.unposed(box: box)); continue }
-        // merge_passes compares the 26-point mean with the head scores still in; invertedPass strips them after
-        let (k, sc) = try estimatePose(img, box: box, models, stripHead: !twoPass)
-        row.append(PosePerson(box: box, kpts: k, scores: sc))
+      var posedCount = 0
+      if tracking && f - lastDetect < detectEvery, let carried = try carry(img, from: tracked) {
+        tm.pose += lap()
+        (row, tracked) = carried
+        posedCount = tracked.filter { $0.person != nil }.count
+      } else {
+        let boxes = try detectPeople(img, models)
+        tm.detect += lap()
+        lastDetect = f
+        let pick = poseEveryone || twoPass ? Array(boxes.indices) : lifterCandidates(boxes)
+        tracked = []
+        for (i, box) in boxes.enumerated() {
+          guard pick.contains(i) else { row.append(.unposed(box: box)); tracked.append(Tracked(nil, box: box)); continue }
+          // merge_passes compares the 26-point mean with the head scores still in; invertedPass strips them after
+          let (k, sc) = try estimatePose(img, box: box, models, stripHead: false)
+          let p = PosePerson(box: box, kpts: k, scores: sc)
+          tracked.append(Tracked(p, box: box))
+          row.append(twoPass ? p : stripped(p))
+        }
+        posedCount = pick.count
+        tm.pose += lap()
       }
-      tm.pose += lap()
       tm.frames += 1
       tm.people += row.count
-      tm.posed += pick.count
+      tm.posed += posedCount
       if twoPass { row = try invertedPass(img, upright: row, models) }
       // track.py camera_path: KLT on the clip at 360 px tall, the previous frame's people masked
       let small = cameraPath ? grayscale(uprightBGR(planes, outW: smallW, outH: cameraSmallHeight)) : nil
