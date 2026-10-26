@@ -143,4 +143,5 @@ export const analysis = {
   'analysis.key.catch_height': "Catch height",
   'analysis.key.feetForward': "{cm} cm forward",
   'analysis.key.feetBack': "{cm} cm back",
+  'analysis.processing.analysingEta': "analysing {pct}% · {wait} left",
 } as const;

@@ -31,6 +31,7 @@ jest.mock('./prepare', () => ({
 }));
 jest.mock('./localLifts', () => ({
   saveLocalLift: jest.fn((_id: string, a: Analysis) => a),
+  keepFailedClip: jest.fn(),
 }));
 jest.mock('../analysis/device/analyseTrace', () => ({
   planFromMisses: jest.fn(() => ({ windows: [], plates: [], tracks: [], keyframes: [], misses: [] })),
@@ -48,7 +49,8 @@ import { queueLiftSync } from './liftOutbox';
 import { writeFreeUsed } from './freeLifts';
 import { useUsage } from '../features/paywall/usageStore';
 import { ClipTooLongError, prepareClip } from './prepare';
-import { saveLocalLift } from './localLifts';
+import { keepFailedClip, saveLocalLift } from './localLifts';
+import { discardPrepared } from './prepare';
 import { track } from '../lib/analytics';
 
 const native = PoseCoreML as NonNullable<typeof PoseCoreML>;
@@ -157,12 +159,12 @@ describe('analyseLoop', () => {
     expect(progress[progress.length - 1]).toEqual(['cue', 1]);
   });
 
-  it('spreads each pass over its third of the progress', async () => {
+  it('gives the first pass (pose on every frame) most of the progress and the replays the rest', async () => {
     const empty = { windows: [], plates: [], tracks: [], keyframes: [] };
     mockPlan.mockReturnValueOnce({ ...empty, misses: ['x'] }).mockReturnValueOnce({ ...empty, misses: [] });
     const progress: number[] = [];
     await analyseLoop('file:///c.mp4', 'snatch', 'l', (_s, f) => progress.push(f));
-    expect(progress.map((f) => Math.round(f * 6))).toEqual([1, 2, 3, 4, 6]);
+    expect(progress.map((f) => Math.round(f * 100))).toEqual([40, 80, 86, 92, 100]);
   });
 
   it('stops after three passes even if misses remain', async () => {
@@ -184,6 +186,9 @@ describe('startDeviceLift when the analysis fails', () => {
     expect(job?.error).toBe('analysis_failed');
     expect(job?.result?.failure?.reason).toBe('clip_cut_off');
     expect(track).toHaveBeenCalledWith('analysis_failed', { movement: 'snatch', code: 'no_reps' });
+    // the trimmed clip is kept for "Send this clip so we can fix it", not discarded
+    expect(keepFailedClip).toHaveBeenCalledWith('lift-1', 'file:///clip.mov.mp4');
+    expect(discardPrepared).not.toHaveBeenCalled();
   });
 
   it('sends a native read error to the could-not-read screen, counting and syncing nothing', async () => {
