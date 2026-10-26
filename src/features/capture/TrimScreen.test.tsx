@@ -94,3 +94,10 @@ describe('TrimScreen', () => {
     expect(video.currentTime).toBe(1.4);
   });
 });
+
+test('sent here by Analyse, the screen says why and that Done analyses', async () => {
+  const long = { ...demoClip('ok'), uri: 'file:///long.mov', durationS: 33, trim: { start: 0, end: 33 } };
+  const screen = await render(<TrimScreen clip={long} nudge onCancel={jest.fn()} onDone={jest.fn()} />);
+  expect(screen.getByTestId('trim-nudge')).toHaveTextContent('Long clips take minutes on the phone. Trim to one lift, under 15 s, for a fast read.');
+  expect(screen.queryByTestId('trim-problem')).toBeNull();
+});

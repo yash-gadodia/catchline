@@ -63,6 +63,7 @@ import {
   base,
   bestRep,
   fail,
+  noLiftFailure,
   guideRows,
   keyNumbers,
   KEYFRAME_H,
@@ -324,7 +325,7 @@ function runClean(ctx: Ctx, forceReps?: [number, number, number][]): Result {
     lowpass(up(ys(mid(k, L_SHO, R_SHO))), fps), torsoPx(k), fps);
   const reps = forceReps ?? lifts.map((l) => l.window);
   const classes = forceReps ? reps.map((): StartClass => 'floor') : lifts.map((l) => l.startClass);
-  const noClean = () => fail(ctx, 'unsupported_movement', 'no_reps', 'No clean found: the bar never went from the floor to a front-rack hold.');
+  const noClean = () => noLiftFailure(ctx, 'No clean found: the bar never went from the floor to a front-rack hold.');
   if (!reps.length) return noClean();
   const infos: RepInfo[] = [];
   const repCalls: (RepInfo | null | false)[] = [];
@@ -474,7 +475,7 @@ function jerkWindows(ctx: Ctx): [number, number, number][] {
 function runJerk(ctx: Ctx, forceReps?: [number, number, number][]): Result {
   const { k } = ctx;
   const reps = forceReps ?? jerkWindows(ctx);
-  if (!reps.length) return fail(ctx, 'unsupported_movement', 'no_reps', 'No jerk found: the bar never went from the shoulders to overhead.');
+  if (!reps.length) return noLiftFailure(ctx, 'No jerk found: the bar never went from the shoulders to overhead.');
   const pxBody = scaleFromBody(k);
   if (!pxBody) return fail(ctx, 'too_far', 'no_body_scale', "Could not measure the lifter's body to scale the clip.");
   const infos = reps.map(([start, end], ri): RepInfo => ({ ...jerkRep(ctx, ri + 1, start, end, pxBody), start_class: 'shoulders' }));

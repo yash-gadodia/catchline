@@ -48,8 +48,17 @@ export function toSubmission(clip: Clip, weight: string, units: Units): ClipSubm
 // is no native module (dev without it). A clip with no file (the sample) only exists
 // in dev builds; a release build goes back to capture rather than play the fixture
 // as the lifter's own lift.
-export async function submitClip(clip: ClipSubmission, opts: { replace?: boolean } = {}): Promise<void> {
+// Pose runs on every frame, so a 33 s clip is minutes on the phone (26-10, a lifter gave up at
+// "5%"): a trim longer than one lift goes to the trim screen first, which then analyses.
+export const LONG_LIFT_S = 15;
+
+export function needsTrim(trim: Trim): boolean {
+  return trim.end - trim.start > LONG_LIFT_S;
+}
+
+export async function submitClip(clip: ClipSubmission, opts: { replace?: boolean; trimmed?: boolean } = {}): Promise<void> {
   const go = opts.replace ? router.replace : router.push;
+  if (!opts.trimmed && clip.uri && needsTrim(clip.trim)) return go({ pathname: '/capture/trim', params: { then: 'analyse' } });
   // The Keychain count first (a reinstall must not hand the free lifts back); the
   // gate itself is local and works offline. The server mirror is read at launch.
   await syncKeychainUsage();
@@ -69,7 +78,7 @@ export async function submitClip(clip: ClipSubmission, opts: { replace?: boolean
 
 // After a paywall or trial purchase: send the clip the lifter already picked.
 // Returns false when there is no saved clip (the paywall was opened elsewhere).
-export function submitDraft(opts: { replace?: boolean } = {}): boolean {
+export function submitDraft(opts: { replace?: boolean; trimmed?: boolean } = {}): boolean {
   const { draft, lastWeight } = useCapture.getState();
   if (!draft) return false;
   void submitClip(toSubmission(draft, lastWeight, useOnboarding.getState().units), opts);

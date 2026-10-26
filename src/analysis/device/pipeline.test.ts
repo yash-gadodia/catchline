@@ -220,3 +220,17 @@ describe('the coaching guides and key numbers of a snatch', () => {
     expect(run(DROPPED_BEHIND).keyNumbers).not.toContain('jump_forward');
   });
 });
+
+// 26-10: a competition snatch filmed from behind came back "no lift found"; the camera angle is the fix.
+describe('no lift found', () => {
+  const STANDING = frames([[STAND, 0], [STAND, 60]]);
+  it('is the camera angle when the body reads front or back', () => {
+    const a = run(STANDING, 70);
+    expect([a.failure?.reason, a.failure?.code]).toEqual(['not_side_on', 'front_or_back']);
+    expect(a.failure?.message).toMatch(/^The camera is about \d+ degrees off side-on/);
+  });
+  it('stays no reps side-on', () => {
+    const a = run(STANDING, 0);
+    expect([a.failure?.reason, a.failure?.code]).toEqual(['unsupported_movement', 'no_reps']);
+  });
+});

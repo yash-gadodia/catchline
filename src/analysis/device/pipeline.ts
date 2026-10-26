@@ -263,6 +263,18 @@ export function fail(ctx: Ctx, reason: string, code: string, message: string): R
   };
 }
 
+// No lift found, and the lifter's shoulders and hips read wide enough that the camera is in front
+// or behind, not beside (26-10: a competition clip filmed from behind came back "no lift found"):
+// the fix is the camera angle, so that is the failure. The body yaw reads a front view low, so the
+// bar for "off side-on" is where cues stop being judged, not 90.
+export function noLiftFailure(ctx: Ctx, message: string): Result {
+  const yaw = yawFromBody(ctx.k, 0, ctx.n - 1);
+  if (yaw !== null && yaw >= rules.VALUE_MAX_DEG) {
+    return fail(ctx, 'not_side_on', 'front_or_back', `The camera is about ${pyRoundInt(yaw)} degrees off side-on, so the bar could not be followed.`);
+  }
+  return fail(ctx, 'unsupported_movement', 'no_reps', message);
+}
+
 export function runSnatch(ctx: Ctx, forceReps?: [number, number, number][]): Result {
   const { k, fps, H } = ctx;
   const up = (y: number[]) => y.map((v) => H - v);
@@ -275,7 +287,7 @@ export function runSnatch(ctx: Ctx, forceReps?: [number, number, number][]): Res
     lowpass(up(ys(mid(k, L_SHO, R_SHO))), fps), torsoPx(k), fps);
   const reps = forceReps ?? lifts.map((l) => l.window);
   const classes = forceReps ? reps.map((): StartClass => 'floor') : lifts.map((l) => l.startClass);
-  const noLift = () => fail(ctx, 'unsupported_movement', 'no_reps', 'No floor-to-overhead lift found in this clip.');
+  const noLift = () => noLiftFailure(ctx, 'No floor-to-overhead lift found in this clip.');
   if (!reps.length) return noLift();
   const repInfo: RepInfo[] = [];
   const repCalls: (RepInfo | null | false)[] = [];

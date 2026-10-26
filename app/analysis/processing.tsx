@@ -4,6 +4,8 @@ import { putLiveAnalysis } from '../../src/analysis/live';
 import { useAnalysis } from '../../src/analysis/useAnalysis';
 import type { Analysis, Failure } from '../../src/analysis/types';
 import ProcessingSheet, { EXPECTED_ANALYSIS_S, type ProcessingState } from '../../src/features/analysis/ProcessingSheet';
+import { etaSeconds, type Sample } from '../../src/features/analysis/eta';
+import { formatWait } from '../../src/analysis/format';
 import { registerPushToken } from '../../src/features/notifications';
 import { noteAnalysisFinished } from '../../src/features/notifications/ask';
 import { useUsage } from '../../src/features/paywall/usageStore';
@@ -27,10 +29,13 @@ export default function ProcessingRoute() {
   return <Processing key={JSON.stringify(params)} params={params} />;
 }
 
-// The first step's meta, in the lifter's language.
-function uploadMeta(job: Job | null): string | null {
+// The first step's meta, in the lifter's language: with how long is left once the run's own pace says.
+function uploadMeta(job: Job | null, eta: number | null): string | null {
   if (job?.status === 'preparing') return t('analysis.processing.preparingPct', { pct: Math.round(job.prepared * 100) });
-  if (job?.status === 'analysing') return t('analysis.processing.analysingPct', { pct: Math.round((job.fraction ?? 0) * 100) });
+  if (job?.status === 'analysing') {
+    const pct = Math.round((job.fraction ?? 0) * 100);
+    return eta === null ? t('analysis.processing.analysingPct', { pct }) : t('analysis.processing.analysingEta', { pct, wait: formatWait(eta) });
+  }
   return null;
 }
 
@@ -120,6 +125,15 @@ function LiveProcessing() {
     return () => clearInterval(tick);
   }, []);
 
+  // The pace of the run so far says how long is left (a 33 s clip sat at "5%" for minutes, 26-10).
+  const samples = useRef<Sample[]>([]);
+  const fraction = job?.status === 'analysing' ? job.fraction ?? 0 : null;
+  useEffect(() => {
+    if (fraction === null) return;
+    samples.current.push({ at: Date.now(), fraction });
+  }, [fraction]);
+  const eta = fraction === null ? null : etaSeconds(samples.current);
+
   useEffect(() => {
     if (!job || job.status !== 'failed') return;
     if (job.error === 'clip_too_long' || job.error === 'models_unavailable') return;
@@ -146,7 +160,7 @@ function LiveProcessing() {
     <ProcessingSheet
       analysis={analysis}
       clipUri={job?.uri ?? null}
-      meta={uploadMeta(job) ?? `${elapsed} s`}
+      meta={uploadMeta(job, eta) ?? `${elapsed} s`}
       firstStep={job?.status === 'preparing' ? t('analysis.processing.preparingClip') : t('analysis.processing.analysingOnPhone')}
       maxS={job?.maxS ?? undefined}
       state={state}

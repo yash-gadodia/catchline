@@ -9,14 +9,18 @@ import { activeTrim, type Clip } from './store';
 import Trimmer from './Trimmer';
 import { clampToTrim, trimProblem, type Trim } from './trim';
 import { maxDurationS } from './compress';
+import { LONG_LIFT_S } from './submit';
 import { t } from '../../i18n';
 
 export default function TrimScreen({
   clip,
+  nudge,
   onCancel,
   onDone,
 }: {
   clip: Clip;
+  // Analyse sent the lifter here: say why, and that Done analyses.
+  nudge?: boolean;
   onCancel: () => void;
   onDone: (trim: Trim) => void;
 }) {
@@ -75,7 +79,11 @@ export default function TrimScreen({
           }}
           onDrag={(handle, at) => setDrag(handle ? at : undefined)}
         />
-        {problem ? (
+        {nudge && problem !== 'too_long' ? (
+          <Text testID="trim-nudge" style={{ color: colors.text, ...type.callout, paddingTop: space.s3 }}>
+            {t('capture.trim.nudge', { max: LONG_LIFT_S })}
+          </Text>
+        ) : problem ? (
           <Text testID="trim-problem" style={{ color: problem === 'too_long' ? colors.flare : colors.text2, ...type.callout, paddingTop: space.s3 }}>
             {problem === 'too_long' ? t('capture.trim.tooLong', { max: maxDurationS() }) : t('capture.trim.long')}
           </Text>

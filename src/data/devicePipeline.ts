@@ -17,7 +17,7 @@ import { useUsage } from '../features/paywall/usageStore';
 import { writeFreeUsed } from './freeLifts';
 import { queueLiftSync } from './liftOutbox';
 import { syncConsent } from './backend';
-import { saveLocalLift } from './localLifts';
+import { keepFailedClip, saveLocalLift } from './localLifts';
 import { usePipeline } from './pipeline';
 import { detectedMade } from '../features/library/madeLog';
 import { ClipTooLongError, discardPrepared, prepareClip } from './prepare';
@@ -100,6 +100,11 @@ export function toNativePlan(plan: Plan): AnalysePlan {
   };
 }
 
+// The first pass runs pose on every frame and is nearly all of the wait; the later
+// passes reuse it. The progress bar follows that, so it does not sit at a third.
+export const PASS_WEIGHTS = [0.8, 0.12, 0.08];
+const PASS_STARTS = PASS_WEIGHTS.map((_, i) => PASS_WEIGHTS.slice(0, i).reduce((a, b) => a + b, 0));
+
 export async function analyseLoop(uri: string, movement: string, liftId: string, onProgress: Progress, isCancelled: () => boolean = () => false): Promise<LoopResult> {
   const native = PoseCoreML;
   if (!native) throw new Error('no_native');
@@ -108,7 +113,7 @@ export async function analyseLoop(uri: string, movement: string, liftId: string,
   let trace: unknown = null;
   let stills: Record<string, string> = {};
   for (let i = 0; i < MAX_PASSES; i++) {
-    const sub = native.addListener('onAnalyseProgress', (e) => onProgress(e.stage, (i + e.fraction) / MAX_PASSES));
+    const sub = native.addListener('onAnalyseProgress', (e) => onProgress(e.stage, PASS_STARTS[i] + e.fraction * PASS_WEIGHTS[i]));
     try {
       result = await pass(uri, movement, plan);
     } finally {
@@ -204,6 +209,9 @@ export async function startDeviceLift(sub: ClipSubmission & { uri: string }): Pr
     const record = syncRecord(local, sub, now);
     void queueLiftSync({ id: liftId, lift: record });
     if (local.failure) {
+      // Kept so the lifter can choose to send it (the failure screen); a cue's clip is not.
+      keepFailedClip(liftId, clip.uri);
+      prepared = null;
       track(EVENTS.ANALYSIS_FAILED, { movement: sub.movement, code: record.failureCode ?? 'unknown' });
       patch({ status: 'failed', error: 'analysis_failed', result: local });
     } else {

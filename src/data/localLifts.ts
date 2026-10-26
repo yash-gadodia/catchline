@@ -82,6 +82,22 @@ export async function listLocalAnalyses(): Promise<{ liftId: string; analysis: A
   return out;
 }
 
+// The trimmed clip of a failed lift, kept so the lifter can choose to send it. It goes with the lift folder.
+const CLIP_FILE = 'clip.mp4';
+
+export function keepFailedClip(liftId: string, uri: string): void {
+  const dir = liftDir(liftId);
+  dir.create({ intermediates: true, idempotent: true });
+  const dest = new File(dir, CLIP_FILE);
+  if (dest.exists) dest.delete();
+  new File(uri).move(dest);
+}
+
+export function localClipUri(liftId: string): string | null {
+  const file = new File(liftDir(liftId), CLIP_FILE);
+  return file.exists ? file.uri : null;
+}
+
 export function deleteLocalLift(liftId: string): void {
   const dir = liftDir(liftId);
   if (dir.exists) dir.delete();

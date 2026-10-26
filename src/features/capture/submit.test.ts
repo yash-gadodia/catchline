@@ -145,3 +145,18 @@ describe('retest', () => {
     });
   });
 });
+
+// 26-10: a 33 s untrimmed clip sat at "analysing 5%" for minutes on the phone and the lifter gave up.
+test('a trim longer than one lift goes to the trim screen first, and analyses once trimmed', async () => {
+  useCapture.setState({ draft: newClip({ uri: 'file:///long.mov', durationS: 33, fps: 30, source: 'library', movement: 'snatch' }) });
+  usePurchases.setState({ tier: 'pull', period: 'annual' });
+
+  expect(submitDraft()).toBe(true);
+  await flush();
+  expect(startLift).not.toHaveBeenCalled();
+  expect(mockNav.push).toHaveBeenCalledWith({ pathname: '/capture/trim', params: { then: 'analyse' } });
+
+  expect(submitDraft({ replace: true, trimmed: true })).toBe(true);
+  await flush();
+  expect(startLift).toHaveBeenCalledWith(expect.objectContaining({ uri: 'file:///long.mov' }));
+});

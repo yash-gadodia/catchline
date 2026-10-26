@@ -149,4 +149,5 @@ export const analysis: Strings<typeof en> = {
   'analysis.key.catch_height': "Altura da recepção",
   'analysis.key.feetForward': "{cm} cm para a frente",
   'analysis.key.feetBack': "{cm} cm para trás",
+  'analysis.processing.analysingEta': "analisando {pct}% · faltam {wait}",
 };
