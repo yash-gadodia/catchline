@@ -81,5 +81,6 @@ export const capture = {
   'capture.trim.play': "Play",
   'capture.trim.pause': "Pause",
   'capture.trim.long': "Long for one lift. Trim to just the lift for a faster, sharper read.",
+  'capture.trim.nudge': "Long clips take minutes on the phone. Trim to one lift, under {max} s, for a fast read.",
   'capture.trim.tooLong': "Too long to analyse. Trim to {max} s or less.",
 } as const;

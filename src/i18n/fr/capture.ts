@@ -93,6 +93,7 @@ export const capture: Strings<typeof en> = {
   'capture.trim.pause': "Pause",
   // REVIEW
   'capture.trim.long': "Long pour une seule levée. Coupe autour de la levée pour une lecture plus rapide et plus précise.",
+  'capture.trim.nudge': "Les longs clips prennent des minutes sur le téléphone. Coupe sur une seule levée, moins de {max} s, pour une lecture rapide.",
   // REVIEW
   'capture.trim.tooLong': "Trop long pour l’analyse. Coupe à {max} s ou moins.",
   'capture.viewfinder.framingGuide': "De profil, toute la barre dans le cadre, téléphone à hauteur de la barre",
