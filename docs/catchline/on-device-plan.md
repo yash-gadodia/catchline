@@ -91,3 +91,15 @@ M4 Mac does 6-9 fps). That number sets the minimum device and whether we need th
 - PR #53 merged (`0c899e8`): rules + cues TS port, shared `rules.json`, "Other ways to say it".
 - `feat/device-measure` a7e0cd0, `feat/pose-model-download` b739f81, `feat/plate-detector` 966fb32 in `.claude/worktrees/agent-*` (see the handoff memory).
 - Separate and first tomorrow: the "no cue when filmed at an angle" fix (`fix/angle-cue`), which helps every user today regardless of this plan.
+
+## Pose pass speed (3.1.1)
+
+A lifter's 33 s untrimmed clip sat at "analysing 5%" for minutes (26-10). The pose pass is 1/3 of the bar (`analyseLoop` scales each pass into a third), so 5% is ~15% of pose. Measured with the macOS harness (`modules/pose-coreml/harness`, release build, bundled FP32 models-pose-v1, all compute units) on the idle M4 Mini, ms per frame:
+
+| clip | frames | decode | upright | detect | pose (posed/people) | camera | total s |
+|---|---|---|---|---|---|---|---|
+| side-on snatch, app transcode 1080x1920 | 270 | 0 | 6 | 26 | 6 (1.2/1.3) | 3 | 11.0 |
+| owner snatch 608x1080 (21B27BAF) | 153 | 0 | 4 | 26 | 13 (2.9/5.6) | 2 | 7.1 |
+| owner 37 s untrimmed, 1080x1920 SDR (IMG_0073) | 1122 | 0 | 6 | 26 | 5 (1.1/1.4) | 3 | 45.2 |
+
+The person detector (YOLOX, 24-25 ms of Core ML per frame) is ~2/3 of the pass; lifter-only pose (#130) already took pose from ~66 to 5-13 ms. Decode reads 0 because AVAssetReader decodes ahead on the media engine.
