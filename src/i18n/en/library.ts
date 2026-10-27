@@ -31,6 +31,7 @@ export const library = {
   'library.detail.best': '{head} · best {value}',
   'library.detail.noCue': "{head} · no cue",
   'library.detail.noCueOnly': "analysed · no cue",
+  'library.detail.pathOnly': "path only · no phases",
   'library.counter': '{done} of {target}',
   'library.ago.today': 'today',
   'library.ago.yesterday': 'yesterday',

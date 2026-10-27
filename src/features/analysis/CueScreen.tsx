@@ -312,14 +312,16 @@ function Clean({ analysis, nav, retest }: { analysis: Analysis; nav: Nav; retest
 }
 
 // A partial result: the path and phases were measured, the cue was held back. Says why and how to film it next time.
+// A path-only result (no phases found) is labelled as such, with the bar, feet and hips as the result and no cue text.
 function Partial({ analysis, nav, retest, retestable }: { analysis: Analysis; nav: Nav } & RetestProps) {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const copy = noCueCopy(analysis);
+  const pathOnly = analysis.noCueReason?.code === 'path_only';
   const rep = repByIndex(analysis, analysis.bestRepIndex);
   const box = { width, height: Math.round(width * (330 / 390)) };
   return (
-    <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }} testID="partial-result">
+    <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }} testID={pathOnly ? 'path-only-result' : 'partial-result'}>
       <TopBar title={liftTitle(analysis)} onBack={nav.onBack} onMore={nav.onMore} />
       <PathReplay analysis={analysis} rep={rep} box={box} pathTestID="partial-path" />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: space.s4, paddingHorizontal: space.gutter, gap: space.s2 }}>
@@ -327,10 +329,12 @@ function Partial({ analysis, nav, retest, retestable }: { analysis: Analysis; na
         <ResultNumbers analysis={analysis} />
         <MadeCall analysis={analysis} />
         <MissNote analysis={analysis} />
-        <SmallCaps>{t('analysis.partial.label')}</SmallCaps>
-        <Text style={[display(32), { color: colors.text }]} testID="no-cue-title">
-          {t('analysis.partial.title')}
-        </Text>
+        <SmallCaps>{t(pathOnly ? 'analysis.pathOnly.label' : 'analysis.partial.label')}</SmallCaps>
+        {pathOnly ? null : (
+          <Text style={[display(32), { color: colors.text }]} testID="no-cue-title">
+            {t('analysis.partial.title')}
+          </Text>
+        )}
         <Text style={{ color: colors.text2, ...type.body }} testID="no-cue-reason">
           {copy?.reason ?? ''}
         </Text>

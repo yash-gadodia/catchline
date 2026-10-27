@@ -36,6 +36,7 @@ export const library: Strings<typeof en> = {
   // REVIEW: machine-drafted, needs a native speaker before release.
   'library.detail.noCue': "{head} · sem dica",
   'library.detail.noCueOnly': "analisado · sem dica",
+  'library.detail.pathOnly': "só a trajetória · sem fases",
   'library.counter': "{done} de {target}",
   'library.ago.today': "hoje",
   'library.ago.yesterday': "ontem",

@@ -122,6 +122,7 @@ export function liftDetail(l: Lift, sessions: Session[], opts: { cueShown?: bool
   const metricId = PRIMARY_METRIC[l.movement];
   const value = session?.values[metricId];
   if (analysis && isPartial(analysis)) {
+    if (analysis.noCueReason?.code === 'path_only') return t('library.detail.pathOnly');
     return value == null ? t('library.detail.noCueOnly') : t('library.detail.noCue', { head: `${metricFor(metricId).short} ${metricText(metricId, value)}` });
   }
   if (analysis && !analysis.cue && !analysis.failure && analysis.reps.length > 0) {

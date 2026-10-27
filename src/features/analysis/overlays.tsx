@@ -55,6 +55,45 @@ export function FlarePath({
   );
 }
 
+// A joint track beside the bar (27-10: tracking first): bone, thinner than the flare path; the hips solid at the
+// ghost weight, the shoulders a hairline dash, so the two read apart on the lifter.
+export function TrackPath({ points, kind, testID }: { points: Point[]; kind: 'hips' | 'shoulders'; testID?: string }) {
+  if (points.length < 2) return null;
+  const hips = kind === 'hips';
+  return (
+    <Path
+      testID={testID}
+      d={svgPath(points)}
+      stroke={colors.text}
+      strokeWidth={hips ? stroke.ghost : stroke.hairline}
+      strokeDasharray={hips ? undefined : '3 3'}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      opacity={opacity.lines}
+      fill="none"
+    />
+  );
+}
+
+// Where the feet stood at the start and where they landed: a bone tick under each mid-ankle, joined when they moved,
+// with the shift in cm over the landing when it was measured.
+export function FeetMarks({ start, end, label, testID }: { start: Point; end: Point; label?: string; testID?: string }) {
+  const moved = Math.abs(end.x - start.x) >= 4;
+  const tick = (p: Point, key: string) => <Line key={key} x1={p.x - 7} y1={p.y} x2={p.x + 7} y2={p.y} />;
+  return (
+    <G testID={testID} stroke={colors.text} strokeWidth={stroke.outline} strokeLinecap="round" opacity={opacity.lines}>
+      {tick(start, 'start')}
+      {moved ? tick(end, 'end') : null}
+      {moved ? <Line x1={start.x} y1={start.y} x2={end.x} y2={end.y} strokeWidth={stroke.hairline} strokeDasharray="2 3" /> : null}
+      {label ? (
+        <SvgText testID="feet-shift" x={end.x} y={end.y + 14} fill={colors.text} stroke="none" fontSize={10} fontFamily={fontFamily.mono} textAnchor="middle">
+          {label}
+        </SvgText>
+      ) : null}
+    </G>
+  );
+}
+
 export function GhostPath({ points, testID }: { points: Point[]; testID?: string }) {
   if (points.length < 2) return null;
   return (

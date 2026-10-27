@@ -1,4 +1,4 @@
-import type { Analysis, Point, Rep } from '../types';
+import type { Analysis, Point, Rep, TracePoint } from '../types';
 import { keyFrameForPhase, pointAt, repByIndex } from '../timeline';
 import mock from './snatch-mock.json';
 import real from './snatch-real.json';
@@ -167,12 +167,74 @@ export const SAMPLE_ROUTE = { pathname: '/analysis/processing', params: { fixtur
 // A clean rep: measured fine, no fault crossed its threshold (prod lift eeed17ec, build 31 crashed on it).
 export const snatchMockClean: Analysis = { ...snatchMock, id: 'snatch-mock-clean', cue: null, notes: [] };
 
+// The joint tracks beside the mock's bar path (3.1.1): the hips a hand's width behind the bar until the catch, the
+// shoulders above them, the feet on the floor stepping 3 cm forward into the catch.
+function mockTracks(rep: Rep): Rep['tracks'] {
+  const catchF = keyFrameForPhase(rep, 'catch')?.frame ?? rep.endFrame;
+  const floor = Math.max(...rep.path.map((p) => p.y)) + 0.08;
+  const at = (dx: number, dy: number, f: (p: TracePoint) => number) => rep.path.map((p) => ({ frame: p.frame, x: Math.min(1, p.x + dx), y: Math.min(1, f(p) + dy) }));
+  return {
+    feet: rep.path.map((p) => ({ frame: p.frame, x: p.frame < catchF ? 0.5 : 0.52, y: floor })),
+    hips: at(-0.06, 0, (p) => (p.frame < catchF ? p.y + 0.18 : p.y + 0.3)),
+    shoulders: at(-0.03, 0, (p) => (p.frame < catchF ? p.y + 0.02 : p.y + 0.16)),
+    knees: at(-0.02, 0, () => floor - 0.16),
+    elbows: at(0.01, 0, (p) => p.y + 0.08),
+  };
+}
+export const snatchMockTracked: Analysis = {
+  ...snatchMock,
+  id: 'snatch-mock-tracked',
+  reps: snatchMock.reps.map((r) => ({ ...r, tracks: mockTracks(r) })),
+  keyNumbers: [...(snatchMock.keyNumbers ?? []), 'jump_forward', 'hip_rise', 'bar_over_shoulder', 'knee_catch', 'elbow_pull'],
+  measurements: [
+    ...snatchMock.measurements.filter((m) => m.id !== 'jump_forward'),
+    { id: 'jump_forward', label: 'Jumped forward', value: 3.2, unit: 'cm', frame: 446, status: 'normal', note: 'feet, lift-off to catch' },
+    { id: 'hip_rise', label: 'Hip rise', value: 30.9, unit: 'cm', frame: 420, status: 'normal', note: 'hips, lift-off to full extension' },
+    { id: 'bar_over_shoulder', label: 'Bar over shoulder', value: -1.4, unit: 'cm', frame: 446, status: 'normal', note: 'bar vs shoulder at the catch (+ = in front)' },
+    { id: 'knee_catch', label: 'Knee at catch', value: 38.9, unit: 'deg', frame: 452, status: 'normal', note: 'deepest knee angle in the catch' },
+    { id: 'elbow_pull', label: 'Elbow bend in the pull', value: 7.5, unit: 'deg', frame: 400, status: 'normal', note: 'most the elbows bent before full extension (0 = straight)' },
+  ],
+};
+
+// A path-only result (3.1.1): no lift found, so one rep over the whole clip with the bar, feet and hips tracked, a
+// setup and a peak still, no phases, no cue, no numbers.
+const pathOnlyRep: Rep = (() => {
+  const rep = repByIndex(snatchMock, 2);
+  const peak = rep.path.reduce((a, b) => (b.y < a.y ? b : a));
+  return {
+    ...rep,
+    index: 1,
+    made: false,
+    phases: [],
+    keyFrames: [
+      { phase: 'setup', frame: rep.startFrame, image: keyFrameForPhase(rep, 'setup')!.image },
+      { phase: 'peak', frame: peak.frame, image: keyFrameForPhase(rep, 'turnover')!.image },
+    ],
+    guides: { startX: rep.path[0].x, ring: rep.path.reduce((a, b) => (b.x > a.x ? b : a)) },
+    tracks: mockTracks(rep),
+  };
+})();
+export const snatchMockPathOnly: Analysis = {
+  ...snatchMock,
+  id: 'snatch-mock-path-only',
+  reps: [pathOnlyRep],
+  bestRepIndex: 1,
+  cue: null,
+  notes: [],
+  noCueReason: { code: 'path_only', gate: 'no_reps', offSideDeg: 8 },
+  yawBucket: 'side',
+  measurements: [],
+  keyNumbers: [],
+};
+
 export const ANALYSES: Record<string, Analysis> = {
   'snatch-mock': snatchMock,
   'snatch-mock-clean': snatchMockClean,
   'snatch-mock-low': snatchMockLow,
   'snatch-mock-miss': snatchMockMiss,
   'snatch-mock-partial': snatchMockPartial,
+  'snatch-mock-tracked': snatchMockTracked,
+  'snatch-mock-path-only': snatchMockPathOnly,
   'snatch-real': snatchReal,
 };
 
