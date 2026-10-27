@@ -213,11 +213,46 @@ describe('the coaching guides and key numbers of a snatch', () => {
     expect(a.measurements.filter((m) => ['max_forward_drift', 'catch_height'].includes(m.id)).map((m) => m.id)).toEqual(['max_forward_drift', 'catch_height']);
   });
 
-  it('lists only the confidently measured numbers, and no forward/back ones off side-on', () => {
+  it('lists only the confidently measured numbers, and no forward/back ones past 45 deg off side-on', () => {
     const side = run(MADE);
-    expect(side.keyNumbers).toEqual(['max_forward_drift', 'bar_forward_off_hips', 'bar_crash', 'jump_forward', 'catch_height']);
-    expect(run(MADE, 40, 1050).keyNumbers).toEqual(['bar_crash', 'catch_height']);
+    expect(side.keyNumbers).toEqual(['max_forward_drift', 'bar_forward_off_hips', 'bar_crash', 'jump_forward', 'catch_height', 'hip_rise', 'bar_over_shoulder', 'knee_catch', 'elbow_pull']);
+    expect(run(MADE, 40, 1050).keyNumbers).toEqual(side.keyNumbers);
+    expect(run(MADE, 52, 1050).keyNumbers).toEqual(['catch_height', 'hip_rise', 'knee_catch', 'elbow_pull']);
     expect(run(DROPPED_BEHIND).keyNumbers).not.toContain('jump_forward');
+  });
+});
+
+describe('the joint tracks beside the bar path', () => {
+  it('follow the feet, hips, shoulders, knees and elbows over the rep frames, normalised like the path', () => {
+    const a = run(MADE);
+    const rep = a.reps[0];
+    const tr = rep.tracks!;
+    expect(Object.keys(tr)).toEqual(['feet', 'hips', 'shoulders', 'knees', 'elbows']);
+    for (const t of Object.values(tr)) {
+      expect([t![0].frame, t![t!.length - 1].frame]).toEqual([rep.path[0].frame, rep.path[rep.path.length - 1].frame]);
+      expect(t!.every((p) => p.x >= 0 && p.x <= 1 && p.y >= 0 && p.y <= 1)).toBe(true);
+    }
+    // the hips rise from lift-off to the top of the pull and the feet stay on the floor
+    const hips = tr.hips!;
+    const ext = rep.phases.find((p) => p.name === 'second_pull')!.endFrame;
+    expect(hips.find((p) => p.frame === ext)!.y).toBeLessThan(hips[0].y - 0.1);
+    expect(Math.max(...tr.feet!.map((p) => p.y)) - Math.min(...tr.feet!.map((p) => p.y))).toBeLessThan(0.03);
+    const ids = a.measurements.filter((m) => ['hip_rise', 'bar_over_shoulder', 'knee_catch', 'elbow_pull'].includes(m.id));
+    expect(ids.map((m) => `${m.id} ${m.unit} ${m.status}`)).toEqual(['hip_rise cm normal', 'bar_over_shoulder cm normal', 'knee_catch deg normal', 'elbow_pull deg normal']);
+    expect(ids.map((m) => m.value)).toEqual([30.9, 19.8, 38.9, 1]);
+  });
+
+  it('skip a frame whose joint the pose did not see instead of inventing it', () => {
+    const input = lifter(MADE);
+    const full = analyse(input, 'snatch').analysis as unknown as Analysis;
+    const hips = full.reps[0].tracks!.hips!;
+    const f = hips[Math.floor(hips.length / 2)].frame;
+    input.lifter.k[f][L_HIP] = [NaN, NaN];
+    const a = analyse(input, 'snatch').analysis as unknown as Analysis;
+    const got = a.reps[0].tracks!.hips!;
+    expect(got.length).toBe(hips.length - 1);
+    expect(got.some((p) => p.frame === f)).toBe(false);
+    expect(a.reps[0].tracks!.feet!.length).toBe(full.reps[0].tracks!.feet!.length);
   });
 });
 

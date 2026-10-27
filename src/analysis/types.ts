@@ -57,6 +57,11 @@ export type Measurement = {
 // knee at lift-off, the hip at hip contact and the bar at its highest, and the bar where it was furthest forward.
 export type RepGuides = { startX: number; kneeY: number; hipY: number; peakY: number; ring: TracePoint };
 
+// The joint tracks beside the bar path, in the same frame as `path`: per frame the mid-point of the pair (mid-ankle,
+// mid-hip, ...). A frame where the pose has no such joint is left out, never filled in. Absent before 3.1.1.
+export type TrackName = 'feet' | 'hips' | 'shoulders' | 'knees' | 'elbows';
+export type RepTracks = Partial<Record<TrackName, TracePoint[]>>;
+
 export type Rep = {
   index: number;
   startFrame: number;
@@ -66,6 +71,7 @@ export type Rep = {
   keyFrames: KeyFrame[];
   path: TracePoint[];
   guides?: RepGuides;
+  tracks?: RepTracks;
 };
 
 export type Cue = {

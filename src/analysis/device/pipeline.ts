@@ -3,7 +3,7 @@
 import { MAX_YAW_DEG, cleanPullValues, hipAngles, kneeAngles, rackMask, scaleFromBody, yawFromBody } from './body';
 import { detect, Detected } from './detect';
 import { lowpass, lowpassPts } from './filter';
-import { angle, barFromWrists, barTrack, dist, finitePt, fromRef, normalise, toRef, toWorld, trunkAngle } from './geometry';
+import { angle, barFromWrists, barTrack, dist, finitePt, fromRef, midPt, normalise, toRef, toWorld, trunkAngle } from './geometry';
 import {
   FAMILY,
   K,
@@ -47,6 +47,7 @@ import {
   max,
   median,
   min,
+  nanargmin,
   nanmax,
   nanmean,
   nanmedian,
@@ -76,7 +77,7 @@ import {
 } from './phases';
 import * as rules from './rules';
 import { DeviceInput, PlateObservation } from './source';
-import type { RepGuides } from '../types';
+import type { RepGuides, RepTracks, TracePoint, TrackName } from '../types';
 
 export const KEYFRAME_H = 1080;
 const PLATE_CM = 45.0;
@@ -195,6 +196,9 @@ export type RepInfo = {
   outcome_detail?: OutcomeDetail;
   snatch?: SnatchExtras;
   guides?: RepGuides;
+  tracks?: RepTracks;
+  // the numbers a lifter reads off the tracks (hip rise, knee at the catch, ...), listed with the key numbers
+  track_meas?: MeasRow[];
 };
 export type SnatchExtras = {
   off_side_estimates: number[];
@@ -246,6 +250,30 @@ export function base(analysisId: string, meta: DeviceInput['meta'], n: number, m
     video: { uri: `assets/analysis/${analysisId}`, width: vw, height: vh, fps: meta.fps, frameCount: meta.frameCount || n },
     traceKind: (FAMILY[movement] ?? 'barbell') !== 'barbell' ? 'hip' : 'bar',
   };
+}
+
+const TRACKS: [TrackName, number, number][] = [
+  ['feet', L_ANK, R_ANK],
+  ['hips', L_HIP, R_HIP],
+  ['shoulders', L_SHO, R_SHO],
+  ['knees', L_KNEE, R_KNEE],
+  ['elbows', L_ELB, R_ELB],
+];
+
+// The joint tracks beside the bar path (27-10: tracking first): per window frame from..to the mid-point of each pair,
+// smoothed like the bar (ksm), back in the frame's own pixels like the path. A frame where the pose has either joint
+// missing (kr, before the low-pass filled it) is skipped, not invented.
+export function jointTracks(kr: K, ksm: K, Ms: Affine[], from: number, to: number, W: number, H: number, g: (f: number) => number): RepTracks {
+  const out: RepTracks = {};
+  for (const [name, a, b] of TRACKS) {
+    const pts: TracePoint[] = [];
+    for (let f = Math.max(0, from); f <= to && f < ksm.length; f++) {
+      if (!finitePt(kr[f][a]) || !finitePt(kr[f][b])) continue;
+      pts.push({ frame: g(f), ...normalise(fromRef(midPt(ksm[f][a], ksm[f][b]), Ms[f]), W, H) });
+    }
+    if (pts.length) out[name] = pts;
+  }
+  return out;
 }
 
 export function fail(ctx: Ctx, reason: string, code: string, message: string): Result {
@@ -322,6 +350,7 @@ export function runSnatch(ctx: Ctx, forceReps?: [number, number, number][]): Res
     })),
     path: r.path,
     ...(r.guides ? { guides: r.guides } : {}),
+    ...(r.tracks ? { tracks: r.tracks } : {}),
   }));
   const analysis: AnalysisJson = {
     ...base(ctx.analysisId, ctx.input.meta, ctx.n),
@@ -603,6 +632,7 @@ export function analyseRep(
   const g = (f: number) => s0 + int(f);
   const path: RepInfo['path'] = [];
   for (let f = phases[0].startFrame; f < L; f++) if (f <= ev.recovered) path.push({ frame: g(f), ...normalise(fromRef(bar[f], Ms[f]), W, H) });
+  const tracks = jointTracks(kr, ksm, Ms, phases[0].startFrame, ev.recovered, W, H, g);
   const pull2 = phases.find((ph) => ph.name === 'second_pull');
   const sp = peakUpSpeed(barY, fps, pxPerCm, pull2 ? pull2.startFrame : ev.liftoff, ev.second_ext);
   const drift = bar.slice(lo, ev.caught + 1).map((p) => fwd * (p[0] - bar[lo][0]));
@@ -611,6 +641,19 @@ export function analyseRep(
   const avgSpeed = pullSpeed(barY, fps, pxPerCm, lo, ev.second_ext);
   const barLost = kind === 'snatch' && bar[ev.peak][1] > sho[ev.peak][1];
   const catchEnd = Math.max(ev.caught, depthEnd);
+  const catchKneeMin = min(kneeAng.slice(ev.caught, catchEnd + 1));
+  const pullElbow = elbow.slice(lo, ev.second_ext + 1);
+  const bentF = pullElbow.some(Number.isFinite) ? lo + nanargmin(pullElbow) : lo;
+  const trackMeas: MeasRow[] = [
+    { id: 'hip_rise', label: 'Hip rise', value: pyRound(cm(hip[lo][1] - hip[ev.second_ext][1]), 1), unit: 'cm', frame: g(ev.second_ext), status: 'normal', note: 'hips, lift-off to full extension' },
+    ...(kind === 'snatch'
+      ? [{ id: 'bar_over_shoulder', label: 'Bar over shoulder', value: pyRound(cm(fwd * (bar[ev.caught][0] - sho[ev.caught][0])) * foreshort, 1), unit: 'cm', frame: g(ev.caught), status: 'normal', note: 'bar vs shoulder at the catch (+ = in front)' }]
+      : []),
+    { id: 'knee_catch', label: 'Knee at catch', value: pyRound(catchKneeMin, 1), unit: 'deg', frame: g(depthF), status: 'normal', note: 'deepest knee angle in the catch' },
+    ...(Number.isFinite(elbow[bentF])
+      ? [{ id: 'elbow_pull', label: 'Elbow bend in the pull', value: pyRound(180 - elbow[bentF], 1), unit: 'deg', frame: g(bentF), status: 'normal', note: 'most the elbows bent before full extension (0 = straight)' }]
+      : []),
+  ];
   const events: Record<string, number | boolean> = {};
   for (const [kk, v] of Object.entries(ev)) events[kk] = typeof v === 'boolean' ? v : g(v);
   const keys: Record<string, number> = {};
@@ -650,6 +693,8 @@ export function analyseRep(
     },
     bar_lost: barLost,
     miss,
+    tracks,
+    track_meas: trackMeas,
     snatch: {
       off_side_estimates: offEst,
       span_cm: spanCm,
@@ -657,7 +702,7 @@ export function analyseRep(
       catch_depth: valsDepth,
       catch_depth_frame: g(depthF),
       catch_kind: catchKind,
-      catch_knee_min: min(kneeAng.slice(ev.caught, catchEnd + 1)),
+      catch_knee_min: catchKneeMin,
       peak_h: peakH,
       drop,
       turnover_s: turnoverS,
@@ -833,6 +878,7 @@ function buildCue(r: RepInfo, reps: RepInfo[], best: RepInfo, W: number, H: numb
       secondExt: r.events.second_ext as number,
       peak: r.events.peak as number,
     }),
+    ...(r.track_meas ?? []),
   );
   if (r.outcome === 'missed_behind') return missBehindCard(r, meas, W, H);
   if (r.outcome === 'missed_forward') {
@@ -1013,12 +1059,16 @@ export function guideRows(sn: SnatchExtras): MeasRow[] {
 
 const KEY_NUMBERS = ['max_forward_drift', 'bar_forward_off_hips', 'bar_crash', 'jump_forward', 'catch_height'];
 const KEY_FORWARD = new Set(['max_forward_drift', 'bar_forward_off_hips', 'jump_forward']);
+export const TRACK_NUMBERS = ['hip_rise', 'bar_over_shoulder', 'knee_catch', 'elbow_pull'];
+const TRACK_FORWARD = new Set(['bar_over_shoulder']);
 
-// The result's key numbers: measured on a scale the cue trusts, on a whole rep with the bar in view, and forward/back
-// distances only when filmed side-on.
+// The result's key numbers: the cue-grade ones measured on a scale the cue trusts, on a whole rep with the bar in
+// view, then the track readings (sized from the body when no plate held); forward/back distances only within the
+// yaw a distance is still read as a value (design 3.1: 45 deg).
 export function keyNumbers(r: RepInfo, meas: MeasRow[]): string[] {
-  if (!r.snatch || !r.scale_ok || r.bar_lost || r.cut_off) return [];
-  const side = (r.off_side_deg ?? 0) <= 20;
-  return KEY_NUMBERS.filter((id) => meas.some((m) => m.id === id && m.status !== 'not_seen') && (side || !KEY_FORWARD.has(id)));
+  const side = (r.off_side_deg ?? 0) <= rules.VALUE_MAX_DEG;
+  const has = (id: string) => meas.some((m) => m.id === id && m.status !== 'not_seen');
+  const cueGrade = !r.snatch || !r.scale_ok || r.bar_lost || r.cut_off ? [] : KEY_NUMBERS.filter((id) => has(id) && (side || !KEY_FORWARD.has(id)));
+  return [...cueGrade, ...TRACK_NUMBERS.filter((id) => has(id) && (side || !TRACK_FORWARD.has(id)))];
 }
 

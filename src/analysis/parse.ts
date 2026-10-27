@@ -39,6 +39,9 @@ export function parseAnalysis(json: unknown): Analysis {
   }
   for (const rep of a.reps ?? []) {
     if (rep.path.some((p) => !inUnit(p.x) || !inUnit(p.y))) fail(`rep ${rep.index} path not normalised`);
+    for (const [name, track] of Object.entries(rep.tracks ?? {})) {
+      if (!Array.isArray(track) || track.some((p) => !inUnit(p.x) || !inUnit(p.y))) fail(`rep ${rep.index} ${name} track not normalised`);
+    }
     if (rep.keyFrames.length === 0) fail(`rep ${rep.index} has no keyFrames`);
   }
   if (a.notes != null && !Array.isArray(a.notes)) fail('notes');

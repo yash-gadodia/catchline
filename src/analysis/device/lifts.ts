@@ -65,6 +65,7 @@ import {
   fail,
   noLiftFailure,
   guideRows,
+  jointTracks,
   keyNumbers,
   KEYFRAME_H,
   liftTags,
@@ -104,6 +105,7 @@ function writeOut(ctx: Ctx, repInfo: RepInfo[], tag = 'r'): Result {
     keyFrames: Object.entries(r.keys).map(([phase, f], pi) => ({ phase, frame: f, image: `${ctx.assetPrefix}/${tag}${r.index}-${pi + 1}-${phase}.jpg` })),
     path: r.path,
     ...(r.guides ? { guides: r.guides } : {}),
+    ...(r.tracks ? { tracks: r.tracks } : {}),
   }));
   const analysis: AnalysisJson = {
     ...base(ctx.analysisId, ctx.input.meta, ctx.n, movement),
@@ -311,6 +313,7 @@ function repInfo(
     Ms: w.Ms,
     track: trace,
     ksm: w.ksm,
+    tracks: jointTracks(w.kr, w.ksm, w.Ms, a, Math.min(w.L - 1, end), ctx.W, ctx.H, g),
   };
 }
 
@@ -450,6 +453,7 @@ function cleanInfo(r: RepInfo): RepInfo {
       secondExt: ev.second_ext as number,
       peak: ev.peak as number,
     }),
+    ...(r.track_meas ?? []),
   ];
   return r;
 }
@@ -579,6 +583,8 @@ function jerkRep(ctx: Ctx, repNo: number, start: number, end: number, pxPerCm: n
       status: 'normal',
       note: dipKnee < 10 ? 'under ~10° there is no leg drive: a press, not a jerk' : 'dip and drive',
     },
+    { id: 'bar_over_shoulder', label: 'Bar over shoulder', value: pyRound(ov, 1), unit: 'cm', frame: s0 + lock, status: 'normal', note: 'bar vs shoulder at lockout (+ = in front)' },
+    { id: 'knee_catch', label: 'Knee at catch', value: pyRound(kneeAng[land], 1), unit: 'deg', frame: s0 + land, status: 'normal', note: 'knee angle as the feet land' },
   ];
   const made = rec < L - 1 && el[lock] >= 155;
   const kind = made ? 'make' : ov > 5 ? 'jerk_forward' : ov < -8 ? 'jerk_back' : 'missed';
