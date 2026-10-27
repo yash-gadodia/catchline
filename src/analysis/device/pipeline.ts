@@ -1,6 +1,6 @@
 // cv/catchline_cv/pipeline.py after pose: the movement check, the snatch (and, via analyseRep, the clean) rep
 // measurement, the cue card and the withholding rules. Frames inside a rep are window indices unless named abs.
-import { MAX_YAW_DEG, cleanPullValues, hipAngles, kneeAngles, rackMask, scaleFromBody, yawFromBody } from './body';
+import { MAX_YAW_DEG, cleanPullValues, facing, hipAngles, kneeAngles, rackMask, scaleFromBody, yawFromBody } from './body';
 import { detect, Detected } from './detect';
 import { lowpass, lowpassPts } from './filter';
 import { angle, barFromWrists, barTrack, dist, finitePt, fromRef, midPt, normalise, toRef, toWorld, trunkAngle } from './geometry';
@@ -77,7 +77,7 @@ import {
 } from './phases';
 import * as rules from './rules';
 import { DeviceInput, PlateObservation } from './source';
-import type { RepGuides, RepTracks, TracePoint, TrackName } from '../types';
+import type { PathOnlyGate, RepGuides, RepTracks, TracePoint, TrackName } from '../types';
 
 export const KEYFRAME_H = 1080;
 const PLATE_CM = 45.0;
@@ -303,6 +303,73 @@ export function noLiftFailure(ctx: Ctx, message: string): Result {
   return fail(ctx, 'unsupported_movement', 'no_reps', message);
 }
 
+// The gates after "person found" whose failure now gives a tracking-first result instead of the failure screen
+// (owner decision 27-10: the product is the tracking; a cue is secondary).
+const PATH_ONLY_GATES: Record<string, PathOnlyGate> = { no_reps: 'no_reps', front_or_back: 'not_side_on', no_plate: 'no_plate', no_body_scale: 'no_body_scale' };
+
+export function orPathOnly(ctx: Ctx, res: Result): Result {
+  const code = (res.analysis.failure as { code?: string } | null)?.code ?? '';
+  const gate = PATH_ONLY_GATES[code];
+  if (!gate) return res;
+  const only = pathOnly(ctx, gate);
+  return only ? { ...only, repCalls: res.repCalls } : res;
+}
+
+// One rep over the whole clip with no phases and no cue: the bar track as the rep path (the hands, design 2.1), the
+// joint tracks, a setup and a peak still, the start line and the ring. Null when the pose has under two bar frames.
+export function pathOnly(ctx: Ctx, gate: PathOnlyGate): Result | null {
+  const { fps, H, W, n, input } = ctx;
+  const { Ms } = input.source.window(0, n);
+  const L = Ms.length;
+  if (L < 2) return null;
+  const kw = ctx.k.slice(0, L);
+  const bodyH = nanmedian(ctx.boxes.slice(0, L).map((b) => b[3] - b[1]));
+  const cols = Array.from({ length: JOINTS }, (_, j) => toRef(col(kw, j), Ms));
+  const kr: K = kw.map((_, f) => cols.map((c) => c[f]));
+  const ksm = lowpassK(kr, fps, 6.0);
+  const bar = lowpassPts(barTrack(col(kr, L_WRI), col(kr, R_WRI), bodyH), fps, 6.0);
+  const path: TracePoint[] = [];
+  for (let f = 0; f < L; f++) {
+    if (!finitePt(kw[f][L_WRI]) && !finitePt(kw[f][R_WRI])) continue;
+    if (finitePt(bar[f])) path.push({ frame: f, ...normalise(fromRef(bar[f], Ms[f]), W, H) });
+  }
+  if (path.length < 2) return null;
+  const first = path[0].frame;
+  const last = path[path.length - 1].frame;
+  const peak = path.reduce((a, b) => (b.y < a.y ? b : a)).frame;
+  const fwd = facing(kw);
+  const ring = path.reduce((a, b) => (fwd * (b.x - path[0].x) > fwd * (a.x - path[0].x) ? b : a));
+  const yaw = yawFromBody(ctx.k, 0, n - 1);
+  const bodyScale = scaleFromBody(ctx.k);
+  const keys: [string, number][] = [['setup', first], ['peak', peak]];
+  const analysis: AnalysisJson = {
+    ...base(ctx.analysisId, input.meta, n, ctx.movement),
+    ...(bodyScale ? { pxPerCm: pyRound((bodyScale * KEYFRAME_H) / H, 3) } : {}),
+    reps: [
+      {
+        index: 1,
+        startFrame: first,
+        endFrame: last,
+        made: false,
+        phases: [],
+        keyFrames: keys.map(([phase, frame], pi) => ({ phase, frame, image: `${ctx.assetPrefix}/r1-${pi + 1}-${phase}.jpg` })),
+        path,
+        guides: { startX: path[0].x, ring },
+        tracks: jointTracks(kr, ksm, Ms, first, last, W, H, (f) => f),
+      },
+    ],
+    bestRepIndex: 1,
+    cue: null,
+    noCueReason: { code: 'path_only', gate, ...(yaw !== null ? { offSideDeg: pyRoundInt(yaw) } : {}) },
+    notes: [],
+    ...(rules.yawBucket(yaw) ? { yawBucket: rules.yawBucket(yaw) } : {}),
+    measurements: [],
+    keyNumbers: [],
+    failure: null,
+  };
+  return { analysis, reps: [], repCalls: [] };
+}
+
 export function runSnatch(ctx: Ctx, forceReps?: [number, number, number][]): Result {
   const { k, fps, H } = ctx;
   const up = (y: number[]) => y.map((v) => H - v);
@@ -315,7 +382,7 @@ export function runSnatch(ctx: Ctx, forceReps?: [number, number, number][]): Res
     lowpass(up(ys(mid(k, L_SHO, R_SHO))), fps), torsoPx(k), fps);
   const reps = forceReps ?? lifts.map((l) => l.window);
   const classes = forceReps ? reps.map((): StartClass => 'floor') : lifts.map((l) => l.startClass);
-  const noLift = () => noLiftFailure(ctx, 'No floor-to-overhead lift found in this clip.');
+  const noLift = () => orPathOnly(ctx, noLiftFailure(ctx, 'No floor-to-overhead lift found in this clip.'));
   if (!reps.length) return noLift();
   const repInfo: RepInfo[] = [];
   const repCalls: (RepInfo | null | false)[] = [];
@@ -329,7 +396,7 @@ export function runSnatch(ctx: Ctx, forceReps?: [number, number, number][]): Res
   if (!repInfo.length && notLifts) return { ...noLift(), repCalls };
   if (!repInfo.length)
     return {
-      ...fail(ctx, 'bar_out_of_frame', 'no_plate', 'Could not find the plates at the start of the lift, so the bar could not be measured.'),
+      ...orPathOnly(ctx, fail(ctx, 'bar_out_of_frame', 'no_plate', 'Could not find the plates at the start of the lift, so the bar could not be measured.')),
       repCalls,
     };
   const best = bestRep(repInfo);

@@ -13,8 +13,9 @@ export const useMadeLog = create<MadeLog>()(
   persist((): MadeLog => ({ made: {} }), { name: 'catchline-made-log', storage: createJSONStorage(() => AsyncStorage) })
 );
 
+// A path-only result has no catch to judge, so no made/missed call.
 export function detectedMade(a: Analysis): boolean | null {
-  return a.failure || a.reps.length === 0 ? null : repByIndex(a, a.bestRepIndex).made;
+  return a.failure || a.reps.length === 0 || a.noCueReason?.code === 'path_only' ? null : repByIndex(a, a.bestRepIndex).made;
 }
 
 export function setMade(analysisId: string, made: boolean): void {

@@ -174,6 +174,19 @@ describe('analyseLoop', () => {
   });
 });
 
+describe('startDeviceLift on a path-only result (a gate after "person found" failed)', () => {
+  it('is a lift, not a failure: counted, synced with no_cue_code path_only and no made call, shown as done', async () => {
+    mockTrace.mockReturnValue({ ...snatchMock, cue: null, noCueReason: { code: 'path_only', gate: 'no_reps' } });
+    await startDeviceLift(SUB);
+    expect(queueLiftSync).toHaveBeenCalledWith({ id: 'lift-1', lift: expect.objectContaining({ cue: null, made: null, noCueCode: 'path_only', failureCode: null }) });
+    expect(useUsage.getState().usage.lifetime).toBe(1);
+    const job = usePipeline.getState().job;
+    expect([job?.status, job?.result?.failure, job?.result?.noCueReason]).toEqual(['done', null, { code: 'path_only', gate: 'no_reps' }]);
+    expect(track).toHaveBeenCalledWith('analysis_completed', { movement: 'snatch', cue_confidence: 'none', no_cue_code: 'path_only', made: 'unknown' });
+    expect(keepFailedClip).not.toHaveBeenCalled();
+  });
+});
+
 describe('startDeviceLift when the analysis fails', () => {
   it('records the failure code without counting the lift, keeps the failed analysis for the failure screen', async () => {
     mockTrace.mockReturnValue({ ...snatchMock, failure: { reason: 'clip_cut_off', message: 'm', code: 'no_reps' } });

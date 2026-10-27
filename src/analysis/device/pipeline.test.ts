@@ -206,8 +206,8 @@ describe('the coaching guides and key numbers of a snatch', () => {
     const a = run(MADE);
     const g = a.reps[0].guides!;
     const path = a.reps[0].path;
-    expect(g.kneeY).toBeGreaterThan(g.hipY);
-    expect(g.hipY).toBeGreaterThan(g.peakY);
+    expect(g.kneeY!).toBeGreaterThan(g.hipY!);
+    expect(g.hipY!).toBeGreaterThan(g.peakY!);
     expect(g.startX).toBeCloseTo(path[0].x, 1);
     expect(Math.max(...path.filter((p) => p.frame <= g.ring.frame + 1).map((p) => p.x))).toBeCloseTo(g.ring.x, 2);
     expect(a.measurements.filter((m) => ['max_forward_drift', 'catch_height'].includes(m.id)).map((m) => m.id)).toEqual(['max_forward_drift', 'catch_height']);
@@ -256,16 +256,36 @@ describe('the joint tracks beside the bar path', () => {
   });
 });
 
-// 26-10: a competition snatch filmed from behind came back "no lift found"; the camera angle is the fix.
-describe('no lift found', () => {
+// 27-10: no lift found is no longer a failure screen: the bar, feet and hips were tracked, so that is the result,
+// with the gate that failed as its reason (not_side_on when the body reads front or back, 26-10).
+describe('no lift found: a path-only result', () => {
   const STANDING = frames([[STAND, 0], [STAND, 60]]);
-  it('is the camera angle when the body reads front or back', () => {
+  it('names the camera angle when the body reads front or back, and keeps the lines', () => {
     const a = run(STANDING, 70);
-    expect([a.failure?.reason, a.failure?.code]).toEqual(['not_side_on', 'front_or_back']);
-    expect(a.failure?.message).toMatch(/^The camera is about \d+ degrees off side-on/);
+    expect(a.failure).toBeNull();
+    expect(a.noCueReason).toEqual({ code: 'path_only', gate: 'not_side_on', offSideDeg: 70 });
+    expect(a.yawBucket).toBe('past_60');
+    expect(a.reps[0].tracks!.hips!.length).toBe(61);
   });
-  it('stays no reps side-on', () => {
+  it('tracks the whole clip as one rep with no phases, a setup and a peak still, the start line and the ring', () => {
     const a = run(STANDING, 0);
-    expect([a.failure?.reason, a.failure?.code]).toEqual(['unsupported_movement', 'no_reps']);
+    expect(a.noCueReason).toEqual({ code: 'path_only', gate: 'no_reps', offSideDeg: 0 });
+    expect([a.cue, a.measurements, a.keyNumbers, a.bestRepIndex, a.reps.length]).toEqual([null, [], [], 1, 1]);
+    const rep = a.reps[0];
+    expect([rep.index, rep.startFrame, rep.endFrame, rep.made, rep.phases]).toEqual([1, 0, 60, false, []]);
+    expect(rep.keyFrames).toEqual([
+      { phase: 'setup', frame: 0, image: 'kf/r1-1-setup.jpg' },
+      { phase: 'peak', frame: 0, image: 'kf/r1-2-peak.jpg' },
+    ]);
+    expect(rep.path.length).toBe(61);
+    expect(Object.keys(rep.tracks!)).toEqual(['feet', 'hips', 'shoulders', 'knees', 'elbows']);
+    expect(rep.guides).toEqual({ startX: rep.path[0].x, ring: rep.path[0] });
+    expect(a.pxPerCm).toBe(3.707);
+  });
+  it('stays a failure when the pose never saw the hands, so there is no bar to draw', () => {
+    const input = lifter(STANDING);
+    for (const row of input.lifter.k) row[L_WRI] = row[R_WRI] = [NaN, NaN];
+    const a = analyse(input, 'snatch').analysis as unknown as Analysis;
+    expect([a.failure?.reason, a.failure?.code, a.reps]).toEqual(['unsupported_movement', 'no_reps', []]);
   });
 });

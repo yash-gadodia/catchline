@@ -64,6 +64,7 @@ import {
   bestRep,
   fail,
   noLiftFailure,
+  orPathOnly,
   guideRows,
   jointTracks,
   keyNumbers,
@@ -328,7 +329,7 @@ function runClean(ctx: Ctx, forceReps?: [number, number, number][]): Result {
     lowpass(up(ys(mid(k, L_SHO, R_SHO))), fps), torsoPx(k), fps);
   const reps = forceReps ?? lifts.map((l) => l.window);
   const classes = forceReps ? reps.map((): StartClass => 'floor') : lifts.map((l) => l.startClass);
-  const noClean = () => noLiftFailure(ctx, 'No clean found: the bar never went from the floor to a front-rack hold.');
+  const noClean = () => orPathOnly(ctx, noLiftFailure(ctx, 'No clean found: the bar never went from the floor to a front-rack hold.'));
   if (!reps.length) return noClean();
   const infos: RepInfo[] = [];
   const repCalls: (RepInfo | null | false)[] = [];
@@ -341,7 +342,7 @@ function runClean(ctx: Ctx, forceReps?: [number, number, number][]): Result {
   });
   if (!infos.length && notLifts) return { ...noClean(), repCalls };
   if (!infos.length)
-    return { ...fail(ctx, 'bar_out_of_frame', 'no_plate', 'Could not find the plates at the start of the lift, so the bar could not be measured.'), repCalls };
+    return { ...orPathOnly(ctx, fail(ctx, 'bar_out_of_frame', 'no_plate', 'Could not find the plates at the start of the lift, so the bar could not be measured.')), repCalls };
   if (forceReps) return { ...writeOut(ctx, infos), repCalls };
   // a jerk from the rack within 8 s of a clean's catch makes the lift a clean & jerk (design 4.1)
   const jerks = jerkWindows(ctx);
@@ -479,9 +480,9 @@ function jerkWindows(ctx: Ctx): [number, number, number][] {
 function runJerk(ctx: Ctx, forceReps?: [number, number, number][]): Result {
   const { k } = ctx;
   const reps = forceReps ?? jerkWindows(ctx);
-  if (!reps.length) return noLiftFailure(ctx, 'No jerk found: the bar never went from the shoulders to overhead.');
+  if (!reps.length) return orPathOnly(ctx, noLiftFailure(ctx, 'No jerk found: the bar never went from the shoulders to overhead.'));
   const pxBody = scaleFromBody(k);
-  if (!pxBody) return fail(ctx, 'too_far', 'no_body_scale', "Could not measure the lifter's body to scale the clip.");
+  if (!pxBody) return orPathOnly(ctx, fail(ctx, 'too_far', 'no_body_scale', "Could not measure the lifter's body to scale the clip."));
   const infos = reps.map(([start, end], ri): RepInfo => ({ ...jerkRep(ctx, ri + 1, start, end, pxBody), start_class: 'shoulders' }));
   return { ...writeOut(ctx, infos), repCalls: infos };
 }

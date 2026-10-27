@@ -2,7 +2,7 @@ import type { Analysis, NoCueCode } from './types';
 
 const MOVEMENTS = ['snatch', 'clean', 'jerk', 'kipping_pull_up', 'bar_muscle_up', 'kipping_hspu'];
 const CONFIDENCE = ['clear', 'worth_checking', 'low'];
-const NO_CUE: NoCueCode[] = ['off_side_on', 'plate_hidden', 'rep_cut_off', 'unclear_miss', 'low_confidence', 'bar_lost'];
+const NO_CUE: NoCueCode[] = ['off_side_on', 'plate_hidden', 'rep_cut_off', 'unclear_miss', 'low_confidence', 'bar_lost', 'path_only'];
 
 // A partial result: measured (reps, no failure) with the cue held back for a reason.
 export function isPartial(a: Analysis): boolean {

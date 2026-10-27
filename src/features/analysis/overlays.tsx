@@ -163,7 +163,7 @@ export function HeroNumber({
   );
 }
 
-const inFrame = (v: number | null) => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 1;
+const inFrame = (v: number | null | undefined) => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 1;
 
 // The coaching reference lines on a barbell rep (PR #154 reel): knee, hip and peak heights across the frame, labelled
 // at the left, and the ring on the bar where it was furthest forward when `ring` is on.
@@ -174,7 +174,7 @@ export function Guides({ guides, toScreen, box, ring }: { guides: RepGuides; toS
       ['hip', guides.hipY],
       ['peak', guides.peakY],
     ] as const
-  ).filter(([, y]) => inFrame(y));
+  ).filter((row): row is [(typeof row)[0], number] => inFrame(row[1]));
   const r = guides.ring;
   return (
     <G testID="guides">

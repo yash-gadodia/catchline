@@ -41,6 +41,7 @@ export const format: Strings<typeof en> = {
   'format.phase.tuck': 'Tuck',
   'format.phase.drive': 'Impulsion',
   'format.phase.press': 'Poussée',
+  'format.phase.peak': 'Point haut',
   'format.short.transition': 'hanche',
   'format.short.second_pull': '2e',
   'format.short.turnover': 'passage',
