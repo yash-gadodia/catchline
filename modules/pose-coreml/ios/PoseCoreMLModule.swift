@@ -75,15 +75,25 @@ public class PoseCoreMLModule: Module {
     // The clip read on the phone as a trace.py trace (gzipped JSON at tracePath) plus the keyframe
     // stills the plan asked for. Without a plan: pose, lifter and camera path only (see AnalyseOnDevice.swift).
     // Rejects with "Could not analyse on device: <code>: <detail>", code one of no_video_track, clip_unreadable,
-    // models_unavailable, stage_missing, plan_invalid (anything else is a file system error). Lift failures such
-    // as no_person or no_reps are the TS pipeline's, read from the trace; native never decides them.
-    AsyncFunction("analyseOnDevice") { (uri: String, movement: String, plan: [String: Any]?) async throws -> [String: Any] in
+    // models_unavailable, stage_missing, plan_invalid, interrupted (anything else is a file system error). Lift
+    // failures such as no_person or no_reps are the TS pipeline's, read from the trace; native never decides them.
+    // banner (title, subtitle, from, to): on iOS 26 the run continues after the lifter leaves under a continued
+    // processing task with these words and this call's share of the whole analysis's progress (ContinuedRun.swift).
+    AsyncFunction("analyseOnDevice") { (uri: String, movement: String, plan: [String: Any]?, banner: [String: Any]?) async throws -> [String: Any] in
       do {
+        if let banner, let title = banner["title"] as? String {
+          ContinuedRun.shared.begin(title: title, subtitle: banner["subtitle"] as? String ?? "")
+        }
+        let from = (banner?["from"] as? NSNumber)?.doubleValue ?? 0, to = (banner?["to"] as? NSNumber)?.doubleValue ?? 1
         let progress = { (stage: String, fraction: Double) in
           self.sendEvent("onAnalyseProgress", ["stage": stage, "fraction": fraction])
+          ContinuedRun.shared.report(from + fraction * (to - from))
         }
         let models = try await self.loadModels(progress: progress)
-        if self.analyser == nil { self.analyser = DeviceAnalyser(models: models) }
+        if self.analyser == nil {
+          self.analyser = DeviceAnalyser(models: models)
+          self.analyser!.shouldStop = { ContinuedRun.shared.interrupted }
+        }
         let url = fileURL(uri)
         let dir = FileManager.default.temporaryDirectory
           .appendingPathComponent("catchline-analysis", isDirectory: true)
@@ -97,6 +107,11 @@ public class PoseCoreMLModule: Module {
       } catch {
         throw AnalyseFailedException(String(describing: error))
       }
+    }
+
+    // The JS loop is done with this clip (every pass, or it gave up): the continued processing task ends
+    AsyncFunction("endBackgroundRun") { (success: Bool) in
+      ContinuedRun.shared.end(success: success)
     }
   }
 }

@@ -81,7 +81,8 @@
         ]
       },
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "BGTaskSchedulerPermittedIdentifiers": ["com.yashgadodia.parallax.analyse"]
       },
       "icon": "./assets/icon.png"
     },

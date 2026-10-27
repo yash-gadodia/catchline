@@ -226,6 +226,7 @@ final class DeviceAnalyser {
   private(set) var timing = PoseTiming()
   var poseEveryone = false  // harness only: the full pose pass, for parity against lifter-only
   var detectEvery = detectInterval  // harness only: 1 detects every frame, for parity against tracking
+  var shouldStop: () -> Bool = { false }  // true once the system ended the app's background run (ContinuedRun)
 
   init(models: PoseModels) { self.models = models }
 
@@ -289,6 +290,7 @@ final class DeviceAnalyser {
       return (row, next)
     }
     let n = try clip.read { f, pb in
+      if shouldStop() { throw PoseCoreMLError.interrupted }
       tm.decode += lap()
       let planes = UprightPlanes(pb, rotation: clip.rotation)
       let img = uprightBGR(planes, outW: outW, outH: poseInferHeight)
@@ -403,6 +405,7 @@ final class DeviceAnalyser {
 
     _ = try clip.read { f, pb in
       if f >= last { return }
+      if shouldStop() { throw PoseCoreMLError.interrupted }
       let p = Double(f + 1) / Double(last)
       if p - sent >= 0.02 { sent = p; progress("pixels", p) }
       var img: BGRImage?
