@@ -2,12 +2,14 @@ import { AppState } from 'react-native';
 import { File } from 'expo-file-system';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { gunzipSync, strFromU8 } from 'fflate';
-import PoseCoreML, { type AnalysePlan, type AnalyseResult } from '../../modules/pose-coreml';
+import PoseCoreML, { type AnalyseBanner, type AnalysePlan, type AnalyseResult } from '../../modules/pose-coreml';
 import { analyseTrace, planFromMisses } from '../analysis/device/analyseTrace';
 import { parseTraceJson, type Plan } from '../analysis/device/trace';
+import { movementLabel } from '../analysis/format';
 import { parseAnalysis } from '../analysis/parse';
-import type { Analysis, Failure } from '../analysis/types';
+import type { Analysis, Failure, Movement } from '../analysis/types';
 import type { ClipSubmission } from '../features/capture/submit';
+import { notifyLiftReady } from '../features/notifications';
 import { rememberClip } from '../features/share/localClips';
 import { usePurchases } from '../features/purchases/usePurchases';
 import { randomUUID } from 'expo-crypto';
@@ -21,6 +23,7 @@ import { keepFailedClip, saveLocalLift } from './localLifts';
 import { usePipeline } from './pipeline';
 import { detectedMade } from '../features/library/madeLog';
 import { ClipTooLongError, discardPrepared, prepareClip } from './prepare';
+import { t } from '../i18n';
 
 // The native loop: pose + camera path first, then a plan built from what the replay
 // could not measure (plates, keyframes) until nothing is missing. Pose is cached per
@@ -31,9 +34,11 @@ const KEEP_AWAKE_TAG = 'catchline-analyse';
 // The native side never raises a lift-failure code (those come inside the Analysis from
 // analyseTrace): it rejects with "Could not analyse on device: <code>: <detail>", the code
 // being no_video_track, clip_unreadable, models_unavailable (download failed, offline or
-// Low Data Mode, a retry works), stage_missing or plan_invalid; anything else is a
-// file-system error. All but models_unavailable read as "couldn't read that video".
+// Low Data Mode, a retry works), stage_missing, plan_invalid or interrupted (iOS 26 ended
+// the background run, see pass); anything else is a file-system error. All but
+// models_unavailable and interrupted read as "couldn't read that video".
 export const MODELS_UNAVAILABLE = 'models_unavailable';
+export const INTERRUPTED = 'interrupted';
 const NATIVE_PREFIX = 'Could not analyse on device: ';
 
 export function nativeCode(e: unknown): string {
@@ -55,10 +60,11 @@ type Progress = (stage: string, fraction: number) => void;
 
 export type LoopResult = { trace: unknown; tracePath: string; stills: Record<string, string> };
 
-// One native pass, with the app's time in the background allowed for: iOS may end
-// the model while the app is away, so a pass that fails after that is run once more
-// when the lifter comes back.
-async function pass(uri: string, movement: string, plan: AnalysePlan | undefined): Promise<AnalyseResult> {
+// One native pass, with the app's time in the background allowed for. On iOS 26 the run
+// goes on after the lifter leaves (the banner's continued processing task) until the system
+// or the lifter ends it there: interrupted. Older iOS may end the model while the app is
+// away. Either way a pass that fails after that is run once more when the lifter comes back.
+async function pass(uri: string, movement: string, plan: AnalysePlan | undefined, banner: AnalyseBanner): Promise<AnalyseResult> {
   const native = PoseCoreML;
   if (!native) throw new Error('no_native');
   let away = false;
@@ -67,9 +73,9 @@ async function pass(uri: string, movement: string, plan: AnalysePlan | undefined
   });
   try {
     try {
-      return await native.analyseOnDevice(uri, movement, plan);
+      return await native.analyseOnDevice(uri, movement, plan, banner);
     } catch (e) {
-      if (!away) throw e;
+      if (!away && nativeCode(e) !== INTERRUPTED) throw e;
       await new Promise<void>((resolve) => {
         if (AppState.currentState === 'active') return resolve();
         const back = AppState.addEventListener('change', (s) => {
@@ -78,7 +84,7 @@ async function pass(uri: string, movement: string, plan: AnalysePlan | undefined
           resolve();
         });
       });
-      return await native.analyseOnDevice(uri, movement, plan);
+      return await native.analyseOnDevice(uri, movement, plan, banner);
     }
   } finally {
     sub.remove();
@@ -105,26 +111,33 @@ export function toNativePlan(plan: Plan): AnalysePlan {
 export const PASS_WEIGHTS = [0.8, 0.12, 0.08];
 const PASS_STARTS = PASS_WEIGHTS.map((_, i) => PASS_WEIGHTS.slice(0, i).reduce((a, b) => a + b, 0));
 
-export async function analyseLoop(uri: string, movement: string, liftId: string, onProgress: Progress, isCancelled: () => boolean = () => false): Promise<LoopResult> {
+export async function analyseLoop(uri: string, movement: Movement, liftId: string, onProgress: Progress, isCancelled: () => boolean = () => false): Promise<LoopResult> {
   const native = PoseCoreML;
   if (!native) throw new Error('no_native');
+  const words = { title: t('library.inFlight.title', { movement: movementLabel(movement) }), subtitle: t('analysis.processing.background') };
   let plan: AnalysePlan | undefined;
   let result: AnalyseResult | null = null;
   let trace: unknown = null;
   let stills: Record<string, string> = {};
-  for (let i = 0; i < MAX_PASSES; i++) {
-    const sub = native.addListener('onAnalyseProgress', (e) => onProgress(e.stage, PASS_STARTS[i] + e.fraction * PASS_WEIGHTS[i]));
-    try {
-      result = await pass(uri, movement, plan);
-    } finally {
-      sub.remove();
+  let finished = false;
+  try {
+    for (let i = 0; i < MAX_PASSES; i++) {
+      const sub = native.addListener('onAnalyseProgress', (e) => onProgress(e.stage, PASS_STARTS[i] + e.fraction * PASS_WEIGHTS[i]));
+      try {
+        result = await pass(uri, movement, plan, { ...words, from: PASS_STARTS[i], to: PASS_STARTS[i] + PASS_WEIGHTS[i] });
+      } finally {
+        sub.remove();
+      }
+      if (isCancelled()) throw new Error('cancelled');
+      stills = { ...stills, ...result.stills };
+      trace = await readTrace(result.tracePath);
+      const { misses, ...next } = planFromMisses(trace, movement, { analysisId: liftId, assetPrefix: liftId });
+      if (misses.length === 0) break;
+      plan = toNativePlan(next);
     }
-    if (isCancelled()) throw new Error('cancelled');
-    stills = { ...stills, ...result.stills };
-    trace = await readTrace(result.tracePath);
-    const { misses, ...next } = planFromMisses(trace, movement, { analysisId: liftId, assetPrefix: liftId });
-    if (misses.length === 0) break;
-    plan = toNativePlan(next);
+    finished = true;
+  } finally {
+    native.endBackgroundRun(finished).catch(() => undefined);
   }
   onProgress('cue', 1);
   return { trace, tracePath: (result as AnalyseResult).tracePath, stills };
@@ -218,6 +231,7 @@ export async function startDeviceLift(sub: ClipSubmission & { uri: string }): Pr
       track(EVENTS.ANALYSIS_COMPLETED, { movement: sub.movement, cue_confidence: local.cue?.confidence ?? 'none', no_cue_code: record.noCueCode ?? 'none', made: record.made ?? 'unknown' });
       patch({ status: 'done', result: local });
     }
+    void notifyLiftReady(liftId, sub.movement, !!local.failure);
   } catch (e) {
     const code = e instanceof ClipTooLongError ? 'clip_too_long' : nativeCode(e);
     track(EVENTS.ANALYSIS_FAILED, { movement: sub.movement, code });

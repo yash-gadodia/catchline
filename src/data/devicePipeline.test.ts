@@ -5,6 +5,8 @@ import type { ClipSubmission } from '../features/capture/submit';
 import { usePipeline, startLift } from './pipeline';
 import { analyseLoop, cancelDeviceLift, failureReason, nativeCode, readTrace, startDeviceLift, toNativePlan } from './devicePipeline';
 import { strFromU8 } from 'fflate';
+import { AppState } from 'react-native';
+import * as Notifications from 'expo-notifications';
 
 jest.mock('expo-file-system', () => ({
   File: jest.fn(() => ({ bytes: async () => new Uint8Array([1]) })),
@@ -69,18 +71,27 @@ const SUB: ClipSubmission & { uri: string } = {
   overridden: [],
 };
 
+const mockPermissions = Notifications.getPermissionsAsync as jest.Mock;
+const mockSchedule = Notifications.scheduleNotificationAsync as jest.Mock;
+const mockEnd = native.endBackgroundRun as jest.Mock;
+const appState = AppState as unknown as { currentState: string };
+
 beforeEach(() => {
   jest.clearAllMocks();
   usePipeline.getState().clear();
   useUsage.getState().reset();
   mockTrace.mockReturnValue({ ...snatchMock, id: 'x' });
+  appState.currentState = 'active';
 });
+
+const BANNER = { title: 'Analysing your Clean', subtitle: 'Keeps working in the background.' };
+const INTERRUPTED = new Error('Could not analyse on device: interrupted: the system ended the run in the background');
 
 describe('startDeviceLift, the happy path', () => {
   it('analyses on the phone with no server call first, keeps the result locally, counts it and queues the slim record', async () => {
     await startDeviceLift(SUB);
     expect(prepareClip).toHaveBeenCalledTimes(1);
-    expect(mockAnalyse).toHaveBeenCalledWith('file:///clip.mov.mp4', 'snatch', undefined);
+    expect(mockAnalyse).toHaveBeenCalledWith('file:///clip.mov.mp4', 'snatch', undefined, { title: 'Analysing your Snatch', subtitle: 'Keeps working in the background.', from: 0, to: 0.8 });
     expect(mockTrace).toHaveBeenCalledWith({ traceVersion: 1, frames: [] }, 'snatch', { analysisId: 'lift-1', assetPrefix: 'lift-1' });
     expect(saveLocalLift).toHaveBeenCalledWith('lift-1', expect.objectContaining({ id: 'lift-1', movement: 'snatch', loadKg: 70 }), 'file:///cache/pose-coreml/trace.json.gz', {});
     expect(queueLiftSync).toHaveBeenCalledWith({
@@ -149,9 +160,9 @@ describe('analyseLoop', () => {
     const progress: [string, number][] = [];
     const out = await analyseLoop('file:///c.mp4', 'clean', 'lift-9', (stage, f) => progress.push([stage, f]));
     expect(mockAnalyse.mock.calls).toEqual([
-      ['file:///c.mp4', 'clean', undefined],
-      ['file:///c.mp4', 'clean', { windows: [{ s0: 0, count: 10 }], plates: [], tracks: [], keyframes: [] }],
-      ['file:///c.mp4', 'clean', { windows: [{ s0: 0, count: 10 }], plates: [], tracks: [], keyframes: [{ name: 'r1-1-setup.jpg', frame: 12 }] }],
+      ['file:///c.mp4', 'clean', undefined, { ...BANNER, from: 0, to: 0.8 }],
+      ['file:///c.mp4', 'clean', { windows: [{ s0: 0, count: 10 }], plates: [], tracks: [], keyframes: [] }, expect.objectContaining(BANNER)],
+      ['file:///c.mp4', 'clean', { windows: [{ s0: 0, count: 10 }], plates: [], tracks: [], keyframes: [{ name: 'r1-1-setup.jpg', frame: 12 }] }, expect.objectContaining(BANNER)],
     ]);
     expect(mockPlan).toHaveBeenLastCalledWith({ traceVersion: 1, frames: [] }, 'clean', { analysisId: 'lift-9', assetPrefix: 'lift-9' });
     expect(out.tracePath).toBe('file:///t3.gz');
@@ -171,6 +182,90 @@ describe('analyseLoop', () => {
     mockPlan.mockReturnValue({ windows: [], plates: [], tracks: [], keyframes: [], misses: ['x'] });
     await analyseLoop('file:///c.mp4', 'snatch', 'l', () => undefined);
     expect(mockAnalyse).toHaveBeenCalledTimes(3);
+  });
+
+  it('hands iOS 26 the words for its background banner and each pass its share of the bar, then ends the run', async () => {
+    const empty = { windows: [], plates: [], tracks: [], keyframes: [] };
+    mockPlan.mockReturnValueOnce({ ...empty, misses: ['x'] }).mockReturnValueOnce({ ...empty, misses: [] });
+    await analyseLoop('file:///c.mp4', 'clean', 'l', () => undefined);
+    const banners = mockAnalyse.mock.calls.map((c) => c[3]);
+    expect(banners[0]).toEqual({ ...BANNER, from: 0, to: 0.8 });
+    expect(banners[1].from).toBeCloseTo(0.8);
+    expect(banners[1].to).toBeCloseTo(0.92);
+    expect(mockEnd).toHaveBeenCalledTimes(1);
+    expect(mockEnd).toHaveBeenCalledWith(true);
+  });
+
+  it('ends the background run when the loop gives up too', async () => {
+    mockAnalyse.mockRejectedValueOnce(new Error('Could not analyse on device: clip_unreadable: x'));
+    await expect(analyseLoop('file:///c.mp4', 'snatch', 'l', () => undefined)).rejects.toThrow('clip_unreadable');
+    expect(mockEnd).toHaveBeenCalledWith(false);
+  });
+
+  it('reruns a pass the system ended in the background as soon as the app is active again', async () => {
+    mockPlan.mockReturnValue({ windows: [], plates: [], tracks: [], keyframes: [], misses: [] });
+    mockAnalyse.mockRejectedValueOnce(INTERRUPTED);
+    const out = await analyseLoop('file:///c.mp4', 'snatch', 'l', () => undefined);
+    expect(mockAnalyse).toHaveBeenCalledTimes(2);
+    expect(out.tracePath).toBe('file:///cache/pose-coreml/trace.json.gz');
+  });
+
+  it('waits for the lifter to come back before that rerun', async () => {
+    mockPlan.mockReturnValue({ windows: [], plates: [], tracks: [], keyframes: [], misses: [] });
+    mockAnalyse.mockRejectedValueOnce(INTERRUPTED);
+    appState.currentState = 'background';
+    const listeners: ((s: string) => void)[] = [];
+    (AppState.addEventListener as jest.Mock).mockImplementation((_: string, cb: (s: string) => void) => {
+      listeners.push(cb);
+      return { remove: jest.fn() };
+    });
+    const done = jest.fn();
+    const run = analyseLoop('file:///c.mp4', 'snatch', 'l', () => undefined).then(done);
+    await new Promise((r) => setImmediate(r));
+    expect(mockAnalyse).toHaveBeenCalledTimes(1);
+    expect(done).not.toHaveBeenCalled();
+    listeners.forEach((l) => l('active'));
+    await run;
+    expect(mockAnalyse).toHaveBeenCalledTimes(2);
+  });
+
+  it('still fails a pass that broke for any other reason while the app was in front', async () => {
+    mockAnalyse.mockRejectedValueOnce(new Error('Could not analyse on device: clip_unreadable: x'));
+    await expect(analyseLoop('file:///c.mp4', 'snatch', 'l', () => undefined)).rejects.toThrow('clip_unreadable');
+    expect(mockAnalyse).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('startDeviceLift when the lifter has left the app', () => {
+  it('posts one local notification that opens the lift, when notifications are allowed', async () => {
+    appState.currentState = 'background';
+    mockPermissions.mockResolvedValueOnce({ status: 'granted' });
+    await startDeviceLift(SUB);
+    expect(usePipeline.getState().job?.status).toBe('done');
+    expect(mockSchedule).toHaveBeenCalledTimes(1);
+    expect(mockSchedule.mock.calls[0][0]).toEqual({
+      content: { title: 'Your Snatch is ready', body: 'Tap to see your cue.', data: { liftId: 'lift-1' } },
+      trigger: null,
+    });
+  });
+
+  it('says so when the lift failed instead', async () => {
+    appState.currentState = 'background';
+    mockPermissions.mockResolvedValueOnce({ status: 'granted' });
+    mockTrace.mockReturnValue({ ...snatchMock, id: 'x', failure: { reason: 'no_reps', code: 'no_reps' } });
+    await startDeviceLift(SUB);
+    expect(mockSchedule.mock.calls[0][0].content).toEqual({ title: "We couldn't read your Snatch", body: 'Tap to see why, and what to try next.', data: { liftId: 'lift-1' } });
+  });
+
+  it('posts nothing when notifications are off, or when the app is in front', async () => {
+    appState.currentState = 'background';
+    mockPermissions.mockResolvedValueOnce({ status: 'denied' });
+    await startDeviceLift(SUB);
+    expect(mockSchedule).not.toHaveBeenCalled();
+    appState.currentState = 'active';
+    mockPermissions.mockResolvedValueOnce({ status: 'granted' });
+    await startDeviceLift(SUB);
+    expect(mockSchedule).not.toHaveBeenCalled();
   });
 });
 
