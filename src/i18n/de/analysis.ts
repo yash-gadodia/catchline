@@ -86,6 +86,8 @@ export const analysis: Strings<typeof en> = {
   'analysis.pathOnly.tip.no_plate': "Die nahe Scheibe ganz im Bild lassen, nichts davor.",
   'analysis.pathOnly.tip.no_body_scale': "Näher ran mit dem Handy, mit dem ganzen Athleten im Bild.",
   'analysis.pathOnly.tip.not_side_on': "Von der Seite filmen, Handy auf Höhe der Hantel.",
+  'analysis.pathOnly.reason.shoulders_cut_off': "Die Stange und der obere Teil der Wiederholung liegen außerhalb des Bildes, daher wurden keine Wiederholungen gefunden. Hüfte, Füße und Schultern sind oben verfolgt.",
+  'analysis.pathOnly.tip.shoulders_cut_off': "Mit der Stange und etwas Platz darüber im Bild filmen.",
   'analysis.placeholder.loadingTitle': 'Dein Lift wird geladen',
   'analysis.placeholder.loadingBody': 'Einen Moment.',
   'analysis.placeholder.missingTitle': 'Dieser Lift wurde nicht gefunden.',

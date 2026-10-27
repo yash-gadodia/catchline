@@ -124,7 +124,7 @@ export type Failure = {
 // Why a measured lift has no cue: the path and phases are real, the cue was held back (a partial result).
 // 'path_only' (3.1.1): no phases either; the bar, feet and hips were tracked over the whole clip after `gate` failed.
 export type NoCueCode = 'off_side_on' | 'plate_hidden' | 'rep_cut_off' | 'unclear_miss' | 'low_confidence' | 'bar_lost' | 'path_only';
-export type PathOnlyGate = 'no_reps' | 'no_plate' | 'no_body_scale' | 'not_side_on';
+export type PathOnlyGate = 'no_reps' | 'no_plate' | 'no_body_scale' | 'not_side_on' | 'shoulders_cut_off';
 export type NoCueReason = { code: NoCueCode; offSideDeg?: number; gate?: PathOnlyGate };
 
 // What the pose alone says the clip shows; 'unknown' when the signal is weak.

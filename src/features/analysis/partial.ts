@@ -2,7 +2,7 @@ import type { Analysis, PathOnlyGate } from '../../analysis/types';
 import { noCueCode } from '../../analysis/parse';
 import { t } from '../../i18n';
 
-const GATES: PathOnlyGate[] = ['no_reps', 'no_plate', 'no_body_scale', 'not_side_on'];
+const GATES: PathOnlyGate[] = ['no_reps', 'no_plate', 'no_body_scale', 'not_side_on', 'shoulders_cut_off'];
 
 // What a partial result says in place of the cue: why it was held back and how to film it next time. A path-only
 // result names the gate that failed (no phases to speak of).

@@ -86,6 +86,8 @@ export const analysis: Strings<typeof en> = {
   'analysis.pathOnly.tip.no_plate': "Gardez le disque le plus proche entièrement visible, rien devant.",
   'analysis.pathOnly.tip.no_body_scale': "Rapprochez le téléphone, avec l'athlète entier dans le cadre.",
   'analysis.pathOnly.tip.not_side_on': "Filmez de profil, téléphone à hauteur de la barre.",
+  'analysis.pathOnly.reason.shoulders_cut_off': "La barre et le haut de la répétition sont hors du cadre, donc les répétitions n'ont pas pu être trouvées. Les hanches, les pieds et les épaules sont suivis ci-dessus.",
+  'analysis.pathOnly.tip.shoulders_cut_off': "Filmez avec la barre et un peu d'espace au-dessus dans le cadre.",
   'analysis.placeholder.loadingTitle': 'Chargement de ton mouvement',
   'analysis.placeholder.loadingBody': 'Un instant.',
   'analysis.placeholder.missingTitle': 'Mouvement introuvable.',

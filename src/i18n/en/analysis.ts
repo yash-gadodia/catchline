@@ -80,6 +80,8 @@ export const analysis = {
   'analysis.pathOnly.tip.no_plate': "Keep the near plate fully in view, nothing in front of it.",
   'analysis.pathOnly.tip.no_body_scale': "Move the phone closer, with the whole lifter in the frame.",
   'analysis.pathOnly.tip.not_side_on': "Film from the side, phone level with the bar.",
+  'analysis.pathOnly.reason.shoulders_cut_off': "The bar and the top of the rep are out of the frame, so the reps couldn't be found. The hips, feet and shoulders are tracked above.",
+  'analysis.pathOnly.tip.shoulders_cut_off': "Film with the bar and some space above it in view.",
   'analysis.placeholder.loadingTitle': 'Loading your lift',
   'analysis.placeholder.loadingBody': 'One moment.',
   'analysis.placeholder.missingTitle': "Couldn't find this lift.",

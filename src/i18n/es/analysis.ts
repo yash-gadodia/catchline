@@ -86,6 +86,8 @@ export const analysis: Strings<typeof en> = {
   'analysis.pathOnly.tip.no_plate': "Mantén el disco cercano completamente a la vista, sin nada delante.",
   'analysis.pathOnly.tip.no_body_scale': "Acerca el teléfono, con el atleta entero en el encuadre.",
   'analysis.pathOnly.tip.not_side_on': "Graba de lado, con el teléfono a la altura de la barra.",
+  'analysis.pathOnly.reason.shoulders_cut_off': "La barra y la parte alta de la repetición quedan fuera del encuadre, así que no se encontraron repeticiones. La cadera, los pies y los hombros están seguidos arriba.",
+  'analysis.pathOnly.tip.shoulders_cut_off': "Graba con la barra y algo de espacio por encima en el encuadre.",
   'analysis.placeholder.loadingTitle': 'Cargando tu levantamiento',
   'analysis.placeholder.loadingBody': 'Un momento.',
   'analysis.placeholder.missingTitle': 'No encontramos este levantamiento.',

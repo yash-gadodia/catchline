@@ -86,6 +86,8 @@ export const analysis: Strings<typeof en> = {
   'analysis.pathOnly.tip.no_plate': "Mantenha a anilha mais próxima totalmente visível, sem nada na frente.",
   'analysis.pathOnly.tip.no_body_scale': "Aproxime o celular, com o atleta inteiro no enquadramento.",
   'analysis.pathOnly.tip.not_side_on': "Filme de lado, com o celular na altura da barra.",
+  'analysis.pathOnly.reason.shoulders_cut_off': "A barra e o topo da repetição estão fora do enquadramento, então as repetições não foram encontradas. Quadril, pés e ombros estão rastreados acima.",
+  'analysis.pathOnly.tip.shoulders_cut_off': "Filme com a barra e um pouco de espaço acima dela no enquadramento.",
   'analysis.placeholder.loadingTitle': 'Carregando seu levantamento',
   'analysis.placeholder.loadingBody': 'Um momento.',
   'analysis.placeholder.missingTitle': 'Não encontramos este levantamento.',

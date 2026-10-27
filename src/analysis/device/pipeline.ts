@@ -305,7 +305,13 @@ export function noLiftFailure(ctx: Ctx, message: string): Result {
 
 // The gates after "person found" whose failure now gives a tracking-first result instead of the failure screen
 // (owner decision 27-10: the product is the tracking; a cue is secondary).
-const PATH_ONLY_GATES: Record<string, PathOnlyGate> = { no_reps: 'no_reps', front_or_back: 'not_side_on', no_plate: 'no_plate', no_body_scale: 'no_body_scale' };
+const PATH_ONLY_GATES: Record<string, PathOnlyGate> = {
+  no_reps: 'no_reps',
+  front_or_back: 'not_side_on',
+  no_plate: 'no_plate',
+  no_body_scale: 'no_body_scale',
+  shoulders_cut_off: 'shoulders_cut_off',
+};
 
 export function orPathOnly(ctx: Ctx, res: Result): Result {
   const code = (res.analysis.failure as { code?: string } | null)?.code ?? '';
@@ -315,8 +321,9 @@ export function orPathOnly(ctx: Ctx, res: Result): Result {
   return only ? { ...only, repCalls: res.repCalls } : res;
 }
 
-// One rep over the whole clip with no phases and no cue: the bar track as the rep path (the hands, design 2.1), the
-// joint tracks, a setup and a peak still, the start line and the ring. Null when the pose has under two bar frames.
+// One rep over the whole clip with no phases and no cue: the bar track as the rep path (the hands, design 2.1; the hips
+// for a hanging movement, as its reps are drawn), the joint tracks, a setup and a peak still, and for a barbell lift
+// the start line and the ring. Null when the pose has under two frames of the path.
 export function pathOnly(ctx: Ctx, gate: PathOnlyGate): Result | null {
   const { fps, H, W, n, input } = ctx;
   const { Ms } = input.source.window(0, n);
@@ -327,12 +334,11 @@ export function pathOnly(ctx: Ctx, gate: PathOnlyGate): Result | null {
   const cols = Array.from({ length: JOINTS }, (_, j) => toRef(col(kw, j), Ms));
   const kr: K = kw.map((_, f) => cols.map((c) => c[f]));
   const ksm = lowpassK(kr, fps, 6.0);
-  const bar = lowpassPts(barTrack(col(kr, L_WRI), col(kr, R_WRI), bodyH), fps, 6.0);
+  const hanging = FAMILY[ctx.movement] === 'hanging';
+  const bar = hanging ? mid(ksm, L_HIP, R_HIP) : lowpassPts(barTrack(col(kr, L_WRI), col(kr, R_WRI), bodyH), fps, 6.0);
+  const seen = (f: number) => (hanging ? finitePt(kw[f][L_HIP]) && finitePt(kw[f][R_HIP]) : finitePt(kw[f][L_WRI]) || finitePt(kw[f][R_WRI]));
   const path: TracePoint[] = [];
-  for (let f = 0; f < L; f++) {
-    if (!finitePt(kw[f][L_WRI]) && !finitePt(kw[f][R_WRI])) continue;
-    if (finitePt(bar[f])) path.push({ frame: f, ...normalise(fromRef(bar[f], Ms[f]), W, H) });
-  }
+  for (let f = 0; f < L; f++) if (seen(f) && finitePt(bar[f])) path.push({ frame: f, ...normalise(fromRef(bar[f], Ms[f]), W, H) });
   if (path.length < 2) return null;
   const first = path[0].frame;
   const last = path[path.length - 1].frame;
@@ -354,7 +360,7 @@ export function pathOnly(ctx: Ctx, gate: PathOnlyGate): Result | null {
         phases: [],
         keyFrames: keys.map(([phase, frame], pi) => ({ phase, frame, image: `${ctx.assetPrefix}/r1-${pi + 1}-${phase}.jpg` })),
         path,
-        guides: { startX: path[0].x, ring },
+        ...(hanging ? {} : { guides: { startX: path[0].x, ring } }),
         tracks: jointTracks(kr, ksm, Ms, first, last, W, H, (f) => f),
       },
     ],

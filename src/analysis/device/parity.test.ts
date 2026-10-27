@@ -17,7 +17,9 @@ const load = (f: string) => JSON.parse(gunzipSync(readFileSync(join(DIR, f))).to
 const loadTrace = (name: string) => parseTraceJson(gunzipSync(readFileSync(join(TRACES, `${name}.trace.json.gz`))).toString()) as Trace;
 
 // 3.1 measures in the body frame (design 2.1, 3.1), so Python stays the reference only for what comes before the
-// measurement: the world keypoints, the movement signals, the detector and what the replay asks the video for.
+// measurement: the world keypoints, the movement signals, the detector and what the replay asks the video for. The
+// bar-muscle-up run of the kipping clip finds no rep, which since 27-10 is a path-only result over the whole clip, so
+// its replay asks for the whole-clip window Python never did (the fixtures' misses carry that by hand).
 describe('the device analysis on the committed lift traces', () => {
   it('matches the Python pipeline up to the measurement', () => {
     for (const f of files) {
@@ -32,13 +34,26 @@ describe('the device analysis on the committed lift traces', () => {
       return `${f.split('.expected')[0]} ${headline(a)} ${a.cue?.confidence ?? ''}`.trim();
     });
     expect(got).toEqual([
-      '2026-09-22_A1F2F738.mov.bar_muscle_up fail:no_reps',
+      '2026-09-22_A1F2F738.mov.bar_muscle_up noCue:path_only',
       '2026-09-22_A1F2F738.mov.bar_muscle_up.forced cue:bmu_early_pull worth_checking',
       '2026-09-22_A1F2F738.mov.kipping_pull_up cue:leg_kip worth_checking',
-      '2026-09-22_A1F2F738.mp4.bar_muscle_up fail:no_reps',
+      '2026-09-22_A1F2F738.mp4.bar_muscle_up noCue:path_only',
       '2026-09-22_A1F2F738.mp4.bar_muscle_up.forced cue:bmu_early_pull clear',
       '2026-09-22_A1F2F738.mp4.kipping_pull_up cue:leg_kip worth_checking',
     ]);
+  });
+
+  it('tracks the hips over the whole kipping clip when run as a bar muscle-up finds no rep', () => {
+    const a = analyseTraceResult(loadTrace('2026-09-22_A1F2F738.mov'), 'bar_muscle_up').analysis as {
+      failure: unknown;
+      noCueReason: unknown;
+      reps: { phases: unknown[]; keyFrames: { phase: string; image: string }[]; path: unknown[]; guides?: unknown; tracks: Record<string, unknown[]> }[];
+    };
+    expect([a.failure, a.noCueReason]).toEqual([null, { code: 'path_only', gate: 'no_reps', offSideDeg: 25 }]);
+    const rep = a.reps[0];
+    expect([rep.phases, rep.guides, rep.path.length]).toEqual([[], undefined, 220]);
+    expect(rep.keyFrames.map((k) => `${k.phase} ${k.image}`)).toEqual(['setup kf/r1-1-setup.jpg', 'peak kf/r1-2-peak.jpg']);
+    expect(Object.keys(rep.tracks)).toEqual(['feet', 'hips', 'shoulders', 'knees', 'elbows']);
   });
 
   it('sizes a snatch from the body: a plate fit 20% bigger changes nothing', () => {

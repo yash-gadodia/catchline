@@ -614,13 +614,13 @@ function runGym(ctx: Ctx, forceCycles?: [number, number, number][]): Result {
   const t = torsoPx(k);
   const sho = lowpass(up(ys(mid(ctx.world, L_SHO, R_SHO))), fps);
   const pxPerCm = scaleFromBody(k);
-  if (!pxPerCm) return fail(ctx, 'too_far', 'no_body_scale', "Could not measure the athlete's body to scale the clip.");
+  if (!pxPerCm) return orPathOnly(ctx, fail(ctx, 'too_far', 'no_body_scale', "Could not measure the athlete's body to scale the clip."));
   const wri = lowpass(up(ys(mid(ctx.world, L_WRI, R_WRI))), fps);
   const rel = sho.map((v, i) => v - wri[i]);
   if (movement === 'kipping_hspu') {
     // a rep bottoms out with the shoulders near the hands (head on the floor) and tops out arms-length above
     const cyc = forceCycles ?? cycleTops(sho.map((v) => -v), t, fps, 0.3).filter((c) => rel[c[1]] < 0.4 * t);
-    const noReps = () => fail(ctx, 'unsupported_movement', 'no_reps', 'No handstand push-up reps found in this clip.');
+    const noReps = () => orPathOnly(ctx, fail(ctx, 'unsupported_movement', 'no_reps', 'No handstand push-up reps found in this clip.'));
     if (!cyc.length) return noReps();
     const infos: RepInfo[] = [];
     cyc.forEach(([a, bottom, b], ri) => {
@@ -638,24 +638,22 @@ function runGym(ctx: Ctx, forceCycles?: [number, number, number][]): Result {
   cyc = mergeCycles(cyc, sho, rel, -0.75 * t);
   if (forceCycles) cyc = forceCycles;
   const name = movement === 'kipping_pull_up' ? 'pull' : 'muscle-up';
-  if (!cyc.length) return fail(ctx, 'unsupported_movement', 'no_reps', `No ${name} reps found in this clip.`);
+  if (!cyc.length) return orPathOnly(ctx, fail(ctx, 'unsupported_movement', 'no_reps', `No ${name} reps found in this clip.`));
   const shoY = (a: number, b: number) => k.slice(a, b + 1).flatMap((r) => [r[L_SHO][1], r[R_SHO][1]]);
   if (cyc.some(([a, , b]) => {
     const v = shoY(a, b).filter((x) => !Number.isNaN(x));
     return v.length > 0 && Math.min(...v) < 0.03 * H;
   }))
-    return fail(
+    return orPathOnly(
       ctx,
-      'clip_cut_off',
-      'shoulders_cut_off',
-      'The bar and the top of the rep are out of the frame. Film with the bar and some space above it in view.',
+      fail(ctx, 'clip_cut_off', 'shoulders_cut_off', 'The bar and the top of the rep are out of the frame. Film with the bar and some space above it in view.'),
     );
   const infos: RepInfo[] = [];
   cyc.forEach(([a, top, b], ri) => {
     const r = hangRep(ctx, ri + 1, a, top, b, pxPerCm, ri === cyc.length - 1);
     if (r !== null) infos.push(r);
   });
-  if (!infos.length) return fail(ctx, 'unsupported_movement', 'no_reps', `No ${name} reps found in this clip.`);
+  if (!infos.length) return orPathOnly(ctx, fail(ctx, 'unsupported_movement', 'no_reps', `No ${name} reps found in this clip.`));
   return { ...writeOut(ctx, infos), repCalls: infos };
 }
 
