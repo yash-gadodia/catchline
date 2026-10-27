@@ -1,7 +1,8 @@
 import * as Notifications from 'expo-notifications';
 import { liveAnalysis } from '../../analysis/live';
 import { snatchMock } from '../../analysis/fixtures';
-import { foregroundBehavior, installForegroundHandler, liftIdFromResponse, requestPermissions, registerPushToken, routeForLift } from './index';
+import { AppState } from 'react-native';
+import { foregroundBehavior, installForegroundHandler, liftIdFromResponse, notifyLiftReady, requestPermissions, registerPushToken, routeForLift } from './index';
 
 jest.mock('expo-notifications');
 const mockProfileEq = jest.fn(() => Promise.resolve({ data: null, error: null }));
@@ -19,6 +20,8 @@ jest.mock('../../lib/supabase', () => ({
 }));
 jest.mock('../../lib/api', () => ({ getLift: jest.fn(), getAnalysis: jest.fn() }));
 jest.mock('../../data/library', () => ({ syncLibrary: jest.fn(() => Promise.resolve()) }));
+jest.mock('../../data/localLifts', () => ({ readLocalAnalysis: jest.fn(async () => null) }));
+import { readLocalAnalysis } from '../../data/localLifts';
 import { supabase } from '../../lib/supabase';
 import * as api from '../../lib/api';
 import { syncLibrary } from '../../data/library';
@@ -165,6 +168,55 @@ describe('routeForLift', () => {
 });
 
 // A push that arrives while Catchline is open was dropped by iOS: no handler was set.
+describe('routeForLift for a lift analysed on the phone', () => {
+  const mockLocal = readLocalAnalysis as jest.Mock;
+
+  it('opens the reveal from Documents without asking the server', async () => {
+    mockLocal.mockResolvedValueOnce({ ...snatchMock, id: 'lift-local' });
+    const href = await routeForLift('lift-local');
+    expect(href).toEqual({ pathname: '/analysis/reveal', params: { fixture: 'lift-local' } });
+    expect(liveAnalysis('lift-local')?.id).toBe('lift-local');
+    expect(mockApi.getLift).not.toHaveBeenCalled();
+  });
+
+  it('opens the failure screen with the stored reason when that lift failed', async () => {
+    mockLocal.mockResolvedValueOnce({ ...snatchMock, id: 'lift-local', failure: { reason: 'no_reps', code: 'no_reps' } });
+    expect(await routeForLift('lift-local')).toEqual({ pathname: '/failure/[id]', params: { id: 'lift-local', reason: 'no_reps' } });
+  });
+});
+
+describe('notifyLiftReady', () => {
+  const appState = AppState as unknown as { currentState: string };
+  const granted = { status: 'granted', expires: 'never', granted: true, canAskAgain: false } as any;
+
+  it('posts the ready notification with the lift id when the app is away and notifications are allowed', async () => {
+    appState.currentState = 'background';
+    mockNotifications.getPermissionsAsync.mockResolvedValue(granted);
+    expect(await notifyLiftReady('lift-1', 'clean', false)).toBe(true);
+    expect(mockNotifications.scheduleNotificationAsync).toHaveBeenCalledWith({
+      content: { title: 'Your Clean is ready', body: 'Tap to see your cue.', data: { liftId: 'lift-1' } },
+      trigger: null,
+    });
+  });
+
+  it('names a failed lift as one we could not read', async () => {
+    appState.currentState = 'inactive';
+    mockNotifications.getPermissionsAsync.mockResolvedValue(granted);
+    await notifyLiftReady('lift-1', 'snatch', true);
+    expect(mockNotifications.scheduleNotificationAsync.mock.calls[0][0].content.title).toBe("We couldn't read your Snatch");
+  });
+
+  it('posts nothing when the app is in front, or when notifications are not allowed', async () => {
+    appState.currentState = 'active';
+    expect(await notifyLiftReady('lift-1', 'snatch', false)).toBe(false);
+    expect(mockNotifications.getPermissionsAsync).not.toHaveBeenCalled();
+    appState.currentState = 'background';
+    mockNotifications.getPermissionsAsync.mockResolvedValue({ ...granted, status: 'undetermined' });
+    expect(await notifyLiftReady('lift-1', 'snatch', false)).toBe(false);
+    expect(mockNotifications.scheduleNotificationAsync).not.toHaveBeenCalled();
+  });
+});
+
 describe('foreground pushes', () => {
   it('always show a banner and list entry with sound, never a badge', () => {
     expect(foregroundBehavior()).toEqual({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: true, shouldSetBadge: false });

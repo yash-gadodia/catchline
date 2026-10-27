@@ -44,10 +44,10 @@ export default function RootLayout() {
   const router = useRouter();
   const locale = useLocale((s) => s.locale);
 
-  // A tapped "your lift is ready" push lands on that lift (warm, or cold via the
-  // last response).
+  // A tapped "your lift is ready" notification (the worker's push, or the phone's own
+  // once a run finished while the app was away) lands on that lift (warm, or cold via
+  // the last response).
   useEffect(() => {
-    if (!backendEnabled()) return;
     const open = (response: Notifications.NotificationResponse | null) => {
       const liftId = response && liftIdFromResponse(response);
       if (!liftId) return;

@@ -18,4 +18,12 @@ export const notifications: Strings<typeof en> = {
   'notifications.reask.body': "Ein Hinweis sitzt erst, wenn du ihn erneut testest. Schalte Mitteilungen ein, und Catchline erinnert dich vor deiner nächsten Einheit.",
   // REVIEW
   'notifications.reask.notNow': "Nicht jetzt",
+  // REVIEW
+  'notifications.ready.title': "Dein {movement} ist fertig",
+  // REVIEW
+  'notifications.ready.body': "Tippe, um deinen Hinweis zu sehen.",
+  // REVIEW
+  'notifications.ready.failedTitle': "Wir konnten deinen {movement} nicht lesen",
+  // REVIEW
+  'notifications.ready.failedBody': "Tippe, um zu sehen, warum und was du als Nächstes versuchen kannst.",
 };
