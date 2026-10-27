@@ -370,6 +370,7 @@ jest.mock('./modules/pose-coreml', () => {
         analyseListeners.forEach((l) => l({ stage: 'camera', fraction: 1 }));
         return { tracePath: 'file:///cache/pose-coreml/trace.json.gz', stills: {} };
       }),
+      endBackgroundRun: jest.fn(async () => undefined),
       analyzePose: jest.fn(async () => {
         listeners.forEach((l) => l({ progress: 0.5 }));
         listeners.forEach((l) => l({ progress: 1 }));

@@ -18,12 +18,14 @@ enum PoseCoreMLError: Error, CustomStringConvertible {
   case noVideoTrack
   case readFailed(String)
   case model(String)
+  case interrupted
 
   var description: String {
     switch self {
     case .noVideoTrack: return "no_video_track: the file has no video track"
     case .readFailed(let s): return "clip_unreadable: \(s)"
     case .model(let s): return "models_unavailable: \(s)"
+    case .interrupted: return "interrupted: the system ended the run in the background"
     }
   }
 }
