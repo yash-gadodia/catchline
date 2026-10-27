@@ -22,7 +22,8 @@ export type PhaseName =
   | 'lockout'
   | 'tuck'
   | 'drive'
-  | 'press';
+  | 'press'
+  | 'peak';
 
 export type Confidence = 'clear' | 'worth_checking' | 'low';
 
@@ -55,7 +56,13 @@ export type Measurement = {
 
 // Coaching reference lines for a barbell rep, normalised to the frame: the vertical through the bar at lift-off, the
 // knee at lift-off, the hip at hip contact and the bar at its highest, and the bar where it was furthest forward.
-export type RepGuides = { startX: number; kneeY: number; hipY: number; peakY: number; ring: TracePoint };
+// A path-only rep (no phases) carries the start line and the ring alone.
+export type RepGuides = { startX: number; kneeY?: number; hipY?: number; peakY?: number; ring: TracePoint };
+
+// The joint tracks beside the bar path, in the same frame as `path`: per frame the mid-point of the pair (mid-ankle,
+// mid-hip, ...). A frame where the pose has no such joint is left out, never filled in. Absent before 3.1.1.
+export type TrackName = 'feet' | 'hips' | 'shoulders' | 'knees' | 'elbows';
+export type RepTracks = Partial<Record<TrackName, TracePoint[]>>;
 
 export type Rep = {
   index: number;
@@ -66,6 +73,7 @@ export type Rep = {
   keyFrames: KeyFrame[];
   path: TracePoint[];
   guides?: RepGuides;
+  tracks?: RepTracks;
 };
 
 export type Cue = {
@@ -114,8 +122,10 @@ export type Failure = {
 };
 
 // Why a measured lift has no cue: the path and phases are real, the cue was held back (a partial result).
-export type NoCueCode = 'off_side_on' | 'plate_hidden' | 'rep_cut_off' | 'unclear_miss' | 'low_confidence' | 'bar_lost';
-export type NoCueReason = { code: NoCueCode; offSideDeg?: number };
+// 'path_only' (3.1.1): no phases either; the bar, feet and hips were tracked over the whole clip after `gate` failed.
+export type NoCueCode = 'off_side_on' | 'plate_hidden' | 'rep_cut_off' | 'unclear_miss' | 'low_confidence' | 'bar_lost' | 'path_only';
+export type PathOnlyGate = 'no_reps' | 'no_plate' | 'no_body_scale' | 'not_side_on' | 'shoulders_cut_off';
+export type NoCueReason = { code: NoCueCode; offSideDeg?: number; gate?: PathOnlyGate };
 
 // What the pose alone says the clip shows; 'unknown' when the signal is weak.
 export type DetectedMovement = { movement: Movement | 'unknown'; confidence: number };

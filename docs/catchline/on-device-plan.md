@@ -91,3 +91,63 @@ M4 Mac does 6-9 fps). That number sets the minimum device and whether we need th
 - PR #53 merged (`0c899e8`): rules + cues TS port, shared `rules.json`, "Other ways to say it".
 - `feat/device-measure` a7e0cd0, `feat/pose-model-download` b739f81, `feat/plate-detector` 966fb32 in `.claude/worktrees/agent-*` (see the handoff memory).
 - Separate and first tomorrow: the "no cue when filmed at an angle" fix (`fix/angle-cue`), which helps every user today regardless of this plan.
+
+## Track eval (27 Oct 2026, `scripts/eval31/tracks.ts`, branch `v31/tracks311`)
+
+Owner decision 27-10: the product is the tracking shown on every lift; a cue is secondary. A lift that fails a gate after
+"person found" (no_reps, no_plate, no_body_scale, not_side_on; the hanging gym no_reps / shoulders_cut_off /
+no_body_scale) now gives one path-only rep over the whole clip instead of the failure screen. The eval replays the 13 eval
+clips (cached pose, the harness for the pixel stages it still owes: the whole-clip window and the setup + peak stills) and
+the prod traces in `cv/tests/fixtures/traces` plus `~/catchline-traces`, and the `forced` rows run a snatch as a jerk so
+the path-only result is exercised on real pose data (no eval clip fails a barbell gate on its own).
+
+Run on the Mini: `npx tsx scripts/eval31/tracks.ts --clips ~/catchline-tracks311/clips.json --cache ~/catchline-tracks311/cache
+--harness <abs harness> --models ~/catchline-speed31/models --traces cv/tests/fixtures/traces --traces
+~/catchline-traces/cv/tests/fixtures/traces --labels ~/catchline-dataset/labels --out ~/catchline-tracks311/out
+--also 2026-10-05_21B27BAF:jerk --also 2026-10-05_E0DF8887:jerk --also IMG_0073:jerk` (`--models` must be an absolute
+directory of `.mlmodelc`).
+
+Columns: **bar vs plate label** is the bar path against the dataset's per-frame plate-centre labels (`~/catchline-dataset/labels`,
+clip px; median and p90 distance, median in plate radii, the signed median dx/dy with +x to the right and +y down),
+only two of the 13 clips carry labels. **plate seen** is how many of the frames the plate finder searched returned a plate
+(and how many fits held an outline); the bar path itself is wrist-derived on every frame (design 2.1), so the
+"plate-tagged" share of the path is 0 by construction. **feet / hips** are continuity only: frames of the rep span with
+no track point (the pose had no such joint, so none was invented) and single-frame jumps over 0.35 torso lengths.
+
+| clip | set | run as | result | path | reps | bar vs plate label | plate seen | feet | hips |
+|---|---|---|---|---|---|---|---|---|---|
+| 2026-08-21_EDF10BB7 | bot | bar_muscle_up | path_only:no_reps | yes | 1 | no labels | 0/0 (0 fit) | 17 gap / 33 jump of 372 | 17 gap / 0 jump of 372 |
+| 2026-09-18_BD1AE773 | bot | bar_muscle_up | path_only:shoulders_cut_off | yes | 1 | no labels | 0/0 (0 fit) | 1 gap / 0 jump of 311 | 1 gap / 0 jump of 311 |
+| 2026-09-22_A1F2F738 | bot | kipping_pull_up | cue:leg_kip | yes | 2 | no labels | 0/0 (0 fit) | 1 gap / 0 jump of 134 | 1 gap / 0 jump of 134 |
+| 2026-10-05_21B27BAF | bot | snatch | unclear_miss | yes | 1 | no labels | 9/9 (9 fit) | 0 gap / 0 jump of 116 | 0 gap / 0 jump of 116 |
+| 2026-10-05_E0DF8887 | bot | snatch | clean | yes | 1 | no labels | 9/9 (9 fit) | 0 gap / 0 jump of 89 | 0 gap / 0 jump of 89 |
+| IMG_0073 | owner | snatch | cue:bar_forward_off_hips | yes | 2 | no labels | 16/16 (29 fit) | 0 gap / 0 jump of 364 | 0 gap / 0 jump of 364 |
+| catchline-side-snatch | proto | snatch | off_side_on | yes | 1 | no labels | 8/8 (13 fit) | 0 gap / 0 jump of 188 | 0 gap / 0 jump of 188 |
+| yt_fbbuTrspjhE | proto | snatch | cue:hips_too_low_at_start | yes | 1 | 50.3 px med (dx 13.3, dy -15.2), 146.7 px p90, 0.86 r (181 fr) | 8/8 (0 fit) | 0 gap / 0 jump of 215 | 0 gap / 0 jump of 215 |
+| yt_nuj--RnZy9s | proto | snatch | clean | yes | 1 | no labels | 8/8 (0 fit) | 0 gap / 0 jump of 174 | 0 gap / 0 jump of 174 |
+| yt_jbhvMQamGlc | proto | clean | cue:bar_forward_off_hips | yes | 3 | no labels | 24/24 (12 fit) | 4 gap / 11 jump of 137 | 4 gap / 0 jump of 137 |
+| yt_6VWB9RY9XPg | proto | snatch | cue:missed_behind | yes | 1 | 77.3 px med (dx 22.6, dy 32.3), 189 px p90, 1.36 r (147 fr) | 3/3 (0 fit) | 11 gap / 0 jump of 195 | 11 gap / 0 jump of 195 |
+| yt_MNWUT1fgRZY | proto | snatch | bar_lost | yes | 2 | no labels | 16/16 (3 fit) | 0 gap / 0 jump of 119 | 0 gap / 0 jump of 119 |
+| yt_wtPzZ0_hN8I | proto | clean | cue:press_out | yes | 1 | no labels | 3/8 (0 fit) | 0 gap / 0 jump of 66 | 0 gap / 0 jump of 66 |
+| 2026-10-05_21B27BAF as jerk | forced | jerk | path_only:no_reps | yes | 1 | no labels | 0/0 (0 fit) | 0 gap / 0 jump of 153 | 0 gap / 0 jump of 153 |
+| 2026-10-05_E0DF8887 as jerk | forced | jerk | path_only:no_reps | yes | 1 | no labels | 0/0 (0 fit) | 0 gap / 0 jump of 190 | 0 gap / 0 jump of 190 |
+| IMG_0073 as jerk | forced | jerk | path_only:no_reps | yes | 1 | no labels | 0/0 (0 fit) | 0 gap / 0 jump of 1122 | 0 gap / 0 jump of 1122 |
+| 2026-09-22_A1F2F738.mov | trace | kipping_pull_up | cue:leg_kip | yes | 2 | no labels | 0/0 (0 fit) | 0 gap / 0 jump of 134 | 0 gap / 0 jump of 134 |
+| 2026-09-22_A1F2F738.mp4 | trace | kipping_pull_up | cue:leg_kip | yes | 2 | no labels | 0/0 (0 fit) | 7 gap / 0 jump of 128 | 7 gap / 0 jump of 128 |
+| 2026-10-05_21B27BAF.mov | trace | snatch | unclear_miss | yes | 1 | no labels | 8/8 (8 fit) | 0 gap / 0 jump of 117 | 0 gap / 0 jump of 117 |
+| 2026-10-05_21B27BAF.mp4 | trace | snatch | unclear_miss | yes | 1 | no labels | 8/8 (6 fit) | 0 gap / 0 jump of 115 | 0 gap / 0 jump of 115 |
+| 2026-08-21_EDF10BB7.mov | trace | bar_muscle_up | path_only:no_reps | yes | 1 | no labels | 0/0 (0 fit) | 16 gap / 26 jump of 373 | 16 gap / 0 jump of 373 |
+| 2026-08-21_EDF10BB7.mp4 | trace | bar_muscle_up | path_only:no_reps | yes | 1 | no labels | 0/0 (0 fit) | 2 gap / 7 jump of 387 | 2 gap / 0 jump of 387 |
+| 2026-09-18_BD1AE773.mov | trace | bar_muscle_up | path_only:shoulders_cut_off | yes | 1 | no labels | 0/0 (0 fit) | 1 gap / 0 jump of 311 | 1 gap / 0 jump of 311 |
+| 2026-09-18_BD1AE773.mp4 | trace | bar_muscle_up | path_only:shoulders_cut_off | yes | 1 | no labels | 0/0 (0 fit) | 1 gap / 0 jump of 311 | 1 gap / 0 jump of 311 |
+| 2026-10-05_E0DF8887.mov | trace | snatch | clean | yes | 1 | no labels | 8/8 (8 fit) | 0 gap / 0 jump of 86 | 0 gap / 0 jump of 86 |
+| 2026-10-05_E0DF8887.mp4 | trace | snatch | clean | yes | 1 | no labels | 8/8 (8 fit) | 0 gap / 0 jump of 89 | 0 gap / 0 jump of 89 |
+
+Pass (every clip with a person produces a path): **yes** (26/26)
+
+What has no ground truth: the feet, hip, shoulder, knee and elbow tracks (no dataset labels them; continuity is all that
+can be measured), and the bar path on 11 of the 13 clips. On the two labelled clips the bar sits 50 and 77 px (0.86 and
+1.36 plate radii) from the plate centre at the median, mostly a constant offset (dx 13 / 23 px, dy -15 / 32 px): the hands'
+midpoint against a plate that sits nearer the camera, and the labels' own tool (detect + KLT) was never checked against the
+bar. Both clips are 640 x 480. The yt_jbhvMQamGlc feet jumps (11 of 137) and the EDF10BB7 feet jumps (26 to 33 of ~380)
+are the ankles flickering on a low-resolution lifter and a hanging athlete whose feet leave the frame; the hips never jump.

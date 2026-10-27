@@ -12,6 +12,16 @@ describe('parseAnalysis', () => {
     expect(() => parseAnalysis(bad)).toThrow('Invalid Analysis: rep 1 path not normalised');
   });
 
+  it('accepts the joint tracks beside the path, an analysis from before them, and rejects pixel tracks', () => {
+    const tracks = { feet: [{ frame: 1, x: 0.4, y: 0.9 }], hips: [{ frame: 1, x: 0.5, y: 0.6 }] };
+    const withTracks = JSON.parse(JSON.stringify(mock));
+    withTracks.reps[0].tracks = tracks;
+    expect(parseAnalysis(withTracks).reps[0].tracks).toEqual(tracks);
+    expect(parseAnalysis(mock).reps[0].tracks).toBeUndefined();
+    withTracks.reps[0].tracks.hips[0].y = 640;
+    expect(() => parseAnalysis(withTracks)).toThrow('Invalid Analysis: rep 1 hips track not normalised');
+  });
+
   it('rejects an unknown version', () => {
     expect(() => parseAnalysis({ ...mock, version: 2 })).toThrow('Invalid Analysis: version 2');
   });

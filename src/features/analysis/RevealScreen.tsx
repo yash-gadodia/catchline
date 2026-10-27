@@ -46,6 +46,8 @@ const STROBE: { phase: string; opacity: number; gray: boolean }[] = [
   { phase: 'first_pull', opacity: 0.45, gray: true },
   { phase: 'transition', opacity: 0.55, gray: true },
   { phase: 'catch', opacity: 1, gray: false },
+  // a path-only result has a setup and a peak still, no phases
+  { phase: 'peak', opacity: 1, gray: false },
 ];
 
 export default function RevealScreen({
@@ -63,8 +65,9 @@ export default function RevealScreen({
   const insets = useSafeAreaInsets();
   // No cue (no fault fired): the same storyboard without the fault zoom, typing "Clean rep." instead.
   const cue = analysis.cue;
-  // A partial (cue held back) types "No cue this time"; the result screen says why.
-  const cueLine = cue ? cueText(cue.faultId, cue.text) : t(analysis.noCueReason ? 'analysis.partial.title' : 'analysis.clean.title');
+  // A partial (cue held back) types "No cue this time"; the result screen says why. A path-only result types "Path only".
+  const pathOnly = analysis.noCueReason?.code === 'path_only';
+  const cueLine = cue ? cueText(cue.faultId, cue.text) : t(pathOnly ? 'analysis.pathOnly.title' : analysis.noCueReason ? 'analysis.partial.title' : 'analysis.clean.title');
   const rep = repByIndex(analysis, cue?.evidence.rep ?? analysis.bestRepIndex);
   const box: Size = { width, height: Math.round(width * 1.25) };
   const src = { width: analysis.video.width, height: analysis.video.height };
@@ -213,7 +216,7 @@ export default function RevealScreen({
         ) : null}
         {typed > 0 ? (
           <>
-            <SmallCaps size={13}>{cue ? t('analysis.reveal.oneThing') : t('analysis.clean.label')}</SmallCaps>
+            <SmallCaps size={13}>{cue ? t('analysis.reveal.oneThing') : t(pathOnly ? 'analysis.pathOnly.label' : 'analysis.clean.label')}</SmallCaps>
             <Text style={[display(34), { color: colors.text }]} testID="reveal-cue">
               {cueLine.slice(0, typed)}
               {typed < cueLine.length ? <Text style={{ color: colors.flare }}>|</Text> : null}

@@ -64,7 +64,9 @@ import {
   bestRep,
   fail,
   noLiftFailure,
+  orPathOnly,
   guideRows,
+  jointTracks,
   keyNumbers,
   KEYFRAME_H,
   liftTags,
@@ -104,6 +106,7 @@ function writeOut(ctx: Ctx, repInfo: RepInfo[], tag = 'r'): Result {
     keyFrames: Object.entries(r.keys).map(([phase, f], pi) => ({ phase, frame: f, image: `${ctx.assetPrefix}/${tag}${r.index}-${pi + 1}-${phase}.jpg` })),
     path: r.path,
     ...(r.guides ? { guides: r.guides } : {}),
+    ...(r.tracks ? { tracks: r.tracks } : {}),
   }));
   const analysis: AnalysisJson = {
     ...base(ctx.analysisId, ctx.input.meta, ctx.n, movement),
@@ -311,6 +314,7 @@ function repInfo(
     Ms: w.Ms,
     track: trace,
     ksm: w.ksm,
+    tracks: jointTracks(w.kr, w.ksm, w.Ms, a, Math.min(w.L - 1, end), ctx.W, ctx.H, g),
   };
 }
 
@@ -325,7 +329,7 @@ function runClean(ctx: Ctx, forceReps?: [number, number, number][]): Result {
     lowpass(up(ys(mid(k, L_SHO, R_SHO))), fps), torsoPx(k), fps);
   const reps = forceReps ?? lifts.map((l) => l.window);
   const classes = forceReps ? reps.map((): StartClass => 'floor') : lifts.map((l) => l.startClass);
-  const noClean = () => noLiftFailure(ctx, 'No clean found: the bar never went from the floor to a front-rack hold.');
+  const noClean = () => orPathOnly(ctx, noLiftFailure(ctx, 'No clean found: the bar never went from the floor to a front-rack hold.'));
   if (!reps.length) return noClean();
   const infos: RepInfo[] = [];
   const repCalls: (RepInfo | null | false)[] = [];
@@ -338,7 +342,7 @@ function runClean(ctx: Ctx, forceReps?: [number, number, number][]): Result {
   });
   if (!infos.length && notLifts) return { ...noClean(), repCalls };
   if (!infos.length)
-    return { ...fail(ctx, 'bar_out_of_frame', 'no_plate', 'Could not find the plates at the start of the lift, so the bar could not be measured.'), repCalls };
+    return { ...orPathOnly(ctx, fail(ctx, 'bar_out_of_frame', 'no_plate', 'Could not find the plates at the start of the lift, so the bar could not be measured.')), repCalls };
   if (forceReps) return { ...writeOut(ctx, infos), repCalls };
   // a jerk from the rack within 8 s of a clean's catch makes the lift a clean & jerk (design 4.1)
   const jerks = jerkWindows(ctx);
@@ -450,6 +454,7 @@ function cleanInfo(r: RepInfo): RepInfo {
       secondExt: ev.second_ext as number,
       peak: ev.peak as number,
     }),
+    ...(r.track_meas ?? []),
   ];
   return r;
 }
@@ -475,9 +480,9 @@ function jerkWindows(ctx: Ctx): [number, number, number][] {
 function runJerk(ctx: Ctx, forceReps?: [number, number, number][]): Result {
   const { k } = ctx;
   const reps = forceReps ?? jerkWindows(ctx);
-  if (!reps.length) return noLiftFailure(ctx, 'No jerk found: the bar never went from the shoulders to overhead.');
+  if (!reps.length) return orPathOnly(ctx, noLiftFailure(ctx, 'No jerk found: the bar never went from the shoulders to overhead.'));
   const pxBody = scaleFromBody(k);
-  if (!pxBody) return fail(ctx, 'too_far', 'no_body_scale', "Could not measure the lifter's body to scale the clip.");
+  if (!pxBody) return orPathOnly(ctx, fail(ctx, 'too_far', 'no_body_scale', "Could not measure the lifter's body to scale the clip."));
   const infos = reps.map(([start, end], ri): RepInfo => ({ ...jerkRep(ctx, ri + 1, start, end, pxBody), start_class: 'shoulders' }));
   return { ...writeOut(ctx, infos), repCalls: infos };
 }
@@ -579,6 +584,8 @@ function jerkRep(ctx: Ctx, repNo: number, start: number, end: number, pxPerCm: n
       status: 'normal',
       note: dipKnee < 10 ? 'under ~10° there is no leg drive: a press, not a jerk' : 'dip and drive',
     },
+    { id: 'bar_over_shoulder', label: 'Bar over shoulder', value: pyRound(ov, 1), unit: 'cm', frame: s0 + lock, status: 'normal', note: 'bar vs shoulder at lockout (+ = in front)' },
+    { id: 'knee_catch', label: 'Knee at catch', value: pyRound(kneeAng[land], 1), unit: 'deg', frame: s0 + land, status: 'normal', note: 'knee angle as the feet land' },
   ];
   const made = rec < L - 1 && el[lock] >= 155;
   const kind = made ? 'make' : ov > 5 ? 'jerk_forward' : ov < -8 ? 'jerk_back' : 'missed';
@@ -607,13 +614,13 @@ function runGym(ctx: Ctx, forceCycles?: [number, number, number][]): Result {
   const t = torsoPx(k);
   const sho = lowpass(up(ys(mid(ctx.world, L_SHO, R_SHO))), fps);
   const pxPerCm = scaleFromBody(k);
-  if (!pxPerCm) return fail(ctx, 'too_far', 'no_body_scale', "Could not measure the athlete's body to scale the clip.");
+  if (!pxPerCm) return orPathOnly(ctx, fail(ctx, 'too_far', 'no_body_scale', "Could not measure the athlete's body to scale the clip."));
   const wri = lowpass(up(ys(mid(ctx.world, L_WRI, R_WRI))), fps);
   const rel = sho.map((v, i) => v - wri[i]);
   if (movement === 'kipping_hspu') {
     // a rep bottoms out with the shoulders near the hands (head on the floor) and tops out arms-length above
     const cyc = forceCycles ?? cycleTops(sho.map((v) => -v), t, fps, 0.3).filter((c) => rel[c[1]] < 0.4 * t);
-    const noReps = () => fail(ctx, 'unsupported_movement', 'no_reps', 'No handstand push-up reps found in this clip.');
+    const noReps = () => orPathOnly(ctx, fail(ctx, 'unsupported_movement', 'no_reps', 'No handstand push-up reps found in this clip.'));
     if (!cyc.length) return noReps();
     const infos: RepInfo[] = [];
     cyc.forEach(([a, bottom, b], ri) => {
@@ -631,24 +638,22 @@ function runGym(ctx: Ctx, forceCycles?: [number, number, number][]): Result {
   cyc = mergeCycles(cyc, sho, rel, -0.75 * t);
   if (forceCycles) cyc = forceCycles;
   const name = movement === 'kipping_pull_up' ? 'pull' : 'muscle-up';
-  if (!cyc.length) return fail(ctx, 'unsupported_movement', 'no_reps', `No ${name} reps found in this clip.`);
+  if (!cyc.length) return orPathOnly(ctx, fail(ctx, 'unsupported_movement', 'no_reps', `No ${name} reps found in this clip.`));
   const shoY = (a: number, b: number) => k.slice(a, b + 1).flatMap((r) => [r[L_SHO][1], r[R_SHO][1]]);
   if (cyc.some(([a, , b]) => {
     const v = shoY(a, b).filter((x) => !Number.isNaN(x));
     return v.length > 0 && Math.min(...v) < 0.03 * H;
   }))
-    return fail(
+    return orPathOnly(
       ctx,
-      'clip_cut_off',
-      'shoulders_cut_off',
-      'The bar and the top of the rep are out of the frame. Film with the bar and some space above it in view.',
+      fail(ctx, 'clip_cut_off', 'shoulders_cut_off', 'The bar and the top of the rep are out of the frame. Film with the bar and some space above it in view.'),
     );
   const infos: RepInfo[] = [];
   cyc.forEach(([a, top, b], ri) => {
     const r = hangRep(ctx, ri + 1, a, top, b, pxPerCm, ri === cyc.length - 1);
     if (r !== null) infos.push(r);
   });
-  if (!infos.length) return fail(ctx, 'unsupported_movement', 'no_reps', `No ${name} reps found in this clip.`);
+  if (!infos.length) return orPathOnly(ctx, fail(ctx, 'unsupported_movement', 'no_reps', `No ${name} reps found in this clip.`));
   return { ...writeOut(ctx, infos), repCalls: infos };
 }
 

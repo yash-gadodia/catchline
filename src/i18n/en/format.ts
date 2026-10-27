@@ -38,6 +38,7 @@ export const format = {
   'format.phase.tuck': 'Tuck',
   'format.phase.drive': 'Drive',
   'format.phase.press': 'Press',
+  'format.phase.peak': 'Peak',
   'format.short.transition': 'hip',
   'format.short.second_pull': '2nd',
   'format.short.turnover': 'turn',

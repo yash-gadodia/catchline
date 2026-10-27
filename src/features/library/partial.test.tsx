@@ -56,6 +56,12 @@ describe('a partial in the library', () => {
     expect(screen.queryByTestId('retake-lp')).toBeNull();
   });
 
+  it('reads "path only" on the row of a lift whose phases were never found', () => {
+    const lift: Lift = { id: 'lo', movement: 'snatch', date: '2026-10-16', status: 'done', analysisId: 'snatch-mock-path-only' };
+    expect(liftDetail(lift, [])).toBe('path only · no phases');
+    expect(liftLink(lift)).toEqual({ pathname: '/analysis/cue', params: { fixture: 'snatch-mock-path-only' } });
+  });
+
   it('puts the head number first when the partial measured it', () => {
     const lift: Lift = { id: 'lp', movement: 'snatch', date: '2026-10-16', status: 'done', analysisId: 'snatch-mock-partial' };
     const session = { id: 's-lp', liftId: 'lp', movement: 'snatch' as const, date: '2026-10-16', values: { bar_drift_hip: 4 } };
