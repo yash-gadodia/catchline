@@ -291,6 +291,7 @@ const PLATE_REACH = 0.3;
 const PLATE_HOME = 0.2;
 const PLATE_START = 0.25;
 const PLATE_START_SIZE = 0.3;
+const PLATE_SHARE_MIN = 0.1;
 
 export function platePath(source: FrameSource, s0: number, L: number, seed: number, kw: K, bodyH: number, setupH: number, barRaw: Pt[], Ms: Affine[], fps: number, offSide: number, plates: Plate[] = []): { drawn: Pt[]; plate: boolean[] } | null {
   if (!(Number.isFinite(setupH) && Number.isFinite(bodyH)) || seed < 0 || seed >= L) return null;
@@ -307,6 +308,8 @@ export function platePath(source: FrameSource, s0: number, L: number, seed: numb
   // a follow that started on some other disc than the plate the setup finder fitted is not followed
   if (fitted && (dist(follow.centres[at], fitted.centre) > PLATE_START * setupH || Math.abs(follow.fit[at][0] / (fitted.diameter_px as number) - 1) > PLATE_START_SIZE)) return null;
   const ok = onPlate(follow.src, follow.fit, follow.centres, anchor, at, offSide);
+  // a plate held on under a tenth of the window re-bases the hands' path on an offset read from too few frames
+  if (ok.filter(Boolean).length < PLATE_SHARE_MIN * L) return null;
   const fused = fusePath(toRef(follow.centres.map((p, f): Pt => (ok[f] ? p : NAN_PT)), Ms), barRaw);
   return { drawn: lowpassPts(fused.path, fps, 6.0), plate: fused.plate };
 }
