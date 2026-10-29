@@ -1,8 +1,9 @@
-// Track eval (27-10, tracking first): the phone pipeline over the eval clips (cached pose and pixel stages, the harness
-// for what is missing) and the prod lift traces. Per clip: whether a path was produced, the bar error against the
-// dataset's plate labels where they exist (px and plate radii), how often the plate finder saw a plate, and the
-// feet / hip track continuity (missing frames, jumps over a torso fraction). The pass condition: every clip with a
-// person produces a path. Feet and hips have no ground truth: continuity is all that can be reported.
+// Track eval (27-10, tracking first; 29-10 any camera angle): the phone pipeline over the eval clips (cached pose and
+// pixel stages, the harness for what is missing) and the prod lift traces. Per clip: the camera angle the clip list
+// labels it with and the yaw the pipeline read, whether a path was produced and how much of it came from the plate,
+// the bar error against the dataset's plate labels where they exist (px and plate radii), how often the plate finder
+// saw a plate, and the feet / hip track continuity (missing frames, jumps over a torso fraction). The pass condition:
+// every clip with a person produces a path. Feet and hips have no ground truth: continuity is all that can be reported.
 //   npx tsx scripts/eval31/tracks.ts --clips clips.json --cache DIR [--harness BIN --models DIR] --traces DIR...
 //     --labels DIR --out DIR [--only id,id] [--also id:movement ...]
 // --also runs a clip as another movement too (a snatch as a jerk finds no jerk), to exercise the path-only result on
@@ -19,18 +20,21 @@ import { Trace, parseTraceJson, traceInput } from '../../src/analysis/device/tra
 import { pointAt } from '../../src/analysis/timeline';
 import type { Rep, TracePoint } from '../../src/analysis/types';
 
-type Clip = { id: string; set: string; file: string; movement: string };
+type Clip = { id: string; set: string; file: string; movement: string; angle?: string };
 type Label = { frame: number; x: number; y: number; r: number };
 type Labels = { width: number; height: number; reps: { labels: Label[] }[] };
 type Row = {
   id: string;
   set: string;
   movement: string;
+  angle: string;
+  yaw: number | null;
   status: string;
   person: boolean;
   path: boolean;
   reps: number;
   pathFrames: number;
+  plateShare: number;
   bar: { n: number; medianPx: number; p90Px: number; medianRadii: number; medianDx: number; medianDy: number } | null;
   plates: { seen: number; searched: number; refined: number };
   feet: { gaps: number; jumps: number; frames: number } | null;
@@ -178,22 +182,29 @@ function platesSeen(trace: Trace): Row['plates'] {
   return { seen, searched: finds.length, refined };
 }
 
-function evaluate(id: string, set: string, movement: string, trace: Trace, misses: number, labels: Labels | null): Row {
+function evaluate(id: string, set: string, movement: string, angle: string, trace: Trace, misses: number, labels: Labels | null): Row {
   const res = analyseTraceResult(trace, movement, { assetPrefix: 'kf' });
-  const a = res.analysis as { failure: { code: string } | null; cue: { faultId: string } | null; noCueReason: { code: string; gate?: string } | null; reps: Rep[] };
+  const a = res.analysis as { failure: { code: string } | null; cue: { faultId: string } | null; noCueReason: { code: string; gate?: string; offSideDeg?: number } | null; reps: Rep[] };
   const status = a.failure ? `fail:${a.failure.code}` : a.cue ? `cue:${a.cue.faultId}` : a.noCueReason ? `${a.noCueReason.code}${a.noCueReason.gate ? `:${a.noCueReason.gate}` : ''}` : 'clean';
   const reps = a.reps ?? [];
   const shape = trace.pose.False?.shape as [number, number] | null;
   const torso = torsoPx(trace, movement);
+  // the camera's yaw off side-on: the reps' own estimate, else the one the path-only or off-side result carries
+  const offs = res.reps.map((r) => r.off_side_deg).filter((v): v is number => v !== null && Number.isFinite(v));
+  const yaw = offs.length ? Math.round(median(offs)) : (a.noCueReason?.offSideDeg ?? null);
+  const pathPts = reps.reduce((s, r) => s + r.path.length, 0);
   return {
     id,
     set,
     movement,
+    angle,
+    yaw,
     status,
     person: a.failure?.code !== 'no_person',
     path: reps.some((r) => r.path.length >= 2),
     reps: reps.length,
-    pathFrames: reps.reduce((s, r) => s + r.path.length, 0),
+    pathFrames: pathPts,
+    plateShare: pathPts ? Math.round((100 * reps.reduce((s, r) => s + r.path.filter((p) => p.src === 'plate').length, 0)) / pathPts) : 0,
     bar: barError(reps, labels, trace.meta),
     plates: platesSeen(trace),
     feet: shape ? continuity(reps, 'feet', shape, torso) : null,
@@ -226,9 +237,9 @@ function main() {
       log(`${c.id} (${c.movement})`);
       try {
         const { trace, misses } = replayClip({ ...c, id: c.id.split(' as ')[0] }, cache, opt('harness'), opt('models'));
-        rows.push(evaluate(c.id, c.set, c.movement, trace, misses, labelsFor(c.id.split(' as ')[0])));
+        rows.push(evaluate(c.id, c.set, c.movement, c.angle ?? '', trace, misses, labelsFor(c.id.split(' as ')[0])));
       } catch (e) {
-        rows.push({ id: c.id, set: c.set, movement: c.movement, status: `error:${String((e as Error).message).slice(0, 80)}`, person: true, path: false, reps: 0, pathFrames: 0, bar: null, plates: { seen: 0, searched: 0, refined: 0 }, feet: null, hips: null, misses: 0 });
+        rows.push({ id: c.id, set: c.set, movement: c.movement, angle: c.angle ?? '', yaw: null, status: `error:${String((e as Error).message).slice(0, 80)}`, person: true, path: false, reps: 0, pathFrames: 0, plateShare: 0, bar: null, plates: { seen: 0, searched: 0, refined: 0 }, feet: null, hips: null, misses: 0 });
       }
     }
   }
@@ -241,16 +252,16 @@ function main() {
       const movement = OWNER_MOVEMENT[name.split('.')[0].slice(-8)] ?? 'snatch';
       log(`${name} (${movement}, trace)`);
       const trace = parseTraceJson(gz(join(dir, f))) as Trace;
-      rows.push(evaluate(name, 'trace', movement, trace, 0, null));
+      rows.push(evaluate(name, 'trace', movement, '', trace, 0, null));
     }
   }
   writeFileSync(join(out, 'tracks.json'), JSON.stringify(rows, null, 1));
   const cell = (r: Row['feet']) => (r ? `${r.gaps} gap / ${r.jumps} jump of ${r.frames}` : '-');
   const lines = [
-    '| clip | set | run as | result | path | reps | bar vs plate label | plate seen | feet | hips |',
-    '|---|---|---|---|---|---|---|---|---|---|',
+    '| clip | set | angle | run as | result | yaw | path | plate % | reps | bar vs plate label | plate seen | feet | hips |',
+    '|---|---|---|---|---|---|---|---|---|---|---|---|---|',
     ...rows.map((r) =>
-      `| ${r.id} | ${r.set} | ${r.movement} | ${r.status} | ${r.path ? 'yes' : r.person ? '**NO**' : 'no person'} | ${r.reps} | ${
+      `| ${r.id} | ${r.set} | ${r.angle || '-'} | ${r.movement} | ${r.status} | ${r.yaw ?? '-'} | ${r.path ? 'yes' : r.person ? '**NO**' : 'no person'} | ${r.plateShare} | ${r.reps} | ${
         r.bar ? `${r.bar.medianPx} px med (dx ${r.bar.medianDx}, dy ${r.bar.medianDy}), ${r.bar.p90Px} px p90, ${r.bar.medianRadii} r (${r.bar.n} fr)` : 'no labels'
       } | ${r.plates.seen}/${r.plates.searched} (${r.plates.refined} fit) | ${cell(r.feet)} | ${cell(r.hips)} |`,
     ),
