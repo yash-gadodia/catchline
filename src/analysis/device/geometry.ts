@@ -124,17 +124,24 @@ export function barTrack(lw: Pt[], rw: Pt[], bodyH: number): Pt[] {
   });
 }
 
-// A followed plate frame counts only inside a run of at least PLATE_RUN frames that each look like the setup plate:
-// the rim has edges (median over +-2 frames) of one polarity, the size holds, the plate stays near the hands as at
-// setup, its inside keeps the setup plate's grey, and flow has not carried it alone for long. Edges of mixed polarity
-// are a window frame or a silhouette; a one-sided silhouette edge shows through the grey inside.
+// A followed plate frame is drawn from the plate only when the follower detected the plate there (not carried it on
+// optical flow), inside a run of at least PLATE_RUN such frames that each look like the setup plate: the rim has edges
+// (median over +-2 frames), of one polarity unless the rim is strong on its own, the size holds, the plate stays about
+// as far from the hands as at setup (a track that slid onto the hands or the body reads nearer; one that wandered off
+// reads further), and its inside keeps the setup plate's grey. A run in which the hands travel over half a plate width
+// must also move with them: a plate that does not rise and fall with the hands is not the lifter's (measured
+// 29-10 against an independent plate truth on 12 clips: these rules keep 87% of the frames within 0.25 radii of the
+// plate and 16% of those further than 0.5 radii off; the polarity-only rule lost a sixth of the good frames).
 const PLATE_RIM = 0.3;
+const PLATE_RIM_SURE = 0.5;
 const PLATE_POLARITY = 0.5;
 const PLATE_GREY = 40;
-const PLATE_SIZE: [number, number] = [0.8, 1.3];
-const PLATE_LEASH = 1.0;
-const PLATE_FLOW_RUN = 5;
+const PLATE_SIZE: [number, number] = [0.9, 1.3];
+const PLATE_LEASH: [number, number] = [-0.35, 0.5];
 const PLATE_RUN = 4;
+const PLATE_TRAVEL = 0.5;
+const PLATE_COMOTION = 0.3;
+const PLATE_TRAVEL_RATIO: [number, number] = [0.4, 2.5];
 
 export function onPlate(src: number[], fit: [number, number, number, number][], centres: Pt[], wrists: Pt[], seed: number): boolean[] {
   const M0 = fit[seed][0], home = dist(centres[seed], wrists[seed]);
@@ -145,22 +152,48 @@ export function onPlate(src: number[], fit: [number, number, number, number][], 
     const s = v.filter(Number.isFinite).sort((a, b) => a - b);
     return s.length ? s[Math.floor(s.length / 2)] : NaN;
   };
-  let run = 0;
   const pass = src.map((s, f) => {
-    run = s === 2 ? run + 1 : 0;
-    if (!(s > 0) || !finitePt(wrists[f])) return false;
+    if (s !== 1 || !finitePt(wrists[f])) return false;
     const size = fit[f][0] / M0;
-    return med(1, f) >= PLATE_RIM && med(2, f) >= PLATE_POLARITY && Math.abs(med(3, f) - fit[seed][3]) <= PLATE_GREY && size >= PLATE_SIZE[0] && size <= PLATE_SIZE[1] &&
-      dist(centres[f], wrists[f]) - home <= PLATE_LEASH * M0 && run <= PLATE_FLOW_RUN;
+    const leash = (dist(centres[f], wrists[f]) - home) / M0;
+    const rim = med(1, f);
+    return rim >= PLATE_RIM && (med(2, f) >= PLATE_POLARITY || rim >= PLATE_RIM_SURE) && Math.abs(med(3, f) - fit[seed][3]) <= PLATE_GREY &&
+      size >= PLATE_SIZE[0] && size <= PLATE_SIZE[1] && leash >= PLATE_LEASH[0] && leash <= PLATE_LEASH[1];
   });
-  const ok = pass.slice();
+  const ok = new Array<boolean>(src.length).fill(false);
+  // a run: passing frames, flow-carried frames allowed between them (bridged, not drawn)
   for (let f = 0; f < pass.length; ) {
+    if (!pass[f]) {
+      f++;
+      continue;
+    }
     let e = f;
-    while (e < pass.length && pass[e] === pass[f]) e++;
-    if (pass[f] && e - f < PLATE_RUN) ok.fill(false, f, e);
+    while (e < pass.length && (pass[e] || src[e] === 2)) e++;
+    while (!pass[e - 1]) e--;
+    const run = [];
+    for (let i = f; i < e; i++) if (pass[i]) run.push(i);
+    if (run.length >= PLATE_RUN && movesWithHands(run, centres, wrists, M0)) for (const i of run) ok[i] = true;
     f = e;
   }
   return ok;
+}
+
+function movesWithHands(run: number[], centres: Pt[], wrists: Pt[], M0: number): boolean {
+  const wy = run.map((i) => wrists[i][1]);
+  const py = run.map((i) => centres[i][1]);
+  const range = (v: number[]) => Math.max(...v) - Math.min(...v);
+  if (range(wy) < PLATE_TRAVEL * M0) return true;
+  const mw = wy.reduce((a, b) => a + b, 0) / wy.length;
+  const mp = py.reduce((a, b) => a + b, 0) / py.length;
+  let sxy = 0, sxx = 0, syy = 0;
+  wy.forEach((w, i) => {
+    sxy += (w - mw) * (py[i] - mp);
+    sxx += (w - mw) ** 2;
+    syy += (py[i] - mp) ** 2;
+  });
+  const corr = sxx > 0 && syy > 0 ? sxy / Math.sqrt(sxx * syy) : 0;
+  const ratio = range(py) / range(wy);
+  return corr >= PLATE_COMOTION && ratio >= PLATE_TRAVEL_RATIO[0] && ratio <= PLATE_TRAVEL_RATIO[1];
 }
 
 export function fusePath(plate: Pt[], wrist: Pt[]): { path: Pt[]; plate: boolean[] } {

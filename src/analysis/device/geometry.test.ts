@@ -68,18 +68,21 @@ describe('which followed plate frames are on the plate', () => {
   const good: Fit = [100, 0.7, 0.8, 30];
   const fits = (at: Record<number, Fit>) => Array.from({ length: n }, (_, f): Fit => at[f] ?? good);
   const detected = new Array<number>(n).fill(1);
+  const all = [true, true, true, true, true, true, true, true];
 
   it('keeps a run of frames that look like the setup plate', () => {
-    expect(onPlate(detected, fits({}), centres, wrists, 0)).toEqual([true, true, true, true, true, true, true, true]);
+    expect(onPlate(detected, fits({}), centres, wrists, 0)).toEqual(all);
   });
 
-  it('drops frames whose rim edges disagree in polarity, a window frame or a silhouette', () => {
-    const mixed: Fit = [100, 0.7, 0.1, 30];
+  it('drops frames whose rim is weak and of mixed polarity, a window frame or a silhouette, but keeps a strong rim', () => {
+    const mixed: Fit = [100, 0.4, 0.1, 30];
     expect(onPlate(detected, fits({ 4: mixed, 5: mixed, 6: mixed, 7: mixed }), centres, wrists, 0)).toEqual([true, true, true, true, false, false, false, false]);
+    const strong: Fit = [100, 0.6, 0.1, 30];
+    expect(onPlate(detected, fits({ 4: strong, 5: strong, 6: strong, 7: strong }), centres, wrists, 0)).toEqual(all);
   });
 
   it('rides out one blurred frame, the evidence taken as a median over neighbours', () => {
-    expect(onPlate(detected, fits({ 3: [100, 0.1, 0, 30] }), centres, wrists, 0)).toEqual([true, true, true, true, true, true, true, true]);
+    expect(onPlate(detected, fits({ 3: [100, 0.1, 0, 30] }), centres, wrists, 0)).toEqual(all);
   });
 
   it('drops a stretch whose inside is far from the setup plate grey, a one-sided edge against a bright window', () => {
@@ -87,16 +90,24 @@ describe('which followed plate frames are on the plate', () => {
     expect(onPlate(detected, fits({ 4: bright, 5: bright, 6: bright, 7: bright }), centres, wrists, 0)).toEqual([true, true, true, true, false, false, false, false]);
   });
 
-  it('drops a plate that grew past the setup size or wandered over a plate width from the hands', () => {
-    const far = centres.map(([x, y], f): Pt => (f >= 4 ? [x + 160, y] : [x, y]));
+  it('drops a plate that grew past the setup size, shrank, wandered off the hands or slid onto them', () => {
     expect(onPlate(detected, fits({ 7: [140, 0.7, 0.8, 30] }), centres, wrists, 0)).toEqual([true, true, true, true, true, true, true, false]);
+    expect(onPlate(detected, fits({ 7: [85, 0.7, 0.8, 30] }), centres, wrists, 0)).toEqual([true, true, true, true, true, true, true, false]);
+    const far = centres.map(([x, y], f): Pt => (f >= 4 ? [x + 160, y] : [x, y]));
     expect(onPlate(detected, fits({}), far, wrists, 0)).toEqual([true, true, true, true, false, false, false, false]);
+    const onHands = centres.map(([x, y], f): Pt => (f >= 4 ? [x, y - 45] : [x, y]));
+    expect(onPlate(detected, fits({}), onHands, wrists, 0)).toEqual([true, true, true, true, false, false, false, false]);
   });
 
-  it('drops runs shorter than four frames and long flow-only runs', () => {
-    const src = [1, 1, 1, 0, 1, 2, 2, 2];
-    expect(onPlate(src, fits({}), centres, wrists, 0)).toEqual([false, false, false, false, true, true, true, true]);
-    const flow = [1, 2, 2, 2, 2, 2, 2, 2];
-    expect(onPlate(flow, fits({}), centres, wrists, 0)).toEqual([true, true, true, true, true, true, false, false]);
+  it('draws nothing from flow-carried frames, which bridge a run without breaking it, and drops runs under four frames', () => {
+    expect(onPlate([1, 1, 1, 0, 1, 1, 1, 1], fits({}), centres, wrists, 0)).toEqual([false, false, false, false, true, true, true, true]);
+    expect(onPlate([1, 1, 2, 2, 1, 1, 2, 2], fits({}), centres, wrists, 0)).toEqual([true, true, false, false, true, true, false, false]);
+  });
+
+  it('drops a run whose plate does not move with the hands', () => {
+    const still = centres.map(([x]): Pt => [x, 150]);
+    expect(onPlate(detected, fits({}), still, wrists, 0)).toEqual(new Array<boolean>(n).fill(false));
+    const resting: Pt[] = Array.from({ length: n }, (): Pt => [100, 100]);
+    expect(onPlate(detected, fits({}), resting.map(([x, y]): Pt => [x, y + 50]), resting, 0)).toEqual(all);
   });
 });
