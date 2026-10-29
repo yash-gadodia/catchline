@@ -213,11 +213,13 @@ describe('the coaching guides and key numbers of a snatch', () => {
     expect(a.measurements.filter((m) => ['max_forward_drift', 'catch_height'].includes(m.id)).map((m) => m.id)).toEqual(['max_forward_drift', 'catch_height']);
   });
 
-  it('lists only the confidently measured numbers, and no forward/back ones past 45 deg off side-on', () => {
+  it('lists only the confidently measured numbers, and past 45 deg off side-on the front-view readings in place of the forward/back ones', () => {
     const side = run(MADE);
     expect(side.keyNumbers).toEqual(['max_forward_drift', 'bar_forward_off_hips', 'bar_crash', 'jump_forward', 'catch_height', 'hip_rise', 'bar_over_shoulder', 'knee_catch', 'elbow_pull']);
     expect(run(MADE, 40, 1050).keyNumbers).toEqual(side.keyNumbers);
-    expect(run(MADE, 52, 1050).keyNumbers).toEqual(['catch_height', 'hip_rise', 'knee_catch', 'elbow_pull']);
+    const front = run(MADE, 52, 1050);
+    expect(front.keyNumbers).toEqual(['catch_height', 'bar_tilt_catch', 'bar_drift_lateral', 'hip_shift', 'stance_setup', 'stance_catch', 'hip_rise', 'knee_catch', 'elbow_pull']);
+    expect(front.measurements.filter((m) => m.id === 'bar_tilt_catch' || m.id === 'stance_catch').map((m) => [m.unit, Number.isFinite(m.value)])).toEqual([['deg', true], ['cm', true]]);
     expect(run(DROPPED_BEHIND).keyNumbers).not.toContain('jump_forward');
   });
 });

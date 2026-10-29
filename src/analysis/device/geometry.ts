@@ -124,6 +124,101 @@ export function barTrack(lw: Pt[], rw: Pt[], bodyH: number): Pt[] {
   });
 }
 
+// A followed plate frame is drawn from the plate only when the follower detected the plate there (not carried it on
+// optical flow), inside a run of at least PLATE_RUN such frames that each look like the setup plate: the rim has edges
+// (median over +-2 frames), of one polarity unless the rim is strong on its own, the size holds, the plate stays about
+// as far from the hands as at setup (a track that slid onto the hands or the body reads nearer; one that wandered off
+// reads further), and its inside keeps the setup plate's grey. A run in which the hands travel over half a plate width
+// must also move with them: a plate that does not rise and fall with the hands is not the lifter's. Measured 29-10
+// against an independent plate truth on 12 clips (docs/catchline/on-device-plan.md, 29 Oct): of the frames drawn
+// from the plate 96% sit within 0.25 radii of its centre and 1% beyond 0.5; the gate keeps 77% of the follower's
+// frames that were on the plate. The polarity-only rule had lost a sixth of the good frames.
+const PLATE_RIM = 0.3;
+const PLATE_RIM_SURE = 0.5;
+const PLATE_POLARITY = 0.5;
+const PLATE_GREY = 40;
+const PLATE_SIZE: [number, number] = [0.9, 1.3];
+const PLATE_LEASH: [number, number] = [-0.35, 0.5];
+const PLATE_LEASH_YAW = 0.6;
+const PLATE_RUN = 6;
+const PLATE_TRAVEL = 0.5;
+const PLATE_COMOTION = 0.3;
+const PLATE_TRAVEL_RATIO: [number, number] = [0.4, 2.5];
+
+export function onPlate(src: number[], fit: [number, number, number, number][], centres: Pt[], wrists: Pt[], seed: number, yawDeg = 0): boolean[] {
+  const M0 = fit[seed][0], home = dist(centres[seed], wrists[seed]);
+  // off side-on the near plate's offset from the hands grows as the bar rises (it is nearer the camera), by about
+  // the yaw's sine in plate widths over a lift
+  const leashMax = PLATE_LEASH[1] + PLATE_LEASH_YAW * Math.sin((Math.max(0, yawDeg) * Math.PI) / 180);
+  const med = (k: number, f: number) => {
+    const v: number[] = [];
+    for (let i = f; i >= Math.max(0, f - 2) && src[i] > 0; i--) v.push(fit[i][k]);
+    for (let i = f + 1; i <= Math.min(src.length - 1, f + 2) && src[i] > 0; i++) v.push(fit[i][k]);
+    const s = v.filter(Number.isFinite).sort((a, b) => a - b);
+    return s.length ? s[Math.floor(s.length / 2)] : NaN;
+  };
+  const pass = src.map((s, f) => {
+    if (s !== 1 || !finitePt(wrists[f])) return false;
+    const size = fit[f][0] / M0;
+    const leash = (dist(centres[f], wrists[f]) - home) / M0;
+    const rim = med(1, f);
+    return rim >= PLATE_RIM && (med(2, f) >= PLATE_POLARITY || rim >= PLATE_RIM_SURE) && Math.abs(med(3, f) - fit[seed][3]) <= PLATE_GREY &&
+      size >= PLATE_SIZE[0] && size <= PLATE_SIZE[1] && leash >= PLATE_LEASH[0] && leash <= leashMax;
+  });
+  const ok = new Array<boolean>(src.length).fill(false);
+  // a run: passing frames, flow-carried frames allowed between them (bridged, not drawn)
+  for (let f = 0; f < pass.length; ) {
+    if (!pass[f]) {
+      f++;
+      continue;
+    }
+    let e = f;
+    while (e < pass.length && (pass[e] || src[e] === 2)) e++;
+    while (!pass[e - 1]) e--;
+    const run = [];
+    for (let i = f; i < e; i++) if (pass[i]) run.push(i);
+    if (run.length >= PLATE_RUN && movesWithHands(run, centres, wrists, M0)) for (const i of run) ok[i] = true;
+    f = e;
+  }
+  return ok;
+}
+
+// travel as the 10th to 90th percentile span, so a wrist that flickers for a frame does not read as travel
+function movesWithHands(run: number[], centres: Pt[], wrists: Pt[], M0: number): boolean {
+  const wy = run.map((i) => wrists[i][1]);
+  const py = run.map((i) => centres[i][1]);
+  const range = (v: number[]) => {
+    const s = [...v].sort((a, b) => a - b);
+    return s[Math.floor(0.9 * (s.length - 1))] - s[Math.floor(0.1 * (s.length - 1))];
+  };
+  if (range(wy) < PLATE_TRAVEL * M0) return true;
+  const mw = wy.reduce((a, b) => a + b, 0) / wy.length;
+  const mp = py.reduce((a, b) => a + b, 0) / py.length;
+  let sxy = 0, sxx = 0, syy = 0;
+  wy.forEach((w, i) => {
+    sxy += (w - mw) * (py[i] - mp);
+    sxx += (w - mw) ** 2;
+    syy += (py[i] - mp) ** 2;
+  });
+  const corr = sxx > 0 && syy > 0 ? sxy / Math.sqrt(sxx * syy) : 0;
+  const ratio = range(py) / range(wy);
+  return corr >= PLATE_COMOTION && ratio >= PLATE_TRAVEL_RATIO[0] && ratio <= PLATE_TRAVEL_RATIO[1];
+}
+
+export function fusePath(plate: Pt[], wrist: Pt[]): { path: Pt[]; plate: boolean[] } {
+  const isPlate = plate.map(finitePt);
+  const known = plate.flatMap((p, i) => (isPlate[i] && finitePt(wrist[i]) ? [i] : []));
+  if (!known.length) return { path: wrist, plate: plate.map(() => false) };
+  const d = (i: number, j: number) => plate[i][j] - wrist[i][j];
+  const off = (f: number, j: number) => {
+    const k = known.findIndex((i) => i >= f);
+    if (k <= 0) return d(known[k === 0 ? 0 : known.length - 1], j);
+    const a = known[k - 1], b = known[k];
+    return d(a, j) + ((d(b, j) - d(a, j)) * (f - a)) / (b - a);
+  };
+  return { path: plate.map((p, f): Pt => (isPlate[f] ? p : [wrist[f][0] + off(f, 0), wrist[f][1] + off(f, 1)])), plate: isPlate };
+}
+
 export const toRef =(points: Pt[], Ms: Affine[]): Pt[] =>
   points.map((p, i) => (finitePt(p) ? applyAffine(Ms[i], p) : NAN_PT));
 

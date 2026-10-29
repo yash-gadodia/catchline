@@ -9,6 +9,8 @@ import { isKey, t } from '../../i18n';
 function keyValue(id: string, m: Measurement): string {
   if (id === 'jump_forward') return t(m.value < 0 ? 'analysis.key.feetBack' : 'analysis.key.feetForward', { cm: fmt(Math.abs(m.value)) });
   if (id === 'bar_over_shoulder') return t(m.value < 0 ? 'analysis.key.barBehind' : 'analysis.key.barFront', { cm: fmt(Math.abs(m.value)) });
+  if (id === 'bar_tilt_catch') return Math.abs(m.value) < 0.5 ? t('analysis.key.tiltLevel') : t(m.value > 0 ? 'analysis.key.tiltLeft' : 'analysis.key.tiltRight', { deg: fmt(Math.round(Math.abs(m.value))) });
+  if (id === 'bar_drift_lateral' || id === 'hip_shift') return Math.abs(m.value) < 0.5 ? t('analysis.key.centred') : t(m.value > 0 ? 'analysis.key.toLeft' : 'analysis.key.toRight', { cm: fmt(Math.abs(m.value)) });
   if (m.unit === 'deg') return `${fmt(Math.round(m.value))}°`;
   return valueText(m);
 }

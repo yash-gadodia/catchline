@@ -55,6 +55,7 @@ import {
   Ctx,
   Detail,
   MeasRow,
+  Plate,
   RepInfo,
   Result,
   SnatchExtras,
@@ -63,9 +64,11 @@ import {
   base,
   bestRep,
   fail,
+  frontReadings,
   noLiftFailure,
   orPathOnly,
   guideRows,
+  platePath,
   jointTracks,
   keyNumbers,
   KEYFRAME_H,
@@ -281,12 +284,14 @@ function repInfo(
   made: boolean,
   end: number,
   fwd: number,
+  drawn: { drawn: Pt[]; plate: boolean[] } | null = null,
 ): RepInfo {
   const g = (f: number) => s0 + int(f);
   const a = phases[0].startFrame;
   const path: RepInfo['path'] = [];
+  const shown = drawn ? drawn.drawn : trace;
   for (let f = a; f < Math.min(w.L, end + 1); f++)
-    if (finitePt(trace[f])) path.push({ frame: g(f), ...normalise(fromRef(trace[f], w.Ms[f]), ctx.W, ctx.H) });
+    if (finitePt(shown[f])) path.push({ frame: g(f), ...normalise(fromRef(shown[f], w.Ms[f]), ctx.W, ctx.H), ...(drawn ? { src: drawn.plate[f] ? 'plate' : 'wrist' } : {}) });
   for (const d of Object.values(detail)) d.caption = d.caption ?? '';
   const ev: Record<string, number> = {};
   for (const [kk, v] of Object.entries(events)) if (v !== null) ev[kk] = g(v);
@@ -516,7 +521,8 @@ function jerkRep(ctx: Ctx, repNo: number, start: number, end: number, pxPerCm: n
   const w = loadWindow(ctx, s0, e0);
   const { ksm, kr, L } = w;
   const t = torsoPx(ksm);
-  const bar = lowpassPts(barTrack(col(kr, L_WRI), col(kr, R_WRI), w.bodyH), fps, 6.0);
+  const barRaw = barTrack(col(kr, L_WRI), col(kr, R_WRI), w.bodyH);
+  const bar = lowpassPts(barRaw, fps, 6.0);
   const kneeAng = kneeAngles(ksm);
   const el = fmax(...elbows(ksm));
   const o = start - s0;
@@ -586,11 +592,17 @@ function jerkRep(ctx: Ctx, repNo: number, start: number, end: number, pxPerCm: n
     },
     { id: 'bar_over_shoulder', label: 'Bar over shoulder', value: pyRound(ov, 1), unit: 'cm', frame: s0 + lock, status: 'normal', note: 'bar vs shoulder at lockout (+ = in front)' },
     { id: 'knee_catch', label: 'Knee at catch', value: pyRound(kneeAng[land], 1), unit: 'deg', frame: s0 + land, status: 'normal', note: 'knee angle as the feet land' },
+    ...frontReadings(ksm, bar, ds, land, fps, pxPerCm, off ?? 0, (f) => s0 + f),
   ];
   const made = rec < L - 1 && el[lock] >= 155;
   const kind = made ? 'make' : ov > 5 ? 'jerk_forward' : ov < -8 ? 'jerk_back' : 'missed';
   const tb = !leanFwd ? lean : 0.0;
-  const info = repInfo(ctx, repNo, s0, w, bar, phases, jerkKeyFrames(ev), ev, vals, det, extra, pxPerCm, off, made, rec, fwd);
+  // the plate is sought at the dip start, the bar still on the shoulders, sized by the lifter's box over the second
+  // before; the follow starts with the rep so the rack hold is drawn from the plate too
+  const setupH = nanmedian(ctx.boxes.slice(Math.max(0, s0 + ds - int(fps)), s0 + ds + 1).map((b) => b[3] - b[1]));
+  const found = Number.isFinite(setupH) ? ctx.input.source.plates(s0 + ds, w.kw[ds][L_WRI], w.kw[ds][R_WRI], w.bodyH, setupH).map((p): Plate => ({ ...p, diameter_px: Math.max(...p.axes), refined: p.fitInliers !== undefined })) : [];
+  const drawn = platePath(ctx.input.source, s0, L, phases[0].startFrame, w.kw, w.bodyH, setupH, barRaw, w.Ms, fps, off ?? 0, found);
+  const info = repInfo(ctx, repNo, s0, w, bar, phases, jerkKeyFrames(ev), ev, vals, det, extra, pxPerCm, off, made, rec, fwd, drawn);
   return {
     ...info,
     outcome: kind,

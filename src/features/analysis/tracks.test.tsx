@@ -1,6 +1,6 @@
 import { act, fireEvent, render } from '@testing-library/react-native';
 import { snatchMock, snatchMockPathOnly, snatchMockTracked } from '../../analysis/fixtures';
-import type { Analysis } from '../../analysis/types';
+import type { Analysis, Measurement } from '../../analysis/types';
 import { loadLibrary } from '../library/repository';
 import CueScreen from './CueScreen';
 import PathReplay from './PathReplay';
@@ -73,6 +73,28 @@ describe('the track readings under the path', () => {
     const side = await render(<ResultNumbers analysis={snatchMockTracked} />);
     expect(side.queryByTestId('off-side-note')).toBeNull();
     expect(side.getByTestId('result-number-jump_forward')).toHaveTextContent(/3.2 cm forward$/);
+  });
+
+  it('list the front-view readings in place of the forward and back ones when filmed from the front or behind', () => {
+    const row = (id: string, value: number, unit: Measurement['unit']): Measurement => ({ id, label: id, value, unit, frame: 1, status: 'normal', note: '' });
+    const front: Analysis = {
+      ...snatchMockTracked,
+      yawBucket: 'past_60',
+      noCueReason: { code: 'off_side_on', offSideDeg: 64 },
+      measurements: [...snatchMockTracked.measurements, row('bar_tilt_catch', -3.4, 'deg'), row('bar_drift_lateral', 4.1, 'cm'), row('hip_shift', 0.2, 'cm'), row('stance_setup', 31, 'cm'), row('stance_catch', 44.5, 'cm')],
+      keyNumbers: ['bar_tilt_catch', 'bar_drift_lateral', 'hip_shift', 'stance_setup', 'stance_catch', 'hip_rise', 'knee_catch', 'elbow_pull'],
+    };
+    expect(resultNumbers(front).map((r) => `${r.label}: ${r.value}`)).toEqual([
+      'Bar tilt at catch: right hand 3° higher',
+      'Bar drift sideways: 4.1 cm to your left',
+      'Hip shift: centred',
+      'Stance at setup: 31 cm',
+      'Stance at catch: 44.5 cm',
+      'Hip rise: 30.9 cm',
+      'Knee at catch: 39°',
+      'Elbow bend in pull: 8°',
+      'Peak bar speed: 1.82 m/s',
+    ]);
   });
 });
 
