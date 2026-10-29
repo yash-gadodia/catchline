@@ -282,18 +282,27 @@ export function jointTracks(kr: K, ksm: K, Ms: Affine[], from: number, to: numbe
 // reference px. The follow is seeded on the plate the setup found, and asked for over the whole window. Null when the
 // source has no follow (a 3.1 phone, a server trace), the lifter's wrists are unseen on the seed frame, or the camera
 // is further off side-on than the plate path is trusted.
-// The follow is anchored on the hands' track shifted onto the plate the setup finder fitted (the near one, the
-// largest outline that held): the native start search reaches 0.6 body heights from its anchor, and off side-on
-// the near plate sits further from the hands than that, so an anchor on the hands seeds the far plate instead.
+// The follow is anchored on the hands' track. The native start search reaches 0.6 setup heights from its anchor,
+// and off side-on the near plate (the largest outline the setup finder fitted) sits further from the hands than
+// that, so the hands would seed the far plate: then the anchor track is shifted towards the plate until it is
+// 0.4 setup heights away, on its own side, and that follow is asked for a frame after the seed, since a follow is
+// recorded by its window and seed frame and the phone's earlier pass may already hold one anchored on the hands.
+const PLATE_REACH = 0.6;
+const PLATE_HOME = 0.4;
+
 export function platePath(source: FrameSource, s0: number, L: number, seed: number, kw: K, bodyH: number, setupH: number, barRaw: Pt[], Ms: Affine[], fps: number, offSide: number, plates: Plate[] = []): { drawn: Pt[]; plate: boolean[] } | null {
   if (!(Number.isFinite(setupH) && Number.isFinite(bodyH)) || seed < 0 || seed >= L) return null;
   const wristsW = barFromWrists(col(kw, L_WRI), col(kw, R_WRI), 0.12 * bodyH);
   const fitted = plates.filter((p) => p.refined && finitePt(p.centre)).sort((a, b) => (b.diameter_px ?? 0) - (a.diameter_px ?? 0))[0];
-  const shift = fitted && finitePt(wristsW[seed]) ? sub(fitted.centre, wristsW[seed]) : [0, 0];
-  const anchor = wristsW.map((p): Pt => (finitePt(p) ? [p[0] + shift[0], p[1] + shift[1]] : p));
-  const follow = source.followPlate?.(s0, L, seed, anchor, [kw[seed][L_WRI], kw[seed][R_WRI]], bodyH, setupH);
-  if (!follow || offSide > PLATE_PATH_MAX_DEG || follow.src[seed] !== 1) return null;
-  const ok = onPlate(follow.src, follow.fit, follow.centres, anchor, seed);
+  const away = fitted && finitePt(wristsW[seed]) ? dist(fitted.centre, wristsW[seed]) : 0;
+  const far = away > PLATE_REACH * setupH && seed + 1 < L;
+  const k = far ? 1 - (PLATE_HOME * setupH) / away : 0;
+  const shift = far ? sub(fitted.centre, wristsW[seed]).map((v) => v * k) : [0, 0];
+  const anchor = far ? wristsW.map((p): Pt => (finitePt(p) ? [p[0] + shift[0], p[1] + shift[1]] : p)) : wristsW;
+  const at = far ? seed + 1 : seed;
+  const follow = source.followPlate?.(s0, L, at, anchor, [kw[at][L_WRI], kw[at][R_WRI]], bodyH, setupH);
+  if (!follow || offSide > PLATE_PATH_MAX_DEG || follow.src[at] !== 1) return null;
+  const ok = onPlate(follow.src, follow.fit, follow.centres, anchor, at);
   const fused = fusePath(toRef(follow.centres.map((p, f): Pt => (ok[f] ? p : NAN_PT)), Ms), barRaw);
   return { drawn: lowpassPts(fused.path, fps, 6.0), plate: fused.plate };
 }
