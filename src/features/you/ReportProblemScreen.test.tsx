@@ -20,6 +20,16 @@ describe('ReportProblemScreen', () => {
     expect(queueProblemReport).not.toHaveBeenCalled();
   });
 
+  it('attaches the screenshot it was started from', async () => {
+    queueProblemReport.mockResolvedValue(1);
+    const view = await render(<ReportProblemScreen shot="file:///mock/screen.jpg" context="screenshot /cues" back="You" onBack={jest.fn()} />);
+    expect(view.getByTestId('report-attachment')).toHaveTextContent('Your screenshot is attached.');
+    expect(view.getByTestId('report-shot').props.source).toEqual({ uri: 'file:///mock/screen.jpg' });
+    await act(async () => fireEvent.changeText(view.getByTestId('report-input'), 'Legend overlaps'));
+    await act(async () => fireEvent.press(view.getByTestId('report-send')));
+    expect(queueProblemReport).toHaveBeenCalledWith({ body: 'Legend overlaps', liftId: undefined, context: 'screenshot /cues', shot: 'file:///mock/screen.jpg' });
+  });
+
   it('queues the report with the lift and says it sends once online', async () => {
     queueProblemReport.mockResolvedValue(0);
     const onBack = jest.fn();

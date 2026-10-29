@@ -5,12 +5,17 @@ import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Updates from 'expo-updates';
 import { randomUUID } from 'expo-crypto';
-import { ensureSession, sendProblemReport, type ProblemReport } from '../lib/api';
+import { ensureSession, sendProblemReport, uploadProblemShot, type ProblemReport } from '../lib/api';
 import { backendEnabled } from './backend';
+import { readClip } from './readClip';
+
+// A queued report may carry the screenshot it was started from (a file on this phone);
+// it goes up under the report's id just before the row.
+export type QueuedReport = ProblemReport & { shot?: string };
 
 // Reports wait here until the phone is online: 3.1 works offline, so Send never needs a network.
-export const useProblemReports = create<{ items: ProblemReport[] }>()(
-  persist(() => ({ items: [] as ProblemReport[] }), {
+export const useProblemReports = create<{ items: QueuedReport[] }>()(
+  persist(() => ({ items: [] as QueuedReport[] }), {
     name: 'catchline-problem-reports',
     storage: createJSONStorage(() => AsyncStorage),
   })
@@ -36,6 +41,7 @@ export function flushProblemReports(): Promise<number> {
       if (useProblemReports.getState().items.length === 0) return 0;
       await ensureSession();
       for (const item of useProblemReports.getState().items) {
+        if (item.shot) await uploadProblemShot(item.id, readClip(item.shot));
         await sendProblemReport(item);
         useProblemReports.setState((s) => ({ items: s.items.filter((i) => i.id !== item.id) }));
         sent++;
@@ -50,14 +56,15 @@ export function flushProblemReports(): Promise<number> {
   return flushing;
 }
 
-export function queueProblemReport(input: { body: string; liftId?: string; context?: string }): Promise<number> {
-  const item: ProblemReport = {
+export function queueProblemReport(input: { body: string; liftId?: string; context?: string; shot?: string }): Promise<number> {
+  const item: QueuedReport = {
     id: randomUUID(),
     body: input.body.trim(),
     ...reportDetails(),
     liftId: input.liftId ?? null,
     context: input.context ?? null,
     reportedAt: new Date().toISOString(),
+    ...(input.shot ? { shot: input.shot } : {}),
   };
   useProblemReports.setState((s) => ({ items: [...s.items, item] }));
   return flushProblemReports();

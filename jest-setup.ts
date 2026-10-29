@@ -288,6 +288,13 @@ jest.mock('expo-clipboard', () => ({
 jest.mock('react-native-view-shot', () => ({
   __esModule: true,
   captureRef: jest.fn(() => Promise.resolve('file:///mock/share-card.png')),
+  captureScreen: jest.fn(() => Promise.resolve('file:///mock/screen.jpg')),
+}));
+
+// expo-screen-capture is native: the screenshot listener registers and can be removed.
+jest.mock('expo-screen-capture', () => ({
+  __esModule: true,
+  addScreenshotListener: jest.fn(() => ({ remove: jest.fn() })),
 }));
 
 // expo-blur's BlurView is native — render it as a plain View in jest so screens
