@@ -185,7 +185,7 @@ describe('analyseLoop', () => {
   });
 
   it('hands iOS 26 the words for its background banner and each pass its share of the bar, then ends the run', async () => {
-    const empty = { windows: [], plates: [], tracks: [], keyframes: [] };
+    const empty = { windows: [], plates: [], tracks: [], follows: [], keyframes: [] };
     mockPlan.mockReturnValueOnce({ ...empty, misses: ['x'] }).mockReturnValueOnce({ ...empty, misses: [] });
     await analyseLoop('file:///c.mp4', 'clean', 'l', () => undefined);
     const banners = mockAnalyse.mock.calls.map((c) => c[3]);
@@ -203,7 +203,7 @@ describe('analyseLoop', () => {
   });
 
   it('reruns a pass the system ended in the background as soon as the app is active again', async () => {
-    mockPlan.mockReturnValue({ windows: [], plates: [], tracks: [], keyframes: [], misses: [] });
+    mockPlan.mockReturnValue({ windows: [], plates: [], tracks: [], follows: [], keyframes: [], misses: [] });
     mockAnalyse.mockRejectedValueOnce(INTERRUPTED);
     const out = await analyseLoop('file:///c.mp4', 'snatch', 'l', () => undefined);
     expect(mockAnalyse).toHaveBeenCalledTimes(2);
@@ -211,7 +211,7 @@ describe('analyseLoop', () => {
   });
 
   it('waits for the lifter to come back before that rerun', async () => {
-    mockPlan.mockReturnValue({ windows: [], plates: [], tracks: [], keyframes: [], misses: [] });
+    mockPlan.mockReturnValue({ windows: [], plates: [], tracks: [], follows: [], keyframes: [], misses: [] });
     mockAnalyse.mockRejectedValueOnce(INTERRUPTED);
     appState.currentState = 'background';
     const listeners: ((s: string) => void)[] = [];
