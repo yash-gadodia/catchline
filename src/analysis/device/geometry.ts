@@ -129,22 +129,27 @@ export function barTrack(lw: Pt[], rw: Pt[], bodyH: number): Pt[] {
 // (median over +-2 frames), of one polarity unless the rim is strong on its own, the size holds, the plate stays about
 // as far from the hands as at setup (a track that slid onto the hands or the body reads nearer; one that wandered off
 // reads further), and its inside keeps the setup plate's grey. A run in which the hands travel over half a plate width
-// must also move with them: a plate that does not rise and fall with the hands is not the lifter's (measured
-// 29-10 against an independent plate truth on 12 clips: these rules keep 87% of the frames within 0.25 radii of the
-// plate and 16% of those further than 0.5 radii off; the polarity-only rule lost a sixth of the good frames).
+// must also move with them: a plate that does not rise and fall with the hands is not the lifter's. Measured 29-10
+// against an independent plate truth on 12 clips (docs/catchline/on-device-plan.md, 29 Oct): of the frames drawn
+// from the plate 96% sit within 0.25 radii of its centre and 1% beyond 0.5; the gate keeps 77% of the follower's
+// frames that were on the plate. The polarity-only rule had lost a sixth of the good frames.
 const PLATE_RIM = 0.3;
 const PLATE_RIM_SURE = 0.5;
 const PLATE_POLARITY = 0.5;
 const PLATE_GREY = 40;
 const PLATE_SIZE: [number, number] = [0.9, 1.3];
 const PLATE_LEASH: [number, number] = [-0.35, 0.5];
-const PLATE_RUN = 4;
+const PLATE_LEASH_YAW = 0.6;
+const PLATE_RUN = 6;
 const PLATE_TRAVEL = 0.5;
 const PLATE_COMOTION = 0.3;
 const PLATE_TRAVEL_RATIO: [number, number] = [0.4, 2.5];
 
-export function onPlate(src: number[], fit: [number, number, number, number][], centres: Pt[], wrists: Pt[], seed: number): boolean[] {
+export function onPlate(src: number[], fit: [number, number, number, number][], centres: Pt[], wrists: Pt[], seed: number, yawDeg = 0): boolean[] {
   const M0 = fit[seed][0], home = dist(centres[seed], wrists[seed]);
+  // off side-on the near plate's offset from the hands grows as the bar rises (it is nearer the camera), by about
+  // the yaw's sine in plate widths over a lift
+  const leashMax = PLATE_LEASH[1] + PLATE_LEASH_YAW * Math.sin((Math.max(0, yawDeg) * Math.PI) / 180);
   const med = (k: number, f: number) => {
     const v: number[] = [];
     for (let i = f; i >= Math.max(0, f - 2) && src[i] > 0; i--) v.push(fit[i][k]);
@@ -158,7 +163,7 @@ export function onPlate(src: number[], fit: [number, number, number, number][], 
     const leash = (dist(centres[f], wrists[f]) - home) / M0;
     const rim = med(1, f);
     return rim >= PLATE_RIM && (med(2, f) >= PLATE_POLARITY || rim >= PLATE_RIM_SURE) && Math.abs(med(3, f) - fit[seed][3]) <= PLATE_GREY &&
-      size >= PLATE_SIZE[0] && size <= PLATE_SIZE[1] && leash >= PLATE_LEASH[0] && leash <= PLATE_LEASH[1];
+      size >= PLATE_SIZE[0] && size <= PLATE_SIZE[1] && leash >= PLATE_LEASH[0] && leash <= leashMax;
   });
   const ok = new Array<boolean>(src.length).fill(false);
   // a run: passing frames, flow-carried frames allowed between them (bridged, not drawn)
@@ -178,10 +183,14 @@ export function onPlate(src: number[], fit: [number, number, number, number][], 
   return ok;
 }
 
+// travel as the 10th to 90th percentile span, so a wrist that flickers for a frame does not read as travel
 function movesWithHands(run: number[], centres: Pt[], wrists: Pt[], M0: number): boolean {
   const wy = run.map((i) => wrists[i][1]);
   const py = run.map((i) => centres[i][1]);
-  const range = (v: number[]) => Math.max(...v) - Math.min(...v);
+  const range = (v: number[]) => {
+    const s = [...v].sort((a, b) => a - b);
+    return s[Math.floor(0.9 * (s.length - 1))] - s[Math.floor(0.1 * (s.length - 1))];
+  };
   if (range(wy) < PLATE_TRAVEL * M0) return true;
   const mw = wy.reduce((a, b) => a + b, 0) / wy.length;
   const mp = py.reduce((a, b) => a + b, 0) / py.length;

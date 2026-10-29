@@ -597,10 +597,11 @@ function jerkRep(ctx: Ctx, repNo: number, start: number, end: number, pxPerCm: n
   const made = rec < L - 1 && el[lock] >= 155;
   const kind = made ? 'make' : ov > 5 ? 'jerk_forward' : ov < -8 ? 'jerk_back' : 'missed';
   const tb = !leanFwd ? lean : 0.0;
-  // the plate is sought at the dip start, the bar still on the shoulders, sized by the lifter's box over the second before
+  // the plate is sought at the dip start, the bar still on the shoulders, sized by the lifter's box over the second
+  // before; the follow starts with the rep so the rack hold is drawn from the plate too
   const setupH = nanmedian(ctx.boxes.slice(Math.max(0, s0 + ds - int(fps)), s0 + ds + 1).map((b) => b[3] - b[1]));
   const found = Number.isFinite(setupH) ? ctx.input.source.plates(s0 + ds, w.kw[ds][L_WRI], w.kw[ds][R_WRI], w.bodyH, setupH).map((p): Plate => ({ ...p, diameter_px: Math.max(...p.axes), refined: p.fitInliers !== undefined })) : [];
-  const drawn = platePath(ctx.input.source, s0, L, ds, w.kw, w.bodyH, setupH, barRaw, w.Ms, fps, off ?? 0, found);
+  const drawn = platePath(ctx.input.source, s0, L, phases[0].startFrame, w.kw, w.bodyH, setupH, barRaw, w.Ms, fps, off ?? 0, found);
   const info = repInfo(ctx, repNo, s0, w, bar, phases, jerkKeyFrames(ev), ev, vals, det, extra, pxPerCm, off, made, rec, fwd, drawn);
   return {
     ...info,

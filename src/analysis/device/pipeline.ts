@@ -282,13 +282,15 @@ export function jointTracks(kr: K, ksm: K, Ms: Affine[], from: number, to: numbe
 // reference px. The follow is seeded on the plate the setup found, and asked for over the whole window. Null when the
 // source has no follow (a 3.1 phone, a server trace), the lifter's wrists are unseen on the seed frame, or the camera
 // is further off side-on than the plate path is trusted.
-// The follow is anchored on the hands' track. The native start search reaches 0.6 setup heights from its anchor,
+// The follow is anchored on the hands' track. The native start search grids 0.3 setup heights around its anchor,
 // and off side-on the near plate (the largest outline the setup finder fitted) sits further from the hands than
-// that, so the hands would seed the far plate: then the anchor track is shifted towards the plate until it is
-// 0.4 setup heights away, on its own side, and that follow is asked for a frame after the seed, since a follow is
-// recorded by its window and seed frame and the phone's earlier pass may already hold one anchored on the hands.
-const PLATE_REACH = 0.6;
-const PLATE_HOME = 0.4;
+// that, so the hands seed the far plate: then the anchor track is shifted towards the plate until it is 0.2 setup
+// heights away, on its own side, and that follow is asked for a frame after the seed, since a follow is recorded by
+// its window and seed frame and the phone's earlier pass may already hold one anchored on the hands.
+const PLATE_REACH = 0.3;
+const PLATE_HOME = 0.2;
+const PLATE_START = 0.25;
+const PLATE_START_SIZE = 0.3;
 
 export function platePath(source: FrameSource, s0: number, L: number, seed: number, kw: K, bodyH: number, setupH: number, barRaw: Pt[], Ms: Affine[], fps: number, offSide: number, plates: Plate[] = []): { drawn: Pt[]; plate: boolean[] } | null {
   if (!(Number.isFinite(setupH) && Number.isFinite(bodyH)) || seed < 0 || seed >= L) return null;
@@ -302,7 +304,9 @@ export function platePath(source: FrameSource, s0: number, L: number, seed: numb
   const at = far ? seed + 1 : seed;
   const follow = source.followPlate?.(s0, L, at, anchor, [kw[at][L_WRI], kw[at][R_WRI]], bodyH, setupH);
   if (!follow || offSide > PLATE_PATH_MAX_DEG || follow.src[at] !== 1) return null;
-  const ok = onPlate(follow.src, follow.fit, follow.centres, anchor, at);
+  // a follow that started on some other disc than the plate the setup finder fitted is not followed
+  if (fitted && (dist(follow.centres[at], fitted.centre) > PLATE_START * setupH || Math.abs(follow.fit[at][0] / (fitted.diameter_px as number) - 1) > PLATE_START_SIZE)) return null;
+  const ok = onPlate(follow.src, follow.fit, follow.centres, anchor, at, offSide);
   const fused = fusePath(toRef(follow.centres.map((p, f): Pt => (ok[f] ? p : NAN_PT)), Ms), barRaw);
   return { drawn: lowpassPts(fused.path, fps, 6.0), plate: fused.plate };
 }
@@ -372,7 +376,8 @@ export function pathOnly(ctx: Ctx, gate: PathOnlyGate): Result | null {
   // whatever this clip holds
   const low = barRaw.reduce((best, p, f) => (finitePt(kw[f][L_WRI]) && finitePt(kw[f][R_WRI]) && finitePt(p) && (best < 0 || p[1] > barRaw[best][1]) ? f : best), -1);
   const found = !hanging && low >= 0 ? input.source.plates(low, kw[low][L_WRI], kw[low][R_WRI], bodyH, bodyH).map((p): Plate => ({ ...p, diameter_px: Math.max(...p.axes), refined: p.fitInliers !== undefined })) : [];
-  const fused = hanging ? null : platePath(input.source, 0, L, low, kw, bodyH, bodyH, barRaw, Ms, fps, yaw ?? 0, found);
+  // with no rep to judge the follow by, only a plate whose outline the finder fitted is followed
+  const fused = hanging || !found.some((p) => p.refined) ? null : platePath(input.source, 0, L, low, kw, bodyH, bodyH, barRaw, Ms, fps, yaw ?? 0, found);
   const bar = hanging ? mid(ksm, L_HIP, R_HIP) : fused ? fused.drawn : lowpassPts(barRaw, fps, 6.0);
   const seen = (f: number) => (hanging ? finitePt(kw[f][L_HIP]) && finitePt(kw[f][R_HIP]) : finitePt(kw[f][L_WRI]) || finitePt(kw[f][R_WRI]));
   const path: TracePoint[] = [];

@@ -62,13 +62,14 @@ describe('the drawn bar path from the plate, the wrists filling its gaps', () =>
 
 describe('which followed plate frames are on the plate', () => {
   type Fit = [number, number, number, number];
-  const n = 8;
+  const n = 16;
   const wrists: Pt[] = Array.from({ length: n }, (_, f): Pt => [100, 100 - 10 * f]);
   const centres: Pt[] = wrists.map(([x, y]): Pt => [x, y + 50]);
   const good: Fit = [100, 0.7, 0.8, 30];
   const fits = (at: Record<number, Fit>) => Array.from({ length: n }, (_, f): Fit => at[f] ?? good);
   const detected = new Array<number>(n).fill(1);
-  const all = [true, true, true, true, true, true, true, true];
+  const all = new Array<boolean>(n).fill(true);
+  const half = [...new Array<boolean>(8).fill(true), ...new Array<boolean>(8).fill(false)];
 
   it('keeps a run of frames that look like the setup plate', () => {
     expect(onPlate(detected, fits({}), centres, wrists, 0)).toEqual(all);
@@ -76,9 +77,10 @@ describe('which followed plate frames are on the plate', () => {
 
   it('drops frames whose rim is weak and of mixed polarity, a window frame or a silhouette, but keeps a strong rim', () => {
     const mixed: Fit = [100, 0.4, 0.1, 30];
-    expect(onPlate(detected, fits({ 4: mixed, 5: mixed, 6: mixed, 7: mixed }), centres, wrists, 0)).toEqual([true, true, true, true, false, false, false, false]);
+    const late = (v: Fit) => Object.fromEntries(Array.from({ length: 8 }, (_, i) => [8 + i, v]));
+    expect(onPlate(detected, fits(late(mixed)), centres, wrists, 0)).toEqual(half);
     const strong: Fit = [100, 0.6, 0.1, 30];
-    expect(onPlate(detected, fits({ 4: strong, 5: strong, 6: strong, 7: strong }), centres, wrists, 0)).toEqual(all);
+    expect(onPlate(detected, fits(late(strong)), centres, wrists, 0)).toEqual(all);
   });
 
   it('rides out one blurred frame, the evidence taken as a median over neighbours', () => {
@@ -87,26 +89,29 @@ describe('which followed plate frames are on the plate', () => {
 
   it('drops a stretch whose inside is far from the setup plate grey, a one-sided edge against a bright window', () => {
     const bright: Fit = [100, 0.7, 0.8, 140];
-    expect(onPlate(detected, fits({ 4: bright, 5: bright, 6: bright, 7: bright }), centres, wrists, 0)).toEqual([true, true, true, true, false, false, false, false]);
+    expect(onPlate(detected, fits(Object.fromEntries(Array.from({ length: 8 }, (_, i) => [8 + i, bright]))), centres, wrists, 0)).toEqual(half);
   });
 
   it('drops a plate that grew past the setup size, shrank, wandered off the hands or slid onto them', () => {
-    expect(onPlate(detected, fits({ 7: [140, 0.7, 0.8, 30] }), centres, wrists, 0)).toEqual([true, true, true, true, true, true, true, false]);
-    expect(onPlate(detected, fits({ 7: [85, 0.7, 0.8, 30] }), centres, wrists, 0)).toEqual([true, true, true, true, true, true, true, false]);
-    const far = centres.map(([x, y], f): Pt => (f >= 4 ? [x + 160, y] : [x, y]));
-    expect(onPlate(detected, fits({}), far, wrists, 0)).toEqual([true, true, true, true, false, false, false, false]);
-    const onHands = centres.map(([x, y], f): Pt => (f >= 4 ? [x, y - 45] : [x, y]));
-    expect(onPlate(detected, fits({}), onHands, wrists, 0)).toEqual([true, true, true, true, false, false, false, false]);
+    const last = [...new Array<boolean>(n - 1).fill(true), false];
+    expect(onPlate(detected, fits({ [n - 1]: [140, 0.7, 0.8, 30] }), centres, wrists, 0)).toEqual(last);
+    expect(onPlate(detected, fits({ [n - 1]: [85, 0.7, 0.8, 30] }), centres, wrists, 0)).toEqual(last);
+    const far = centres.map(([x, y], f): Pt => (f >= 8 ? [x + 160, y] : [x, y]));
+    expect(onPlate(detected, fits({}), far, wrists, 0)).toEqual(half);
+    const onHands = centres.map(([x, y], f): Pt => (f >= 8 ? [x, y - 45] : [x, y]));
+    expect(onPlate(detected, fits({}), onHands, wrists, 0)).toEqual(half);
   });
 
-  it('draws nothing from flow-carried frames, which bridge a run without breaking it, and drops runs under four frames', () => {
-    expect(onPlate([1, 1, 1, 0, 1, 1, 1, 1], fits({}), centres, wrists, 0)).toEqual([false, false, false, false, true, true, true, true]);
-    expect(onPlate([1, 1, 2, 2, 1, 1, 2, 2], fits({}), centres, wrists, 0)).toEqual([true, true, false, false, true, true, false, false]);
+  it('draws nothing from flow-carried frames, which bridge a run without breaking it, and drops runs under six frames', () => {
+    expect(onPlate([1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], fits({}), centres, wrists, 0)).toEqual([...new Array<boolean>(6).fill(false), ...new Array<boolean>(10).fill(true)]);
+    expect(onPlate([1, 1, 1, 2, 2, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2], fits({}), centres, wrists, 0)).toEqual([true, true, true, false, false, true, true, true, false, false, false, false, false, false, false, false]);
+    expect(onPlate([1, 1, 1, 2, 2, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0], fits({}), centres, wrists, 0)).toEqual(new Array<boolean>(n).fill(false));
   });
 
   it('drops a run whose plate does not move with the hands', () => {
+    // the leash is wide at 90 deg, so the still plate stays leashed long enough for its stillness to show
     const still = centres.map(([x]): Pt => [x, 150]);
-    expect(onPlate(detected, fits({}), still, wrists, 0)).toEqual(new Array<boolean>(n).fill(false));
+    expect(onPlate(detected, fits({}), still, wrists, 0, 90)).toEqual(new Array<boolean>(n).fill(false));
     const resting: Pt[] = Array.from({ length: n }, (): Pt => [100, 100]);
     expect(onPlate(detected, fits({}), resting.map(([x, y]): Pt => [x, y + 50]), resting, 0)).toEqual(all);
   });
