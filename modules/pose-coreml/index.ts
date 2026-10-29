@@ -29,6 +29,10 @@ export type AnalyseStage = 'models' | 'pose' | 'pixels';
 
 export type AnalyseResult = { tracePath: string; stills: Record<string, string> };
 
+// The words on iOS 26's Live Activity while the run goes on in the background, and this call's share
+// [from, to] of the whole analysis's progress bar there.
+export type AnalyseBanner = { title: string; subtitle: string; from: number; to: number };
+
 type Events = {
   onProgress: (e: { progress: number }) => void;
   onAnalyseProgress: (e: { stage: AnalyseStage; fraction: number }) => void;
@@ -40,7 +44,10 @@ declare class PoseCoreMLModule extends NativeModule<Events> {
   modelsStatus(): Promise<ModelsStatus>;
   // tracePath: a gzipped trace.py TRACE_VERSION 1 trace (pose runs once per uri; a later call with
   // a plan adds the pixel stages to the same trace). stills: keyframe name -> local JPEG path.
-  analyseOnDevice(uri: string, movement: string, plan?: AnalysePlan): Promise<AnalyseResult>;
+  // With a banner the run continues after the lifter leaves on iOS 26 (a continued processing task,
+  // ended by endBackgroundRun); a pass the system ends there rejects with the code interrupted.
+  analyseOnDevice(uri: string, movement: string, plan?: AnalysePlan, banner?: AnalyseBanner): Promise<AnalyseResult>;
+  endBackgroundRun(success: boolean): Promise<void>;
 }
 
 // iOS only: null on Android, where the server keeps running pose.

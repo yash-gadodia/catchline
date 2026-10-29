@@ -18,4 +18,12 @@ export const notifications: Strings<typeof en> = {
   'notifications.reask.body': "Une consigne ne tient que si tu la retestes. Active les notifications et Catchline te le rappelle avant ta prochaine séance.",
   // REVIEW
   'notifications.reask.notNow': "Plus tard",
+  // REVIEW
+  'notifications.ready.title': "Ton {movement} est prêt",
+  // REVIEW
+  'notifications.ready.body': "Touche pour voir ta consigne.",
+  // REVIEW
+  'notifications.ready.failedTitle': "Nous n'avons pas pu lire ton {movement}",
+  // REVIEW
+  'notifications.ready.failedBody': "Touche pour voir pourquoi, et quoi essayer ensuite.",
 };

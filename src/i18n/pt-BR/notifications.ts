@@ -18,4 +18,12 @@ export const notifications: Strings<typeof en> = {
   'notifications.reask.body': "Uma dica só fica se você testá-la de novo. Ative as notificações e o Catchline lembra você antes da próxima sessão.",
   // REVIEW
   'notifications.reask.notNow': "Agora não",
+  // REVIEW
+  'notifications.ready.title': "Seu {movement} está pronto",
+  // REVIEW
+  'notifications.ready.body': "Toque para ver sua dica.",
+  // REVIEW
+  'notifications.ready.failedTitle': "Não conseguimos ler seu {movement}",
+  // REVIEW
+  'notifications.ready.failedBody': "Toque para ver o porquê e o que tentar em seguida.",
 };

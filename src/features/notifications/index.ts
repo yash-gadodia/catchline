@@ -1,11 +1,15 @@
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import type { Href } from 'expo-router';
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
+import { movementLabel } from '../../analysis/format';
 import { putLiveAnalysis } from '../../analysis/live';
+import type { Movement } from '../../analysis/types';
 import { syncLibrary } from '../../data/library';
+import { readLocalAnalysis } from '../../data/localLifts';
 import { getAnalysis, getLift } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
+import { t } from '../../i18n';
 
 // GATE: fully fires only once EAS/APNs creds are added by Yash.
 // All functions no-op gracefully when:
@@ -75,6 +79,27 @@ export async function registerPushToken(promptIfNeeded = false): Promise<void> {
   }
 }
 
+// A lift analysed on the phone that finished while the lifter was away (iOS 26 keeps the
+// run going): one local notification, only when notifications are allowed, carrying the
+// same `{ liftId }` as the worker's push so a tap lands on the result.
+export async function notifyLiftReady(liftId: string, movement: Movement, failed: boolean): Promise<boolean> {
+  if (!isAvailable() || AppState.currentState === 'active') return false;
+  try {
+    if ((await Notifications.getPermissionsAsync()).status !== 'granted') return false;
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: t(failed ? 'notifications.ready.failedTitle' : 'notifications.ready.title', { movement: movementLabel(movement) }),
+        body: t(failed ? 'notifications.ready.failedBody' : 'notifications.ready.body'),
+        data: { liftId },
+      },
+      trigger: null,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // The worker's push carries `{ liftId }` and nothing else.
 export function liftIdFromResponse(response: Notifications.NotificationResponse): string | null {
   const id = response.notification.request.content.data?.liftId;
@@ -83,8 +108,15 @@ export function liftIdFromResponse(response: Notifications.NotificationResponse)
 
 // Where a tapped "your lift is ready" notification should land: the reveal for
 // a finished lift, the failure screen for a failed one, nowhere if it is still
-// processing (the lift is in the library once it finishes).
+// processing (the lift is in the library once it finishes). A lift analysed on
+// the phone is read from Documents, never the server.
 export async function routeForLift(liftId: string): Promise<Href | null> {
+  const local = await readLocalAnalysis(liftId);
+  if (local) {
+    if (local.failure) return { pathname: '/failure/[id]', params: { id: liftId, reason: local.failure.reason } };
+    putLiveAnalysis(local);
+    return { pathname: '/analysis/reveal', params: { fixture: local.id } };
+  }
   const lift = await getLift(liftId);
   if (!lift) return null;
   if (lift.status === 'failed') return { pathname: '/failure/[id]', params: { id: liftId } };

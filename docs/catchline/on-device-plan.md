@@ -337,3 +337,21 @@ Columns added: the clip list's angle label, the yaw the pipeline read (the reps'
 
 Pass (every clip with a person produces a path): **yes** (60/60)
 
+
+## Pose pass speed (3.1.1)
+
+A lifter's 33 s untrimmed clip sat at "analysing 5%" for minutes (26-10). The pose pass is 1/3 of the bar (`analyseLoop` scales each pass into a third), so 5% is ~15% of pose. Measured with the macOS harness (`modules/pose-coreml/harness`, release build, bundled FP32 models-pose-v1, all compute units) on the idle M4 Mini, ms per frame:
+
+| clip | frames | decode | upright | detect | pose (posed/people) | camera | total s |
+|---|---|---|---|---|---|---|---|
+| side-on snatch, app transcode 1080x1920 | 270 | 0 | 6 | 26 | 6 (1.2/1.3) | 3 | 11.0 |
+| owner snatch 608x1080 (21B27BAF) | 153 | 0 | 4 | 26 | 13 (2.9/5.6) | 2 | 7.1 |
+| owner 37 s untrimmed, 1080x1920 SDR (IMG_0073) | 1122 | 0 | 6 | 26 | 5 (1.1/1.4) | 3 | 45.2 |
+
+The person detector (YOLOX, 24-25 ms of Core ML per frame) is ~2/3 of the pass; lifter-only pose (#130) already took pose from ~66 to 5-13 ms. Decode reads 0 because AVAssetReader decodes ahead on the media engine.
+
+Lifter tracking (the detector every 4th frame, the box carried from the previous pose, `detectInterval` in `AnalyseOnDevice.swift`) cut detect from 26 to 7 ms/frame and halved the pass, but RTMPose moves its keypoints ~2 px whenever its crop is not the detector's own box: lifter p50 1.55 px against the 1 px bar, 7-9 frames per clip picked another person, and 3 of the 13 eval clips changed cue. It stays off (1), as the FP16 detector did in #130. Pose every other frame was not tried: pose is 5-13 ms, the detector is the cost, and any faster detector moves the boxes the same way.
+
+## Background completion (3.1.1)
+
+Speed being capped by the 1 px bar, the run finishes without the lifter watching. On iOS 26 `analyseOnDevice` submits a `BGContinuedProcessingTask` (`ContinuedRun.swift`, identifier `<bundle id>.analyse` permitted in `app.json`) with the processing screen's words, so the passes go on after they leave, with the analysis's progress in the system's Live Activity; the JS loop ends it. Cancelling it there, or the system ending it, makes the pass reject with `interrupted` and the loop reruns it when the app is active again, the same path older iOS already took for a pass that died while the app was away. A lift that finishes while the app is not active posts one local "Your Snatch is ready" notification (only if notifications are allowed) that opens the lift from Documents. No GPU is requested in the background: that needs the Background GPU Access capability on the App ID; a Core ML segment that needs the GPU fails and the rerun covers it.
