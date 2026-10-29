@@ -89,10 +89,11 @@ describe('planFromMisses asks the native pixel stages for what a replay could no
     return t;
   };
 
-  it('is empty on a complete trace, except the stills', () => {
+  it('asks a complete server trace only for the stills and the plate follow, which the server never runs', () => {
     const plan = planFromMisses(loadTrace(name), 'snatch');
-    expect(plan.misses).toEqual([]);
+    expect(plan.misses).toEqual(['follow_plate 56']);
     expect([plan.windows, plan.plates, plan.tracks]).toEqual([[], [], []]);
+    expect(plan.follows.map((f) => [f.s0, f.n, f.seed, f.wrists.length])).toEqual([[10, 136, 46, 136]]);
     expect(plan.keyframes.map((k) => k.name)).toEqual([
       'r1-1-setup.jpg',
       'r1-2-first_pull.jpg',

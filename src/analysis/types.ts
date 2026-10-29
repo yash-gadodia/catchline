@@ -29,7 +29,8 @@ export type Confidence = 'clear' | 'worth_checking' | 'low';
 
 export type Point = { x: number; y: number };
 
-export type TracePoint = Point & { frame: number };
+export type PathSource = 'plate' | 'wrist';
+export type TracePoint = Point & { frame: number; src?: PathSource };
 
 export type Phase = {
   name: PhaseName;

@@ -191,6 +191,262 @@ func linspace(_ start: Double, _ stop: Double, _ num: Int, endpoint: Bool = true
   return y
 }
 
+// MARK: - follow_plate
+
+func startPlate(_ img: BGRImage, _ gray: GrayImage, wrist: Point, wristA: Point, wristB: Point, bodyH: Double, setupH: Double) throws -> Plate? {
+  guard wrist.x.isFinite, wrist.y.isFinite, setupH.isFinite, setupH > 0 else { return nil }
+  var cands = try findPlates(img, wristA: wristA, wristB: wristB, bodyH: bodyH, setupH: setupH)
+  for p in cands { if let r = try refinePlate(img, p) { cands.append(r) } }
+  var centres: [Point] = []
+  for dx in linspace(-0.3, 0.3, 25) { for dy in linspace(-0.1, 0.3, 17) { centres.append(wrist + Point(dx * setupH, dy * setupH)) } }
+  let majors = linspace(0.3, 0.75, 10).map { $0 * setupH }
+  let G = gradient(gray, around: centres + cands.map { $0.centre }, reach: 0.6 * max(majors.last!, cands.map { max($0.axes.0, $0.axes.1) }.max() ?? 0))
+  let m = plateMask(img, around: centres, reach: 0.7 * majors.last!)
+  if let p = searchPlate(m, G, centres, majors, [0.6, 0.8, 1.0]) { cands.append(p) }
+  var scored: [(Plate, Double)] = []
+  for var p in cands where p.centre.x.isFinite && p.centre.y.isFinite {
+    let M = max(p.axes.0, p.axes.1), d = p.centre - wrist
+    guard M >= 0.3 * setupH, M <= 0.8 * setupH, abs(d.x) < 0.6 * setupH, abs(d.y) < 0.5 * setupH else { continue }
+    let r = rimSupport(G, p.centre, p.axes.0, p.axes.1 / p.axes.0)
+    guard r.inside >= 0.6 else { continue }
+    p.score = r.rim
+    scored.append((p, r.rim))
+  }
+  guard let top = scored.map({ $0.1 }).max(), top >= 0.4 else { return nil }
+  var best: Plate?
+  for (p, r) in scored where r >= top - 0.05 && (best == nil || p.axes.0 > best!.axes.0) { best = p }
+  return best
+}
+
+func followPlateStep(_ img: BGRImage, _ gray: GrayImage, _ s: inout PlateFollow, wrist: Point) -> Int {
+  defer { s.prev = gray }
+  let M = s.major
+  let hasAnchor = wrist.x.isFinite && wrist.y.isFinite
+  let anchor = hasAnchor ? wrist + s.offset : s.centre
+  let pred = s.centre + s.velocity
+  let lost = s.lost > 0
+  let g = lost ? linspace(-1.0, 1.0, 21) : linspace(-0.4, 0.4, 17)
+  var cands: [Point] = []
+  for p in lost ? [anchor] : (hasAnchor ? [pred, anchor] : [pred]) {
+    for dx in g { for dy in g { cands.append(p + Point(dx * M, dy * M)) } }
+  }
+  let majors = [0.9, 1.0, 1.1].map { $0 * M }
+  let G = gradient(gray, around: cands, reach: 0.6 * majors.last!)
+  let m = plateMask(img, around: cands, reach: 0.7 * majors.last!)
+  let gate = (lost ? 1.2 : 0.6) * M
+  func leashed(_ c: Point) -> Bool { !hasAnchor || norm(c - wrist) < norm(s.home) + 0.6 * M }
+  func accepted(_ c: Point) -> Bool {
+    let near = (!hasAnchor || norm(c - anchor) < gate || (!lost && norm(c - pred) < 0.3 * M))
+    let side = s.side == 0 || !hasAnchor || (c.x - wrist.x) * s.side > 0
+    return near && side && leashed(c)
+  }
+  var det: Plate?
+  if let p = searchPlate(m, G, cands, majors, [0.9, 1.0, 1.1].map { min($0 * s.ratio, 1.0) }), p.score >= 0.55, accepted(p.centre) { det = p }
+  var flow: Point?
+  if !lost, let prev = s.prev, s.features.count >= 6 {
+    let (x0, y0, x1, y1) = box(around: s.centre, half: 1.5 * M, gray)
+    if x1 - x0 > 8, y1 - y0 > 8 {
+      let a = crop(prev, x0, y0, x1, y1), b = crop(gray, x0, y0, x1, y1)
+      let p0 = s.features.map { ($0.0 - Float(x0), $0.1 - Float(y0)) }
+      let (p1, st) = opticalFlowPyrLK(a, b, p0, winSize: 21, maxLevel: 3)
+      let (pb, st2) = opticalFlowPyrLK(b, a, p1, winSize: 21, maxLevel: 3)
+      var dx: [Double] = [], dy: [Double] = [], kept: [(Float, Float)] = []
+      for i in 0 ..< p0.count where st[i] && st2[i] && hypot(pb[i].0 - p0[i].0, pb[i].1 - p0[i].1) < 1 {
+        dx.append(Double(p1[i].0 - p0[i].0))
+        dy.append(Double(p1[i].1 - p0[i].1))
+        kept.append((p1[i].0 + Float(x0), p1[i].1 + Float(y0)))
+      }
+      if kept.count >= 6, s.flowRun < 10, leashed(s.centre + Point(middle(dx), middle(dy))) {
+        flow = s.centre + Point(middle(dx), middle(dy))
+        s.features = kept
+      } else {
+        s.features = []
+      }
+    }
+  }
+  let src: Int
+  let next: Point
+  if let d = det, flow == nil || d.score >= 0.65 || norm(d.centre - flow!) < 0.15 * M {
+    next = d.centre
+    src = 1
+    s.flowRun = 0
+    s.major = 0.8 * M + 0.2 * d.axes.0
+  } else if let f = flow {
+    next = f
+    src = 2
+    s.flowRun += 1
+  } else {
+    s.lost += 1
+    s.features = []
+    s.centre = hasAnchor ? anchor : pred
+    s.velocity = s.velocity * 0.8
+    return 0
+  }
+  s.velocity = lost ? Point(0, 0) : next - s.centre
+  s.centre = next
+  s.lost = 0
+  if src == 1 {
+    if hasAnchor { s.offset = next - wrist }
+    s.features = discFeatures(gray, next, s.major)
+  }
+  return src
+}
+
+func discFeatures(_ gray: GrayImage, _ c: Point, _ M: Double) -> [(Float, Float)] {
+  let (x0, y0, x1, y1) = box(around: c, half: 0.45 * M, gray)
+  guard x1 - x0 > 4, y1 - y0 > 4 else { return [] }
+  let w = x1 - x0, r = 0.42 * M
+  var mask = [UInt8](repeating: 0, count: w * (y1 - y0))
+  for y in y0 ..< y1 { for x in x0 ..< x1 where hypot(Double(x) - c.x, Double(y) - c.y) <= r { mask[(y - y0) * w + x - x0] = 255 } }
+  return goodFeaturesToTrack(crop(gray, x0, y0, x1, y1), maxCorners: 60, qualityLevel: 0.01, minDistance: 4, mask: mask)
+    .map { ($0.0 + Float(x0), $0.1 + Float(y0)) }
+}
+
+private func searchPlate(_ m: RoiMask, _ G: Gradient, _ centres: [Point], _ majors: [Double], _ ratios: [Double]) -> Plate? {
+  var best: Plate?
+  for M in majors {
+    for q in ratios {
+      let offs = ellipseOffsets(M, q)
+      let scores = parallelMap(centres.count) { i -> Double in
+        let r = rimSupport(G, centres[i], M, q)
+        return r.inside < 0.5 ? -1 : r.rim + 0.25 * max(0, fillScore(m, centres[i], offs))
+      }
+      for (c, v) in zip(centres, scores) where v > (best?.score ?? -1) {
+        best = Plate(centre: c, axes: (M, M * q), score: v, side: "near", fitInliers: nil)
+      }
+    }
+  }
+  guard let p = best else { return nil }
+  let M = p.axes.0, q = p.axes.1 / M
+  let offs = ellipseOffsets(M, q)
+  let fine = linspace(-0.05, 0.05, 11).flatMap { dy in linspace(-0.05, 0.05, 11).map { dx in p.centre + Point(dx * M, dy * M) } }
+  let scores = fine.map { c -> Double in
+    let r = rimSupport(G, c, M, q)
+    return r.inside < 0.5 ? -1 : r.rim + 0.25 * max(0, fillScore(m, c, offs))
+  }
+  let top = scores.max()!
+  var sum = Point(0, 0), n = 0.0
+  for (c, v) in zip(fine, scores) where v >= top - 0.01 { sum += c; n += 1 }
+  var out = p
+  out.centre = sum / n
+  out.score = max(p.score, top)
+  return out
+}
+
+private struct Gradient {
+  let x0: Int, y0: Int, width: Int, height: Int
+  let gx: [Float], gy: [Float]
+  let threshold: Float
+
+  @inline(__always) func at(_ x: Int, _ y: Int) -> (Float, Float)? {
+    guard x >= x0, y >= y0, x < x0 + width, y < y0 + height else { return nil }
+    let i = (y - y0) * width + x - x0
+    return (gx[i], gy[i])
+  }
+}
+
+private let rimDirs: [(Double, Double)] = linspace(0, 2 * Double.pi, 72, endpoint: false).map { (cos($0), sin($0)) }
+
+func plateFit(_ gray: GrayImage, _ c: Point, _ major: Double, _ ratio: Double) -> (rim: Double, polarity: Double, interior: Double) {
+  let r = rimSupport(gradient(gray, around: [c], reach: 0.6 * major), c, major, ratio)
+  let (x0, y0, x1, y1) = box(around: c, half: 0.3 * major, gray)
+  var sum = 0.0, n = 0.0
+  for y in y0 ..< y1 { for x in x0 ..< x1 where hypot(Double(x) - c.x, Double(y) - c.y) <= 0.3 * major { sum += Double(gray.data[y * gray.width + x]); n += 1 } }
+  return r.inside < 0.5 ? (0, 0, .nan) : (r.rim, r.polarity, n > 0 ? sum / n : .nan)
+}
+
+private func rimSupport(_ G: Gradient, _ c: Point, _ major: Double, _ ratio: Double) -> (rim: Double, inside: Double, polarity: Double) {
+  let b = major / 2, a = b * ratio
+  guard a > 0, b > 0, c.x.isFinite, c.y.isFinite else { return (0, 0, 0) }
+  var hit = 0, ok = 0, out = 0
+  let thr = Double(G.threshold)
+  for (ct, st) in rimDirs {
+    var nx = ct / a, ny = st / b
+    let nl = (nx * nx + ny * ny).squareRoot()
+    nx /= nl
+    ny /= nl
+    var seen = false, on = false
+    for r in [0.94, 1.0, 1.06] {
+      guard let (gx, gy) = G.at(Int((c.x + r * a * ct).rounded()), Int((c.y + r * b * st).rounded())) else { continue }
+      seen = true
+      let v = Double(gx) * nx + Double(gy) * ny
+      if abs(v) > thr { on = true; if v > 0 { out += 1 }; break }
+    }
+    if seen { ok += 1; if on { hit += 1 } }
+  }
+  return (ok > 0 ? Double(hit) / Double(ok) : 0, Double(ok) / Double(rimDirs.count), hit > 0 ? abs(Double(2 * out - hit)) / Double(hit) : 0)
+}
+
+private func gradient(_ g: GrayImage, around points: [Point], reach: Double) -> Gradient {
+  var lo = Point(Double.infinity, Double.infinity), hi = -lo
+  for p in points where p.x.isFinite && p.y.isFinite { lo = pointwiseMin(lo, p); hi = pointwiseMax(hi, p) }
+  guard lo.x.isFinite, reach.isFinite else { return Gradient(x0: 0, y0: 0, width: 0, height: 0, gx: [], gy: [], threshold: 0) }
+  let x0 = max(0, Int(lo.x - reach) - 2), y0 = max(0, Int(lo.y - reach) - 2)
+  let x1 = min(g.width, Int(hi.x + reach) + 3), y1 = min(g.height, Int(hi.y + reach) + 3)
+  let w = x1 - x0, h = y1 - y0
+  guard w > 2, h > 2 else { return Gradient(x0: 0, y0: 0, width: 0, height: 0, gx: [], gy: [], threshold: 0) }
+  let k: [Float] = (-4 ... 4).map { Float(exp(-Double($0 * $0) / 8)) }
+  let ks = k.reduce(0, +)
+  var tmp = [Float](repeating: 0, count: w * h), sm = tmp
+  g.data.withUnsafeBufferPointer { src in
+    tmp.withUnsafeMutableBufferPointer { t in
+      parallelRows(h) { y in
+        for x in 0 ..< w {
+          var v: Float = 0
+          for (j, kv) in k.enumerated() { v += kv * Float(src[(y0 + y) * g.width + min(max(x0 + x + j - 4, 0), g.width - 1)]) }
+          t[y * w + x] = v / ks
+        }
+      }
+    }
+  }
+  tmp.withUnsafeBufferPointer { t in
+    sm.withUnsafeMutableBufferPointer { o in
+      parallelRows(h) { y in
+        for x in 0 ..< w {
+          var v: Float = 0
+          for (j, kv) in k.enumerated() { v += kv * t[min(max(y + j - 4, 0), h - 1) * w + x] }
+          o[y * w + x] = v / ks
+        }
+      }
+    }
+  }
+  var gx = [Float](repeating: 0, count: w * h), gy = gx
+  var hist = [Int](repeating: 0, count: 256)
+  for y in 1 ..< h - 1 {
+    for x in 1 ..< w - 1 {
+      let i = y * w + x
+      let a = sm[i - w - 1], b = sm[i - w], c = sm[i - w + 1], d = sm[i - 1], e = sm[i + 1], f = sm[i + w - 1], gg = sm[i + w], hh = sm[i + w + 1]
+      let vx = (c + 2 * e + hh) - (a + 2 * d + f), vy = (f + 2 * gg + hh) - (a + 2 * b + c)
+      gx[i] = vx
+      gy[i] = vy
+      hist[min(255, Int((vx * vx + vy * vy).squareRoot() / 4))] += 1
+    }
+  }
+  let target = Int(0.85 * Double((w - 2) * (h - 2)))
+  var acc = 0, bin = 255
+  for (i, c) in hist.enumerated() { acc += c; if acc >= target { bin = i; break } }
+  return Gradient(x0: x0, y0: y0, width: w, height: h, gx: gx, gy: gy, threshold: max(Float(bin + 1) * 4, 8))
+}
+
+private func box(around c: Point, half: Double, _ g: GrayImage) -> (Int, Int, Int, Int) {
+  guard c.x.isFinite, c.y.isFinite else { return (0, 0, 0, 0) }
+  return (max(0, Int(c.x - half)), max(0, Int(c.y - half)), min(g.width, Int(c.x + half) + 1), min(g.height, Int(c.y + half) + 1))
+}
+
+private func crop(_ g: GrayImage, _ x0: Int, _ y0: Int, _ x1: Int, _ y1: Int) -> GrayImage {
+  var d = [UInt8]()
+  d.reserveCapacity((x1 - x0) * (y1 - y0))
+  for y in y0 ..< y1 { d.append(contentsOf: g.data[(y * g.width + x0) ..< (y * g.width + x1)]) }
+  return GrayImage(width: x1 - x0, height: y1 - y0, data: d)
+}
+
+private func norm(_ p: Point) -> Double { (p.x * p.x + p.y * p.y).squareRoot() }
+
+private func middle(_ v: [Double]) -> Double {
+  let s = v.sorted()
+  return s.count % 2 == 1 ? s[s.count / 2] : (s[s.count / 2 - 1] + s[s.count / 2]) / 2
+}
+
 // MARK: - plate_mask
 
 // The plate mask over one region of the frame, equal to cv2's full-frame mask inside [x0, x1) x [y0, y1).
