@@ -117,6 +117,18 @@ export const you: Strings<typeof en> = {
   // REVIEW
   'you.report.noVideo': "Aucune vidéo n’est jointe.",
   // REVIEW
+  'you.report.shotAttached': "Votre capture d’écran est jointe.",
+  // REVIEW
+  'you.shot.title': "Aidez à améliorer Catchline",
+  // REVIEW
+  'you.shot.body': "Un souci, ou une idée ? Dites-le-nous.",
+  // REVIEW
+  'you.shot.give': "Donner un avis",
+  // REVIEW
+  'you.shot.toggle': "Capture d’écran pour donner un avis",
+  // REVIEW
+  'you.shot.toggleSub': "Désactivez pour arrêter cette fenêtre",
+  // REVIEW
   'you.report.send': "Envoyer",
   // REVIEW
   'you.report.sent': "Envoyé. Merci, on lit chaque message.",

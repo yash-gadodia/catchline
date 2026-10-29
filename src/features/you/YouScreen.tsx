@@ -14,6 +14,7 @@ import { colors, shape, space } from '../../design/tokens';
 import { display, fontFamily, type } from '../../design/typography';
 import { useOnboarding } from '../onboarding/store';
 import { Chip, SheetTitle, Toggle } from '../share/ui';
+import { useScreenshotFeedback } from '../feedback/screenshot';
 import { signInWithApple, type AppleSignIn } from '../auth/appleSignIn';
 import { Note } from '../onboarding/ui';
 import { pickable } from '../onboarding/lifts';
@@ -84,6 +85,7 @@ export default function YouScreen({
   const insets = useSafeAreaInsets();
   const account = useAccountView();
   const settings = useSettings();
+  const shotPrompt = useScreenshotFeedback((s) => s.enabled);
   const units = useOnboarding((s) => s.units);
   const labels = settingLabels(settings);
   const PICKERS = pickers();
@@ -186,6 +188,11 @@ export default function YouScreen({
         ) : null}
         <Row title={t('you.deleteAccount')} right={<Value>›</Value>} onPress={nav.onDeleteAccount} testID="row-delete" />
         <Row title={t('you.reportProblem')} right={<Value>›</Value>} onPress={nav.onReport} testID="row-report" />
+        <Row
+          title={t('you.shot.toggle')}
+          sub={t('you.shot.toggleSub')}
+          right={<Toggle value={shotPrompt} onChange={(v) => useScreenshotFeedback.getState().setEnabled(v)} testID="toggle-screenshot" />}
+        />
         {nav.onSupport ? <Row title={t('you.helpSupport')} right={<Value>›</Value>} onPress={nav.onSupport} testID="row-support" /> : null}
         <Row title={t('you.whatsNew')} right={<Value>›</Value>} onPress={nav.onWhatsNew} testID="row-whats-new" />
         <Row title={t('you.help')} muted right={<Value>{t('you.about', { version })}</Value>} onPress={nav.onHelp} last testID="row-help" />
