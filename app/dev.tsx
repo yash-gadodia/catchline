@@ -1,5 +1,6 @@
+import { useEffect } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import { Redirect, useRouter, type Href } from 'expo-router';
+import { Redirect, useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, space } from '../src/design/tokens';
 import { display, type } from '../src/design/typography';
@@ -7,6 +8,7 @@ import SmallCaps from '../src/components/SmallCaps';
 import { ANALYSES } from '../src/analysis/fixtures';
 import { FAILURE_REASONS } from '../src/features/library/failures';
 import { loadLibrary } from '../src/features/library/repository';
+import { onScreenshot } from '../src/features/feedback/screenshot';
 
 // Dev entry (long-press the version on the You tab): opens every state with a fixture.
 // Dev builds only; a release build reaching it by deep link goes home.
@@ -46,6 +48,11 @@ const ENTRIES: { label: string; href: string; library?: 'seeded' | 'empty' }[] =
 export default function DevEntry() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { shot } = useLocalSearchParams<{ shot?: string }>();
+  // ?shot=1 plays the system screenshot (the dev client has no native listener)
+  useEffect(() => {
+    if (shot) void onScreenshot();
+  }, [shot]);
   if (!__DEV__) return <Redirect href="/" />;
   return (
     <ScrollView

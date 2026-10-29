@@ -117,6 +117,18 @@ export const you: Strings<typeof en> = {
   // REVIEW
   'you.report.noVideo': "Es wird kein Video angehängt.",
   // REVIEW
+  'you.report.shotAttached': "Dein Screenshot ist angehängt.",
+  // REVIEW
+  'you.shot.title': "Hilf mit, Catchline zu verbessern",
+  // REVIEW
+  'you.shot.body': "Stimmt etwas nicht, oder hast du eine Idee? Sag es uns.",
+  // REVIEW
+  'you.shot.give': "Feedback geben",
+  // REVIEW
+  'you.shot.toggle': "Screenshot für Feedback",
+  // REVIEW
+  'you.shot.toggleSub': "Ausschalten, um dieses Pop-up zu stoppen",
+  // REVIEW
   'you.report.send': "Senden",
   // REVIEW
   'you.report.sent': "Gesendet. Danke, wir lesen jede Meldung.",

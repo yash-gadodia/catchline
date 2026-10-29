@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ScrollView, Text, TextInput, View } from 'react-native';
+import { Image, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Btn from '../../components/Btn';
 import TopBar from '../../components/TopBar';
@@ -13,11 +13,13 @@ export const REPORT_MAX = 4000;
 export default function ReportProblemScreen({
   liftId,
   context,
+  shot,
   back,
   onBack,
 }: {
   liftId?: string;
   context?: string;
+  shot?: string;
   back: string;
   onBack: () => void;
 }) {
@@ -26,7 +28,7 @@ export default function ReportProblemScreen({
   const [result, setResult] = useState<'sent' | 'queued' | null>(null);
   const details = reportDetails();
   const send = async () => {
-    const sent = await queueProblemReport({ body: text, liftId, context });
+    const sent = await queueProblemReport({ body: text, liftId, context, ...(shot ? { shot } : {}) });
     setResult(sent > 0 ? 'sent' : 'queued');
   };
   return (
@@ -80,8 +82,18 @@ export default function ReportProblemScreen({
                   {t('you.report.lift', { id: liftId })}
                 </Text>
               ) : null}
-              <Text style={{ color: colors.text2, ...type.small }}>{t('you.report.noVideo')}</Text>
+              <Text style={{ color: colors.text2, ...type.small }} testID="report-attachment">
+                {t(shot ? 'you.report.shotAttached' : 'you.report.noVideo')}
+              </Text>
             </View>
+            {shot ? (
+              <Image
+                source={{ uri: shot }}
+                resizeMode="contain"
+                testID="report-shot"
+                style={{ height: 120, aspectRatio: 9 / 19.5, borderWidth: 1, borderColor: colors.hairline, ...shape.control }}
+              />
+            ) : null}
             <Btn onPress={send} disabled={text.trim().length === 0} testID="report-send">
               {t('you.report.send')}
             </Btn>

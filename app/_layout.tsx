@@ -28,6 +28,8 @@ import { useLocale } from '../src/i18n';
 import { initSentry } from '../src/lib/sentry';
 import { markLaunched, startLaunchWatchdog } from '../src/lib/launch';
 import { LaunchRecovery } from '../src/components/LaunchRecovery';
+import ScreenshotSheet from '../src/features/feedback/ScreenshotSheet';
+import { watchScreenshots } from '../src/features/feedback/screenshot';
 
 const LAUNCH_FAILSAFE_MS = 4000;
 
@@ -120,6 +122,8 @@ export default function RootLayout() {
     if (launched) markLaunched();
   }, [launched]);
 
+  useEffect(() => watchScreenshots(), []);
+
   if (!fontsLoaded) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -138,6 +142,7 @@ export default function RootLayout() {
             {launched ? null : (
               <LaunchOverlay onShown={() => SplashScreen.hideAsync().catch(() => undefined)} onDone={() => setLaunched(true)} />
             )}
+            <ScreenshotSheet />
             <LaunchRecovery />
           </AppErrorBoundary>
         </QueryClientProvider>

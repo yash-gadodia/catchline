@@ -1,7 +1,8 @@
 import { flushProblemReports, queueProblemReport, reportDetails, useProblemReports } from './problemReports';
 
 jest.mock('./backend', () => ({ backendEnabled: () => true }));
-jest.mock('../lib/api', () => ({ ensureSession: jest.fn(), sendProblemReport: jest.fn() }));
+jest.mock('../lib/api', () => ({ ensureSession: jest.fn(), sendProblemReport: jest.fn(), uploadProblemShot: jest.fn() }));
+jest.mock('./readClip', () => ({ readClip: (uri: string) => ({ size: 3, uri }) }));
 jest.mock('expo-crypto', () => {
   let n = 0;
   return { randomUUID: () => `report-${++n}` };
@@ -10,7 +11,7 @@ jest.mock('expo-device', () => ({ modelId: 'iPhone16,1', modelName: 'iPhone 15 P
 jest.mock('expo-updates', () => ({ updateId: 'ota-42' }));
 jest.mock('expo-constants', () => ({ __esModule: true, default: { expoConfig: { version: '3.1' } } }));
 
-const api = jest.requireMock('../lib/api') as { ensureSession: jest.Mock; sendProblemReport: jest.Mock };
+const api = jest.requireMock('../lib/api') as { ensureSession: jest.Mock; sendProblemReport: jest.Mock; uploadProblemShot: jest.Mock };
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -30,6 +31,23 @@ describe('problem reports', () => {
       expect.objectContaining({ body: 'Stuck on processing', liftId: 'lift-9', context: 'Snatch', appVersion: '3.1', updateId: 'ota-42' })
     );
     expect(useProblemReports.getState().items).toEqual([]);
+  });
+
+  it('uploads the screenshot under the report id before the row goes', async () => {
+    const order: string[] = [];
+    api.uploadProblemShot.mockImplementation(async (id: string, file: { uri: string }) => void order.push(`shot ${id} ${file.uri}`));
+    api.sendProblemReport.mockImplementation(async (r: { id: string }) => void order.push(`row ${r.id}`));
+    expect(await queueProblemReport({ body: 'Legend overlaps', context: 'screenshot /cues', shot: 'file:///mock/screen.jpg' })).toBe(1);
+    const id = api.sendProblemReport.mock.calls[0][0].id as string;
+    expect(order).toEqual([`shot ${id} file:///mock/screen.jpg`, `row ${id}`]);
+    expect(useProblemReports.getState().items).toEqual([]);
+  });
+
+  it('keeps the screenshot queued with its report when the upload fails', async () => {
+    api.uploadProblemShot.mockRejectedValueOnce(new Error('offline'));
+    expect(await queueProblemReport({ body: 'Crash', shot: 'file:///mock/screen.jpg' })).toBe(0);
+    expect(api.sendProblemReport).not.toHaveBeenCalled();
+    expect(useProblemReports.getState().items.map((i) => [i.body, i.shot])).toEqual([['Crash', 'file:///mock/screen.jpg']]);
   });
 
   it('keeps a report queued offline and sends it on the next flush', async () => {
