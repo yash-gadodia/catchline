@@ -3,7 +3,7 @@
 import { MAX_YAW_DEG, cleanPullValues, facing, hipAngles, kneeAngles, rackMask, scaleFromBody, yawFromBody } from './body';
 import { detect, Detected } from './detect';
 import { lowpass, lowpassPts } from './filter';
-import { NAN_PT, angle, barFromWrists, barTrack, dist, finitePt, fromRef, fusePath, midPt, normalise, onPlate, toRef, toWorld, trunkAngle } from './geometry';
+import { NAN_PT, angle, barFromWrists, barTrack, dist, finitePt, fromRef, fusePath, midPt, normalise, onPlate, sub, toRef, toWorld, trunkAngle } from './geometry';
 import {
   FAMILY,
   K,
@@ -282,12 +282,18 @@ export function jointTracks(kr: K, ksm: K, Ms: Affine[], from: number, to: numbe
 // reference px. The follow is seeded on the plate the setup found, and asked for over the whole window. Null when the
 // source has no follow (a 3.1 phone, a server trace), the lifter's wrists are unseen on the seed frame, or the camera
 // is further off side-on than the plate path is trusted.
-export function platePath(source: FrameSource, s0: number, L: number, seed: number, kw: K, bodyH: number, setupH: number, barRaw: Pt[], Ms: Affine[], fps: number, offSide: number): { drawn: Pt[]; plate: boolean[] } | null {
+// The follow is anchored on the hands' track shifted onto the plate the setup finder fitted (the near one, the
+// largest outline that held): the native start search reaches 0.6 body heights from its anchor, and off side-on
+// the near plate sits further from the hands than that, so an anchor on the hands seeds the far plate instead.
+export function platePath(source: FrameSource, s0: number, L: number, seed: number, kw: K, bodyH: number, setupH: number, barRaw: Pt[], Ms: Affine[], fps: number, offSide: number, plates: Plate[] = []): { drawn: Pt[]; plate: boolean[] } | null {
   if (!(Number.isFinite(setupH) && Number.isFinite(bodyH)) || seed < 0 || seed >= L) return null;
   const wristsW = barFromWrists(col(kw, L_WRI), col(kw, R_WRI), 0.12 * bodyH);
-  const follow = source.followPlate?.(s0, L, seed, wristsW, [kw[seed][L_WRI], kw[seed][R_WRI]], bodyH, setupH);
+  const fitted = plates.filter((p) => p.refined && finitePt(p.centre)).sort((a, b) => (b.diameter_px ?? 0) - (a.diameter_px ?? 0))[0];
+  const shift = fitted && finitePt(wristsW[seed]) ? sub(fitted.centre, wristsW[seed]) : [0, 0];
+  const anchor = wristsW.map((p): Pt => (finitePt(p) ? [p[0] + shift[0], p[1] + shift[1]] : p));
+  const follow = source.followPlate?.(s0, L, seed, anchor, [kw[seed][L_WRI], kw[seed][R_WRI]], bodyH, setupH);
   if (!follow || offSide > PLATE_PATH_MAX_DEG || follow.src[seed] !== 1) return null;
-  const ok = onPlate(follow.src, follow.fit, follow.centres, wristsW, seed);
+  const ok = onPlate(follow.src, follow.fit, follow.centres, anchor, seed);
   const fused = fusePath(toRef(follow.centres.map((p, f): Pt => (ok[f] ? p : NAN_PT)), Ms), barRaw);
   return { drawn: lowpassPts(fused.path, fps, 6.0), plate: fused.plate };
 }
@@ -356,7 +362,8 @@ export function pathOnly(ctx: Ctx, gate: PathOnlyGate): Result | null {
   // the plate is sought where the bar sat lowest with both hands on it (the floor, or the rack): the setup of
   // whatever this clip holds
   const low = barRaw.reduce((best, p, f) => (finitePt(kw[f][L_WRI]) && finitePt(kw[f][R_WRI]) && finitePt(p) && (best < 0 || p[1] > barRaw[best][1]) ? f : best), -1);
-  const fused = hanging ? null : platePath(input.source, 0, L, low, kw, bodyH, bodyH, barRaw, Ms, fps, yaw ?? 0);
+  const found = !hanging && low >= 0 ? input.source.plates(low, kw[low][L_WRI], kw[low][R_WRI], bodyH, bodyH).map((p): Plate => ({ ...p, diameter_px: Math.max(...p.axes), refined: p.fitInliers !== undefined })) : [];
+  const fused = hanging ? null : platePath(input.source, 0, L, low, kw, bodyH, bodyH, barRaw, Ms, fps, yaw ?? 0, found);
   const bar = hanging ? mid(ksm, L_HIP, R_HIP) : fused ? fused.drawn : lowpassPts(barRaw, fps, 6.0);
   const seen = (f: number) => (hanging ? finitePt(kw[f][L_HIP]) && finitePt(kw[f][R_HIP]) : finitePt(kw[f][L_WRI]) || finitePt(kw[f][R_WRI]));
   const path: TracePoint[] = [];
@@ -726,7 +733,7 @@ export function analyseRep(
   };
   if (outcomeKind === 'missed_behind') vals.jump_forward = null;
   const g = (f: number) => s0 + int(f);
-  const fused = platePath(source, s0, L, seed, kw, bodyH, setupH, barRaw, Ms, fps, offSide);
+  const fused = platePath(source, s0, L, seed, kw, bodyH, setupH, barRaw, Ms, fps, offSide, plates);
   const drawn: Pt[] = fused ? fused.drawn : bar;
   const path: RepInfo['path'] = [];
   for (let f = phases[0].startFrame; f < L; f++)

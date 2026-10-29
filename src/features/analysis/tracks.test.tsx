@@ -1,6 +1,6 @@
 import { act, fireEvent, render } from '@testing-library/react-native';
 import { snatchMock, snatchMockPathOnly, snatchMockTracked } from '../../analysis/fixtures';
-import type { Analysis } from '../../analysis/types';
+import type { Analysis, Measurement } from '../../analysis/types';
 import { loadLibrary } from '../library/repository';
 import CueScreen from './CueScreen';
 import PathReplay from './PathReplay';
@@ -76,7 +76,7 @@ describe('the track readings under the path', () => {
   });
 
   it('list the front-view readings in place of the forward and back ones when filmed from the front or behind', () => {
-    const row = (id: string, value: number, unit: string) => ({ id, label: id, value, unit, frame: 1, status: 'normal' as const, note: '' });
+    const row = (id: string, value: number, unit: Measurement['unit']): Measurement => ({ id, label: id, value, unit, frame: 1, status: 'normal', note: '' });
     const front: Analysis = {
       ...snatchMockTracked,
       yawBucket: 'past_60',

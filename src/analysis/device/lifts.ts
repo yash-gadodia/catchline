@@ -55,6 +55,7 @@ import {
   Ctx,
   Detail,
   MeasRow,
+  Plate,
   RepInfo,
   Result,
   SnatchExtras,
@@ -598,7 +599,8 @@ function jerkRep(ctx: Ctx, repNo: number, start: number, end: number, pxPerCm: n
   const tb = !leanFwd ? lean : 0.0;
   // the plate is sought at the dip start, the bar still on the shoulders, sized by the lifter's box over the second before
   const setupH = nanmedian(ctx.boxes.slice(Math.max(0, s0 + ds - int(fps)), s0 + ds + 1).map((b) => b[3] - b[1]));
-  const drawn = platePath(ctx.input.source, s0, L, ds, w.kw, w.bodyH, setupH, barRaw, w.Ms, fps, off ?? 0);
+  const found = Number.isFinite(setupH) ? ctx.input.source.plates(s0 + ds, w.kw[ds][L_WRI], w.kw[ds][R_WRI], w.bodyH, setupH).map((p): Plate => ({ ...p, diameter_px: Math.max(...p.axes), refined: p.fitInliers !== undefined })) : [];
+  const drawn = platePath(ctx.input.source, s0, L, ds, w.kw, w.bodyH, setupH, barRaw, w.Ms, fps, off ?? 0, found);
   const info = repInfo(ctx, repNo, s0, w, bar, phases, jerkKeyFrames(ev), ev, vals, det, extra, pxPerCm, off, made, rec, fwd, drawn);
   return {
     ...info,
