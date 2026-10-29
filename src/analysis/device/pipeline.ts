@@ -3,7 +3,7 @@
 import { MAX_YAW_DEG, cleanPullValues, facing, hipAngles, kneeAngles, rackMask, scaleFromBody, yawFromBody } from './body';
 import { detect, Detected } from './detect';
 import { lowpass, lowpassPts } from './filter';
-import { angle, barFromWrists, barTrack, dist, finitePt, fromRef, fusePath, midPt, normalise, onPlate, toRef, toWorld, trunkAngle } from './geometry';
+import { NAN_PT, angle, barFromWrists, barTrack, dist, finitePt, fromRef, fusePath, midPt, normalise, onPlate, toRef, toWorld, trunkAngle } from './geometry';
 import {
   FAMILY,
   K,
@@ -76,12 +76,12 @@ import {
   segmentSnatch,
 } from './phases';
 import * as rules from './rules';
-import { DeviceInput, PlateObservation } from './source';
+import { DeviceInput, FrameSource, PlateObservation } from './source';
 import type { PathOnlyGate, PathSource, RepGuides, RepTracks, TracePoint, TrackName } from '../types';
 
 export const KEYFRAME_H = 1080;
 const PLATE_CM = 45.0;
-const PLATE_PATH_MAX_DEG = 20;
+const PLATE_PATH_MAX_DEG = 45;
 const PLATE_SPAN_CM = 150.0;
 const PLATE_FIT_SPREAD = 0.15;
 const SCALE_VS_BODY: [number, number] = [0.75, 1.75];
@@ -277,6 +277,21 @@ export function jointTracks(kr: K, ksm: K, Ms: Affine[], from: number, to: numbe
   return out;
 }
 
+// The drawn bar (3.1.1): the followed near plate's centre on every frame the track holds and reads as the setup plate
+// (onPlate), the wrists shifted to meet it on the frames between (fusePath), low-passed like the wrist bar; window
+// reference px. The follow is seeded on the plate the setup found, and asked for over the whole window. Null when the
+// source has no follow (a 3.1 phone, a server trace), the lifter's wrists are unseen on the seed frame, or the camera
+// is further off side-on than the plate path is trusted.
+export function platePath(source: FrameSource, s0: number, L: number, seed: number, kw: K, bodyH: number, setupH: number, barRaw: Pt[], Ms: Affine[], fps: number, offSide: number): { drawn: Pt[]; plate: boolean[] } | null {
+  if (!(Number.isFinite(setupH) && Number.isFinite(bodyH)) || seed < 0 || seed >= L) return null;
+  const wristsW = barFromWrists(col(kw, L_WRI), col(kw, R_WRI), 0.12 * bodyH);
+  const follow = source.followPlate?.(s0, L, seed, wristsW, [kw[seed][L_WRI], kw[seed][R_WRI]], bodyH, setupH);
+  if (!follow || offSide > PLATE_PATH_MAX_DEG || follow.src[seed] !== 1) return null;
+  const ok = onPlate(follow.src, follow.fit, follow.centres, wristsW, seed);
+  const fused = fusePath(toRef(follow.centres.map((p, f): Pt => (ok[f] ? p : NAN_PT)), Ms), barRaw);
+  return { drawn: lowpassPts(fused.path, fps, 6.0), plate: fused.plate };
+}
+
 export function fail(ctx: Ctx, reason: string, code: string, message: string): Result {
   return {
     analysis: {
@@ -336,17 +351,23 @@ export function pathOnly(ctx: Ctx, gate: PathOnlyGate): Result | null {
   const kr: K = kw.map((_, f) => cols.map((c) => c[f]));
   const ksm = lowpassK(kr, fps, 6.0);
   const hanging = FAMILY[ctx.movement] === 'hanging';
-  const bar = hanging ? mid(ksm, L_HIP, R_HIP) : lowpassPts(barTrack(col(kr, L_WRI), col(kr, R_WRI), bodyH), fps, 6.0);
+  const barRaw = hanging ? [] : barTrack(col(kr, L_WRI), col(kr, R_WRI), bodyH);
+  const yaw = yawFromBody(ctx.k, 0, n - 1);
+  // the plate is sought where the bar sat lowest with both hands on it (the floor, or the rack): the setup of
+  // whatever this clip holds
+  const low = barRaw.reduce((best, p, f) => (finitePt(kw[f][L_WRI]) && finitePt(kw[f][R_WRI]) && finitePt(p) && (best < 0 || p[1] > barRaw[best][1]) ? f : best), -1);
+  const fused = hanging ? null : platePath(input.source, 0, L, low, kw, bodyH, bodyH, barRaw, Ms, fps, yaw ?? 0);
+  const bar = hanging ? mid(ksm, L_HIP, R_HIP) : fused ? fused.drawn : lowpassPts(barRaw, fps, 6.0);
   const seen = (f: number) => (hanging ? finitePt(kw[f][L_HIP]) && finitePt(kw[f][R_HIP]) : finitePt(kw[f][L_WRI]) || finitePt(kw[f][R_WRI]));
   const path: TracePoint[] = [];
-  for (let f = 0; f < L; f++) if (seen(f) && finitePt(bar[f])) path.push({ frame: f, ...normalise(fromRef(bar[f], Ms[f]), W, H) });
+  for (let f = 0; f < L; f++)
+    if (seen(f) && finitePt(bar[f])) path.push({ frame: f, ...normalise(fromRef(bar[f], Ms[f]), W, H), ...(hanging ? {} : { src: fused?.plate[f] ? 'plate' : 'wrist' }) });
   if (path.length < 2) return null;
   const first = path[0].frame;
   const last = path[path.length - 1].frame;
   const peak = path.reduce((a, b) => (b.y < a.y ? b : a)).frame;
   const fwd = facing(kw);
   const ring = path.reduce((a, b) => (fwd * (b.x - path[0].x) > fwd * (a.x - path[0].x) ? b : a));
-  const yaw = yawFromBody(ctx.k, 0, n - 1);
   const bodyScale = scaleFromBody(ctx.k);
   const keys: [string, number][] = [['setup', first], ['peak', peak]];
   const analysis: AnalysisJson = {
@@ -538,11 +559,6 @@ export function analyseRep(
     plates = platesAt(f);
     if (plates.length) seed = f;
   }
-  const wristsW = barFromWrists(col(kw, L_WRI), col(kw, R_WRI), 0.12 * bodyH);
-  const follow =
-    Number.isFinite(setupH) && Number.isFinite(bodyH)
-      ? source.followPlate?.(s0, L, seed, wristsW, [kw[seed][L_WRI], kw[seed][R_WRI]], bodyH, setupH)
-      : undefined;
   const bodyScale = scaleFromBody(kw);
   // no plate in the lift: the body sizes the lift and the pose gives the angle, as for a plate not on the lifter's bar
   if (!plates.length && !bodyScale) return null;
@@ -710,10 +726,8 @@ export function analyseRep(
   };
   if (outcomeKind === 'missed_behind') vals.jump_forward = null;
   const g = (f: number) => s0 + int(f);
-  const ok = follow && offSide <= PLATE_PATH_MAX_DEG && follow.src[seed] === 1 ? onPlate(follow.src, follow.fit, follow.centres, wristsW, seed) : null;
-  const platePts = follow && ok ? toRef(follow.centres.map((p, f): Pt => (ok[f] ? p : [NaN, NaN])), Ms) : null;
-  const fused = platePts ? fusePath(platePts, barRaw) : null;
-  const drawn: Pt[] = fused ? lowpassPts(fused.path, fps, 6.0) : bar;
+  const fused = platePath(source, s0, L, seed, kw, bodyH, setupH, barRaw, Ms, fps, offSide);
+  const drawn: Pt[] = fused ? fused.drawn : bar;
   const path: RepInfo['path'] = [];
   for (let f = phases[0].startFrame; f < L; f++)
     if (f <= ev.recovered) path.push({ frame: g(f), ...normalise(fromRef(drawn[f], Ms[f]), W, H), src: fused?.plate[f] ? 'plate' : 'wrist' });
@@ -740,6 +754,7 @@ export function analyseRep(
     ...(Number.isFinite(elbow[bentF])
       ? [{ id: 'elbow_pull', label: 'Elbow bend in the pull', value: pyRound(180 - elbow[bentF], 1), unit: 'deg', frame: g(bentF), status: 'normal', note: 'most the elbows bent before full extension (0 = straight)' }]
       : []),
+    ...frontReadings(ksm, bar, lo, ev.caught, fps, pxPerCm, offSide, g),
   ];
   const events: Record<string, number | boolean> = {};
   for (const [kk, v] of Object.entries(ev)) events[kk] = typeof v === 'boolean' ? v : g(v);
@@ -1144,6 +1159,38 @@ export function guideRows(sn: SnatchExtras): MeasRow[] {
   ];
 }
 
+// The readings a front or back view can give (29-10, any camera angle): the bar's tilt at the catch (left hand vs
+// right, pose left and right so the camera side does not matter), the bar's sideways drift from lift-off to the
+// catch and the hips' sideways shift over the feet, both towards the lifter's own left (the shoulders say which way
+// they face), and the stance width from the ankles at setup and at the catch. Sideways distances are foreshortened by
+// the yaw (sin), so they are corrected for it, as forward distances are side-on (cos).
+export const FRONT_NUMBERS = ['bar_tilt_catch', 'bar_drift_lateral', 'hip_shift', 'stance_setup', 'stance_catch'];
+
+export function frontReadings(ksm: K, bar: Pt[], setup: number, caught: number, fps: number, pxPerCm: number, yaw: number, g: (f: number) => number): MeasRow[] {
+  const L = ksm.length;
+  if (setup < 0 || caught < 0 || setup >= L || caught >= L) return [];
+  const lateral = 1 / Math.sin(radians(clip(Math.max(yaw, rules.VALUE_MAX_DEG), 0, 90)));
+  const cm = (px: number) => (px / pxPerCm) * lateral;
+  const w = Math.max(1, int(0.2 * fps));
+  const at = (f: number, a: number, b: number, j: 0 | 1) => nanmedian(ksm.slice(Math.max(0, f - w), Math.min(L, f + w + 1)).map((r) => (r[a][j] + r[b][j]) / 2));
+  const width = (f: number) => nanmedian(ksm.slice(Math.max(0, f - w), Math.min(L, f + w + 1)).map((r) => Math.abs(r[L_ANK][0] - r[R_ANK][0])));
+  // the lifter's own left is image right when they face the camera: the left shoulder then sits right of the right one
+  const left = nanmedian(ksm.map((r) => r[L_SHO][0] - r[R_SHO][0])) >= 0 ? 1 : -1;
+  const lw = ksm[caught][L_WRI];
+  const rw = ksm[caught][R_WRI];
+  const tilt = degrees(Math.asin(clip((rw[1] - lw[1]) / Math.max(1e-6, dist(lw, rw)), -1, 1)));
+  const rows: MeasRow[] = [];
+  const row = (id: string, label: string, v: number, unit: string, frame: number, note: string) => {
+    if (Number.isFinite(v)) rows.push({ id, label, value: pyRound(v, 1), unit, frame: g(frame), status: 'normal', note });
+  };
+  row('bar_tilt_catch', 'Bar tilt at catch', tilt, 'deg', caught, 'left hand above the right (+) at the catch');
+  row('bar_drift_lateral', 'Bar drift sideways', left * cm(bar[caught][0] - bar[setup][0]), 'cm', caught, "towards your left (+) from lift-off to the catch");
+  row('hip_shift', 'Hip shift', left * cm(at(caught, L_HIP, R_HIP, 0) - at(caught, L_ANK, R_ANK, 0) - (at(setup, L_HIP, R_HIP, 0) - at(setup, L_ANK, R_ANK, 0))), 'cm', caught, 'hips over the feet, towards your left (+), setup to catch');
+  row('stance_setup', 'Stance at setup', cm(width(setup)), 'cm', setup, 'ankle to ankle');
+  row('stance_catch', 'Stance at catch', cm(width(caught)), 'cm', caught, 'ankle to ankle');
+  return rows;
+}
+
 const KEY_NUMBERS = ['max_forward_drift', 'bar_forward_off_hips', 'bar_crash', 'jump_forward', 'catch_height'];
 const KEY_FORWARD = new Set(['max_forward_drift', 'bar_forward_off_hips', 'jump_forward']);
 export const TRACK_NUMBERS = ['hip_rise', 'bar_over_shoulder', 'knee_catch', 'elbow_pull'];
@@ -1156,6 +1203,6 @@ export function keyNumbers(r: RepInfo, meas: MeasRow[]): string[] {
   const side = (r.off_side_deg ?? 0) <= rules.VALUE_MAX_DEG;
   const has = (id: string) => meas.some((m) => m.id === id && m.status !== 'not_seen');
   const cueGrade = !r.snatch || !r.scale_ok || r.bar_lost || r.cut_off ? [] : KEY_NUMBERS.filter((id) => has(id) && (side || !KEY_FORWARD.has(id)));
-  return [...cueGrade, ...TRACK_NUMBERS.filter((id) => has(id) && (side || !TRACK_FORWARD.has(id)))];
+  return [...cueGrade, ...(side ? [] : FRONT_NUMBERS.filter(has)), ...TRACK_NUMBERS.filter((id) => has(id) && (side || !TRACK_FORWARD.has(id)))];
 }
 
