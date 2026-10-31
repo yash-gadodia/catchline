@@ -355,3 +355,68 @@ Lifter tracking (the detector every 4th frame, the box carried from the previous
 ## Background completion (3.1.1)
 
 Speed being capped by the 1 px bar, the run finishes without the lifter watching. On iOS 26 `analyseOnDevice` submits a `BGContinuedProcessingTask` (`ContinuedRun.swift`, identifier `<bundle id>.analyse` permitted in `app.json`) with the processing screen's words, so the passes go on after they leave, with the analysis's progress in the system's Live Activity; the JS loop ends it. Cancelling it there, or the system ending it, makes the pass reject with `interrupted` and the loop reruns it when the app is active again, the same path older iOS already took for a pass that died while the app was away. A lift that finishes while the app is not active posts one local "Your Snatch is ready" notification (only if notifications are allowed) that opens the lift from Documents. No GPU is requested in the background: that needs the Background GPU Access capability on the App ID; a Core ML segment that needs the GPU fails and the rerun covers it.
+
+## Joint tracks against truth (30 Oct 2026, `v31/joints311`, 3.1.1)
+
+The feet, knee, hip, shoulder and elbow tracks drawn on every rep (#186) had continuity only. Truth now exists for 13
+barbell clips, 146 frames, 646 mid-points (labels, sheets and corrections in `~/catchline-joints311`, never in the repo).
+Method: Apple Vision body pose on the full frame and on an upscaled crop as a first pass, then every frame QA'd by eye on
+a gridded tile with the label drawn; 63 frames were corrected by hand (51 points moved, 35 hidden far-side joints set to
+the near one, 129 marked unplaceable). yt_Ilb75p8X_cs is excluded (the tracked person changes and never lifts in the
+labelled frames); catchline-side-snatch is IMG_0073 transcoded, shown but not pooled. The truth's own error: ~0.03-0.05
+torso lengths (t) for feet, knees, shoulders and elbows; ~0.1 t for hips, where the two Vision passes and the hand
+placement disagree by 0.06-0.17 t; 0.08 t or worse on the 480p clips (fbbu, nuj, jbhv), scored but not judged.
+
+Run: the Track eval command with `--clips ~/catchline-joints311/clips-labelled.json --joint-labels ~/catchline-joints311/labels`.
+
+Median / p90 error, px and t; "no pt": labelled frames with no track point. Only the elbow column moved with the fix
+(before in brackets where it differs):
+
+| clip | angle | torso px | feet | knees | hips | shoulders | elbows |
+|---|---|---|---|---|---|---|---|
+| 2026-10-05_21B27BAF | side | 822.4 | 63.8 / 75.4 px, 0.078 / 0.092 t | 17.6 / 70.6 px, 0.021 / 0.086 t | 50.8 / 55.2 px, 0.062 / 0.067 t | 33.9 / 67.1 px, 0.041 / 0.082 t | 51.3 / 116.4 px, 0.062 / 0.142 t |
+| 2026-10-05_E0DF8887 | side | 777.4 | 33.7 / 74.9 px, 0.043 / 0.096 t | 31.3 / 71.6 px, 0.04 / 0.092 t | 56.4 / 66.1 px, 0.073 / 0.085 t | 39.9 / 62.6 px, 0.051 / 0.081 t | 41.7 / 95.2 px, 0.054 / 0.122 t |
+| IMG_0073 | side | 695.3 | 14 / 17.3 px, 0.02 / 0.025 t | 19.7 / 24.2 px, 0.028 / 0.035 t | 56 / 90.8 px, 0.081 / 0.131 t | 17.5 / 23.6 px, 0.025 / 0.034 t | 15.5 / 18.6 px, 0.022 / 0.027 t, 1 no pt (0.022 / 0.038 t) |
+| catchline-side-snatch (duplicate) | side | 349.8 | 6.9 / 9 px, 0.02 / 0.026 t | 8.1 / 9 px, 0.023 / 0.026 t | 27.6 / 39.7 px, 0.079 / 0.114 t | 10.9 / 13.6 px, 0.031 / 0.039 t | 9.7 / 19.3 px, 0.028 / 0.055 t, 1 no pt (0.029 / 0.039 t) |
+| yt_fbbuTrspjhE | side 480p | 103.7 | 4.3 / 33.9 px, 0.041 / 0.327 t | 6.8 / 21.8 px, 0.066 / 0.21 t | 6 / 10 px, 0.058 / 0.096 t | 6.1 / 8.7 px, 0.059 / 0.084 t | 10.1 / 12.7 px, 0.097 / 0.122 t |
+| yt_nuj--RnZy9s | side 480p | 82.9 | 3.9 / 5 px, 0.047 / 0.06 t | 5 / 14.8 px, 0.061 / 0.178 t | 6 / 13.8 px, 0.072 / 0.166 t | 4.5 / 5.9 px, 0.054 / 0.071 t | 12 / 13.7 px, 0.145 / 0.165 t, 2 no pt (0.165 / 0.374 t) |
+| yt_jbhvMQamGlc | side 480p | 101.3 | 3 / 4.2 px, 0.029 / 0.041 t | 7.6 / 7.7 px, 0.075 / 0.076 t | 9 / 32.6 px, 0.089 / 0.322 t | 6.7 / 7.4 px, 0.066 / 0.074 t | 9.5 / 9.5 px, 0.093 / 0.093 t |
+| yt_-CaVtYG2s-k | side | 143.6 (track) | 2.3 / 3.1 px, 0.016 / 0.022 t | 2.1 / 5.4 px, 0.015 / 0.038 t | 27.7 / 31.7 px, 0.193 / 0.221 t | - | - |
+| yt_JZJck0Jlus0 | 45 | 180.1 | 6.8 / 7.6 px, 0.038 / 0.042 t | 8.2 / 11.5 px, 0.045 / 0.064 t | 12.2 / 21.5 px, 0.068 / 0.119 t | 5.8 / 7.2 px, 0.032 / 0.04 t | 5.9 / 9.3 px, 0.033 / 0.052 t, 1 no pt (0.036 / 0.074 t) |
+| yt_yxqgse57m3U | 45 | 192.1 | 4.2 / 7.3 px, 0.022 / 0.038 t | 7.7 / 23.6 px, 0.04 / 0.123 t | 13.5 / 19 px, 0.07 / 0.099 t | 19.9 / 26.3 px, 0.104 / 0.137 t | 7 / 12.1 px, 0.037 / 0.063 t |
+| yt_l9s5In9SkxQ | 45 | 190.9 | 4 / 7 px, 0.021 / 0.037 t | 3.5 / 7.1 px, 0.018 / 0.037 t | 8.5 / 12.8 px, 0.044 / 0.067 t | 4 / 9.8 px, 0.021 / 0.051 t | 6.1 / 17.4 px, 0.032 / 0.091 t |
+| yt_bCsp3kersAM | 45 | 181.1 | 3.4 / 6.6 px, 0.019 / 0.036 t | 5.1 / 6.4 px, 0.028 / 0.035 t | 5.1 / 11 px, 0.028 / 0.061 t | 12.6 / 18.4 px, 0.069 / 0.102 t | 15.7 / 19.4 px, 0.087 / 0.107 t |
+| yt_VhPkTahralc | 45 | 176.8 | 4.4 / 6.9 px, 0.025 / 0.039 t | 4.3 / 7.5 px, 0.025 / 0.042 t | 8.6 / 9 px, 0.049 / 0.051 t | 13.1 / 18.4 px, 0.074 / 0.104 t | 21.3 / 24 px, 0.121 / 0.136 t, 2 no pt (0.121 / 0.182 t) |
+
+Against the 0.08 t bar on side-on high-res clips (21B27BAF, E0DF8887, IMG_0073, -CaVt): feet, knees, shoulders and
+elbows pass (worst clip 0.078 / 0.04 / 0.051 / 0.062 t); hips fail on -CaVt (0.193 t), but the hip truth (~0.1 t) is too
+coarse to settle 0.08 either way.
+
+Suspects tested before any code: the 6 Hz low-pass is not it (the drawn track is within 0.01 t of the raw pose
+everywhere); the stabilised vs raw frame makes no difference; preferring the camera-side joint is worse than the
+mid-point on every clip (RTMPose scores both sides alike), not changed; no ankle flicker on the low-res lifters (0.03-0.05
+t at 480p). What is wrong is single-frame misreads by the pose model, chiefly elbows drawn on the chest at a lockout,
+0.4-0.6 t out. The one fix, `ARM_BAND` in `jointTracks`: an elbow whose upper arm (mid-shoulder to mid-elbow) reads
+outside 0.4-1.7x the rep's median is not drawn. On the labelled frames it removed 5 of 88 bad elbow points and 1 of 497
+good ones; across the eval clips' reps it undraws 3-20% of elbow frames. The same band on the other joints caught nothing.
+On all 14 clips the cue, the no-cue reason, the key numbers, the measurements and the bar path are identical before and
+after.
+
+Readings put through their own formula from the labels and from the smoothed keypoints at the frame the reading is taken
+at (hidden in keyNumbers if error / value exceeds 0.25): none is hidden. knee_catch reads ~11 deg deeper than the truth;
+bar_over_shoulder has 2 clips only (p90 is the script's lower-rank p90, so at 2 clips it is the smaller error).
+
+| reading | clips | median abs error | p90 abs error | median abs truth | error / value | key number |
+|---|---|---|---|---|---|---|
+| bar_drift_lateral | 4 | 1.4 | 2.2 | 10 | 0.14 | keep |
+| bar_over_shoulder | 2 | 0.2 | 0 | 1 | 0.15 | keep |
+| bar_tilt_catch | 4 | 3.2 | 3.5 | 17.1 | 0.18 | keep |
+| elbow_pull | 7 | 3.2 | 9 | 33.6 | 0.1 | keep |
+| hip_rise | 9 | 3.2 | 4.2 | 41.3 | 0.08 | keep |
+| hip_shift | 7 | 2.7 | 6.3 | 16.1 | 0.17 | keep |
+| knee_catch | 8 | 11 | 12.1 | 86.7 | 0.13 | keep |
+| stance_catch | 8 | 0.7 | 2 | 22.2 | 0.03 | keep |
+| stance_setup | 7 | 2.4 | 3.3 | 13.1 | 0.18 | keep |
+
+Unverified: hips (truth too coarse), the 480p clips, front and behind views (no labelled clip), bar_over_shoulder (2
+clips), and agreement with a second labeller.
