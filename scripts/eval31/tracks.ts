@@ -8,6 +8,10 @@
 //     --labels DIR --out DIR [--only id,id] [--also id:movement ...]
 // --also runs a clip as another movement too (a snatch as a jerk finds no jerk), to exercise the path-only result on
 // real pose data when no eval clip fails a gate on its own.
+// --joint-labels DIR (30-10) scores the joint tracks against hand-checked labels (DIR/<id>.json: per labelled frame the
+// left/right joints and their mid-points in clip px): per clip and joint the median and p90 error in px and in torso
+// lengths and the labelled frames with no track point; and each track reading (hip rise, knee at the catch, ...) put
+// through its own formula from the labels and from the smoothed keypoints at the frames the reading is taken at.
 import { createHash } from 'crypto';
 import { execFileSync } from 'child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'fs';
@@ -15,14 +19,22 @@ import { join } from 'path';
 import { gunzipSync } from 'zlib';
 
 import { analyseTraceResult, planFromMisses } from '../../src/analysis/device/analyseTrace';
-import { L_HIP, L_SHO, R_HIP, R_SHO } from '../../src/analysis/device/movement';
+import { angle1, applyAffine, dist, midPt } from '../../src/analysis/device/geometry';
+import { K, L_ANK, L_ELB, L_HIP, L_KNEE, L_SHO, L_WRI, R_ANK, R_ELB, R_HIP, R_KNEE, R_SHO, R_WRI } from '../../src/analysis/device/movement';
+import { Pt, degrees, nanmedian, radians } from '../../src/analysis/device/num';
+import type { RepInfo } from '../../src/analysis/device/pipeline';
+import { VALUE_MAX_DEG } from '../../src/analysis/device/rules';
 import { Trace, parseTraceJson, traceInput } from '../../src/analysis/device/trace';
 import { pointAt } from '../../src/analysis/timeline';
-import type { Rep, TracePoint } from '../../src/analysis/types';
+import type { Rep, TracePoint, TrackName } from '../../src/analysis/types';
 
 type Clip = { id: string; set: string; file: string; movement: string; angle?: string };
 type Label = { frame: number; x: number; y: number; r: number };
 type Labels = { width: number; height: number; reps: { labels: Label[] }[] };
+type JointLabels = { width: number; height: number; frames: { frame: number; joints: Partial<Record<TrackName, Pt | null>>; sides: Record<string, Pt> }[] };
+type JointErr = { n: number; missing: number; medianPx: number; p90Px: number; median: number; p90: number };
+type JointRow = { torsoPx: number; torsoFrom: 'labels' | 'track'; joints: Partial<Record<TrackName, JointErr>> };
+type Reading = { id: string; frame: number; value: number; track: number; truth: number };
 type Row = {
   id: string;
   set: string;
@@ -40,9 +52,14 @@ type Row = {
   feet: { gaps: number; jumps: number; frames: number } | null;
   hips: { gaps: number; jumps: number; frames: number } | null;
   misses: number;
+  joints?: JointRow;
+  readings?: Reading[];
 };
 
 const JUMP_TORSO = 0.35;
+// a lifter under this many px of torso is too small for the labels to be placed within the pass bar (0.08 torso is
+// under 10 px): scored, but not judged
+const LOW_RES_TORSO = 120;
 const OWNER_MOVEMENT: Record<string, string> = { EDF10BB7: 'bar_muscle_up', BD1AE773: 'bar_muscle_up', A1F2F738: 'kipping_pull_up', '21B27BAF': 'snatch', E0DF8887: 'snatch' };
 
 const args = process.argv.slice(2);
@@ -62,6 +79,7 @@ const p90 = (v: number[]) => {
   return s.length ? s[Math.floor(0.9 * (s.length - 1))] : NaN;
 };
 const r1 = (v: number) => Math.round(v * 10) / 10;
+const r3 = (v: number) => Math.round(v * 1000) / 1000;
 
 function sh(bin: string, a: string[]): void {
   try {
@@ -182,9 +200,120 @@ function platesSeen(trace: Trace): Row['plates'] {
   return { seen, searched: finds.length, refined };
 }
 
-function evaluate(id: string, set: string, movement: string, angle: string, trace: Trace, misses: number, labels: Labels | null): Row {
+const JOINTS: TrackName[] = ['feet', 'knees', 'hips', 'shoulders', 'elbows'];
+const SIDES: Record<string, number> = {
+  l_ankle: L_ANK, r_ankle: R_ANK, l_knee: L_KNEE, r_knee: R_KNEE, l_hip: L_HIP, r_hip: R_HIP,
+  l_shoulder: L_SHO, r_shoulder: R_SHO, l_elbow: L_ELB, r_elbow: R_ELB, l_wrist: L_WRI, r_wrist: R_WRI,
+};
+
+// the drawn joint tracks against the labels, clip px; the torso is the labels' mid-shoulder to mid-hip (90th
+// percentile over the labelled frames, near standing), the drawn tracks' when under 3 frames label both
+function jointErrors(reps: Rep[], labels: JointLabels): JointRow {
+  const W = labels.width;
+  const H = labels.height;
+  const labelled = labels.frames.flatMap((l) => (l.joints.shoulders && l.joints.hips ? [dist(l.joints.shoulders, l.joints.hips)] : []));
+  const tracked = reps.flatMap((r) => {
+    const hips = new Map((r.tracks?.hips ?? []).map((p) => [p.frame, p]));
+    return (r.tracks?.shoulders ?? []).flatMap((p) => {
+      const h = hips.get(p.frame);
+      return h ? [Math.hypot((p.x - h.x) * W, (p.y - h.y) * H)] : [];
+    });
+  });
+  const torsoFrom = labelled.length >= 3 ? 'labels' : 'track';
+  const torso = p90(torsoFrom === 'labels' ? labelled : tracked);
+  const joints: JointRow['joints'] = {};
+  for (const name of JOINTS) {
+    const px: number[] = [];
+    let missing = 0;
+    for (const l of labels.frames) {
+      const t = l.joints[name];
+      if (!t) continue;
+      const p = reps.flatMap((r) => r.tracks?.[name] ?? []).find((q) => q.frame === l.frame);
+      if (!p) {
+        missing++;
+        continue;
+      }
+      px.push(Math.hypot(p.x * W - t[0], p.y * H - t[1]));
+    }
+    joints[name] = { n: px.length, missing, medianPx: r1(median(px)), p90Px: r1(p90(px)), median: r3(median(px) / torso), p90: r3(p90(px) / torso) };
+  }
+  return { torsoPx: r1(torso), torsoFrom, joints };
+}
+
+// Each track reading of the best rep through its own formula, once from the labels (taken into the rep's stabilised
+// window px) and once from the smoothed keypoints, at the frames the reading is taken at. Point values: a reading the
+// pipeline takes as a minimum or a windowed median is read at its own frame here, so `track` can differ from `value`.
+function trackReadings(movement: string, r: RepInfo | undefined, labels: JointLabels, shape: [number, number]): Reading[] {
+  if (!r?.track_meas) return [];
+  const sx = shape[1] / labels.width;
+  const sy = shape[0] / labels.height;
+  const ev = r.events as Record<string, number>;
+  const jerk = movement === 'jerk';
+  const lo = jerk ? ev.dip_start : ev.liftoff;
+  const caught = jerk ? ev.land : ev.caught;
+  const off = r.off_side_deg ?? 0;
+  const fs = 1 / Math.cos(radians(jerk ? Math.min(off, 60) : off));
+  const lateral = 1 / Math.sin(radians(Math.min(90, Math.max(off, VALUE_MAX_DEG))));
+  const left = nanmedian(r.ksm.map((q) => q[L_SHO][0] - q[R_SHO][0])) >= 0 ? 1 : -1;
+  const cm = (px: number) => px / (r.px_per_cm ?? NaN);
+  const truthRow = (f: number): Pt[] => {
+    const l = labels.frames.find((x) => x.frame === f);
+    const row: Pt[] = r.ksm[0].map((): Pt => [NaN, NaN]);
+    if (l)
+      for (const [name, j] of Object.entries(SIDES)) if (l.sides[name]) row[j] = applyAffine(r.Ms[f - r.s0], [l.sides[name][0] * sx, l.sides[name][1] * sy]);
+    return row;
+  };
+  const sources: [(f: number) => Pt[], (f: number, row: Pt[]) => Pt][] = [
+    [truthRow, (_f, row) => midPt(row[L_WRI], row[R_WRI])],
+    [(f) => r.ksm[f - r.s0], (f) => r.track[f - r.s0]],
+  ];
+  const formula = (id: string, frame: number, rowAt: (f: number) => Pt[], barAt: (f: number, row: Pt[]) => Pt): number => {
+    const at = (f: number) => {
+      const row = rowAt(f);
+      return { row, m: (a: number, b: number) => midPt(row[a], row[b]), bar: () => barAt(f, row) };
+    };
+    const angles = (q: Pt[], a: number[], b: number[]) => [angle1(q[a[0]], q[a[1]], q[a[2]]), angle1(q[b[0]], q[b[1]], q[b[2]])];
+    const x = at(frame);
+    switch (id) {
+      case 'hip_rise':
+        return cm(at(lo).m(L_HIP, R_HIP)[1] - at(ev.second_ext).m(L_HIP, R_HIP)[1]);
+      case 'bar_over_shoulder':
+        return cm(r.fwd * (x.bar()[0] - x.m(L_SHO, R_SHO)[0])) * fs;
+      case 'knee_catch': {
+        const [a, b] = angles(x.row, [L_HIP, L_KNEE, L_ANK], [R_HIP, R_KNEE, R_ANK]);
+        return (a + b) / 2;
+      }
+      case 'elbow_pull':
+        return 180 - Math.min(...angles(x.row, [L_SHO, L_ELB, L_WRI], [R_SHO, R_ELB, R_WRI]));
+      case 'bar_tilt_catch': {
+        const c = at(caught).row;
+        return degrees(Math.asin(Math.max(-1, Math.min(1, (c[R_WRI][1] - c[L_WRI][1]) / Math.max(1e-6, dist(c[L_WRI], c[R_WRI]))))));
+      }
+      case 'bar_drift_lateral':
+        return left * cm(at(caught).bar()[0] - at(lo).bar()[0]) * lateral;
+      case 'hip_shift': {
+        const d = (f: number) => at(f).m(L_HIP, R_HIP)[0] - at(f).m(L_ANK, R_ANK)[0];
+        return left * cm(d(caught) - d(lo)) * lateral;
+      }
+      case 'stance_setup':
+      case 'stance_catch': {
+        const q = at(id === 'stance_setup' ? lo : caught).row;
+        return cm(Math.abs(q[L_ANK][0] - q[R_ANK][0])) * lateral;
+      }
+    }
+    return NaN;
+  };
+  const out: Reading[] = [];
+  for (const m of r.track_meas) {
+    const [truth, track] = sources.map(([rowAt, barAt]) => formula(m.id, m.frame, rowAt, barAt));
+    if (Number.isFinite(truth) && Number.isFinite(track)) out.push({ id: m.id, frame: m.frame, value: m.value as number, track: r1(track), truth: r1(truth) });
+  }
+  return out;
+}
+
+function evaluate(id: string, set: string, movement: string, angle: string, trace: Trace, misses: number, labels: Labels | null, jointLabels: JointLabels | null = null): Row {
   const res = analyseTraceResult(trace, movement, { assetPrefix: 'kf' });
-  const a = res.analysis as { failure: { code: string } | null; cue: { faultId: string } | null; noCueReason: { code: string; gate?: string; offSideDeg?: number } | null; reps: Rep[] };
+  const a = res.analysis as { failure: { code: string } | null; cue: { faultId: string } | null; noCueReason: { code: string; gate?: string; offSideDeg?: number } | null; reps: Rep[]; bestRepIndex: number };
   const status = a.failure ? `fail:${a.failure.code}` : a.cue ? `cue:${a.cue.faultId}` : a.noCueReason ? `${a.noCueReason.code}${a.noCueReason.gate ? `:${a.noCueReason.gate}` : ''}` : 'clean';
   const reps = a.reps ?? [];
   const shape = trace.pose.False?.shape as [number, number] | null;
@@ -210,6 +339,12 @@ function evaluate(id: string, set: string, movement: string, angle: string, trac
     feet: shape ? continuity(reps, 'feet', shape, torso) : null,
     hips: shape ? continuity(reps, 'hips', shape, torso) : null,
     misses: res.misses.length || misses,
+    ...(jointLabels && shape
+      ? {
+          joints: jointErrors(reps, jointLabels),
+          readings: trackReadings(movement, res.reps.find((r) => r.start === reps[a.bestRepIndex - 1]?.startFrame), jointLabels, shape),
+        }
+      : {}),
   };
 }
 
@@ -220,6 +355,11 @@ function main() {
   const labelsFor = (id: string): Labels | null => {
     const p = labelsDir ? join(labelsDir, `${id}.json`) : '';
     return p && existsSync(p) ? (JSON.parse(readFileSync(p, 'utf8')) as Labels) : null;
+  };
+  const jointDir = opt('joint-labels');
+  const jointLabelsFor = (id: string): JointLabels | null => {
+    const p = jointDir ? join(jointDir, `${id}.json`) : '';
+    return p && existsSync(p) ? (JSON.parse(readFileSync(p, 'utf8')) as JointLabels) : null;
   };
   const only = opt('only')?.split(',');
   const rows: Row[] = [];
@@ -237,7 +377,7 @@ function main() {
       log(`${c.id} (${c.movement})`);
       try {
         const { trace, misses } = replayClip({ ...c, id: c.id.split(' as ')[0] }, cache, opt('harness'), opt('models'));
-        rows.push(evaluate(c.id, c.set, c.movement, c.angle ?? '', trace, misses, labelsFor(c.id.split(' as ')[0])));
+        rows.push(evaluate(c.id, c.set, c.movement, c.angle ?? '', trace, misses, labelsFor(c.id.split(' as ')[0]), c.id.includes(' as ') ? null : jointLabelsFor(c.id)));
       } catch (e) {
         rows.push({ id: c.id, set: c.set, movement: c.movement, angle: c.angle ?? '', yaw: null, status: `error:${String((e as Error).message).slice(0, 80)}`, person: true, path: false, reps: 0, pathFrames: 0, plateShare: 0, bar: null, plates: { seen: 0, searched: 0, refined: 0 }, feet: null, hips: null, misses: 0 });
       }
@@ -269,6 +409,47 @@ function main() {
   const withPerson = rows.filter((r) => r.person);
   const pass = withPerson.every((r) => r.path);
   lines.push('', `Pass (every clip with a person produces a path): **${pass ? 'yes' : 'NO'}** (${withPerson.filter((r) => r.path).length}/${withPerson.length})`);
+  const scored = rows.filter((r) => r.joints);
+  if (scored.length) {
+    const jc = (e: JointErr | undefined) => (e && e.n ? `${e.medianPx} / ${e.p90Px} px, ${e.median} / ${e.p90} t${e.missing ? `, ${e.missing} no pt` : ''}` : e?.missing ? `${e.missing} no pt` : '-');
+    lines.push(
+      '',
+      'Joint tracks vs labels (median / p90 error, px and torso lengths t; "no pt": labelled frames with no track point):',
+      '',
+      `| clip | angle | torso px | ${JOINTS.join(' | ')} |`,
+      `|---|---|---|${JOINTS.map(() => '---').join('|')}|`,
+      ...scored.map((r) => `| ${r.id}${r.set === 'duplicate' ? ' (duplicate)' : ''} | ${r.angle || '-'} | ${r.joints!.torsoPx}${r.joints!.torsoFrom === 'track' ? ' (track)' : ''} | ${JOINTS.map((j) => jc(r.joints!.joints[j])).join(' | ')} |`),
+    );
+    const bar = 0.08;
+    const groupOf = (r: Row) => (r.joints!.torsoPx < LOW_RES_TORSO ? 'low-res' : r.angle);
+    for (const group of ['side', '45', 'low-res']) {
+      const g = scored.filter((r) => groupOf(r) === group && r.set !== 'duplicate');
+      if (!g.length) continue;
+      const pooled = JOINTS.map((j) => median(g.map((r) => r.joints!.joints[j]?.median ?? NaN)));
+      const worst = JOINTS.map((j) => Math.max(...g.map((r) => r.joints!.joints[j]?.median ?? NaN).filter(Number.isFinite)));
+      lines.push(
+        '',
+        `${group} (${g.length} clips${group === 'low-res' ? `, torso under ${LOW_RES_TORSO} px, not judged` : ''}): median of the clip medians ${JOINTS.map((j, i) => `${j} ${r3(pooled[i])} t`).join(', ')}; worst clip ${JOINTS.map((j, i) => `${j} ${r3(worst[i])}`).join(', ')}${
+          group === 'side' ? `. Pass (every clip's median under ${bar} t per joint): **${worst.every((w) => w < bar) ? 'yes' : 'NO'}**` : ''
+        }`,
+      );
+    }
+    const readings = scored.flatMap((r) => (r.readings ?? []).map((x) => ({ ...x, clip: r.id })));
+    if (readings.length) {
+      lines.push('', 'Track readings, best rep (value: as listed; track and truth: the same formula at the same frame from the smoothed keypoints and from the labels):', '', '| reading | clip | frame | value | track | truth | error |', '|---|---|---|---|---|---|---|');
+      for (const x of readings.sort((p, q) => p.id.localeCompare(q.id))) lines.push(`| ${x.id} | ${x.clip} | ${x.frame} | ${x.value} | ${x.track} | ${x.truth} | ${r1(x.track - x.truth)} |`);
+      // the trust rule (30-10): a reading whose typical error is over a quarter of its typical value is not a key number
+      const pooled = scored.filter((r) => r.set !== 'duplicate').flatMap((r) => (r.readings ?? []).map((x) => ({ ...x, clip: r.id })));
+      lines.push('', '| reading | clips | median abs error | p90 abs error | median abs truth | error / value | key number |', '|---|---|---|---|---|---|---|');
+      for (const id of [...new Set(pooled.map((x) => x.id))].sort()) {
+        const xs = pooled.filter((x) => x.id === id);
+        const errs = xs.map((x) => Math.abs(x.track - x.truth));
+        const val = median(xs.map((x) => Math.abs(x.truth)));
+        const ratio = median(errs) / val;
+        lines.push(`| ${id} | ${xs.length} | ${r1(median(errs))} | ${r1(p90(errs))} | ${r1(val)} | ${Math.round(100 * ratio) / 100} | ${ratio > 0.25 ? '**hide**' : 'keep'} |`);
+      }
+    }
+  }
   const md = lines.join('\n');
   writeFileSync(join(out, 'tracks.md'), md + '\n');
   process.stdout.write(md + '\n');
