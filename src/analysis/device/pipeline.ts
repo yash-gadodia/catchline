@@ -263,13 +263,21 @@ const TRACKS: [TrackName, number, number][] = [
 
 // The joint tracks beside the bar path (27-10: tracking first): per window frame from..to the mid-point of each pair,
 // smoothed like the bar (ksm), back in the frame's own pixels like the path. A frame where the pose has either joint
-// missing (kr, before the low-pass filled it) is skipped, not invented.
+// missing (kr, before the low-pass filled it) is skipped, not invented. So is an elbow whose upper arm (mid-shoulder
+// to mid-elbow) reads outside ARM_BAND of the rep's median: against hand-checked labels (30-10) those were elbows
+// drawn on the chest at a lockout, 0.4 to 0.6 torso lengths out, and the band left out one good elbow in 500 points.
+const ARM_BAND: [number, number] = [0.4, 1.7];
+
 export function jointTracks(kr: K, ksm: K, Ms: Affine[], from: number, to: number, W: number, H: number, g: (f: number) => number): RepTracks {
   const out: RepTracks = {};
+  const span = ksm.slice(Math.max(0, from), Math.min(to, ksm.length - 1) + 1);
+  const arm = (r: Pt[]) => dist(midPt(r[L_SHO], r[R_SHO]), midPt(r[L_ELB], r[R_ELB]));
+  const armMed = nanmedian(span.map(arm));
   for (const [name, a, b] of TRACKS) {
     const pts: TracePoint[] = [];
     for (let f = Math.max(0, from); f <= to && f < ksm.length; f++) {
       if (!finitePt(kr[f][a]) || !finitePt(kr[f][b])) continue;
+      if (name === 'elbows' && !(arm(ksm[f]) >= ARM_BAND[0] * armMed && arm(ksm[f]) <= ARM_BAND[1] * armMed)) continue;
       pts.push({ frame: g(f), ...normalise(fromRef(midPt(ksm[f][a], ksm[f][b]), Ms[f]), W, H) });
     }
     if (pts.length) out[name] = pts;
