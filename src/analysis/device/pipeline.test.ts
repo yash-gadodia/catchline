@@ -256,6 +256,22 @@ describe('the joint tracks beside the bar path', () => {
     expect(got.some((p) => p.frame === f)).toBe(false);
     expect(a.reps[0].tracks!.feet!.length).toBe(full.reps[0].tracks!.feet!.length);
   });
+
+  it('leave out an elbow the pose read on the shoulder, as it does at a lockout (30-10 joint eval)', () => {
+    const input = lifter(MADE);
+    const full = analyse(input, 'snatch').analysis as unknown as Analysis;
+    const elbows = full.reps[0].tracks!.elbows!;
+    const f0 = elbows[Math.floor(elbows.length / 2)].frame;
+    for (let f = f0; f < f0 + 6; f++) {
+      input.lifter.k[f][L_ELB] = [...input.lifter.k[f][L_SHO]];
+      input.lifter.k[f][R_ELB] = [...input.lifter.k[f][R_SHO]];
+    }
+    const a = analyse(input, 'snatch').analysis as unknown as Analysis;
+    const got = a.reps[0].tracks!.elbows!.map((p) => p.frame);
+    expect([f0 + 1, f0 + 2, f0 + 3, f0 + 4].filter((f) => got.includes(f))).toEqual([]);
+    expect(got.length).toBeGreaterThan(elbows.length - 10);
+    expect(a.reps[0].tracks!.shoulders).toEqual(full.reps[0].tracks!.shoulders);
+  });
 });
 
 // 27-10: no lift found is no longer a failure screen: the bar, feet and hips were tracked, so that is the result,
