@@ -23,6 +23,7 @@ Backend is Supabase (Postgres + Auth + Storage + Realtime + pgmq/pg_cron). Migra
 - Problem reports (0020): `problem_reports` is insert-only for the owner (client-picked uuid, a resend hits the pk), nobody reads back but service_role; the app queues them in `src/data/problemReports.ts` and flushes when online. `problem_reports_test.sql`.
 - Shared clips (0021): `shared-clips` bucket, private, insert-only into the owner's folder (`<user>/<lift>.mp4`, "Send this clip so we can fix it" on a failed lift), nobody reads back but service_role; `purge_shared_clips` on pg_cron (`catchline-purge-shared-clips`, hourly) deletes clips past 30 days or whose account is gone, logged in `clip_deletions`. `shared_clips_test.sql`.
 - Problem shots (0022, applied 30 Oct): `problem-shots` bucket (`<user>/<report_id>.jpg`, owner insert only, service role reads), `purge_problem_shots(90 days)` on pg_cron `catchline-purge-problem-shots`. Proven by `problem_shots_test.sql`.
+- Server worker retired (0023, 3 Nov): the Modal app `catchline-worker` is stopped; `enqueue_lift` (only 3.0 and older apps call it) now fails the lift with `update_required` and refunds it, and `ops_health_check` never opens `worker_silent`. The worker RPCs stay callable. Proven by `pipeline_test.sql` + `ops_health_test.sql`.
 - Realtime needs the table in `supabase_realtime` (`lifts`, `analyses` today).
 - `service_role` / secrets never ship in the client — only `EXPO_PUBLIC_SUPABASE_URL` + anon key (`.env.local`, gitignored).
 

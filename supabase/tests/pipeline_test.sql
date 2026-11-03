@@ -4,7 +4,7 @@
 -- realtime publication carries lifts and analyses.
 begin;
 create extension if not exists pgtap;
-select plan(25);
+select plan(26);
 
 select pgmq.purge_queue('lift_jobs');
 
@@ -31,13 +31,20 @@ insert into storage.objects (bucket_id, name) select 'raw-clips', clip_path from
 
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"f1000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
-select is((public.enqueue_lift((select id from t where k = 'a'))).status, 'queued', 'Enqueue queues the lift');
+select is((select l.status || ':' || l.error from public.enqueue_lift((select id from t where k = 'a')) l), 'failed:update_required',
+  'Enqueue fails the lift at once: the server worker is retired (0023), the old app must update');
 select throws_ok($$select public.enqueue_lift((select id from t where k = 'a'))$$, 'P0001', 'lift_not_uploading', 'A lift is enqueued once');
 select throws_ok($$select * from public.complete_lift_job(1, (select id from t where k = 'a'), '{"version": 1}')$$, '42501', null,
   'Clients cannot complete jobs');
 reset role;
 
-select is((select queue_length from pgmq.metrics('lift_jobs')), 1::bigint, 'One job in the queue');
+select is((select queue_length from pgmq.metrics('lift_jobs')), 0::bigint, 'Nothing is queued for a worker');
+select is((select period_count from public.usage_counters where user_id = 'f1000000-0000-0000-0000-000000000001'), 0,
+  'and the analysis it used is refunded');
+
+-- the worker functions stay callable: queue the lift by hand to exercise them
+update public.lifts set status = 'queued', error = null, processed_at = null where id = (select id from t where k = 'a');
+select pgmq.send('lift_jobs', jsonb_build_object('lift_id', (select id from t where k = 'a')));
 
 -- ---- worker claims and completes ---------------------------------------------------
 set local role service_role;
