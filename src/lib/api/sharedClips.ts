@@ -1,6 +1,6 @@
 import { ApiError } from './errors';
 import { ensureSession } from './account';
-import { tusUpload, type UploadSource } from './tus';
+import { TusError, tusUpload, type UploadSource } from './tus';
 import { supabase } from '../supabase';
 
 export const SHARED_BUCKET = 'shared-clips';
@@ -19,11 +19,12 @@ export async function uploadSharedClip(liftId: string, file: UploadSource, onPro
     await tusUpload({
       endpoint: `${url}/storage/v1/upload/resumable`,
       file,
-      headers: { authorization: `Bearer ${token}`, apikey: anonKey, 'x-upsert': 'true' },
+      headers: { authorization: `Bearer ${token}`, apikey: anonKey, 'x-upsert': 'false' },
       metadata: { bucketName: SHARED_BUCKET, objectName: `${userId}/${liftId}.mp4`, contentType: 'video/mp4', cacheControl: '3600' },
       onProgress,
     });
   } catch (e) {
+    if (e instanceof TusError && e.status === 409) return;
     if (e instanceof ApiError) throw e;
     throw new ApiError('upload_failed', e instanceof Error ? e.message : String(e));
   }
