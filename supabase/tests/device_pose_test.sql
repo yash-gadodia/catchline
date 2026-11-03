@@ -71,12 +71,12 @@ values ('raw-clips', (select path from t where k = 'bob')),
        ('raw-clips', (select path || '.pose.json' from t where k = 'bob')),
        ('raw-clips', 'd1000000-0000-0000-0000-000000000002/orphan.pose.json');
 
-select is(public.purge_storage(), 3, 'Purge deletes the done clip, its pose and the orphan pose');
+select is(public.purge_storage(), 4, 'Purge deletes the done clip, its pose, the orphan pose and the clip of the lift enqueue failed (0023)');
 select is((select (select array_agg(p order by p) from jsonb_array_elements_text(convert_from(body, 'utf8')::jsonb -> 'prefixes') p)
              from net.http_request_queue where url = 'http://pose-purge.test/storage/v1/object/raw-clips'),
-          array[(select path from t where k = 'pose'), (select path || '.pose.json' from t where k = 'pose'),
-                'd1000000-0000-0000-0000-000000000002/orphan.pose.json'],
-          'The pending lift''s clip and pose stay; the done lift''s pair and the orphan go');
+          (select array_agg(p order by p) from unnest(array[(select path from t where k = 'pose'), (select path || '.pose.json' from t where k = 'pose'),
+                (select path from t where k = 'plain'), 'd1000000-0000-0000-0000-000000000002/orphan.pose.json']) p),
+          'The pending lift''s clip and pose stay; the done lift''s pair, the failed lift''s clip and the orphan go');
 select is((select lift_id from public.clip_deletions where source = 'purge' and name = (select path || '.pose.json' from t where k = 'pose')),
   (select id from t where k = 'pose'), 'The purged pose is audited against its lift');
 

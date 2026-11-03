@@ -65,9 +65,9 @@ update public.worker_heartbeats set seen_at = '2030-01-01 11:48+00';
 update public.lifts set processed_at = '2030-01-01 11:55+00' where id = 'f2000000-0000-0000-0000-000000000005';
 
 select is(public.ops_health_check('2030-01-01 12:00+00') -> 'changes',
-  '[{"kind": "failures", "state": "open"}, {"kind": "queue_stuck", "state": "open"}, {"kind": "worker_silent", "state": "open"}]'::jsonb,
-  'All three conditions open at once');
-select is((select count(*)::int from public.ops_alerts where closed_at is null), 3, 'Three open alerts');
+  '[{"kind": "failures", "state": "open"}, {"kind": "queue_stuck", "state": "open"}]'::jsonb,
+  'Both conditions open at once; a silent worker no longer alerts (0023, worker retired)');
+select is((select count(*)::int from public.ops_alerts where closed_at is null), 2, 'Two open alerts');
 select is((select count(*)::int from net.http_request_queue where url = 'http://ops.test/functions/v1/ops-alert'), 1, 'One post to ops-alert');
 select is((select convert_from(body, 'utf8')::jsonb -> 'health' from net.http_request_queue where url = 'http://ops.test/functions/v1/ops-alert'),
   '{"stuck": 1, "oldest_min": 12, "worker_seen_min": 12, "failed_30m": 4}'::jsonb, 'The post carries the health numbers');
@@ -76,22 +76,25 @@ select is((select headers ->> 'Authorization' from net.http_request_queue where 
 
 -- ---- still broken 5 min later: deduped -------------------------------------
 select is(public.ops_health_check('2030-01-01 12:05+00') -> 'changes', '[]'::jsonb, 'The same incident does not alert again');
-select is((select count(*)::int from public.ops_alerts), 3, 'Still one row per kind');
+select is((select count(*)::int from public.ops_alerts), 2, 'Still one row per kind');
 select is((select count(*)::int from net.http_request_queue where url = 'http://ops.test/functions/v1/ops-alert'), 1, 'No second post');
 
 -- ---- recovered at T+40 -----------------------------------------------------
 update public.lifts set status = 'done', processed_at = '2030-01-01 12:30+00' where id = 'f2000000-0000-0000-0000-000000000001';
 update public.worker_heartbeats set seen_at = '2030-01-01 12:39+00';
 select is(public.ops_health_check('2030-01-01 12:40+00') -> 'changes',
-  '[{"kind": "failures", "state": "resolved"}, {"kind": "queue_stuck", "state": "resolved"}, {"kind": "worker_silent", "state": "resolved"}]'::jsonb,
-  'All three resolve once the queue moves, the worker beats and the failures age out');
-select is((select count(*)::int from public.ops_alerts where closed_at = '2030-01-01 12:40+00'), 3, 'Each alert is closed at the check time');
+  '[{"kind": "failures", "state": "resolved"}, {"kind": "queue_stuck", "state": "resolved"}]'::jsonb,
+  'Both resolve once the queue moves and the failures age out');
+select is((select count(*)::int from public.ops_alerts where closed_at = '2030-01-01 12:40+00'), 2, 'Each alert is closed at the check time');
 select is((select count(*)::int from net.http_request_queue where url = 'http://ops.test/functions/v1/ops-alert'), 2, 'One recovery post');
 
 -- ---- a new incident opens a new alert --------------------------------------
-select is(public.ops_health_check('2030-01-01 12:45+00') -> 'changes',
-  '[{"kind": "worker_silent", "state": "open"}]'::jsonb, 'Silent again after 6 min: a new incident');
-select is((select count(*)::int from public.ops_alerts where kind = 'worker_silent'), 2, 'It is a second worker_silent row');
+update public.worker_heartbeats set seen_at = '2030-01-01 11:00+00';
+select is(public.ops_health_check('2030-01-01 12:45+00') -> 'changes', '[]'::jsonb, 'A worker silent for 105 min raises nothing');
+insert into public.lifts (id, user_id, movement, status, clip_path, queued_at)
+values ('f2000000-0000-0000-0000-000000000006', 'f1000000-0000-0000-0000-000000000001', 'snatch', 'queued', 'f1/q2', '2030-01-01 12:30+00');
+select is(public.ops_health_check('2030-01-01 12:50+00') -> 'changes',
+  '[{"kind": "queue_stuck", "state": "open"}]'::jsonb, 'A lift stuck again is a new incident');
 
 select * from finish();
 rollback;
