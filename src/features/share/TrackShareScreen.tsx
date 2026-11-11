@@ -141,7 +141,7 @@ export default function TrackShareScreen({
           onPress={() => (player.playing ? player.pause() : player.play())}
           style={{ width: box.width, height: box.height, overflow: 'hidden' }}
         >
-          <VideoView player={player} style={{ width: box.width, height: box.height }} contentFit="fill" nativeControls={false} />
+          <VideoView player={player} style={{ width: box.width, height: box.height }} contentFit="fill" nativeControls={false} allowsVideoFrameAnalysis={false} />
           <TrackOverlay analysis={analysis} body={body} frame={frame} box={box} show={options} />
           {watermark ? (
             <Text testID="share-watermark" style={[display(15), { position: 'absolute', right: space.s3, bottom: space.s3, color: colors.text }]}>

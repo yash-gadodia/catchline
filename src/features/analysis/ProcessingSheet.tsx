@@ -183,7 +183,7 @@ function ClipLayer({ uri, reduce, box }: { uri: string | number; reduce: boolean
   });
   return (
     <View testID="processing-clip" style={{ position: 'absolute', left: 0, top: 0, width: box.width, height: box.height, opacity: 0.55 }}>
-      <VideoView player={player} style={{ width: box.width, height: box.height }} contentFit="cover" nativeControls={false} />
+      <VideoView player={player} style={{ width: box.width, height: box.height }} contentFit="cover" nativeControls={false} allowsVideoFrameAnalysis={false} />
     </View>
   );
 }

@@ -147,7 +147,7 @@ export default function TrackerScreen({
           testID="tracker-video"
           style={{ width: box.width, height: box.height, overflow: 'hidden' }}
         >
-          <VideoView player={player} style={{ width: box.width, height: box.height }} contentFit="fill" nativeControls={false} />
+          <VideoView player={player} style={{ width: box.width, height: box.height }} contentFit="fill" nativeControls={false} allowsVideoFrameAnalysis={false} />
           <TrackOverlay analysis={analysis} body={body} frame={frame} box={box} show={overlays} />
           {overlays.angles && anglesOk
             ? spread(jointAngles(j, src, side).map((a) => ({ ...a, x: s(a.at).x + 10, y: s(a.at).y - 12 })), 56, 28).map((a) => (
