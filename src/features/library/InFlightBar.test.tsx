@@ -24,7 +24,7 @@ describe('InFlightBar', () => {
   it('names the lift and the step, and reopens processing', async () => {
     const onOpen = jest.fn();
     const { getByText, getByTestId } = await render(<InFlightBar job={job({ prepared: 0.42 })} onOpen={onOpen} />);
-    expect(getByText('Analysing your Snatch')).toBeOnTheScreen();
+    expect(getByText('Tracking your lift')).toBeOnTheScreen();
     expect(getByText('preparing 42%')).toBeOnTheScreen();
     expect(getByTestId('in-flight-progress')).toHaveStyle({ width: '34%' });
     fireEvent.press(getByTestId('in-flight'));

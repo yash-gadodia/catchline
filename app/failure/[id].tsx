@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
-import { fmt, movementLabel } from '../../src/analysis/format';
 import FailureScreen, { type Share } from '../../src/features/library/FailureScreen';
 import { FAILURE_COPY, failureMessage, type FailureAction, type FailureReason } from '../../src/features/library/failures';
+import { liftTitle } from '../../src/features/library/derive';
 import { useLift } from '../../src/features/library/repository';
 import { submitDraft } from '../../src/features/capture/submit';
 import { localClipUri } from '../../src/data/localLifts';
 import { shareFailedClip } from '../../src/data/shareClip';
-import { t } from '../../src/i18n';
 
 // A failed lift by id; `?reason=` previews any failure variant (dev entry). The
 // design header for an unknown lift is a dev preview only.
@@ -18,13 +17,7 @@ export default function FailureRoute() {
   const lift = useLift(id);
   const r = (reason && reason in FAILURE_COPY ? reason : lift?.failure?.reason ?? 'unknown') as FailureReason;
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
-  const header = lift
-    ? [movementLabel(lift.movement), lift.loadKg != null ? `${fmt(lift.loadKg)} kg` : null, lift.failure?.frame != null ? t('library.failure.frame', { frame: lift.failure.frame }) : null]
-        .filter(Boolean)
-        .join(' · ')
-    : __DEV__
-      ? 'Snatch · 62.5 kg'
-      : '';
+  const header = lift ? liftTitle(lift) : '';
   const stored = lift?.failure?.reason === r ? failureMessage(lift.failure) : undefined;
   const detail = native ?? (stored && stored !== FAILURE_COPY[r].title ? stored : undefined);
   const partial = lift?.analysisId ?? (__DEV__ ? 'snatch-mock' : null);

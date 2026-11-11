@@ -1,14 +1,11 @@
 import * as Clipboard from 'expo-clipboard';
 import { act, fireEvent, render, within } from '@testing-library/react-native';
 import LiftsScreen from './LiftsScreen';
-import CuesScreen from './CuesScreen';
-import CueDetailScreen, { DidntStickScreen, StuckScreen } from './CueDetailScreen';
-import TrendsScreen from './TrendsScreen';
 import FailureScreen from './FailureScreen';
 import TabBar from './TabBar';
-import YouTab from './YouTab';
 import { FAILURE_COPY, FAILURE_REASONS, type FailureReason } from './failures';
-import { keepTrying, loadLibrary, markStuck, tryNewCue } from './repository';
+import { loadLibrary } from './repository';
+import { emptyLibrary } from './seed';
 import { useLibraryStore } from './store';
 
 const press = async (el: Parameters<typeof fireEvent.press>[0]) => {
@@ -16,15 +13,12 @@ const press = async (el: Parameters<typeof fireEvent.press>[0]) => {
     fireEvent.press(el);
   });
 };
-const cue = (id: string) => useLibraryStore.getState().cues.find((c) => c.id === id)!;
 const liftsNav = () => ({
   onOpen: jest.fn(),
-  onRetake: jest.fn(),
   onUnlock: jest.fn(),
   onRecord: jest.fn(),
   onImport: jest.fn(),
-  onDemo: jest.fn(),
-  onCue: jest.fn(), onDelete: jest.fn(),
+  onDelete: jest.fn(),
 });
 
 beforeEach(() => {
@@ -34,103 +28,53 @@ beforeEach(() => {
 });
 
 describe('LiftsScreen', () => {
-  it('shows a low-confidence cue once: the status line, never "possible" on the same row', async () => {
-    const lib = useLibraryStore.getState();
-    lib.load({ ...lib, lifts: lib.lifts.filter((l) => l.id === 'l-snatch-low') });
-    const { getByTestId, queryByText } = await render(<LiftsScreen nav={liftsNav()} />);
-    expect(getByTestId('lift-l-snatch-low')).toHaveTextContent('Snatch · 3 reps · 62.5 kgdrift 7 cm · best 2 cmTrying · stay over the bar longer');
-    expect(queryByText(/possible/)).toBeNull();
-  });
-
-  it('counts made and missed lifts in the list shown, the lifter call first', async () => {
-    const { useMadeLog } = require('./madeLog');
-    useMadeLog.setState({ made: {} });
-    const lib = useLibraryStore.getState();
-    const done = lib.lifts.filter((l) => l.status === 'done' && l.analysisId);
-    lib.load({ ...lib, lifts: done.slice(0, 3).map((l, i) => ({ ...l, made: i !== 1 })) });
-    const { getByTestId } = await render(<LiftsScreen nav={liftsNav()} />);
-    expect(getByTestId('made-counts')).toHaveTextContent('2 made · 1 missed');
-    await act(async () => useMadeLog.setState({ made: { [done[1].analysisId as string]: true } }));
-    expect(getByTestId('made-counts')).toHaveTextContent('3 made · 0 missed');
-  });
-
-  it('shows no count when no lift has an outcome', async () => {
-    require('./madeLog').useMadeLog.setState({ made: {} });
-    const lib = useLibraryStore.getState();
-    lib.load({ ...lib, lifts: lib.lifts.map((l) => ({ ...l, made: undefined })) });
-    const { queryByTestId } = await render(<LiftsScreen nav={liftsNav()} />);
-    expect(queryByTestId('made-counts')).toBeNull();
-  });
-
-  it('offers no filter chip for a movement the phone cannot analyse yet', async () => {
-    const { getByTestId, queryByTestId } = await render(<LiftsScreen nav={liftsNav()} />);
-    expect(getByTestId('movement-snatch')).toBeOnTheScreen();
-    expect(queryByTestId('movement-kipping_hspu')).toBeNull();
-    expect(queryByTestId('movement-jerk')).toBeNull();
-    await press(getByTestId('group-gymnastics'));
-    expect(getByTestId('movement-bar_muscle_up')).toBeOnTheScreen();
-    expect(queryByTestId('movement-kipping_pull_up')).toBeNull();
-  });
-
-  it('shows every row state with the counter chip and the current cue', async () => {
-    require('../paywall/usageStore').useUsage.setState({ usage: { lifetime: 3, month: '', thisMonth: 0 } });
+  it('lists every lift newest first: a still, the date and time, the load, and nothing about cues', async () => {
+    const at = new Date(2026, 10, 11, 14, 32).toISOString();
+    useLibraryStore.getState().load({
+      ...emptyLibrary(),
+      lifts: [
+        { id: 'old', movement: 'clean', date: '2026-11-09', status: 'done', analysisId: 'snatch-mock-low', loadKg: 80, thumb: 'asset:snatch/2-knee' },
+        { id: 'new', movement: 'snatch', date: '2026-11-11', at, status: 'done', analysisId: 'snatch-mock', loadKg: 62.5, thumb: 'asset:snatch/6-catch' },
+        { id: 'bare', movement: 'snatch', date: '2026-11-10', status: 'processing' },
+      ],
+    });
     const nav = liftsNav();
-    const { getByText, getAllByText, getByTestId } = await render(<LiftsScreen nav={nav} />);
-    expect(getByText('Free videos used')).toBeOnTheScreen();
-    expect(getByText('Stay over the bar longer')).toBeOnTheScreen();
-    expect(getByText('4 of 6 sessions')).toBeOnTheScreen();
-    expect(getByText('TODAY · SUN 11 OCT')).toBeOnTheScreen();
-    expect(getAllByText('Snatch · 3 reps · 62.5 kg')).toHaveLength(2);
-    expect(getByText('drift 6 cm · best 2 cm')).toBeOnTheScreen();
-    expect(getByText('analysing')).toBeOnTheScreen();
-    expect(getByText("Couldn't see the bar at the catch")).toBeOnTheScreen();
-    expect(getByText('Queued · free videos used')).toBeOnTheScreen();
-    expect(getByTestId('dot-l-snatch-today-trying')).toBeOnTheScreen();
-    expect(getByTestId('dot-l-mu-didnt_stick')).toBeOnTheScreen();
+    const { getByTestId, getAllByTestId, queryByTestId, queryByText } = await render(<LiftsScreen nav={nav} />);
+    expect(getAllByTestId(/^lift-title-/).map((n) => n.props.testID)).toEqual(['lift-title-new', 'lift-title-bare', 'lift-title-old']);
+    expect(getByTestId('lift-title-new')).toHaveTextContent('11 Nov, 14:32 · 62.5 kg');
+    expect(getByTestId('lift-title-bare')).toHaveTextContent('10 Nov');
+    expect(getByTestId('lift-detail-bare')).toHaveTextContent('tracking');
+    expect(getByTestId('lift-title-old')).toHaveTextContent('9 Nov · 80 kg');
+    expect(within(getByTestId('lift-new')).getByTestId('lift-thumb')).toBeOnTheScreen();
+    for (const gone of ['cue-strip', 'group', 'movement-chips', 'made-counts']) expect(queryByTestId(gone)).toBeNull();
+    expect(queryByText(/best|Trying|possible/)).toBeNull();
+    await press(getByTestId('lift-new'));
+    expect(nav.onOpen).toHaveBeenCalledWith(expect.objectContaining({ id: 'new' }));
+  });
 
-    await press(getByTestId('lift-l-snatch-today'));
-    expect(nav.onOpen).toHaveBeenCalledWith(expect.objectContaining({ id: 'l-snatch-today', analysisId: 'snatch-mock' }));
-    await press(getByTestId('retake-l-jerk'));
-    expect(nav.onRetake).toHaveBeenCalledWith(expect.objectContaining({ id: 'l-jerk' }));
+  it('shows every row state of the seeded library, with Unlock only on the queued lift', async () => {
+    const nav = liftsNav();
+    const { getByTestId, queryByTestId } = await render(<LiftsScreen nav={nav} />);
+    expect(getByTestId('lift-detail-l-clean')).toHaveTextContent('tracking');
+    expect(getByTestId('lift-detail-l-jerk')).toHaveTextContent("Couldn't see the bar at the catch");
+    expect(getByTestId('lift-detail-l-snatch-queued')).toHaveTextContent('Queued · free videos used');
+    expect(queryByTestId('retake-l-jerk')).toBeNull();
     await press(getByTestId('unlock-l-snatch-queued'));
-    await press(getByTestId('free-chip'));
-    expect(nav.onUnlock).toHaveBeenCalledTimes(2);
-    await press(getByTestId('cue-strip'));
-    expect(nav.onCue).toHaveBeenCalledWith('c-stay-over');
+    expect(nav.onUnlock).toHaveBeenCalledTimes(1);
   });
 
-  it('filters by group, then by movement', async () => {
-    const { getByTestId, queryByTestId, queryByText } = await render(<LiftsScreen nav={liftsNav()} />);
-    await press(getByTestId('group-gymnastics'));
-    expect(getByTestId('lift-l-mu')).toBeOnTheScreen();
-    expect(queryByTestId('lift-l-snatch-today')).toBeNull();
-    expect(queryByTestId('movement-snatch')).toBeNull();
-    await press(getByTestId('group-barbell'));
-    expect(getByTestId('lift-l-jerk')).toBeOnTheScreen();
-    await press(getByTestId('movement-clean'));
-    expect(getByTestId('lift-l-clean')).toBeOnTheScreen();
-    expect(queryByTestId('lift-l-jerk')).toBeNull();
-    expect(queryByTestId('lift-l-snatch-today')).toBeNull();
-    expect(queryByText('Bar muscle-up · 5 reps')).toBeNull();
-  });
-
-  it('starts day one with the side-on instruction, Import first and Record second', async () => {
+  it('starts day one with Import first and Record second, and no demo', async () => {
     loadLibrary('empty');
     const nav = liftsNav();
-    const { getByText, getByTestId, getAllByRole } = await render(<LiftsScreen nav={nav} />);
-    expect(getByText('3 free videos')).toBeOnTheScreen();
+    const { getByTestId, getByText, queryByTestId } = await render(<LiftsScreen nav={nav} />);
+    expect(getByTestId('lifts-empty')).toBeOnTheScreen();
     expect(getByText('Add your first lift.')).toBeOnTheScreen();
-    const buttons = getAllByRole('button').map((b) => b.props.testID).filter((id) => /^empty-/.test(id ?? ''));
-    expect(buttons).toEqual(['empty-import', 'empty-record', 'empty-demo']);
-    expect(getByTestId('empty-import')).toHaveTextContent('Import a video');
-    expect(getByTestId('empty-record')).toHaveTextContent('Record');
+    expect(getByText('Any lift or gymnastics clip. Whole body in frame.')).toBeOnTheScreen();
     await press(getByTestId('empty-import'));
-    expect(nav.onImport).toHaveBeenCalledTimes(1);
-    expect(nav.onRecord).toHaveBeenCalledTimes(0);
     await press(getByTestId('empty-record'));
-    await press(getByText('See how it works'));
+    expect(nav.onImport).toHaveBeenCalledTimes(1);
     expect(nav.onRecord).toHaveBeenCalledTimes(1);
-    expect(nav.onDemo).toHaveBeenCalledTimes(1);
+    expect(queryByTestId('empty-demo')).toBeNull();
   });
 });
 
@@ -138,160 +82,16 @@ describe('TabBar', () => {
   it('marks the active tab and makes the centre button Import', async () => {
     const onTab = jest.fn();
     const onImport = jest.fn();
-    const { getByTestId, getByText } = await render(<TabBar active="cues" onTab={onTab} onImport={onImport} />);
-    expect(getByTestId('tab-cues')).toBeSelected();
+    const { getByTestId, getByText, getAllByRole } = await render(<TabBar active="me" onTab={onTab} onImport={onImport} />);
+    expect(getAllByRole('tab')).toHaveLength(2);
+    expect(getByTestId('tab-me')).toBeSelected();
     expect(getByTestId('tab-index')).not.toBeSelected();
     expect(getByText('You')).toBeOnTheScreen();
-    await press(getByTestId('tab-trends'));
-    expect(onTab).toHaveBeenCalledWith('trends');
+    await press(getByTestId('tab-index'));
+    expect(onTab).toHaveBeenCalledWith('index');
     expect(getByTestId('tab-import')).toHaveProp('accessibilityLabel', 'Import a video');
     await press(getByTestId('tab-import'));
     expect(onImport).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe('CuesScreen', () => {
-  it('shows the active cue with its counter and sparkline, then past cues by status', async () => {
-    const onOpen = jest.fn();
-    const { getByText, getByTestId } = await render(<CuesScreen onOpen={onOpen} />);
-    expect(getByText('TRYING · SNATCH')).toBeOnTheScreen();
-    expect(getByText('4 of 6 sessions · 11 days ago')).toBeOnTheScreen();
-    expect(getByTestId('cue-sparkline')).toBeOnTheScreen();
-    expect(getByText('Bar drift at hip, cm forward. Heading the right way.')).toBeOnTheScreen();
-    expect(getByText('snatch · bar height 92 → 96 cm · 3 wks · 4 wks ago')).toBeOnTheScreen();
-    expect(getByText('Stuck')).toBeOnTheScreen();
-    expect(getByText("Didn't stick")).toBeOnTheScreen();
-    expect(getByText('clean · dropped after 1 session · 5 wks ago')).toBeOnTheScreen();
-    expect(getByText('Dropped')).toBeOnTheScreen();
-    await press(getByTestId('past-c-hips-mu'));
-    expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ id: 'c-hips-mu' }));
-  });
-
-  it('has an empty state before the first cue', async () => {
-    loadLibrary('empty');
-    const { getByText } = await render(<CuesScreen onOpen={jest.fn()} />);
-    expect(getByText('Your first cue lands here.')).toBeOnTheScreen();
-  });
-});
-
-describe('Cue detail and outcomes', () => {
-  it('shows before and after evidence and the chart with the cue marker', async () => {
-    const nav = { onBack: jest.fn(), onStuck: jest.fn(), onDidntStick: jest.fn(), onDrop: jest.fn() };
-    const { getByText, getByTestId } = await render(<CueDetailScreen cue={cue('c-stay-over')} nav={nav} />);
-    expect(getByText('TRYING · 4 OF 6')).toBeOnTheScreen();
-    expect(getByTestId('before-readout')).toHaveTextContent('30 sep · 8 cm');
-    expect(getByTestId('after-readout')).toHaveTextContent('today · 6 cm');
-    expect(getByText('cm · 7 sessions measured')).toBeOnTheScreen();
-    expect(getByTestId('cue-marker')).toBeOnTheScreen();
-    expect(getByTestId('cue-lift-l-snatch-today')).toHaveTextContent('Snatch · 3 reps · 62.5 kgdrift 6 cm11 oct');
-    await press(getByTestId('mark-stuck'));
-    await press(getByTestId('didnt-stick'));
-    await press(getByTestId('drop-cue'));
-    expect(nav.onStuck).toHaveBeenCalledTimes(1);
-    expect(nav.onDidntStick).toHaveBeenCalledTimes(1);
-    expect(nav.onDrop).toHaveBeenCalledTimes(1);
-  });
-
-  it('lists other ways to say a measured cue', async () => {
-    const nav = { onBack: jest.fn(), onStuck: jest.fn(), onDidntStick: jest.fn(), onDrop: jest.fn() };
-    const jump = { ...cue('c-stay-over'), metricId: 'jump_forward' };
-    const { getByTestId } = await render(<CueDetailScreen cue={jump} nav={nav} />);
-    expect(getByTestId('cue-alternates')).toHaveTextContent(
-      'OTHER WAYS TO SAY ITJump straight up, not forwardStay behind the linePull the bar into youPush the floor straight down'
-    );
-  });
-
-  it('lists no other ways for a fault without them', async () => {
-    const nav = { onBack: jest.fn(), onStuck: jest.fn(), onDidntStick: jest.fn(), onDrop: jest.fn() };
-    const { queryByTestId } = await render(<CueDetailScreen cue={cue('c-stay-over')} nav={nav} />);
-    expect(queryByTestId('cue-alternates')).toBeNull();
-  });
-
-  it('celebrates a cue that stuck with the change it made', async () => {
-    const nav = { onNext: jest.fn(), onShare: jest.fn() };
-    const { getByText, getByTestId } = await render(<StuckScreen cue={cue('c-finish-pull')} nav={nav} />);
-    expect(getByText('Stuck.')).toBeOnTheScreen();
-    expect(getByText('STUCK · SNATCH')).toBeOnTheScreen();
-    expect(getByTestId('stuck-summary')).toHaveTextContent("Bar height 92 → 96 cm over 3 weeks. It's yours now.");
-    await press(getByTestId('next-cue'));
-    expect(nav.onNext).toHaveBeenCalledTimes(1);
-  });
-
-  it("offers a kind next step when a cue didn't stick", async () => {
-    const nav = { onTryNew: jest.fn(), onKeepTrying: jest.fn(), onBack: jest.fn() };
-    const { getByText, getByTestId } = await render(<DidntStickScreen cue={cue('c-hips-mu')} nav={nav} />);
-    expect(getByText("DIDN'T STICK · BAR MUSCLE-UP")).toBeOnTheScreen();
-    expect(getByTestId('didnt-stick-headline')).toHaveTextContent('Six sessions and the hips are still 8 cm off the bar.');
-    await press(getByTestId('try-new-cue'));
-    await press(getByTestId('keep-trying'));
-    expect(nav.onTryNew).toHaveBeenCalledTimes(1);
-    expect(nav.onKeepTrying).toHaveBeenCalledTimes(1);
-  });
-
-  it('records outcomes through the repository', () => {
-    markStuck('c-stay-over');
-    expect(cue('c-stay-over')).toMatchObject({ status: 'stuck', endedAt: '2026-10-11' });
-    expect(tryNewCue('c-hips-mu')).toBe('c-hips-mu-next');
-    expect(cue('c-hips-mu-next')).toMatchObject({ status: 'trying', text: 'Bigger arch before the drive', givenAt: '2026-10-11' });
-    keepTrying('c-hips-mu');
-    expect(cue('c-hips-mu')).toMatchObject({ status: 'trying', sessionsTarget: 9, endedAt: undefined });
-  });
-});
-
-describe('TrendsScreen', () => {
-  it('shows the latest value, pinned best and the measurement chips for the movement', async () => {
-    const { getByTestId, getByText } = await render(<TrendsScreen />);
-    expect(getByTestId('trend-hero')).toHaveTextContent('6 cm');
-    expect(getByTestId('trend-recap')).toHaveTextContent('Bar drift at hip: 6 cm today. Best 2 cm on 18 Sep. Trying “Stay over the bar longer”: 4 of 6 sessions.');
-    expect(getByText('65 kg · 18 Sep · drift 2 cm')).toBeOnTheScreen();
-    expect(getByText('Bar drift at hip, cm forward. Lower is better. 10 sessions.')).toBeOnTheScreen();
-    expect(getByTestId('cue-marker')).toBeOnTheScreen();
-    await press(getByTestId('range-7'));
-    expect(getByText('Bar drift at hip, cm forward. Lower is better. 2 sessions.')).toBeOnTheScreen();
-    await press(getByTestId('metric-pull_time'));
-    expect(getByTestId('trend-hero')).toHaveTextContent('0.59 s');
-  });
-
-  it('has gymnastics measurements', async () => {
-    const { getByTestId, getByText } = await render(<TrendsScreen initialMovement="bar_muscle_up" />);
-    expect(getByTestId('trend-hero')).toHaveTextContent('8 cm');
-    expect(getByText('25 Sep · hip to bar 3 cm')).toBeOnTheScreen();
-    for (const label of ['Kip height', 'Hip to bar', 'Body-line angle', 'Cycle time']) expect(getByText(label)).toBeOnTheScreen();
-    await press(getByTestId('metric-body_line'));
-    expect(getByTestId('trend-hero')).toHaveTextContent('36°');
-  });
-
-  it('switches movement, lists only movements with lifts and explains a trend needs two', async () => {
-    const { getByTestId, getByText, queryByTestId } = await render(<TrendsScreen />);
-    await press(getByTestId('movement-switcher'));
-    expect(queryByTestId('pick-jerk')).toBeNull();
-    await press(getByTestId('pick-clean'));
-    expect(getByText('One clean so far.')).toBeOnTheScreen();
-    expect(getByText('Trends need two lifts of the same movement. Film the next one and this fills in.')).toBeOnTheScreen();
-  });
-
-  it('narrows a bar speed to one load, so speed at a weight reads over time', async () => {
-    const lib = useLibraryStore.getState();
-    const at = (id: string, date: string, loadKg: number, speed: number) => ({ id, movement: 'snatch' as const, date, loadKg, values: { bar_speed: speed } });
-    lib.load({ ...lib, sessions: [at('s1', '2026-10-01', 60, 1.7), at('s2', '2026-10-05', 70, 1.5), at('s3', '2026-10-08', 60, 1.82), at('s4', '2026-10-10', 70, 1.55)] });
-    const { getByTestId, getByText } = await render(<TrendsScreen initialMovement="snatch" />);
-    await press(getByTestId('metric-bar_speed'));
-    expect(getByTestId('trend-hero')).toHaveTextContent('1.55 m/s');
-    await press(getByTestId('load-60'));
-    expect(getByTestId('trend-hero')).toHaveTextContent('1.82 m/s');
-    expect(getByText('Peak bar speed in the second pull, m/s. Higher is better. 2 sessions.')).toBeOnTheScreen();
-    await press(getByTestId('load-all'));
-    expect(getByTestId('trend-hero')).toHaveTextContent('1.55 m/s');
-    await press(getByTestId('metric-bar_speed'));
-    expect(getByTestId('load-chips')).toBeOnTheScreen();
-    lib.load({ ...lib, sessions: [at('s1', '2026-10-01', 60, 1.7), at('s3', '2026-10-08', 60, 1.82)] });
-    const one = await render(<TrendsScreen initialMovement="snatch" />);
-    expect(one.queryByTestId('load-chips')).toBeNull();
-  });
-
-  it('a lift with no analysis still lands on its movement', async () => {
-    const { getByText } = await render(<TrendsScreen initialMovement="jerk" />);
-    expect(getByText('No jerks yet.')).toBeOnTheScreen();
   });
 });
 
@@ -362,20 +162,6 @@ describe('FailureScreen', () => {
     await press(getByText('ref 7f3a21'));
     expect(Clipboard.setStringAsync).toHaveBeenCalledWith('7f3a21');
     expect(getByText('Copied ref')).toBeOnTheScreen();
-  });
-});
-
-describe('YouTab', () => {
-  it('links to You and hides the dev entry behind a long-press on the version', async () => {
-    const onOpen = jest.fn();
-    const onDev = jest.fn();
-    const { getByTestId } = await render(<YouTab onOpen={onOpen} onDev={onDev} />);
-    await press(getByTestId('open-you'));
-    await act(async () => {
-      fireEvent(getByTestId('version'), 'longPress');
-    });
-    expect(onOpen).toHaveBeenCalledTimes(1);
-    expect(onDev).toHaveBeenCalledTimes(1);
   });
 });
 

@@ -41,12 +41,30 @@ describe('import-first routing', () => {
     expect(mockNav.push).toHaveBeenCalledWith('/paywall/last?next=%2Fcapture%2Fimport');
   });
 
-  it('the empty Lifts tab imports first, records second and replays the demo', async () => {
+  it('the empty Lifts tab imports first and records second', async () => {
     loadLibrary('empty');
     const view = await render(<LiftsRoute />);
     await press(view.getByTestId('empty-import'));
     await press(view.getByTestId('empty-record'));
-    await press(view.getByTestId('empty-demo'));
-    expect(mockNav.push.mock.calls).toEqual([['/capture/import'], ['/capture'], ['/onboarding/demo?from=app']]);
+    expect(mockNav.push.mock.calls).toEqual([['/capture/import'], ['/capture']]);
+    expect(view.queryByTestId('empty-demo')).toBeNull();
+  });
+
+  it('a finished lift opens on the player, a failed one on its failure, a queued one on the paywall', async () => {
+    loadLibrary('seeded');
+    const view = await render(<LiftsRoute />);
+    await press(view.getByTestId('lift-l-snatch-today'));
+    await press(view.getByTestId('lift-l-jerk'));
+    await press(view.getByTestId('lift-l-snatch-queued'));
+    expect(mockNav.push.mock.calls).toEqual([
+      [{ pathname: '/analysis/player', params: { fixture: 'snatch-mock' } }],
+      [{ pathname: '/failure/[id]', params: { id: 'l-jerk' } }],
+      ['/paywall'],
+    ]);
+  });
+
+  it('has two tabs: Lifts and You', async () => {
+    const view = await render(<TabsLayout />);
+    expect(view.getAllByRole('tab').map((t) => t.props.testID)).toEqual(['tab-index', 'tab-me']);
   });
 });
