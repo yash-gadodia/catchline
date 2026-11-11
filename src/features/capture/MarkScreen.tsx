@@ -1,14 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
-import { PanResponder, Text, View, useWindowDimensions } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useVideoPlayer, VideoView } from 'expo-video';
-import Svg, { Circle } from 'react-native-svg';
 import Btn from '../../components/Btn';
-import { colors, space, stroke } from '../../design/tokens';
+import { colors, space } from '../../design/tokens';
 import { type } from '../../design/typography';
-import { selection } from '../../lib/haptics';
 import { Header, Underlined } from './hud';
-import { containRect, markFrom, type PlateMark } from './plateMark';
+import { containRect, type PlateMark } from './plateMark';
+import PlateStage from './PlateStage';
 import type { Clip } from './store';
 import { t } from '../../i18n';
 
@@ -20,7 +19,6 @@ export default function MarkScreen({ clip, onBack, onTrack }: { clip: Clip & { u
   const box = { width, height: Math.round(height * 0.58) };
   const [frame, setFrame] = useState<{ width: number; height: number } | null>(null);
   const [mark, setMark] = useState<PlateMark | null>(null);
-  const [drag, setDrag] = useState<{ cx: number; cy: number; r: number } | null>(null);
   const rect = frame ? containRect(frame, box) : null;
 
   const player = useVideoPlayer(clip.uri, (p) => {
@@ -58,43 +56,6 @@ export default function MarkScreen({ clip, onBack, onTrack }: { clip: Clip & { u
     };
   }, [player, clip.trim.start]);
 
-  const live = useRef({ rect, start: null as { x: number; y: number } | null });
-  live.current.rect = rect;
-  const pan = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderTerminationRequest: () => false,
-      onPanResponderGrant: (e) => {
-        const p = { x: e.nativeEvent.locationX, y: e.nativeEvent.locationY };
-        live.current.start = p;
-        setDrag({ cx: p.x, cy: p.y, r: 0 });
-      },
-      onPanResponderMove: (_, g) => {
-        const s = live.current.start;
-        if (s) setDrag({ cx: s.x, cy: s.y, r: Math.hypot(g.dx, g.dy) });
-      },
-      onPanResponderRelease: (_, g) => {
-        const s = live.current.start;
-        const r = live.current.rect;
-        live.current.start = null;
-        setDrag(null);
-        if (!s || !r) return;
-        const next = markFrom(s, { x: s.x + g.dx, y: s.y + g.dy }, r);
-        if (next) {
-          selection();
-          setMark(next);
-        }
-      },
-      onPanResponderTerminate: () => {
-        live.current.start = null;
-        setDrag(null);
-      },
-    }),
-  ).current;
-
-  const shown = drag ?? (mark && rect ? { cx: rect.x + mark.x * rect.width, cy: rect.y + mark.y * rect.height, r: mark.r * rect.height } : null);
-
   return (
     <View testID="mark-screen" style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }}>
       <Header
@@ -102,23 +63,9 @@ export default function MarkScreen({ clip, onBack, onTrack }: { clip: Clip & { u
         center={<Text style={{ color: colors.text, ...type.button }}>{t('capture.mark.title')}</Text>}
         right={<View />}
       />
-      <View
-        {...pan.panHandlers}
-        testID="mark-stage"
-        accessibilityLabel={t('capture.mark.stage')}
-        style={{ width: box.width, height: box.height, backgroundColor: colors.surface }}
-      >
-        <View pointerEvents="none" style={{ position: 'absolute', left: 0, top: 0, width: box.width, height: box.height }}>
-          <VideoView player={player} style={{ width: box.width, height: box.height }} contentFit="contain" nativeControls={false} allowsVideoFrameAnalysis={false} />
-          {shown && shown.r > 0 ? (
-            <Svg width={box.width} height={box.height} style={{ position: 'absolute', left: 0, top: 0 }}>
-              <Circle cx={shown.cx} cy={shown.cy} r={shown.r} stroke={colors.halo} strokeWidth={stroke.halo} fill="none" />
-              <Circle cx={shown.cx} cy={shown.cy} r={shown.r} stroke={colors.flare} strokeWidth={stroke.path} fill="none" />
-              <Circle cx={shown.cx} cy={shown.cy} r={4} fill={colors.flare} stroke={colors.halo} strokeWidth={1.5} />
-            </Svg>
-          ) : null}
-        </View>
-      </View>
+      <PlateStage box={box} rect={rect} mark={mark} onMark={setMark} testID="mark-stage" accessibilityLabel={t('capture.mark.stage')}>
+        <VideoView player={player} style={{ width: box.width, height: box.height }} contentFit="contain" nativeControls={false} allowsVideoFrameAnalysis={false} />
+      </PlateStage>
       <View style={{ flex: 1, paddingHorizontal: space.gutter, paddingTop: space.s4, paddingBottom: Math.max(insets.bottom, space.s4), justifyContent: 'space-between' }}>
         <Text testID="mark-help" style={{ ...type.callout, color: colors.text2 }}>
           {mark ? t('capture.mark.redo') : t('capture.mark.help')}
