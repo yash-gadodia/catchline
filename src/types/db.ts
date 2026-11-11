@@ -647,6 +647,8 @@ export type Database = {
       }
       fail_device_lift: { Args: { p_code: string; p_lift_id: string }; Returns: string }
       delete_my_server_analyses: { Args: never; Returns: number }
+      delete_my_plate_frames: { Args: never; Returns: number }
+      record_plate_frame: { Args: { p_id: string; p_frame: Json }; Returns: undefined }
       founding_seats: { Args: never; Returns: Json }
       get_coach_link: { Args: { p_token: string }; Returns: Json }
       lift_allowance: { Args: never; Returns: Json }

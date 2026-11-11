@@ -9,6 +9,9 @@ export type ApiErrorCode =
   | 'clip_missing'
   | 'bad_expiry'
   | 'upload_failed'
+  | 'bad_frame'
+  | 'frame_missing'
+  | 'rate_limited'
   | 'unknown';
 
 const KNOWN: ApiErrorCode[] = [
@@ -21,6 +24,9 @@ const KNOWN: ApiErrorCode[] = [
   'lift_not_ready',
   'clip_missing',
   'bad_expiry',
+  'bad_frame',
+  'frame_missing',
+  'rate_limited',
 ];
 
 export class ApiError extends Error {

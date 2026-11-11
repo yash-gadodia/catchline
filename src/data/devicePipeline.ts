@@ -23,6 +23,8 @@ import { keepClip, saveLocalLift } from './localLifts';
 import { usePipeline } from './pipeline';
 import { detectedMade } from '../features/library/madeLog';
 import { ClipTooLongError, discardPrepared, prepareClip } from './prepare';
+import { saveLocalMark } from '../features/plateFrames/local';
+import { sendLiftFrames } from '../features/plateFrames/send';
 import { t } from '../i18n';
 
 // The native loop: pose + camera path first, then a plan built from what the replay
@@ -219,6 +221,9 @@ export async function startDeviceLift(sub: ClipSubmission & { uri: string }): Pr
     // 4.0: the clip stays on the phone with its lift (the player draws on the real video); deleted with the lift.
     keepClip(liftId, clip.uri);
     prepared = null;
+    // The lifter's mark stays with the lift; crops around the plate go out only if they opted in (plateFrames).
+    saveLocalMark(liftId, sub.plateMark ?? null);
+    void sendLiftFrames(liftId);
     const now = new Date();
     if (!local.failure) await countLift(now);
     const record = syncRecord(local, sub, now);

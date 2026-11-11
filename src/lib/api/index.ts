@@ -27,6 +27,7 @@ export { createCoachLink, revokeCoachLink } from './coach';
 export { sendProblemReport, type ProblemReport } from './feedback';
 export { uploadSharedClip } from './sharedClips';
 export { uploadProblemShot } from './problemShots';
+export { uploadPlateFrame, recordPlateFrame, deleteMyPlateFrames, type PlateFrameRecord } from './plateFrames';
 export {
   ensureSession,
   recordConsent,

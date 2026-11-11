@@ -1,7 +1,7 @@
 import { supabase } from '../supabase';
 import { ApiError, toApiError } from './errors';
 
-export type ConsentKind = 'terms' | 'health_disclaimer' | 'upload_privacy';
+export type ConsentKind = 'terms' | 'health_disclaimer' | 'upload_privacy' | 'plate_frames';
 
 export type Allowance = {
   plan: 'free' | 'hook' | 'pull' | 'platform' | 'founding';

@@ -49,6 +49,8 @@ jest.mock('../analysis/device/analyseTrace', () => {
 });
 jest.mock('expo-crypto', () => ({ randomUUID: () => 'lift-1' }));
 jest.mock('./liftOutbox', () => ({ queueLiftSync: jest.fn(async () => 1) }));
+jest.mock('../features/plateFrames/local', () => ({ saveLocalMark: jest.fn() }));
+jest.mock('../features/plateFrames/send', () => ({ sendLiftFrames: jest.fn(async () => 0) }));
 jest.mock('./freeLifts', () => ({ writeFreeUsed: jest.fn(async () => undefined), writeFreeWeek: jest.fn(async () => undefined) }));
 jest.mock('../features/purchases/usePurchases', () => ({ usePurchases: { getState: () => ({ tier: 'free' }) } }));
 jest.mock('../lib/analytics', () => ({ ...jest.requireActual('../lib/analytics'), track: jest.fn() }));
@@ -60,6 +62,8 @@ import { writeFreeUsed } from './freeLifts';
 import { useUsage } from '../features/paywall/usageStore';
 import { ClipTooLongError, prepareClip } from './prepare';
 import { keepClip, saveLocalLift } from './localLifts';
+import { saveLocalMark } from '../features/plateFrames/local';
+import { sendLiftFrames } from '../features/plateFrames/send';
 import { discardPrepared } from './prepare';
 import { track } from '../lib/analytics';
 
@@ -103,6 +107,9 @@ describe('startDeviceLift, the happy path', () => {
     expect(mockTrace).toHaveBeenCalledWith({ traceVersion: 1, frames: [] }, 'snatch', { analysisId: 'lift-1', assetPrefix: 'lift-1' });
     expect(saveLocalLift).toHaveBeenCalledWith('lift-1', expect.objectContaining({ id: 'lift-1', movement: 'snatch', loadKg: 70 }), 'file:///cache/pose-coreml/trace.json.gz', {}, null);
     expect(keepClip).toHaveBeenCalledWith('lift-1', 'file:///clip.mov.mp4');
+    // the mark stays with the lift (none here: skipped), and the opt-in crops are offered once the clip is kept
+    expect(saveLocalMark).toHaveBeenCalledWith('lift-1', null);
+    expect(sendLiftFrames).toHaveBeenCalledWith('lift-1');
     expect(queueLiftSync).toHaveBeenCalledWith({
       id: 'lift-1',
       lift: {
