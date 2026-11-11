@@ -11,7 +11,9 @@ Owner decision 11-11: drop cues; the app tracks any lift or gymnastics clip and 
 - [ ] Path colour per rep / attempts layered; circle in the draw tool
 ## Phase 2: strip back
 - [ ] Remove movement picker, reveal/cue/miss screens, Cues and Trends tabs, cue tracking, drills, fault copy; processing copy ("3 reps, one cue")
-- [ ] Onboarding (3 steps), paywall (free 3 a week, one plan), store listing copy and screenshots
+- [x] Onboarding (3 steps: welcome, how to film, add a video), paywall (free 3 a week, one plan Catchline Pro) (branch v40/onboard-paywall)
+- [ ] Store listing copy and screenshots
+- [ ] Follow-ups from the onboarding/paywall pass: Lifts chip, capture `freeUsed` and library `freeVideosUsed` still read the lifetime count (use `useVideosLeft()`); `app/(tabs)` still links `/onboarding/demo` and `/paywall/plans` (both gone); drop `captureHref`, `routeAfterAnalysis`, submit's 'paywall'/'trial' branches and devicePipeline's `writeFreeUsed`; nothing asks for notifications before the first result any more
 ## Phase 3: store build
 - [ ] Burned-in share video (path, lines, body), 60 fps camera, faster tracking (detector every Nth frame)
 ## Notes
