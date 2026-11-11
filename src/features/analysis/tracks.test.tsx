@@ -98,37 +98,6 @@ describe('the track readings under the path', () => {
   });
 });
 
-describe('a path-only result', () => {
-  it('shows the tracked lines under a "Path only" label, why, and the next step, with no cue text and no made call', async () => {
-    const view = await render(<CueScreen analysis={snatchMockPathOnly} nav={nav} />);
-    expect(view.getByTestId('path-only-result')).toHaveTextContent(/PATH ONLY · COULDN'T FIND THE PHASES/);
-    expect(view.getByTestId('no-cue-reason')).toHaveTextContent('No whole lift was found in this clip, so there are no phases and no cue. The bar, feet and hips are tracked above.');
-    expect(view.getByTestId('no-cue-tip')).toHaveTextContent('Film the whole lift from the side, from the setup until you stand.');
-    for (const id of ['partial-path', 'track-hips', 'feet-marks', 'hip-curve']) expect(view.getByTestId(id)).toBeOnTheScreen();
-    for (const id of ['no-cue-title', 'cue-text', 'made-call-row', 'result-numbers', 'guide-knee', 'guide-hip', 'guide-peak']) expect(view.queryByTestId(id)).toBeNull();
-    expect(view.queryByText('No cue this time')).toBeNull();
-    expect(view.queryByTestId('feet-shift')).toBeNull();
-    const held = await render(<PathReplay analysis={snatchMockPathOnly} rep={snatchMockPathOnly.reps[0]} box={box} pathTestID="hero-path" reduceMotion />);
-    expect(held.getByTestId('guide-ring')).toBeOnTheScreen();
-    expect(held.getByTestId('stage-layer-asset:snatch/5-turnover')).toBeOnTheScreen();
-  });
-
-  it('names the camera angle when that was the gate', async () => {
-    const angled: Analysis = { ...snatchMockPathOnly, noCueReason: { code: 'path_only', gate: 'not_side_on', offSideDeg: 70 }, yawBucket: 'past_60' };
-    const view = await render(<CueScreen analysis={angled} nav={nav} />);
-    expect(view.getByTestId('no-cue-reason')).toHaveTextContent(
-      "Filmed about 70° off side-on, so the phases couldn't be read and forward and back distances aren't shown. The bar, feet and hips are tracked above."
-    );
-    expect(view.getByTestId('no-cue-tip')).toHaveTextContent('Film from the side, phone level with the bar.');
-    expect(view.getByTestId('track-hips')).toBeOnTheScreen();
-  });
-
-  it('plays in the player with no phases to step through', async () => {
-    const view = await render(<PlayerScreen analysis={snatchMockPathOnly} onBack={noop} onShare={noop} />);
-    expect(view.getByTestId('player-screen')).toBeOnTheScreen();
-  });
-});
-
 describe('RevealScreen on a path-only result', () => {
   beforeEach(() => jest.useFakeTimers());
   afterEach(() => jest.useRealTimers());

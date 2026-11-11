@@ -75,21 +75,6 @@ describe('the result hero: the bar-path replay', () => {
     expect(view.getByTestId('guide-ring')).toBeOnTheScreen();
   });
 
-  it('is the hero of every result, the cue keeping its number and its low-confidence label', async () => {
-    const a = guided(ALL);
-    const clear = await render(<CueScreen analysis={a} nav={nav} />);
-    expect(clear.getByTestId('path-replay')).toBeOnTheScreen();
-    expect(clear.getByTestId('hero-number')).toHaveTextContent('6 cm');
-    const low = await render(<CueScreen analysis={{ ...a, cue: { ...a.cue!, confidence: 'low' } }} nav={nav} />);
-    expect(low.getByTestId('confidence-banner')).toHaveTextContent(/^Low confidence/);
-    expect(low.getByTestId('path-replay')).toBeOnTheScreen();
-    expect(low.getByTestId('dashed-path')).toBeOnTheScreen();
-    const clean = await render(<CueScreen analysis={{ ...a, cue: null }} nav={nav} />);
-    expect(clean.getByTestId('clean-path')).toBeOnTheScreen();
-    expect(clean.getByTestId('result-numbers')).toBeOnTheScreen();
-    const partial = await render(<CueScreen analysis={{ ...a, cue: null, noCueReason: { code: 'plate_hidden' } }} nav={nav} />);
-    expect(partial.getByTestId('partial-path')).toBeOnTheScreen();
-  });
 });
 
 describe('the key numbers under the replay', () => {

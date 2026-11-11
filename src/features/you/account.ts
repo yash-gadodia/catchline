@@ -157,7 +157,6 @@ export function exportedLift({ lift, analysis }: CsvLift): ExportedLift {
     date: lift.date,
     movement: lift.movement,
     loadKg: lift.loadKg,
-    reps: lift.reps,
     status: lift.status,
     cue: analysis?.cue?.text,
     measurements: (analysis?.measurements ?? [])
@@ -208,7 +207,7 @@ export function leaveAccount(): void {
   useOnboarding.getState().setAccountChoice(null);
   resetConsentSync();
   useUsage.getState().reset();
-  useCapture.setState({ draft: null, movement: 'snatch', lastWeight: '', originals: [] });
+  useCapture.setState({ draft: null, lastWeight: '', originals: [] });
   usePurchases.getState().signOut();
   clearLiveAnalyses();
   useLibraryStore.getState().load(emptyLibrary());

@@ -28,7 +28,7 @@ const press = async (el: Parameters<typeof fireEvent.press>[0]) => {
   });
 };
 
-const draft = () => newClip({ uri: 'file:///clip.mov', durationS: 8, fps: 30, source: 'camera', movement: 'snatch' });
+const draft = () => newClip({ uri: 'file:///clip.mov', durationS: 8, fps: 30, source: 'camera' });
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -59,7 +59,7 @@ describe('ad quiz', () => {
     await finishQuiz(view);
 
     expect(useUsage.getState().variant).toBe('ad');
-    expect(startLift).toHaveBeenCalledWith(expect.objectContaining({ uri: 'file:///clip.mov', movement: 'snatch' }));
+    expect(startLift).toHaveBeenCalledWith(expect.objectContaining({ uri: 'file:///clip.mov' }));
     expect(mockNav.replace).toHaveBeenCalledWith({ pathname: '/analysis/processing', params: { live: '1' } });
     expect(mockNav.replace).not.toHaveBeenCalledWith('/analysis/processing');
   });
@@ -79,7 +79,7 @@ describe('ad quiz', () => {
 describe('not now / queue keep the draft and queue nothing', () => {
   it('paywall: Not now', async () => {
     useCapture.setState({ draft: draft() });
-    params.current = { clip: 'clip-1', movement: 'snatch' };
+    params.current = { clip: 'clip-1' };
     const view = await render(<PaywallRoute />);
     await press(view.getByText('Not now, keep it queued'));
 
@@ -90,7 +90,7 @@ describe('not now / queue keep the draft and queue nothing', () => {
 
   it('cap: Queue until next month', async () => {
     useCapture.setState({ draft: draft() });
-    params.current = { tier: 'pull', period: 'annual', clip: 'clip-1', movement: 'snatch' };
+    params.current = { tier: 'pull', period: 'annual', clip: 'clip-1' };
     const view = await render(<CapRoute />);
     await press(view.getByText(/^Queue until/));
 

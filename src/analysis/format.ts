@@ -134,72 +134,24 @@ export function evidenceReadout(cue: Cue): string {
   return `${t('format.frame', { frame: cue.evidence.frame })} · ${cue.evidence.caption}`;
 }
 
-const STATUS_TEXT: Partial<Record<Measurement['status'], Key>> = {
-  cue: 'format.status.cue',
-  follows: 'format.status.follows',
-  normal: 'format.status.normal',
-  best: 'format.status.best',
-};
-
-export function measurementReadout(m: Measurement): string {
-  if (m.status === 'not_seen') return t('format.status.notSeen');
-  const parts = [valueText(m)];
-  if (m.note) parts.push(m.note);
-  const showBest = m.status === 'normal' && m.best != null;
-  if (showBest) parts.push(t('format.status.bestValue', { value: fmt(m.best!) }));
-  const status = STATUS_TEXT[m.status];
-  if (status && !showBest) parts.push(t(status));
-  return parts.join(' · ');
-}
-
-// No ▲/▼: an up-arrow reads as "better" even when a bigger number is worse.
-// The delta is plain signed text against the other lift.
-export type CompareRow = { id: string; label: string; value: string; delta: string };
-
-export const COMPARE_IDS = ['bar_drift_hip', 'pull_time', 'catch_depth'];
-
 export function signed(n: number): string {
   const v = Number(n.toFixed(2));
   return `${v > 0 ? '+' : v < 0 ? '−' : ''}${fmt(Math.abs(v))}`;
-}
-
-export function compareRows(
-  today: Measurement[],
-  other: Measurement[],
-  word: 'best' | 'last',
-  ids: string[] = COMPARE_IDS
-): CompareRow[] {
-  const rows: CompareRow[] = [];
-  for (const id of ids) {
-    const a = today.find((m) => m.id === id);
-    const b = other.find((m) => m.id === id);
-    if (!a || !b || a.status === 'not_seen' || b.status === 'not_seen') continue;
-    const diff = a.value - b.value;
-    const same = Math.abs(diff) <= Math.max(Math.abs(b.value), 1e-9) * 0.05;
-    rows.push({
-      id,
-      label: measurementLabel(a),
-      value: `${fmt(a.value)} ${a.unit}`,
-      delta: same ? t(word === 'best' ? 'format.compare.sameAsBest' : 'format.compare.sameAsLast') : t(word === 'best' ? 'format.compare.vsBest' : 'format.compare.vsLast', { delta: signed(diff) }),
-    });
-  }
-  return rows;
 }
 
 export type StepState = 'done' | 'active' | 'todo';
 
 // With no analysis yet (a live lift) the first step is the upload and the rep
 // count is still unknown.
-export function processingSteps(a: Analysis | null, step: number, firstLabel = t('format.steps.uploading')): { label: string; state: StepState }[] {
-  const labels = a
-    ? [
-        a.traceKind === 'bar' ? t('format.steps.foundBar') : t('format.steps.foundHips'),
-        t('format.reps', { count: a.reps.length }),
-        t('format.steps.findingPhases'),
-        t('format.steps.comparing'),
-        t('format.steps.choosingCue'),
-      ]
-    : [firstLabel, t('format.steps.findingBar'), t('format.steps.countingReps'), t('format.steps.findingPhases'), t('format.steps.choosingCue')];
+// The tracking run as the lifter sees it: every clip goes through the same five steps.
+export function processingSteps(step: number, firstLabel = t('analysis.processing.preparingClip')): { label: string; state: StepState }[] {
+  const labels = [
+    firstLabel,
+    t('analysis.processing.step.person'),
+    t('analysis.processing.step.bar'),
+    t('analysis.processing.step.body'),
+    t('analysis.processing.step.lines'),
+  ];
   return labels.map((label, i) => ({
     label,
     state: i < step ? 'done' : i === step ? 'active' : 'todo',
@@ -208,65 +160,4 @@ export function processingSteps(a: Analysis | null, step: number, firstLabel = t
 
 export function formatWait(seconds: number): string {
   return seconds >= 60 ? t('format.wait.minutes', { n: Math.floor(seconds / 60) }) : t('format.wait.seconds', { n: seconds });
-}
-
-export function doneTitle(a: Analysis): string {
-  const reps = t('format.reps', { count: a.reps.length });
-  return a.cue ? t('format.done.withCue', { reps }) : t('format.done.noCue', { reps });
-}
-
-const SHORT: Partial<Record<PhaseName, Key>> = {
-  transition: 'format.short.transition',
-  second_pull: 'format.short.second_pull',
-  turnover: 'format.short.turnover',
-  recovery: 'format.short.recovery',
-};
-
-export function shortPhase(p: PhaseName): string {
-  const key = SHORT[p];
-  return key ? t(key) : phaseLabel(p).toLowerCase();
-}
-
-const SYNC: Partial<Record<PhaseName, Key>> = {
-  first_pull: 'format.sync.first_pull',
-  transition: 'format.sync.transition',
-  second_pull: 'format.sync.second_pull',
-  turnover: 'format.sync.turnover',
-  catch: 'format.sync.catch',
-};
-
-export function syncCaption(p: PhaseName, today: number, other: number): string {
-  const key = SYNC[p];
-  return t('format.syncCaption', { at: key ? t(key) : phaseLabel(p).toLowerCase(), today, other });
-}
-
-export function signedCm(cm: number): string {
-  const r = Math.round(cm);
-  return `${r > 0 ? '+' : ''}${r} cm`;
-}
-
-export const CONFIDENCE_BAND: Record<Cue['confidence'], 'high' | 'medium' | 'low'> = {
-  clear: 'high',
-  worth_checking: 'medium',
-  low: 'low',
-};
-
-export function filmedAtAngle(cue: Cue): boolean {
-  return /off side-on/.test(cue.confidenceText);
-}
-
-// "Confidence: high", or the band plus why it is not high (read from the CV's confidenceText).
-export function confidenceLine(cue: Cue): string {
-  const band = CONFIDENCE_BAND[cue.confidence];
-  if (band === 'high') return t('format.confidence.line', { band: t('format.confidence.high') });
-  const text = cue.confidenceText;
-  const seen = /Seen on (\d+) of (\d+) reps/.exec(text);
-  const reasons = new Set<string>();
-  if (filmedAtAngle(cue)) reasons.add(t('format.confidence.angle'));
-  if (/behind a plate|hidden/.test(text)) reasons.add(t('format.confidence.hidden'));
-  if (seen && seen[2] === '1') reasons.add(t('format.confidence.oneRep'));
-  else if (seen && seen[1] !== seen[2]) reasons.add(t('format.confidence.seenOn', { seen: Number(seen[1]), count: Number(seen[2]) }));
-  if (/One missed rep/.test(text)) reasons.add(t('format.confidence.oneRep'));
-  const line = t('format.confidence.line', { band: t(`format.confidence.${band}`) });
-  return reasons.size ? `${line} · ${[...reasons].join(', ')}` : line;
 }

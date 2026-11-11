@@ -3,7 +3,7 @@ import { PanResponder, Pressable, ScrollView, Text, View, useWindowDimensions } 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Rect } from 'react-native-svg';
 import type { Analysis, Measurement, Phase, PhaseName } from '../../analysis/types';
-import { SPEED_IDS, confidenceLine, fmt, liftTitle, measurementLabel, missNote, phaseLabel, seconds, speedRows, valueText } from '../../analysis/format';
+import { SPEED_IDS, fmt, liftTitle, measurementLabel, phaseLabel, seconds, speedRows, valueText } from '../../analysis/format';
 import { toScreen } from '../../analysis/geometry';
 import {
   clampFrame,
@@ -21,7 +21,6 @@ import {
 } from '../../analysis/timeline';
 import Btn from '../../components/Btn';
 import Readout from '../../components/Readout';
-import SmallCaps from '../../components/SmallCaps';
 import TopBar from '../../components/TopBar';
 import { impact } from '../../lib/haptics';
 import { colors, control, opacity, shape, space, stroke } from '../../design/tokens';
@@ -30,15 +29,9 @@ import Stage, { type StageLayer } from './Stage';
 import { CurrentDot, FlarePath, Guides, KeyDots, OverlaySvg, RefLine } from './overlays';
 import Filmstrip, { type PhaseMark } from './Filmstrip';
 import FadeRow from './FadeRow';
-import DrillCard from '../drills/DrillCard';
-import DrillLine from '../drills/DrillLine';
-import CueNotes, { Disclaimer } from './CueNotes';
-import { useRetestable } from './RetestVerdict';
 import DrawLayer from './DrawLayer';
 import { isComplete, type Shape } from './drawGeometry';
 import { t } from '../../i18n';
-import { cueText, cueWhy } from '../../i18n/cues';
-import { noCueCopy } from './partial';
 
 export type Speed = '0.25' | '0.5' | '1';
 const SPEEDS: Speed[] = ['0.25', '0.5', '1'];
@@ -52,28 +45,21 @@ export default function PlayerScreen({
   analysis,
   initialFrame,
   onBack,
-  onCompare,
   onShare,
   onMore,
-  retestCueId,
-  onRetest,
 }: {
   analysis: Analysis;
   initialFrame?: number;
   onBack: () => void;
-  onCompare?: () => void;
   onShare: () => void;
   onMore?: () => void;
-  retestCueId?: string;
-  onRetest?: (cueId: string) => void;
+  // Unused since 4.0 (compare is gone); still passed by the onboarding sample.
+  onCompare?: () => void;
 }) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const cue = analysis.cue;
-  const rep = repByIndex(analysis, cue?.evidence.rep ?? analysis.bestRepIndex);
-  const partial = cue ? null : noCueCopy(analysis);
-  const miss = rep.made ? null : missNote(analysis);
-  const cuePhase = cue ? phaseOfFrame(rep, cue.evidence.frame) : null;
+  // A 3.x lift opens on the rep its cue was read from, as it always did.
+  const rep = repByIndex(analysis, analysis.cue?.evidence.rep ?? analysis.bestRepIndex);
   const openFrame = initialFrame ?? (rep.phases[0] ? phaseFrame(rep, rep.phases[0].name) : rep.startFrame);
   const [frame, setFrameState] = useState(clampFrame(rep, openFrame));
   const [speed, setSpeed] = useState<Speed>('0.25');
@@ -82,7 +68,6 @@ export default function PlayerScreen({
   const [drawing, setDrawing] = useState(false);
   const [shapes, setShapes] = useState<Shape[]>([]);
   const frameRef = useRef(frame);
-  const retestable = useRetestable(analysis, retestCueId);
   const shown = speedRows(analysis);
   const byPhase = measurementsByPhase(
     rep,
@@ -92,7 +77,6 @@ export default function PlayerScreen({
   for (const p of rep.phases) {
     if (byPhase[p.name]?.some((m) => m.status === 'follows')) marks[p.name] = 'follows';
   }
-  if (cuePhase) marks[cuePhase] = 'cue';
 
   const exitDraw = () => {
     setDrawing(false);
@@ -308,28 +292,11 @@ export default function PlayerScreen({
       </View>
       <Filmstrip rep={rep} fps={analysis.video.fps} active={phase?.name ?? null} marks={marks} onPick={pickPhase} />
       <ScrollView
-        testID="player-cue-area"
+        testID="player-details"
         style={{ flex: 1, borderTopWidth: stroke.hairline, borderTopColor: colors.hairline }}
         contentContainerStyle={{ paddingTop: space.s3, paddingHorizontal: space.gutter, paddingBottom: Math.max(insets.bottom, space.s4), gap: space.s2 }}
       >
-        {miss ? (
-          <Text testID="miss-note" style={{ ...type.callout, color: colors.text }}>
-            {miss}
-          </Text>
-        ) : null}
         {phase ? <PhaseHead phase={phase} fps={analysis.video.fps} /> : null}
-        {cue && phase && phase.name === cuePhase ? (
-          <View testID="player-cue" style={{ borderLeftWidth: stroke.outline, borderLeftColor: colors.flare, paddingLeft: space.s3, paddingVertical: space.s2, gap: space.s1 }}>
-            <SmallCaps size={11} color={colors.flare}>
-              {t('analysis.player.theCue')}
-            </SmallCaps>
-            <Text style={[display(26), { color: colors.text }]}>{cueText(cue.faultId, cue.text)}</Text>
-            <Text style={{ ...type.callout, color: colors.text }}>{cueWhy(cue.faultId, cue.why)}</Text>
-            <Text testID="player-confidence" style={{ ...type.caption, color: colors.text2 }}>
-              {confidenceLine(cue)}
-            </Text>
-          </View>
-        ) : null}
         {phase ? (
           measured.length ? (
             <View>
@@ -345,35 +312,11 @@ export default function PlayerScreen({
             </Text>
           )
         ) : null}
-        {cue && phase && phase.name === cuePhase ? <DrillCard faultId={cue.faultId} /> : null}
-        {cue && phase && phase.name === cuePhase ? <DrillLine faultId={cue.faultId} /> : null}
-        {partial ? (
-          <>
-            <Text style={[display(26), { color: colors.text }]} numberOfLines={2}>
-              {t('analysis.partial.title')}
-            </Text>
-            <Text testID="player-no-cue" style={{ ...type.caption, color: colors.text2 }}>
-              {`${partial.reason} ${partial.tip}`}
-            </Text>
-          </>
-        ) : null}
-        <CueNotes notes={analysis.notes} />
         <View style={{ flexDirection: 'row', gap: space.s2, paddingTop: space.s2 }}>
-          {onCompare ? (
-            <Btn kind="secondary" compact onPress={onCompare} style={{ flex: 1 }} testID="player-compare">
-              {t('analysis.player.compare')}
-            </Btn>
-          ) : null}
           <Btn kind="secondary" compact onPress={onShare} style={{ flex: 1 }} testID="player-share">
             {t('analysis.player.share')}
           </Btn>
-          {retestable && onRetest ? (
-            <Btn compact onPress={() => onRetest(retestable.id)} style={{ flex: 2 }} testID="player-retest">
-              {t('analysis.cue.retest')}
-            </Btn>
-          ) : null}
         </View>
-        <Disclaimer />
       </ScrollView>
     </View>
   );
@@ -398,22 +341,14 @@ function readout(m: Measurement): string {
 }
 
 function MeasurementRow({ m, last }: { m: Measurement; last: boolean }) {
-  const tag = m.status === 'cue' ? t('analysis.player.tag.cue') : m.status === 'follows' ? t('analysis.player.tag.follows') : null;
   return (
     <View
       testID={`measure-${m.id}`}
       style={{ paddingVertical: space.s3, gap: space.s1, borderBottomWidth: last ? 0 : stroke.hairline, borderBottomColor: colors.hairline }}
     >
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: space.s2 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s2, flexShrink: 1, flexWrap: 'wrap' }}>
-          <Text style={{ ...type.label, color: colors.text }}>{measurementLabel(m)}</Text>
-          {tag ? (
-            <SmallCaps size={10} color={colors.flare}>
-              {tag}
-            </SmallCaps>
-          ) : null}
-        </View>
-        <Text style={{ ...type.title, fontFamily: fontFamily.mono, color: m.status === 'cue' ? colors.flare : colors.text, fontVariant: ['tabular-nums'] }}>
+        <Text style={{ ...type.label, color: colors.text, flexShrink: 1 }}>{measurementLabel(m)}</Text>
+        <Text style={{ ...type.title, fontFamily: fontFamily.mono, color: colors.text, fontVariant: ['tabular-nums'] }}>
           {readout(m)}
         </Text>
       </View>

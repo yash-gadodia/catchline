@@ -1,4 +1,4 @@
-import { coverFit, focusOn, polylineLength, svgPath, toScreen } from './geometry';
+import { coverFit, polylineLength, svgPath, toScreen } from './geometry';
 
 const portrait = { width: 1080, height: 1920 };
 
@@ -30,20 +30,6 @@ describe('toScreen', () => {
     expect(toScreen({ x: 0, y: 0 }, fit)).toEqual({ x: -10, y: -20 });
     expect(toScreen({ x: 0.5, y: 0.25 }, fit)).toEqual({ x: 190, y: 180 });
     expect(toScreen({ x: 1, y: 1 }, fit)).toEqual({ x: 390, y: 780 });
-  });
-});
-
-describe('focusOn', () => {
-  it('centres a point vertically when the crop allows it', () => {
-    const box = { width: 390, height: 390 };
-    const focus = focusOn({ x: 0.5, y: 0.5 }, portrait, box);
-    expect(focus.x).toBe(0.5);
-    expect(focus.y).toBeCloseTo(0.5, 6);
-  });
-
-  it('clamps to the top edge for a point near the top of the frame', () => {
-    const focus = focusOn({ x: 0.5, y: 0.05 }, portrait, { width: 390, height: 390 });
-    expect(focus.y).toBe(0);
   });
 });
 

@@ -98,69 +98,10 @@ export const snatchMockMiss: Analysis = {
   },
 };
 
-function variant(
-  a: Analysis,
-  id: string,
-  loadKg: number,
-  shiftCm: number,
-  values: Record<string, number>,
-  rotateImages: boolean
-): Analysis {
-  const dx = (shiftCm * (a.pxPerCm ?? 1)) / a.video.width;
-  const reps = a.reps.map((rep) => {
-    const pull = rep.phases.find((p) => p.name === 'transition')!;
-    const turn = rep.phases.find((p) => p.name === 'turnover')!;
-    const images = rep.keyFrames.map((k) => k.image);
-    return {
-      ...rep,
-      keyFrames: rep.keyFrames.map((k, i) => ({
-        ...k,
-        image: rotateImages ? images[Math.min(i + 1, images.length - 1)] : k.image,
-      })),
-      path: rep.path.map((p) =>
-        p.frame >= pull.startFrame && p.frame <= turn.endFrame ? { ...p, x: p.x + dx } : p
-      ),
-    };
-  });
-  return {
-    ...a,
-    id,
-    loadKg,
-    reps,
-    measurements: a.measurements.map((m) => (m.id in values ? { ...m, value: values[m.id] } : m)),
-  };
-}
-
-export type CompareTarget = {
-  kind: 'best' | 'last';
-  label: string;
-  dateLabel: string;
-  analysis: Analysis;
-};
-
-export const COMPARE_TARGETS: Record<CompareTarget['kind'], CompareTarget> = {
-  best: {
-    kind: 'best',
-    label: 'Your best',
-    dateLabel: '18 Sep',
-    analysis: variant(snatchMock, 'snatch-mock-best', 65, -4, { bar_drift_hip: 2, pull_time: 0.58, catch_depth: 6 }, true),
-  },
-  last: {
-    kind: 'last',
-    label: 'Last session',
-    dateLabel: '2 Oct',
-    analysis: variant(snatchMock, 'snatch-mock-last', 60, 2, { bar_drift_hip: 8, pull_time: 0.64, catch_depth: 4 }, false),
-  },
-};
-
 // "Try a sample lift": first value without the lifter's own footage. Never
 // counted against the free videos and never compared with their history.
 export const SAMPLE_ID = 'snatch-sample';
 export const snatchSample: Analysis = { ...snatchMock, id: SAMPLE_ID };
-
-export function isSample(a: Analysis): boolean {
-  return a.id === SAMPLE_ID || a.id === DEMO_ID;
-}
 
 export const SAMPLE_ROUTE = { pathname: '/analysis/processing', params: { fixture: SAMPLE_ID } } as const;
 
