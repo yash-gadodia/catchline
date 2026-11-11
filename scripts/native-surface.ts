@@ -4,6 +4,8 @@
 export type Lock = { packages?: Record<string, { version?: string }> };
 
 export const NATIVE_DIRS = ['modules/', 'targets/', 'plugins/', 'patches/', 'ios/', 'android/'];
+// The macOS harnesses around a module's Swift are eval tools: no podspec compiles them into the app.
+const HARNESS = /^modules\/[^/]+\/harness\//;
 
 export function nativeChanges(input: {
   changedPaths: string[];
@@ -15,6 +17,7 @@ export function nativeChanges(input: {
 }): string[] {
   const out: string[] = [];
   for (const p of input.changedPaths) {
+    if (HARNESS.test(p)) continue;
     if (NATIVE_DIRS.some((d) => p.startsWith(d)) || /^app\.config\.[jt]s$/.test(p)) out.push(`${p} changed`);
   }
   if (JSON.stringify(input.oldApp) !== JSON.stringify(input.newApp)) out.push('app.json changed');
