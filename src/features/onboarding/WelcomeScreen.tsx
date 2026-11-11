@@ -1,17 +1,19 @@
-import { Image, Text, View, useWindowDimensions } from 'react-native';
+import { Image, Linking, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Btn from '../../components/Btn';
 import { colors, shade, space } from '../../design/tokens';
-import { display } from '../../design/typography';
+import { display, type } from '../../design/typography';
+import { PRIVACY_URL, TERMS_URL } from '../../lib/links';
 import { t } from '../../i18n';
 
 const HERO = require('../../../assets/art/welcome-hero.png');
 
-export default function WelcomeScreen({ onDemo, onImport }: { onDemo: () => void; onImport: () => void }) {
+// Step 1 of 3: the promise, that nothing leaves the phone, and the terms the lifter accepts by going on.
+export default function WelcomeScreen({ onContinue }: { onContinue: () => void }) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const box = { width, height: Math.max(height - 260, width) };
+  const box = { width, height: Math.max(height - 340, width) };
 
   return (
     <View testID="welcome-screen" style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'flex-end' }}>
@@ -28,16 +30,26 @@ export default function WelcomeScreen({ onDemo, onImport }: { onDemo: () => void
           pointerEvents="none"
         />
       </View>
-      <View style={{ paddingHorizontal: space.gutter, paddingBottom: Math.max(insets.bottom, space.s4) + space.s6, gap: space.s5 }}>
-        <Text style={[display(44), { color: colors.text }]}>{t('onboarding.welcome.title')}</Text>
-        <View style={{ gap: space.s3 }}>
-          <Btn onPress={onDemo} testID="welcome-demo">
-            {t('onboarding.welcome.demo')}
-          </Btn>
-          <Btn kind="secondary" onPress={onImport} testID="welcome-import">
-            {t('onboarding.welcome.import')}
-          </Btn>
+      <View style={{ paddingHorizontal: space.gutter, paddingBottom: Math.max(insets.bottom, space.s4) + space.s4, gap: space.s5 }}>
+        <View style={{ gap: space.s2 }}>
+          <Text style={[display(44), { color: colors.text }]}>{t('onboarding.welcome.title')}</Text>
+          <Text style={{ color: colors.text, ...type.body }}>{t('onboarding.welcome.body')}</Text>
+          <Text style={{ color: colors.text2, ...type.callout }}>{t('onboarding.welcome.private')}</Text>
         </View>
+        <Btn onPress={onContinue} testID="welcome-start">
+          {t('onboarding.welcome.start')}
+        </Btn>
+        <Text style={{ color: colors.text2, ...type.small, textAlign: 'center' }}>
+          {t('onboarding.welcome.agree')}
+          {'\n'}
+          <Text style={{ color: colors.text2, textDecorationLine: 'underline' }} onPress={() => Linking.openURL(TERMS_URL)} accessibilityRole="link" testID="link-terms">
+            {t('onboarding.privacy.terms')}
+          </Text>
+          {' · '}
+          <Text style={{ color: colors.text2, textDecorationLine: 'underline' }} onPress={() => Linking.openURL(PRIVACY_URL)} accessibilityRole="link" testID="link-privacy">
+            {t('onboarding.privacy.policy')}
+          </Text>
+        </Text>
       </View>
     </View>
   );

@@ -1,22 +1,30 @@
-import { useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
+import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
+import { useCameraPermission } from '../../src/features/capture/camera';
 import CameraScreen from '../../src/features/onboarding/CameraScreen';
-import { useFlow } from '../../src/features/onboarding/useFlow';
+import { useOnboarding } from '../../src/features/onboarding/store';
 
-export default function CameraRoute() {
+// The last onboarding step, and where the viewfinder sends a lifter whose camera is off.
+// Dev link: ?state=denied.
+export default function AddVideoRoute() {
   const { state } = useLocalSearchParams<{ state?: string }>();
-  const film = useFlow('film');
-  const imp = useFlow('import');
-  const { camera } = film;
-  const denied = state === 'denied' || (camera.status === 'denied' && !camera.canAskAgain);
+  const router = useRouter();
+  const camera = useCameraPermission();
+  const [refused, setRefused] = useState(false);
+  const denied = state === 'denied' || refused || (camera.status === 'denied' && !camera.canAskAgain);
+  const start = (href: Href) => {
+    useOnboarding.getState().complete();
+    router.replace(href);
+  };
   return (
     <CameraScreen
       denied={denied}
-      onAllow={async () => {
-        const status = await camera.request();
-        film.go('camera', { camera: status });
+      onChoose={() => start('/capture/import')}
+      onFilm={async () => {
+        if ((await camera.request()) === 'granted') start('/capture');
+        else setRefused(true);
       }}
       onSettings={camera.openSettings}
-      onImport={() => imp.go('camera')}
     />
   );
 }
