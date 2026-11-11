@@ -32,6 +32,7 @@ jest.mock('expo-camera', () => {
 });
 jest.mock('expo-speech', () => ({ __esModule: true, speak: jest.fn(), stop: jest.fn(() => Promise.resolve()) }));
 jest.mock('expo-file-system', () => ({ File: jest.fn(), Paths: { availableDiskSpace: 1e12 } }));
+jest.mock('../../data/localLifts', () => ({ ...jest.requireActual('../../data/localLifts'), localClipUri: () => null }));
 jest.mock('../onboarding/store', () => {
   const actual = jest.requireActual('../onboarding/store');
   return { ...actual, useHydrated: () => true, hasConsent: () => true };

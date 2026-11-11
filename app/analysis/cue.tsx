@@ -1,5 +1,6 @@
 import { Share } from 'react-native';
-import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
+import { Redirect, useLocalSearchParams, useRouter, type Href } from 'expo-router';
+import { localClipUri } from '../../src/data/localLifts';
 import { useAnalysis } from '../../src/analysis/useAnalysis';
 import AnalysisPlaceholder from '../../src/features/analysis/AnalysisPlaceholder';
 import CueScreen from '../../src/features/analysis/CueScreen';
@@ -20,6 +21,9 @@ export default function CueRoute() {
     if (funnel) router.replace(funnel);
     else router.dismissTo('/');
   };
+  const id = Array.isArray(fixture) ? fixture[0] : fixture;
+  // A 4.0 lift (its clip is kept) opens on the video player.
+  if (id && localClipUri(id)) return <Redirect href={{ pathname: '/analysis/player', params: { fixture: id } }} />;
   if (load.status !== 'ready') return <AnalysisPlaceholder status={load.status} onBack={back} />;
   const analysis = load.analysis;
   const filmAgain = () => {

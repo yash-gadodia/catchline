@@ -173,7 +173,7 @@ function LiveProcessing() {
       }}
       onNotify={home}
       onKeepWaiting={home}
-      onSee={() => analysis && router.replace({ pathname: '/analysis/reveal', params: retestParams(analysis.id, job?.retestCueId) })}
+      onSee={() => analysis && router.replace({ pathname: '/analysis/player', params: { fixture: analysis.id } })}
       onTrim={() => router.replace('/capture/trim')}
       onRetry={() => {
         if (!submitDraft({ replace: true })) home();

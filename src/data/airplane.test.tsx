@@ -48,13 +48,23 @@ jest.mock('./prepare', () => ({
 }));
 jest.mock('./localLifts', () => ({
   saveLocalLift: jest.fn((_id: string, a: unknown) => a),
+  keepClip: jest.fn(),
+  localClipUri: jest.fn(() => null),
   readLocalAnalysis: jest.fn(async () => null),
   listLocalAnalyses: jest.fn(async () => []),
 }));
-jest.mock('../analysis/device/analyseTrace', () => ({
-  planFromMisses: jest.fn(() => ({ windows: [], plates: [], tracks: [], keyframes: [], misses: [] })),
-  analyseTrace: jest.fn(),
-}));
+jest.mock('../analysis/device/analyseTrace', () => {
+  const mocks = {
+    planFromMisses: jest.fn((..._args: unknown[]) => ({ windows: [], plates: [], tracks: [], keyframes: [], misses: [] })),
+    analyseTrace: jest.fn(),
+  };
+  // 4.0: the app calls trackTrace; it answers from the two mocks the tests already drive.
+  const trackTrace = jest.fn((trace: unknown, opts: unknown) => {
+    const { misses, ...plan } = mocks.planFromMisses(trace, 'snatch', opts);
+    return { analysis: mocks.analyseTrace(trace, 'snatch', opts), body: null, plan, misses };
+  });
+  return { ...mocks, trackTrace };
+});
 
 // No network: the session is cached on the phone, every request rejects.
 jest.mock('../lib/supabase', () => {
@@ -139,7 +149,7 @@ describe('airplane mode, fresh install', () => {
     await act(async () => {
       fireEvent.press(view.getByTestId('see-it'));
     });
-    expect(nav.replace).toHaveBeenCalledWith({ pathname: '/analysis/reveal', params: { fixture: id } });
+    expect(nav.replace).toHaveBeenCalledWith({ pathname: '/analysis/player', params: { fixture: id } });
 
     params.current = { fixture: id };
     const cue = await render(<CueRoute />);
@@ -178,16 +188,6 @@ describe('airplane mode, fresh install', () => {
     useUsage.setState({ usage: { lifetime: 3, month: '2026-10', thisMonth: 3 } });
     await analyse();
     expect(analyseOnDevice).toHaveBeenCalledTimes(1);
-    noServerAnalysis();
-  });
-
-  it('kipping HSPU goes to the could-not-analyse screen, counting nothing', async () => {
-    await submitClip({ ...CLIP, movement: 'kipping_hspu' });
-    params.current = { live: '1' };
-    await render(<ProcessingRoute />);
-    await waitFor(() => expect(nav.replace).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/failure/[id]', params: expect.objectContaining({ reason: 'unsupported_movement' }) })));
-    expect(useUsage.getState().usage.lifetime).toBe(0);
-    expect(analyseOnDevice).not.toHaveBeenCalled();
     noServerAnalysis();
   });
 });

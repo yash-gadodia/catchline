@@ -33,12 +33,20 @@ jest.mock('./prepare', () => ({
 }));
 jest.mock('./localLifts', () => ({
   saveLocalLift: jest.fn((_id: string, a: Analysis) => a),
-  keepFailedClip: jest.fn(),
+  keepClip: jest.fn(),
 }));
-jest.mock('../analysis/device/analyseTrace', () => ({
-  planFromMisses: jest.fn(() => ({ windows: [], plates: [], tracks: [], follows: [], keyframes: [], misses: [] })),
-  analyseTrace: jest.fn(),
-}));
+jest.mock('../analysis/device/analyseTrace', () => {
+  const mocks = {
+    planFromMisses: jest.fn((..._args: unknown[]) => ({ windows: [], plates: [], tracks: [], follows: [], keyframes: [], misses: [] })),
+    analyseTrace: jest.fn(),
+  };
+  // 4.0: the app calls trackTrace; it answers from the two mocks the tests already drive.
+  const trackTrace = jest.fn((trace: unknown, opts: unknown) => {
+    const { misses, ...plan } = mocks.planFromMisses(trace, 'snatch', opts);
+    return { analysis: mocks.analyseTrace(trace, 'snatch', opts), body: null, plan, misses };
+  });
+  return { ...mocks, trackTrace };
+});
 jest.mock('expo-crypto', () => ({ randomUUID: () => 'lift-1' }));
 jest.mock('./liftOutbox', () => ({ queueLiftSync: jest.fn(async () => 1) }));
 jest.mock('./freeLifts', () => ({ writeFreeUsed: jest.fn(async () => undefined) }));
@@ -51,7 +59,7 @@ import { queueLiftSync } from './liftOutbox';
 import { writeFreeUsed } from './freeLifts';
 import { useUsage } from '../features/paywall/usageStore';
 import { ClipTooLongError, prepareClip } from './prepare';
-import { keepFailedClip, saveLocalLift } from './localLifts';
+import { keepClip, saveLocalLift } from './localLifts';
 import { discardPrepared } from './prepare';
 import { track } from '../lib/analytics';
 
@@ -93,7 +101,8 @@ describe('startDeviceLift, the happy path', () => {
     expect(prepareClip).toHaveBeenCalledTimes(1);
     expect(mockAnalyse).toHaveBeenCalledWith('file:///clip.mov.mp4', 'snatch', undefined, { title: 'Analysing your Snatch', subtitle: 'Keeps working in the background.', from: 0, to: 0.8 });
     expect(mockTrace).toHaveBeenCalledWith({ traceVersion: 1, frames: [] }, 'snatch', { analysisId: 'lift-1', assetPrefix: 'lift-1' });
-    expect(saveLocalLift).toHaveBeenCalledWith('lift-1', expect.objectContaining({ id: 'lift-1', movement: 'snatch', loadKg: 70 }), 'file:///cache/pose-coreml/trace.json.gz', {});
+    expect(saveLocalLift).toHaveBeenCalledWith('lift-1', expect.objectContaining({ id: 'lift-1', movement: 'snatch', loadKg: 70 }), 'file:///cache/pose-coreml/trace.json.gz', {}, null);
+    expect(keepClip).toHaveBeenCalledWith('lift-1', 'file:///clip.mov.mp4');
     expect(queueLiftSync).toHaveBeenCalledWith({
       id: 'lift-1',
       lift: {
@@ -141,11 +150,6 @@ describe('startDeviceLift, the happy path', () => {
     expect(usePipeline.getState().job?.device).toBe(true);
   });
 
-  it('never analyses kipping HSPU on the phone yet (no TS replay for the rotated pass): it fails as unsupported', async () => {
-    await startLift({ ...SUB, movement: 'kipping_hspu' });
-    expect(usePipeline.getState().job).toMatchObject({ status: 'failed', failureReason: 'unsupported_movement' });
-    expect(mockAnalyse).not.toHaveBeenCalled();
-  });
 });
 
 describe('analyseLoop', () => {
@@ -160,11 +164,11 @@ describe('analyseLoop', () => {
     const progress: [string, number][] = [];
     const out = await analyseLoop('file:///c.mp4', 'clean', 'lift-9', (stage, f) => progress.push([stage, f]));
     expect(mockAnalyse.mock.calls).toEqual([
-      ['file:///c.mp4', 'clean', undefined, { ...BANNER, from: 0, to: 0.8 }],
-      ['file:///c.mp4', 'clean', { windows: [{ s0: 0, count: 10 }], plates: [], tracks: [], follows: [], keyframes: [] }, expect.objectContaining(BANNER)],
-      ['file:///c.mp4', 'clean', { windows: [{ s0: 0, count: 10 }], plates: [], tracks: [], follows: [], keyframes: [{ name: 'r1-1-setup.jpg', frame: 12 }] }, expect.objectContaining(BANNER)],
+      ['file:///c.mp4', 'snatch', undefined, { ...BANNER, from: 0, to: 0.8 }],
+      ['file:///c.mp4', 'snatch', { windows: [{ s0: 0, count: 10 }], plates: [], tracks: [], follows: [], keyframes: [] }, expect.objectContaining(BANNER)],
+      ['file:///c.mp4', 'snatch', { windows: [{ s0: 0, count: 10 }], plates: [], tracks: [], follows: [], keyframes: [{ name: 'r1-1-setup.jpg', frame: 12 }] }, expect.objectContaining(BANNER)],
     ]);
-    expect(mockPlan).toHaveBeenLastCalledWith({ traceVersion: 1, frames: [] }, 'clean', { analysisId: 'lift-9', assetPrefix: 'lift-9' });
+    expect(mockPlan).toHaveBeenLastCalledWith({ traceVersion: 1, frames: [] }, 'snatch', { analysisId: 'lift-9', assetPrefix: 'lift-9' });
     expect(out.tracePath).toBe('file:///t3.gz');
     expect(out.stills).toEqual({ 'r1-1-setup.jpg': 'file:///a.jpg', 'r1-2-knee.jpg': 'file:///b.jpg' });
     expect(progress[progress.length - 1]).toEqual(['cue', 1]);
@@ -278,7 +282,7 @@ describe('startDeviceLift on a path-only result (a gate after "person found" fai
     const job = usePipeline.getState().job;
     expect([job?.status, job?.result?.failure, job?.result?.noCueReason]).toEqual(['done', null, { code: 'path_only', gate: 'no_reps' }]);
     expect(track).toHaveBeenCalledWith('analysis_completed', { movement: 'snatch', cue_confidence: 'none', no_cue_code: 'path_only', made: 'unknown' });
-    expect(keepFailedClip).not.toHaveBeenCalled();
+    expect(keepClip).toHaveBeenCalledWith('lift-1', 'file:///clip.mov.mp4');
   });
 });
 
@@ -295,7 +299,7 @@ describe('startDeviceLift when the analysis fails', () => {
     expect(job?.result?.failure?.reason).toBe('clip_cut_off');
     expect(track).toHaveBeenCalledWith('analysis_failed', { movement: 'snatch', code: 'no_reps' });
     // the trimmed clip is kept for "Send this clip so we can fix it", not discarded
-    expect(keepFailedClip).toHaveBeenCalledWith('lift-1', 'file:///clip.mov.mp4');
+    expect(keepClip).toHaveBeenCalledWith('lift-1', 'file:///clip.mov.mp4');
     expect(discardPrepared).not.toHaveBeenCalled();
   });
 

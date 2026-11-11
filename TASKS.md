@@ -1,3 +1,24 @@
+# 4.0: tracking only (branch v40/tracker, from 11 Nov)
+
+Owner decision 11-11: drop cues; the app tracks any lift or gymnastics clip and shows it on the real video, every frame. Keep it small.
+
+## Phase 1: the viewer (JS only, runs on the 3.1 binary)
+- [x] Any clip tracked the same way, no movement check: `src/analysis/device/tracking.ts` (`track`, `trackTrace`), the path over the whole clip plus the joints on every frame (`body.json`)
+- [x] The trimmed clip is kept with its lift (`clip.mp4`), deleted with the lift
+- [x] `TrackerScreen`: real video (expo-video), scrubber, frame step, 0.25/0.5/1x, path + start line + floor line + body + angles toggles, draw
+- [x] A lift with a kept clip opens on the tracker from processing, the library and a notification (reveal/cue redirect)
+- [ ] (Yash) Test on a phone: plate path through the plan loop (follow over the whole clip), overlay lag while playing, 60 fps and variable-frame-rate imports
+- [ ] Path colour per rep / attempts layered; circle in the draw tool
+## Phase 2: strip back
+- [ ] Remove movement picker, reveal/cue/miss screens, Cues and Trends tabs, cue tracking, drills, fault copy; processing copy ("3 reps, one cue")
+- [ ] Onboarding (3 steps), paywall (free 3 a week, one plan), store listing copy and screenshots
+## Phase 3: store build
+- [ ] Burned-in share video (path, lines, body), 60 fps camera, faster tracking (detector every Nth frame)
+## Notes
+- The native pass is always asked for as 'snatch' (standing lifter selection); a hanging clip is told apart in TS (`family(signals)`), so a crowded gymnastics clip may pick the wrong person until the native side changes.
+- A symlinked node_modules runs the other checkout's code in Metro: clone it (`cp -cR`) for simulator checks. Fast Refresh did not pick up edits on the sim; relaunch the app.
+- Simulator check without running pose: `trackTrace` on a phone trace + the clip into `Documents/lifts/<id>/` (analysis.json, body.json, clip.mp4), then `catchline://analysis/player?fixture=<id>`.
+
 - [ ] (Claude, build 29, Yash 15-10) Compare with a past lift: pick any earlier lift of the same movement, ghost its bar path aligned at lift-off, side by side (compare is dev-only today, fixtures)
 - [ ] (Claude, build 29) Movement picker defaults to "Auto": worker already detects snatch/clean/jerk (cv/detect.py); add gymnastics detection, keep manual override
 - [ ] (Claude, build 30) Long video (10 min, 5 sets): find sets on the phone (Apple Vision body pose at low fps or bar motion), upload each set as its own lift; `detectSets` in src/features/capture/sets.ts is a stub today; Supabase Free caps uploads at 50 MB

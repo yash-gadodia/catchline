@@ -3,6 +3,7 @@
 import { analyse } from './analyse';
 import { AnalysisJson, Result } from './pipeline';
 import { Plan, Trace, TraceMissing, traceInput } from './trace';
+import { Body, track } from './tracking';
 
 export type Analysis = AnalysisJson;
 type Opts = { analysisId?: string; assetPrefix?: string };
@@ -37,4 +38,19 @@ export function planFromMisses(trace: unknown, movement: string, opts: Opts = {}
     r.keyFrames.map((kf) => ({ name: kf.image.slice(kf.image.lastIndexOf('/') + 1), frame: Math.min(Math.max(kf.frame, 0), n - 1) })),
   );
   return { ...input.replayer.plan, keyframes, misses: input.replayer.misses };
+}
+
+// 4.0, tracking only: the clip's path and body from its trace, with what the native stages still owe it. The lifter
+// is the one the phone picked for a standing movement, whatever the clip shows.
+export function trackTrace(trace: unknown, opts: Opts = {}): { analysis: Analysis; body: Body | null; plan: Plan; misses: string[] } {
+  const t = trace as Trace;
+  if (!t || typeof t !== 'object' || t.traceVersion !== 1) throw new TraceMissing(`trace version ${(t as Trace | null)?.traceVersion}`);
+  const input = traceInput(t, 'snatch');
+  const { analysis, body } = track(input, opts);
+  const n = input.lifter.k.length;
+  const reps = (analysis.reps ?? []) as { keyFrames: { frame: number; image: string }[] }[];
+  const keyframes = reps.flatMap((r) =>
+    r.keyFrames.map((kf) => ({ name: kf.image.slice(kf.image.lastIndexOf('/') + 1), frame: Math.min(Math.max(kf.frame, 0), n - 1) })),
+  );
+  return { analysis, body, plan: { ...input.replayer.plan, keyframes }, misses: input.replayer.misses };
 }

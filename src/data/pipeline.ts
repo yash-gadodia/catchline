@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { Analysis, Failure, Movement } from '../analysis/types';
 import type { ApiErrorCode } from '../lib/api';
 import type { ClipSubmission } from '../features/capture/submit';
-import { DEVICE_MOVEMENTS, startDeviceLift } from './devicePipeline';
+import { startDeviceLift } from './devicePipeline';
 import { onDeviceAnalysisEnabled } from './onDeviceAnalysis';
 
 export type JobStatus = 'preparing' | 'uploading' | 'analysing' | 'queued' | 'processing' | 'done' | 'failed';
@@ -52,7 +52,7 @@ export const usePipeline = create<PipelineState>((set) => ({
 // phone cannot analyse yet (kipping HSPU: no TS replay of the rotated pass) fails as
 // unsupported, counting nothing. Never throws: the outcome lands on the job.
 export async function startLift(sub: ClipSubmission & { uri: string }): Promise<void> {
-  if (onDeviceAnalysisEnabled() && DEVICE_MOVEMENTS.includes(sub.movement)) return startDeviceLift(sub);
+  if (onDeviceAnalysisEnabled()) return startDeviceLift(sub);
   usePipeline.getState().start({
     id: `job-${Date.now()}`,
     movement: sub.movement,
