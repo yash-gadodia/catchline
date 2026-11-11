@@ -1,4 +1,5 @@
 import { act, fireEvent, render } from '@testing-library/react-native';
+import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useVideoPlayer } from 'expo-video';
 import type { Analysis } from '../../analysis/types';
@@ -53,7 +54,8 @@ const at = async (frame: number) => {
     player?.emit('timeUpdate', { currentTime: (frame + 0.5) / 60 });
   });
 };
-const show = (analysis: Analysis, b: Body | null = body) => render(<TrackerScreen analysis={analysis} clipUri={CLIP} body={b} title="11 Nov, 14:32" onBack={() => {}} />);
+const show = (analysis: Analysis, b: Body | null = body, more: Partial<Parameters<typeof TrackerScreen>[0]> = {}) =>
+  render(<TrackerScreen analysis={analysis} clipUri={CLIP} body={b} title="11 Nov, 14:32" onBack={() => {}} {...more} />);
 
 describe('TrackerScreen on a clip with the lift marked', () => {
   it('opens on the first frame of the lift, timed from the start of the lift', async () => {
@@ -144,5 +146,88 @@ describe('TrackerScreen overlays', () => {
     expect(next.queryByTestId('tracker-body')).toBeNull();
     expect(next.getByTestId('tracker-lines')).toBeOnTheScreen();
     expect(JSON.parse((await AsyncStorage.getItem('catchline.tracker.overlays')) ?? '{}').state).toEqual({ path: true, lines: true, body: false, angles: false });
+  });
+});
+
+describe('TrackerScreen first look (reveal)', () => {
+  // the bar is highest at frame 200 of a lift that runs 90..240
+  const path = [90, 150, 200, 240].map((frame, i) => ({ frame, x: 0.5, y: [0.8, 0.5, 0.2, 0.3][i], src: 'plate' as const }));
+  const lifted: Analysis = { ...marked, reps: [{ ...marked.reps[0], path }] };
+
+  it('plays the lift by itself at half speed with the path and body on, whatever the lifter last toggled', async () => {
+    useOverlays.setState({ path: false, body: false });
+    const { getByTestId, queryByTestId } = await show(lifted, body, { reveal: true, onShare: () => {} });
+    expect(player?.play).toHaveBeenCalledTimes(1);
+    expect(player).toMatchObject({ playbackRate: 0.5 });
+    expect(getByTestId('speed')).toHaveTextContent('0.5×');
+    await at(150);
+    expect(getByTestId('path-done')).toBeOnTheScreen();
+    expect(getByTestId('tracker-body')).toBeOnTheScreen();
+    expect(queryByTestId('tracker-share')).toBeNull();
+    expect(useOverlays.getState()).toMatchObject({ path: false, body: false });
+  });
+
+  it('ticks once at the top of the lift, stops on the last frame and offers Share', async () => {
+    const onShare = jest.fn();
+    const { getByTestId } = await show(lifted, body, { reveal: true, onShare });
+    const taps = () => jest.mocked(Haptics.impactAsync).mock.calls.length;
+    const before = taps();
+    await at(199);
+    expect(taps()).toBe(before);
+    await at(200);
+    await at(201);
+    expect(taps()).toBe(before + 1);
+    await at(240);
+    expect(player?.pause).toHaveBeenCalledTimes(1);
+    expect(getByTestId('tracker-readout')).toHaveTextContent('2.50 s · 241 / 300');
+    await press(getByTestId('tracker-share'));
+    expect(onShare).toHaveBeenCalledTimes(1);
+  });
+
+  it('with Reduce Motion opens on the last frame with the whole path and Share, and does not play', async () => {
+    const { getByTestId } = await show(lifted, body, { reveal: true, reduceMotion: true, onShare: () => {} });
+    expect(player?.play).not.toHaveBeenCalled();
+    expect(player?.currentTime).toBeCloseTo(240.5 / 60, 6);
+    expect(getByTestId('tracker-readout')).toHaveTextContent('2.50 s · 241 / 300');
+    expect(getByTestId('path-done')).toBeOnTheScreen();
+    expect(getByTestId('tracker-share')).toBeOnTheScreen();
+  });
+
+  it('a tap while it plays hands the player back to the lifter', async () => {
+    const { getByTestId } = await show(lifted, body, { reveal: true, onShare: () => {} });
+    await act(async () => {
+      player?.emit('playingChange', { isPlaying: true });
+    });
+    await at(120);
+    await press(getByTestId('tracker-video'));
+    expect(player?.pause).toHaveBeenCalledTimes(1);
+    expect(getByTestId('tracker-share')).toBeOnTheScreen();
+  });
+});
+
+describe('TrackerScreen compare with the last lift', () => {
+  const lastLift = { title: '9 Nov, 18:05', points: [{ x: 0.5, y: 0.8 }, { x: 0.52, y: 0.4 }, { x: 0.5, y: 0.2 }] };
+
+  it('draws the last lift’s path on one tap and takes it off on the next', async () => {
+    const { getByTestId, queryByTestId } = await show(marked, body, { lastLift });
+    expect(queryByTestId('path-ghost')).toBeNull();
+    expect(getByTestId('tracker-compare')).toHaveTextContent('Compare with your last lift');
+    await press(getByTestId('tracker-compare'));
+    expect(getByTestId('path-ghost')).toBeOnTheScreen();
+    expect(getByTestId('tracker-compare')).toHaveTextContent('Dotted line: 9 Nov, 18:05');
+    expect(getByTestId('tracker-compare')).toHaveProp('accessibilityState', { checked: true });
+    await press(getByTestId('tracker-compare'));
+    expect(queryByTestId('path-ghost')).toBeNull();
+  });
+
+  it('is not offered on a first lift, or while the first look plays', async () => {
+    const first = await show(marked);
+    expect(first.queryByTestId('tracker-compare')).toBeNull();
+    await first.unmount();
+    player = null;
+    const revealing = await show(marked, body, { reveal: true, lastLift });
+    expect(revealing.queryByTestId('tracker-compare')).toBeNull();
+    await at(240);
+    expect(revealing.getByTestId('tracker-compare')).toBeOnTheScreen();
   });
 });
