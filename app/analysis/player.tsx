@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useLocalSearchParams, useNavigation, useRouter, type Href } from 'expo-router';
 import { useAnalysis } from '../../src/analysis/useAnalysis';
 import AnalysisPlaceholder from '../../src/features/analysis/AnalysisPlaceholder';
 import PlayerScreen from '../../src/features/analysis/PlayerScreen';
 import TrackerScreen from '../../src/features/analysis/TrackerScreen';
-import type { Body } from '../../src/analysis/device/tracking';
-import { localClipUri, readLocalBody } from '../../src/data/localLifts';
+import { useLocalBody } from '../../src/features/analysis/useLocalBody';
+import { localClipUri } from '../../src/data/localLifts';
 import { liftTitle } from '../../src/analysis/format';
 import { useBestLift } from '../../src/features/analysis/bestLift';
 import { openLiftActions, reportHref } from '../../src/features/analysis/liftActions';
@@ -26,25 +26,14 @@ export default function PlayerRoute() {
   const best = useBestLift(load.status === 'ready' ? load.analysis : null);
   const id = Array.isArray(fixture) ? fixture[0] : fixture;
   const clip = id ? localClipUri(id) : null;
-  const [body, setBody] = useState<{ id: string; body: Body | null } | null>(null);
-  useEffect(() => {
-    if (!id || !clip) return;
-    let live = true;
-    readLocalBody(id).then(
-      (b) => live && setBody({ id, body: b }),
-      () => live && setBody({ id, body: null }),
-    );
-    return () => {
-      live = false;
-    };
-  }, [id, clip]);
+  const body = useLocalBody(id, !!clip);
   // A 4.0 lift lands here straight from the analysis: leaving goes to the Lifts tab, not back to the clip's review.
   const back = () => (clip ? router.dismissTo('/') : router.canGoBack() ? router.back() : router.replace('/'));
   if (load.status !== 'ready') return <AnalysisPlaceholder status={load.status} onBack={back} />;
   const analysis = load.analysis;
   const share = () => router.push({ pathname: '/share', params: { fixture: analysis.id } });
   if (clip) {
-    if (!body || body.id !== id) return <AnalysisPlaceholder status="loading" onBack={back} />;
+    if (!body.ready) return <AnalysisPlaceholder status="loading" onBack={back} />;
     return <TrackerScreen key={analysis.id} analysis={analysis} clipUri={clip} body={body.body} title={liftTitle(analysis)} onBack={back} onShare={share} />;
   }
   return (
