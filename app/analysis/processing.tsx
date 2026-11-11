@@ -7,7 +7,7 @@ import ProcessingSheet, { EXPECTED_ANALYSIS_S, type ProcessingState } from '../.
 import { etaSeconds, type Sample } from '../../src/features/analysis/eta';
 import { formatWait } from '../../src/analysis/format';
 import { registerPushToken } from '../../src/features/notifications';
-import { noteAnalysisFinished } from '../../src/features/notifications/ask';
+import { maybeReaskForPush, noteAnalysisFinished } from '../../src/features/notifications/ask';
 import { useUsage } from '../../src/features/paywall/usageStore';
 import { syncServerUsage } from '../../src/features/paywall/hooks';
 import { usePurchases } from '../../src/features/purchases/usePurchases';
@@ -21,7 +21,7 @@ const STEP_MS = 1100;
 const LONG_WAIT_MARGIN_S = 30;
 const LONG_WAIT_S = EXPECTED_ANALYSIS_S + LONG_WAIT_MARGIN_S;
 
-type Params = { fixture?: string; state?: ProcessingState; step?: string; elapsed?: string; count?: string; live?: string; retest?: string };
+type Params = { fixture?: string; state?: ProcessingState; step?: string; elapsed?: string; count?: string; live?: string };
 
 export default function ProcessingRoute() {
   const params = useLocalSearchParams<Params>();
@@ -37,10 +37,6 @@ function uploadMeta(job: Job | null, eta: number | null): string | null {
     return eta === null ? t('analysis.processing.analysingPct', { pct }) : t('analysis.processing.analysingEta', { pct, wait: formatWait(eta) });
   }
   return null;
-}
-
-function retestParams(fixture: string, retest: string | undefined): Record<string, string> {
-  return retest ? { fixture, retest } : { fixture };
 }
 
 function recordUsage() {
@@ -91,7 +87,7 @@ function Processing({ params }: { params: Params }) {
         router.back();
       }}
       onKeepWaiting={() => setWaiting(true)}
-      onSee={() => analysis && router.replace({ pathname: '/analysis/reveal', params: retestParams(analysis.id, params.retest) })}
+      onSee={() => analysis && router.replace({ pathname: '/analysis/player', params: { fixture: analysis.id } })}
     />
   );
 }
@@ -105,7 +101,7 @@ function deviceStep(job: Job): number {
   return 1 + Math.min(3, Math.floor((job.fraction ?? 0) * 4));
 }
 
-// A real lift (3.1): analysed on the phone, so the job carries its progress and then the
+// A real lift: tracked on the phone, so the job carries its progress and then the
 // result. Nothing is uploaded and nothing arrives over the network.
 function LiveProcessing() {
   const router = useRouter();
@@ -173,7 +169,11 @@ function LiveProcessing() {
       }}
       onNotify={home}
       onKeepWaiting={home}
-      onSee={() => analysis && router.replace({ pathname: '/analysis/player', params: { fixture: analysis.id } })}
+      onSee={() => {
+        if (!analysis) return;
+        void maybeReaskForPush();
+        router.replace({ pathname: '/analysis/player', params: { fixture: analysis.id } });
+      }}
       onTrim={() => router.replace('/capture/trim')}
       onRetry={() => {
         if (!submitDraft({ replace: true })) home();

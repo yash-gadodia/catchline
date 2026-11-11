@@ -18,4 +18,5 @@ export const share: Strings<typeof en> = {
   'share.shareVideo': "Compartilhar vídeo",
   'share.saveToPhotos': "Salvar em Fotos",
   'share.drawing': "Desenhando a trajetória da barra",
+  'share.renderFailed': "Não deu para criar. Tente de novo.",
 };

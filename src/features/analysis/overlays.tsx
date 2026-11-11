@@ -94,21 +94,6 @@ export function FeetMarks({ start, end, label, testID }: { start: Point; end: Po
   );
 }
 
-export function GhostPath({ points, testID }: { points: Point[]; testID?: string }) {
-  if (points.length < 2) return null;
-  return (
-    <Path
-      testID={testID}
-      d={svgPath(points)}
-      stroke={colors.text}
-      strokeWidth={stroke.ghost}
-      strokeDasharray="6 4"
-      opacity={opacity.lines}
-      fill="none"
-    />
-  );
-}
-
 export function KeyDots({ points }: { points: Point[] }) {
   return (
     <G fill={colors.text} stroke={colors.halo} strokeWidth={1}>

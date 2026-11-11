@@ -22,6 +22,12 @@ describe('frames and time', () => {
     expect(timeOf(12, 30)).toBeCloseTo(0.41667, 5);
     for (const f of [0, 1, 17, 89]) expect(frameAt(timeOf(f, 30), 30, 90)).toBe(f);
     for (const f of [0, 59, 119]) expect(frameAt(timeOf(f, 59.94), 59.94, 120)).toBe(f);
+    // a 60 fps camera clip, ten seconds: every frame boundary lands on its own frame
+    for (const f of [0, 1, 299, 599]) {
+      expect(frameAt(timeOf(f, 60), 60, 600)).toBe(f);
+      expect(frameAt(f / 60, 60, 600)).toBe(f);
+      expect(frameAt(f / (60000 / 1001), 60000 / 1001, 600)).toBe(f);
+    }
   });
 });
 

@@ -31,21 +31,6 @@ export function coverFit(
   };
 }
 
-// The object-position that puts a normalised source point as close to the box
-// centre as cover-fitting allows.
-export function focusOn(point: Point, src: Size, box: Size): Point {
-  const fit = coverFit(src, box);
-  const axis = (p: number, displayed: number, boxLen: number) => {
-    const slack = boxLen - displayed;
-    if (slack === 0) return 0.5;
-    return Math.min(1, Math.max(0, (boxLen / 2 - displayed * p) / slack));
-  };
-  return {
-    x: axis(point.x, fit.width, box.width),
-    y: axis(point.y, fit.height, box.height),
-  };
-}
-
 export function toScreen(p: Point, fit: Fit): Point {
   return { x: fit.x + p.x * fit.width, y: fit.y + p.y * fit.height };
 }

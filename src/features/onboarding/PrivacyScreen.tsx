@@ -6,14 +6,9 @@ import { type } from '../../design/typography';
 import { PRIVACY_URL, TERMS_URL } from '../../lib/links';
 import { Checkbox, GateBtn, Title } from './ui';
 import { t } from '../../i18n';
-import { onDeviceAnalysisEnabled } from '../../data/onDeviceAnalysis';
 
 export function privacyPoints(): string[] {
-  return [
-    t('onboarding.privacy.faces'),
-    onDeviceAnalysisEnabled() ? t('onboarding.privacy.onDevice') : t('onboarding.privacy.deleted'),
-    t('onboarding.privacy.estimate'),
-  ];
+  return [t('onboarding.privacy.onDevice'), t('onboarding.privacy.faces')];
 }
 
 const small = { ...type.callout };

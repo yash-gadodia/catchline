@@ -10,7 +10,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import type { Analysis } from '../../analysis/types';
-import { doneTitle, formatWait, processingSteps } from '../../analysis/format';
+import { formatWait, processingSteps } from '../../analysis/format';
 import { keyFrameForPhase, repByIndex } from '../../analysis/timeline';
 import Btn from '../../components/Btn';
 import Sheet from '../../components/Sheet';
@@ -126,7 +126,7 @@ export default function ProcessingSheet({ analysis, clipUri, reduceMotion, meta,
       {state === 'done' && analysis ? (
         <Sheet testID="sheet-done">
           <Text style={{ color: colors.text, ...type.title }}>
-            {doneTitle(analysis)}
+            {t('analysis.processing.done')}
           </Text>
           <Btn
             onPress={() => {
@@ -183,7 +183,7 @@ function ClipLayer({ uri, reduce, box }: { uri: string | number; reduce: boolean
   });
   return (
     <View testID="processing-clip" style={{ position: 'absolute', left: 0, top: 0, width: box.width, height: box.height, opacity: 0.55 }}>
-      <VideoView player={player} style={{ width: box.width, height: box.height }} contentFit="cover" nativeControls={false} />
+      <VideoView player={player} style={{ width: box.width, height: box.height }} contentFit="cover" nativeControls={false} allowsVideoFrameAnalysis={false} />
     </View>
   );
 }
@@ -254,7 +254,7 @@ function InProgress({
       <Header title={t('analysis.processing.watching')} meta={meta} />
       {note ? <View style={{ marginTop: -space.s2 }}>{note}</View> : null}
       <View style={{ gap: space.s3 }}>
-        {processingSteps(analysis, step, firstStep).map((s) => (
+        {processingSteps(step, firstStep).map((s) => (
           <View key={s.label} style={{ flexDirection: 'row', alignItems: 'center', gap: space.s3 }} testID={`step-${s.state}`}>
             <View style={{ width: 20 }}>
               {s.state === 'active' ? (

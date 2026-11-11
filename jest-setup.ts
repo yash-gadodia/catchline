@@ -352,6 +352,8 @@ jest.mock('./modules/clip-transcoder', () => ({
       frames: Math.round((o.endS - o.startS) * o.fps),
       durationS: o.endS - o.startS,
     })),
+    renderTrackVideo: jest.fn(async () => ({ uri: 'file:///cache/share-video/catchline-track.mp4', width: 1080, height: 1920, frames: 90, durationS: 3 })),
+    renderTrackImage: jest.fn(async () => ({ uri: 'file:///cache/share-video/catchline-track.jpg', width: 1080, height: 1920 })),
     renderShareVideo: jest.fn(async (_uri: string, spec: { width: number; height: number; durationS: number }) => ({
       uri: 'file:///cache/share-video/catchline.mp4',
       width: spec.width,

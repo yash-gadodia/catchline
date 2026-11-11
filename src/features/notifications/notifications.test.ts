@@ -134,11 +134,11 @@ describe('liftIdFromResponse', () => {
 describe('routeForLift', () => {
   const lift = (status: string) => ({ id: 'lift-1', status, movement: 'snatch' });
 
-  it('loads the analysis into the live map and opens the reveal', async () => {
+  it('loads the analysis into the live map and opens the player', async () => {
     mockApi.getLift.mockResolvedValueOnce(lift('done') as never);
     mockApi.getAnalysis.mockResolvedValueOnce(snatchMock);
 
-    await expect(routeForLift('lift-1')).resolves.toEqual({ pathname: '/analysis/reveal', params: { fixture: snatchMock.id } });
+    await expect(routeForLift('lift-1')).resolves.toEqual({ pathname: '/analysis/player', params: { fixture: snatchMock.id } });
     expect(liveAnalysis(snatchMock.id)).toBe(snatchMock);
     expect(syncLibrary).toHaveBeenCalledTimes(1);
   });
@@ -171,10 +171,10 @@ describe('routeForLift', () => {
 describe('routeForLift for a lift analysed on the phone', () => {
   const mockLocal = readLocalAnalysis as jest.Mock;
 
-  it('opens the reveal from Documents without asking the server', async () => {
+  it('opens the player from Documents without asking the server', async () => {
     mockLocal.mockResolvedValueOnce({ ...snatchMock, id: 'lift-local' });
     const href = await routeForLift('lift-local');
-    expect(href).toEqual({ pathname: '/analysis/reveal', params: { fixture: 'lift-local' } });
+    expect(href).toEqual({ pathname: '/analysis/player', params: { fixture: 'lift-local' } });
     expect(liveAnalysis('lift-local')?.id).toBe('lift-local');
     expect(mockApi.getLift).not.toHaveBeenCalled();
   });
@@ -192,27 +192,27 @@ describe('notifyLiftReady', () => {
   it('posts the ready notification with the lift id when the app is away and notifications are allowed', async () => {
     appState.currentState = 'background';
     mockNotifications.getPermissionsAsync.mockResolvedValue(granted);
-    expect(await notifyLiftReady('lift-1', 'clean', false)).toBe(true);
+    expect(await notifyLiftReady('lift-1', false)).toBe(true);
     expect(mockNotifications.scheduleNotificationAsync).toHaveBeenCalledWith({
-      content: { title: 'Your Clean is ready', body: 'Tap to see your cue.', data: { liftId: 'lift-1' } },
+      content: { title: 'Your lift is ready', body: 'Tap to see the bar path on your video.', data: { liftId: 'lift-1' } },
       trigger: null,
     });
   });
 
-  it('names a failed lift as one we could not read', async () => {
+  it('names a failed lift as one we could not track', async () => {
     appState.currentState = 'inactive';
     mockNotifications.getPermissionsAsync.mockResolvedValue(granted);
-    await notifyLiftReady('lift-1', 'snatch', true);
-    expect(mockNotifications.scheduleNotificationAsync.mock.calls[0][0].content.title).toBe("We couldn't read your Snatch");
+    await notifyLiftReady('lift-1', true);
+    expect(mockNotifications.scheduleNotificationAsync.mock.calls[0][0].content.title).toBe("We couldn't track your clip");
   });
 
   it('posts nothing when the app is in front, or when notifications are not allowed', async () => {
     appState.currentState = 'active';
-    expect(await notifyLiftReady('lift-1', 'snatch', false)).toBe(false);
+    expect(await notifyLiftReady('lift-1', false)).toBe(false);
     expect(mockNotifications.getPermissionsAsync).not.toHaveBeenCalled();
     appState.currentState = 'background';
     mockNotifications.getPermissionsAsync.mockResolvedValue({ ...granted, status: 'undetermined' });
-    expect(await notifyLiftReady('lift-1', 'snatch', false)).toBe(false);
+    expect(await notifyLiftReady('lift-1', false)).toBe(false);
     expect(mockNotifications.scheduleNotificationAsync).not.toHaveBeenCalled();
   });
 });

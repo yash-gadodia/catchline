@@ -2,23 +2,22 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { PanResponder, Pressable, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useVideoPlayer, VideoView } from 'expo-video';
-import Svg, { Circle, G, Line, Path, Rect } from 'react-native-svg';
+import Svg, { Path, Rect } from 'react-native-svg';
 import type { Analysis, Point } from '../../analysis/types';
 import type { Body } from '../../analysis/device/tracking';
 import { seconds } from '../../analysis/format';
 import { toScreen, type Fit } from '../../analysis/geometry';
-import { pathUpTo, pointAt } from '../../analysis/timeline';
 import Btn from '../../components/Btn';
 import Readout from '../../components/Readout';
 import TopBar from '../../components/TopBar';
 import { impact } from '../../lib/haptics';
-import { colors, control, opacity, shape, space, stroke } from '../../design/tokens';
+import { colors, control, shape, space, stroke } from '../../design/tokens';
 import { type } from '../../design/typography';
-import { CurrentDot, FlarePath, OverlaySvg, RefLine } from './overlays';
+import TrackOverlay from './TrackOverlay';
 import FadeRow from './FadeRow';
 import DrawLayer from './DrawLayer';
 import { isComplete, type Shape } from './drawGeometry';
-import { ANGLE_MAX_OFF_SIDE_DEG, bones, drawnSide, floorY, frameAt, jointAngles, joints, mostlyPlate, spread, timeOf } from './tracker';
+import { ANGLE_MAX_OFF_SIDE_DEG, drawnSide, frameAt, jointAngles, joints, spread, timeOf } from './tracker';
 import { t } from '../../i18n';
 
 type Speed = 0.25 | 0.5 | 1;
@@ -46,8 +45,11 @@ export default function TrackerScreen({
 }) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const rep = analysis.reps[0];
-  const fps = analysis.video.fps;
+  // Frames are spread over the clip's real length: the recorded rate is one over the shortest frame gap, which runs
+  // fast on a clip with uneven frame timing and would slide the overlay off the picture.
+  const [duration, setDuration] = useState(0);
+  const count0 = Math.max(analysis.video.frameCount, body?.frames.length ?? 0, 1);
+  const fps = duration > 0 ? count0 / duration : analysis.video.fps;
   const count = Math.max(analysis.video.frameCount, body?.frames.length ?? 0, 1);
   const src = { width: analysis.video.width, height: analysis.video.height };
   const maxH = Math.round(height * 0.6);
@@ -75,17 +77,20 @@ export default function TrackerScreen({
 
   useEffect(() => {
     const time = player.addListener('timeUpdate', ({ currentTime }) => {
+      if (player.duration > 0 && Math.abs(player.duration - duration) > 0.01) setDuration(player.duration);
       const f = frameAt(currentTime, fps, count);
       if (f === frameRef.current) return;
       frameRef.current = f;
       setFrameState(f);
     });
+    const loaded = player.addListener('sourceLoad', (e) => e.duration > 0 && setDuration(e.duration));
     const play = player.addListener('playingChange', ({ isPlaying }) => setPlaying(isPlaying));
     return () => {
       time.remove();
       play.remove();
+      loaded.remove();
     };
-  }, [player, fps, count]);
+  }, [player, fps, count, duration]);
 
   const exitDraw = () => {
     setDrawing(false);
@@ -126,14 +131,9 @@ export default function TrackerScreen({
   ).current;
 
   const s = (p: Point) => toScreen(p, fit);
-  const path = rep?.path ?? [];
-  const current = path.length && frame >= path[0].frame && frame <= path[path.length - 1].frame ? pointAt(path, frame) : null;
-  const j = overlays.body || overlays.angles ? joints(body, frame) : [];
-  const floor = floorY(body);
+  const path = analysis.reps[0]?.path ?? [];
+  const j = overlays.angles ? joints(body, frame) : [];
   const side = drawnSide(body, offSide);
-  const shownJoints = side === 'both' ? j : j.filter((_, i) => i % 2 === side);
-  const skeleton = bones(j, side).map(([a, b]) => [s(a), s(b)] as const);
-  const startX = rep?.guides && Number.isFinite(rep.guides.startX) ? rep.guides.startX : path[0]?.x;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }} testID="tracker-screen">
@@ -147,34 +147,8 @@ export default function TrackerScreen({
           testID="tracker-video"
           style={{ width: box.width, height: box.height, overflow: 'hidden' }}
         >
-          <VideoView player={player} style={{ width: box.width, height: box.height }} contentFit="fill" nativeControls={false} />
-          <OverlaySvg box={box}>
-            {overlays.lines ? (
-              <G testID="tracker-lines">
-                {startX != null ? <RefLine x={s({ x: startX, y: 0 }).x} top={0} bottom={box.height} /> : null}
-                {floor != null ? (
-                  <Line x1={0} x2={box.width} y1={s({ x: 0, y: floor }).y} y2={s({ x: 0, y: floor }).y} stroke={colors.text} strokeWidth={stroke.hairline} strokeDasharray="2 5" opacity={opacity.lines} />
-                ) : null}
-              </G>
-            ) : null}
-            {overlays.body ? (
-              <G testID="tracker-body" strokeLinecap="round">
-                {skeleton.map(([p, q], i) => (
-                  <Line key={`h${i}`} x1={p.x} y1={p.y} x2={q.x} y2={q.y} stroke={colors.halo} strokeWidth={stroke.halo} />
-                ))}
-                {skeleton.map(([p, q], i) => (
-                  <Line key={i} x1={p.x} y1={p.y} x2={q.x} y2={q.y} stroke={colors.text} strokeWidth={stroke.outline} />
-                ))}
-                {shownJoints.map((p, i) => (p ? <Circle key={`j${i}`} cx={s(p).x} cy={s(p).y} r={3} fill={colors.text} stroke={colors.halo} strokeWidth={1} /> : null))}
-              </G>
-            ) : null}
-            {overlays.path ? (
-              <>
-                <FlarePath points={pathUpTo(path, frame).map(s)} testID="path-done" />
-                <CurrentDot point={current ? s(current) : null} />
-              </>
-            ) : null}
-          </OverlaySvg>
+          <VideoView player={player} style={{ width: box.width, height: box.height }} contentFit="fill" nativeControls={false} allowsVideoFrameAnalysis={false} />
+          <TrackOverlay analysis={analysis} body={body} frame={frame} box={box} show={overlays} />
           {overlays.angles && anglesOk
             ? spread(jointAngles(j, src, side).map((a) => ({ ...a, x: s(a.at).x + 10, y: s(a.at).y - 12 })), 56, 28).map((a) => (
                 <View key={a.name} pointerEvents="none" style={{ position: 'absolute', left: Math.min(Math.max(4, a.x), box.width - 56), top: Math.min(Math.max(4, a.y), box.height - 26) }}>
@@ -255,7 +229,7 @@ export default function TrackerScreen({
       </View>
       <View style={{ flex: 1, paddingHorizontal: space.gutter, paddingTop: space.s3, paddingBottom: Math.max(insets.bottom, space.s4), gap: space.s2, justifyContent: 'space-between' }}>
         <View style={{ gap: space.s1 }}>
-          {path.length && !mostlyPlate(path) && analysis.traceKind === 'bar' ? (
+          {!path.length && analysis.traceKind === 'bar' ? (
             <Text testID="tracker-note-hands" style={{ ...type.caption, color: colors.text2 }}>
               {t('analysis.tracker.fromHands')}
             </Text>

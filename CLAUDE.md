@@ -17,8 +17,8 @@ Design source of truth: `~/dev/liftcheck-research/design/` (`Catchline Design Sy
 
 ## Data flow
 - One switch: `EXPO_PUBLIC_SUPABASE_URL` + `ANON_KEY` set → repositories use `src/lib/api` (Supabase); unset → local fixture stores (dev mode). `src/data/backend.ts` owns it.
-- Analyse: `nextClipGate()` → consent (`syncConsent`) → `createLift` + TUS upload → `/analysis/processing?live=1` follows the lift over Realtime → reveal → cue. Failure → `/failure/[id]`. `routeAfterAnalysis()` sends the ad funnel to its trial.
-- The app starts anonymous; the onboarding account step and the You tab offer Sign in with Apple (`src/features/auth/appleSignIn.ts`; an anonymous account's rows move over through `begin/complete_account_transfer`, 0006). Local secrets go only in gitignored `.env.local`.
+- Track (4.0): camera or import → `/capture/trim` (trim, optional load, Track) → `nextClipGate()` → `startLift` on the phone → `/analysis/processing?live=1` → `/analysis/player` (`TrackerScreen` for a lift with a kept clip, the stills `PlayerScreen` for a 3.x lift). Failure → `/failure/[id]`. No movement picker, cues, trends or retests; two tabs (Lifts, You).
+- The app starts anonymous; the You tab offers Sign in with Apple (a purchase asks for it first) (`src/features/auth/appleSignIn.ts`; an anonymous account's rows move over through `begin/complete_account_transfer`, 0006). Local secrets go only in gitignored `.env.local`.
 
 ## Invariants
 - **RN fidelity** (`.claude/rules/frontend.md`): `lineHeight` in px, explicit `color` on every `<Text>`, reuse `src/components` atoms and `src/design` tokens.

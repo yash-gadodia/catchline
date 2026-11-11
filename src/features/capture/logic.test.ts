@@ -2,9 +2,8 @@ import { router } from 'expo-router';
 import { checkHint, failing, firstHint, fixedChecker, parseChecks } from './checks';
 import { demoClip } from './demo';
 import { clock, isTooLong, reduce, type Session } from './session';
-import { repOptions, setStrip, DEMO_SETS } from './sets';
 import { bytesPerSecond, secondsLeft } from './storage';
-import { activeTrim, withTrim } from './store';
+import { newClip } from './store';
 import { parseWeight, submitClip, toSubmission } from './submit';
 import { atLimit, clampToTrim, loopTime, moveHandle, playheadAt, thumbTimes, nudgeHandle, slideTrim, timeToX, trimClock, trimProblem, xToTime } from './trim';
 
@@ -49,7 +48,7 @@ describe('framing checks', () => {
   it('reports the configured failures and the first hint', () => {
     let results: ReturnType<typeof failing> = [];
     let hint: string | null = null;
-    fixedChecker(['light', 'whole_body']).start('snatch', (r) => {
+    fixedChecker(['light', 'whole_body']).start((r) => {
       results = failing(r);
       hint = firstHint(r);
     });
@@ -149,35 +148,6 @@ describe('trim', () => {
   });
 });
 
-describe('sets in a long import', () => {
-  it('lays sets and the gaps between them on the strip', () => {
-    expect(setStrip(DEMO_SETS, 102)).toEqual([
-      { kind: 'gap', seconds: 3 },
-      { kind: 'set', seconds: 5, index: 0 },
-      { kind: 'gap', seconds: 6 },
-      { kind: 'set', seconds: 18, index: 1 },
-      { kind: 'gap', seconds: 9 },
-      { kind: 'set', seconds: 18, index: 2 },
-      { kind: 'gap', seconds: 7 },
-      { kind: 'set', seconds: 15, index: 3 },
-      { kind: 'gap', seconds: 21 },
-    ]);
-  });
-
-  it('offers one button per rep, or 1-5 when the count is unknown', () => {
-    expect(repOptions(3)).toEqual([1, 2, 3]);
-    expect(repOptions(null)).toEqual([1, 2, 3, 4, 5]);
-  });
-
-  it('uses the picked set as the trim, and trimming edits that set', () => {
-    const clip = demoClip('import');
-    expect(activeTrim(clip)).toEqual({ start: 14, end: 32 });
-    const trimmed = withTrim(clip, { start: 15, end: 30 });
-    expect(trimmed.sets[1]).toEqual({ start: 15, end: 30, reps: 5 });
-    expect(trimmed.sets[0]).toEqual(DEMO_SETS[0]);
-  });
-});
-
 describe('storage', () => {
   it('estimates seconds of video left', () => {
     expect(bytesPerSecond(30)).toBe(3_000_000);
@@ -195,8 +165,9 @@ describe('submit', () => {
     expect(parseWeight('0', 'kg')).toBeNull();
   });
 
-  it('packs the draft into a submission', () => {
-    expect(toSubmission(demoClip('override'), '62.5', 'kg')).toEqual({
+  it('packs the draft into a submission, always as a snatch: the lifter picks no movement', () => {
+    const clip = newClip({ uri: null, durationS: 8, fps: 30, source: 'camera', overridden: ['whole_body'] });
+    expect(toSubmission(clip, '62.5', 'kg')).toEqual({
       uri: null,
       movement: 'snatch',
       loadKg: 62.5,

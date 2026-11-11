@@ -187,7 +187,7 @@ def rel(type_, id_):
 # ---------- copy from store-listing.md ----------
 
 def listing_copy(args):
-    text = LISTING.read_text()
+    text = pathlib.Path(args.listing).read_text() if args.listing else LISTING.read_text()
     row = lambda field: re.search(rf"^\| {re.escape(field)} \| [^|]+ \| `([^`]+)` \|", text, re.M).group(1)
     block = lambda heading: re.search(rf"^### {re.escape(heading)}[^\n]*\n+```\n(.*?)\n```", text, re.M | re.S).group(1)
     apple = text.split("## 2. Google Play")[0]
@@ -207,9 +207,10 @@ def listing_copy(args):
     notes = block("App Review notes")
     notes = re.sub(r"^Email: \[DEMO_EMAIL\]\nPassword: \[DEMO_PASSWORD\]\n",
                    "Credentials are in the Sign-in information fields.\n", notes, flags=re.M)
-    notes = notes.replace("Hello App Review team,\n\n", "Hello App Review team,\n\n" + CHANGE_OF_PURPOSE)
+    if not args.listing:  # the 3.0 replacement; a later version's notes stand as written
+        notes = notes.replace("Hello App Review team,\n\n", "Hello App Review team,\n\n" + CHANGE_OF_PURPOSE)
     fill = {"[SUPPORT_EMAIL]": args.support_email, "[PHONE]": args.contact_phone}
-    whats_new = args.whats_new or WHATS_NEW
+    whats_new = args.whats_new or (block("What's New") if args.listing else WHATS_NEW)
     for k, v in fill.items():
         if v:
             notes, whats_new = notes.replace(k, v), whats_new.replace(k, v)
@@ -659,6 +660,7 @@ def main():
     p.add_argument("--demo-email", help="demo account; password comes from env CATCHLINE_DEMO_PASSWORD")
     p.add_argument("--version", default=VERSION, help="App Store version string; must equal app.json \"version\" exactly")
     p.add_argument("--whats-new", help="override the 3.0 What's New text")
+    p.add_argument("--listing", help="listing markdown for a later version (same layout as store-listing.md, with a What's New block)")
     p.add_argument("--screenshots", default=str(SCREENSHOTS), help="folder of 1320x2868 PNGs, uploaded in name order")
     p.add_argument("--iap-review-screenshot", help="PNG of the paywall, attached to every new subscription/IAP")
     p.add_argument("--no-equalize", dest="equalize", action="store_false",

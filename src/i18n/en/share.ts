@@ -15,4 +15,5 @@ export const share = {
   'share.shareVideo': "Share video",
   'share.saveToPhotos': "Save to Photos",
   'share.drawing': "Drawing your bar path",
+  'share.renderFailed': "Couldn't make that. Try again.",
 } as const;

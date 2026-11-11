@@ -2,14 +2,14 @@ import { useImperativeHandle, useRef, type Ref } from 'react';
 import { Linking, type StyleProp, type ViewStyle } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import type { CameraStatus } from '../../onboarding/flow';
+import { LiftCameraView, recordFps, type LiftCameraRef } from '../../../../modules/lift-camera';
 
-// The camera seam. Everything Catchline needs from a camera lives behind this
-// file, so moving to react-native-vision-camera (60/240 fps formats and frame
-// processors for on-device pose) only touches here.
+// The camera seam. Everything Catchline needs from a camera lives behind this file.
 //
-// expo-camera (SDK 56) has no frame-rate control: it records at the device
-// default, 30 fps on iPhone. The badge reports that honestly.
-export const RECORD_FPS = 30;
+// iOS films through modules/lift-camera: 1080p at 60 fps where the back camera has such a format, else 30
+// (RECORD_FPS says which on this phone). expo-camera has no frame-rate control; it stays for the permission
+// and for platforms without the module, at its 30 fps default.
+export const RECORD_FPS = recordFps ?? 30;
 
 export type CameraHandle = {
   record: (maxDurationS: number) => Promise<string | null>;
@@ -26,13 +26,19 @@ export function CameraSurface({
   style?: StyleProp<ViewStyle>;
 }) {
   const camera = useRef<CameraView>(null);
+  const lift = useRef<LiftCameraRef>(null);
   useImperativeHandle(ref, () => ({
     record: async (maxDurationS) => {
+      if (LiftCameraView) return (await lift.current?.record(maxDurationS)) ?? null;
       const result = await camera.current?.recordAsync({ maxDuration: maxDurationS });
       return result?.uri ?? null;
     },
-    stop: () => camera.current?.stopRecording(),
+    stop: () => {
+      if (LiftCameraView) void lift.current?.stop();
+      else camera.current?.stopRecording();
+    },
   }));
+  if (LiftCameraView) return <LiftCameraView ref={lift} style={style} active={active} testID="camera-surface" />;
   return <CameraView ref={camera} style={style} facing="back" mode="video" mute active={active} testID="camera-surface" />;
 }
 

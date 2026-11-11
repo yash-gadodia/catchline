@@ -18,7 +18,6 @@ export default function Trimmer({
   durationS,
   trim,
   thumbs,
-  label,
   head,
   onChange,
   onHead,
@@ -27,7 +26,6 @@ export default function Trimmer({
   durationS: number;
   trim: Trim;
   thumbs: Thumb[];
-  label: string;
   head: number;
   onChange: (t: Trim) => void;
   onHead: (t: number) => void;
@@ -158,7 +156,7 @@ export default function Trimmer({
         <Stepper onNudge={(d) => nudge('start', d)} testID="trim-start">
           <Mono testID="trim-start-time">{trimClock(trim.start)}</Mono>
         </Stepper>
-        <Mono testID="trim-length">{`${trimLength(trim).toFixed(1)} s${label ? ` · ${label}` : ''}`}</Mono>
+        <Mono testID="trim-length">{`${trimLength(trim).toFixed(1)} s`}</Mono>
         <Stepper onNudge={(d) => nudge('end', d)} testID="trim-end">
           <Mono testID="trim-end-time">{trimClock(trim.end)}</Mono>
         </Stepper>

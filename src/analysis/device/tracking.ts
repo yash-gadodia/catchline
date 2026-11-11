@@ -52,6 +52,12 @@ export function track(input: DeviceInput, opts: { analysisId?: string; assetPref
   // two plate readings directly.
   const rep = (only.analysis.reps as { path: { frame: number; x: number; src?: string }[]; guides?: { startX: number } }[])[0];
   const firstPlate = rep.path.findIndex((p) => p.src === 'plate');
+  // A barbell clip whose plate was never read gets no bar path at all (11-11, the owner's own clips): the hands walk
+  // up to the bar, rest on the hips and leave, and that scribble reads as a wrong answer. The body is still drawn.
+  if (firstPlate < 0 && only.analysis.traceKind === 'bar') {
+    rep.path = [];
+    delete rep.guides;
+  }
   if (firstPlate >= 0) {
     let lastPlate = rep.path.length - 1;
     while (rep.path[lastPlate].src !== 'plate') lastPlate -= 1;

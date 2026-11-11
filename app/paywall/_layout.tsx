@@ -6,9 +6,7 @@ export default function PaywallLayout() {
     <Stack
       screenOptions={{ headerShown: false, animation: 'slide_from_bottom', contentStyle: { backgroundColor: colors.bg } }}
     >
-      <Stack.Screen name="plans" options={{ animation: 'default' }} />
       <Stack.Screen name="dev" options={{ animation: 'default' }} />
-      <Stack.Screen name="funnel/quiz" options={{ animation: 'default' }} />
     </Stack>
   );
 }

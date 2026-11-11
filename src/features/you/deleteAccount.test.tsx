@@ -37,12 +37,12 @@ async function confirmDelete(onDeleted: jest.Mock) {
 
 beforeEach(() => {
   jest.clearAllMocks();
-  useAccountStore.setState({ account: { name: 'Alex', signIn: 'apple', synced: true, plan: { tier: 'free', videosUsed: 1 } } });
+  useAccountStore.setState({ account: { name: 'Alex', signIn: 'apple', synced: true, tier: 'free' } });
   useOnboarding.getState().acceptConsent(new Date('2026-10-01T00:00:00.000Z'));
   useOnboarding.getState().complete();
   useUsage.getState().reset();
   useUsage.getState().record('free', new Date('2026-10-02T00:00:00.000Z'));
-  useCapture.getState().setDraft(newClip({ uri: 'file:///clip.mov', durationS: 8, fps: 60, source: 'camera', movement: 'snatch' }));
+  useCapture.getState().setDraft(newClip({ uri: 'file:///clip.mov', durationS: 8, fps: 60, source: 'camera' }));
   useCapture.getState().setLastWeight('80');
   usePurchases.setState({ appUserId: 'u1', tier: 'pull', period: 'annual' });
   putLiveAnalysis(ANALYSES['snatch-mock']);

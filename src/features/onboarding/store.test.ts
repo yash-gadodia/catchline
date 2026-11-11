@@ -17,19 +17,11 @@ describe('onboarding store', () => {
     expect(hasConsent({ version: CONSENT_VERSION, acceptedAt: '2026-01-01T00:00:00.000Z' })).toBe(true);
   });
 
-  it('remembers the account choice until reset', () => {
-    expect(useOnboarding.getState().accountChoice).toBeNull();
-    useOnboarding.getState().setAccountChoice('none');
-    expect(useOnboarding.getState().accountChoice).toBe('none');
-    useOnboarding.getState().setAccountChoice('apple');
-    expect(useOnboarding.getState().accountChoice).toBe('apple');
+  it('remembers units and that onboarding is done, until reset', () => {
+    useOnboarding.getState().setUnits('lb');
+    useOnboarding.getState().complete();
+    expect([useOnboarding.getState().units, useOnboarding.getState().completed]).toEqual(['lb', true]);
     useOnboarding.getState().reset();
-    expect(useOnboarding.getState().accountChoice).toBeNull();
-  });
-
-  it('saves lifts, focus and units', () => {
-    useOnboarding.getState().setLifts(['snatch', 'bar_muscle_up'], ['Missing behind'], 'lb');
-    const s = useOnboarding.getState();
-    expect([s.lifts, s.focus, s.units]).toEqual([['snatch', 'bar_muscle_up'], ['Missing behind'], 'lb']);
+    expect([useOnboarding.getState().units, useOnboarding.getState().completed, useOnboarding.getState().consent]).toEqual(['kg', false, null]);
   });
 });

@@ -39,21 +39,13 @@ function clip(n = 90, seen = true): DeviceInput {
 }
 
 describe('track (4.0: tracking only)', () => {
-  it('gives any clip one path over the whole clip, the start line and the body on every frame, with no cue', () => {
+  it('gives a clip with no readable plate the body on every frame and no bar path, with no cue', () => {
     const { analysis, body } = track(clip(), { analysisId: 'lift-1', assetPrefix: 'lift-1' });
-    const a = analysis as { failure: unknown; cue: unknown; reps: { startFrame: number; endFrame: number; phases: unknown[]; path: { frame: number; x: number; y: number; src?: string }[]; guides?: { startX: number } }[]; noCueReason: unknown; video: { fps: number; frameCount: number } };
-    expect([a.failure, a.cue, a.reps.length]).toEqual([null, null, 1]);
+    const a = analysis as { failure: unknown; cue: unknown; traceKind: string; reps: { phases: unknown[]; path: unknown[]; guides?: unknown; keyFrames: unknown[] }[]; noCueReason: unknown };
+    expect([a.failure, a.cue, a.reps.length, a.traceKind]).toEqual([null, null, 1, 'bar']);
     expect(a.noCueReason).toEqual({ code: 'path_only', gate: 'no_reps', offSideDeg: 0 });
-    const rep = a.reps[0];
-    expect([rep.startFrame, rep.endFrame, rep.phases.length, rep.path.length]).toEqual([0, 89, 0, 90]);
-    expect(rep.path.every((p) => p.src === 'wrist')).toBe(true);
-    expect(rep.path[0].x).toBeCloseTo(400 / 720, 3);
-    expect(rep.guides?.startX).toBe(rep.path[0].x);
-    // the hands peak mid-clip, half a metre of pixels above the hips
-    const top = rep.path.reduce((m, p) => (p.y < m.y ? p : m));
-    expect(top.frame).toBeGreaterThanOrEqual(43);
-    expect(top.frame).toBeLessThanOrEqual(46);
-    expect(top.y).toBeCloseTo(240 / 1280, 2);
+    // the hands alone are not drawn as the bar: they walk up to it and leave it
+    expect([a.reps[0].path, a.reps[0].guides, a.reps[0].phases.length, a.reps[0].keyFrames.length]).toEqual([[], undefined, 0, 2]);
     expect(body?.frames).toHaveLength(90);
     const row = body?.frames[10] ?? [];
     expect(row).toHaveLength(BODY_JOINTS.length * 2);
@@ -95,10 +87,8 @@ describe('track (4.0: tracking only)', () => {
     expect(path).toHaveLength(60);
   });
 
-  it('keeps the hands when such a plate has a rim of mixed polarity (an edge against a bright window)', () => {
-    const path = points(followed(0.6, 0.3));
-    expect(path.every((p) => p.src === 'wrist')).toBe(true);
-    expect(path[0].y).toBeCloseTo(740 / 1280, 2);
+  it('draws no bar path when such a plate has a rim of mixed polarity (an edge against a bright window)', () => {
+    expect(points(followed(0.6, 0.3))).toEqual([]);
   });
 
   it('follows the plate under a point the user put on it, both ways from that frame, whatever its rim reads', () => {

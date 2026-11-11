@@ -6,7 +6,6 @@ import PoseCoreML, { type AnalyseBanner, type AnalysePlan, type AnalyseResult } 
 import { trackTrace } from '../analysis/device/analyseTrace';
 import type { Body } from '../analysis/device/tracking';
 import { parseTraceJson, type Plan } from '../analysis/device/trace';
-import { movementLabel } from '../analysis/format';
 import { parseAnalysis } from '../analysis/parse';
 import type { Analysis, Failure, Movement } from '../analysis/types';
 import type { ClipSubmission } from '../features/capture/submit';
@@ -116,7 +115,7 @@ const PASS_STARTS = PASS_WEIGHTS.map((_, i) => PASS_WEIGHTS.slice(0, i).reduce((
 export async function analyseLoop(uri: string, movement: Movement, liftId: string, onProgress: Progress, isCancelled: () => boolean = () => false): Promise<LoopResult> {
   const native = PoseCoreML;
   if (!native) throw new Error('no_native');
-  const words = { title: t('library.inFlight.title', { movement: movementLabel(movement) }), subtitle: t('analysis.processing.background') };
+  const words = { title: t('library.inFlight.title'), subtitle: t('analysis.processing.background') };
   let plan: AnalysePlan | undefined;
   let result: AnalyseResult | null = null;
   let tracked: ReturnType<typeof trackTrace> | null = null;
@@ -175,7 +174,7 @@ export function syncRecord(a: Analysis, sub: ClipSubmission, analysedAt: Date): 
     startClass: extras.startClass ?? null,
     yawBucket: extras.yawBucket ?? null,
     analysisVersion: a.analysisVersion ?? null,
-    retestCueId: sub.retestCueId ?? null,
+    retestCueId: null,
     failureCode: a.failure ? (a.failure.code ?? a.failure.reason) : null,
     analysedAt: analysedAt.toISOString(),
   };
@@ -202,7 +201,6 @@ export async function startDeviceLift(sub: ClipSubmission & { uri: string }): Pr
     error: null,
     maxS: null,
     uri: sub.uri,
-    retestCueId: sub.retestCueId,
     device: true,
     stage: null,
     fraction: 0,
@@ -232,7 +230,7 @@ export async function startDeviceLift(sub: ClipSubmission & { uri: string }): Pr
       track(EVENTS.ANALYSIS_COMPLETED, { movement: sub.movement, cue_confidence: local.cue?.confidence ?? 'none', no_cue_code: record.noCueCode ?? 'none', made: record.made ?? 'unknown' });
       patch({ status: 'done', result: local });
     }
-    void notifyLiftReady(liftId, sub.movement, !!local.failure);
+    void notifyLiftReady(liftId, !!local.failure);
   } catch (e) {
     const code = e instanceof ClipTooLongError ? 'clip_too_long' : nativeCode(e);
     track(EVENTS.ANALYSIS_FAILED, { movement: sub.movement, code });

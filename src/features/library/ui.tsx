@@ -1,14 +1,12 @@
 import { useEffect, type ReactNode } from 'react';
 import { Image, Pressable, Text, View, type ImageSourcePropType, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
-import Svg, { Polyline } from 'react-native-svg';
 import { frameSource } from '../../analysis/frames';
-import { coverFit, toScreen } from '../../analysis/geometry';
+import { coverFit } from '../../analysis/geometry';
 import type { Point } from '../../analysis/types';
 import Btn from '../../components/Btn';
-import { colors, shape } from '../../design/tokens';
+import { colors } from '../../design/tokens';
 import { display, fontFamily, type } from '../../design/typography';
-import type { CueStatus } from './types';
 
 const LIBRARY: Record<string, { color: ImageSourcePropType; gray?: ImageSourcePropType }> = {
   'mu-3-hip-drive': {
@@ -44,7 +42,6 @@ export function Frame({
   opacity = 1,
   focus = { x: 0.5, y: 0.45 },
   zoom = 1,
-  path,
   children,
   testID,
 }: {
@@ -55,7 +52,6 @@ export function Frame({
   opacity?: number;
   focus?: Point;
   zoom?: number;
-  path?: Point[];
   children?: ReactNode;
   testID?: string;
 }) {
@@ -70,18 +66,6 @@ export function Frame({
           style={{ position: 'absolute', left: fit.x, top: fit.y, width: fit.width, height: fit.height, opacity }}
         />
       ) : null}
-      {path && path.length > 1 ? (
-        <Svg width={width} height={height} style={{ position: 'absolute', left: 0, top: 0 }} pointerEvents="none">
-          <Polyline
-            points={path.map((p) => toScreen(p, fit)).map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')}
-            stroke={colors.flare}
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            fill="none"
-          />
-        </Svg>
-      ) : null}
       {children}
     </View>
   );
@@ -94,56 +78,6 @@ export function Pulse({ children }: { children: ReactNode }) {
   }, [o]);
   const style = useAnimatedStyle(() => ({ opacity: o.value }));
   return <Animated.View style={style}>{children}</Animated.View>;
-}
-
-export function StatusDot({ status, testID }: { status: CueStatus; testID?: string }) {
-  const base = { width: 8, height: 8, borderRadius: 4 };
-  if (status === 'trying') return <View testID={testID} style={[base, { backgroundColor: colors.flare }]} />;
-  if (status === 'stuck') return <View testID={testID} style={[base, { backgroundColor: colors.text }]} />;
-  if (status === 'didnt_stick')
-    return <View testID={testID} style={[base, { borderWidth: 1.5, borderColor: colors.text }]} />;
-  return <View testID={testID} style={[base, { backgroundColor: colors.text3 }]} />;
-}
-
-export function Chip({
-  label,
-  selected,
-  onPress,
-  height = 32,
-  testID,
-}: {
-  label: string;
-  selected?: boolean;
-  onPress?: () => void;
-  height?: number;
-  testID?: string;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      testID={testID}
-      accessibilityRole="button"
-      accessibilityState={{ selected: !!selected }}
-      style={{
-        height,
-        paddingHorizontal: 12,
-        justifyContent: 'center',
-        borderWidth: 1,
-        borderColor: selected ? colors.text : colors.hairline,
-        ...shape.control,
-      }}
-    >
-      <Text
-        style={{
-          color: colors.text,
-          ...type.readout,
-          fontFamily: selected ? fontFamily.bodyMedium : fontFamily.body,
-        }}
-      >
-        {label}
-      </Text>
-    </Pressable>
-  );
 }
 
 // Destructive action: flare outline, never a filled flare button.

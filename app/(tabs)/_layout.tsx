@@ -42,8 +42,6 @@ export default function TabsLayout() {
       )}
     >
       <Tabs.Screen name="index" />
-      <Tabs.Screen name="cues" />
-      <Tabs.Screen name="trends" />
       <Tabs.Screen name="me" />
     </Tabs>
   );

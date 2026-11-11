@@ -208,5 +208,5 @@ function LoopingVideo({ uri, width, height }: { uri: string; width: number; heig
     p.muted = true;
     p.play();
   });
-  return <VideoView testID="share-video" player={player} style={{ width, height }} contentFit="contain" nativeControls={false} />;
+  return <VideoView testID="share-video" player={player} style={{ width, height }} contentFit="contain" nativeControls={false} allowsVideoFrameAnalysis={false} />;
 }

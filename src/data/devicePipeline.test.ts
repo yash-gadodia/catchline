@@ -49,7 +49,7 @@ jest.mock('../analysis/device/analyseTrace', () => {
 });
 jest.mock('expo-crypto', () => ({ randomUUID: () => 'lift-1' }));
 jest.mock('./liftOutbox', () => ({ queueLiftSync: jest.fn(async () => 1) }));
-jest.mock('./freeLifts', () => ({ writeFreeUsed: jest.fn(async () => undefined) }));
+jest.mock('./freeLifts', () => ({ writeFreeUsed: jest.fn(async () => undefined), writeFreeWeek: jest.fn(async () => undefined) }));
 jest.mock('../features/purchases/usePurchases', () => ({ usePurchases: { getState: () => ({ tier: 'free' }) } }));
 jest.mock('../lib/analytics', () => ({ ...jest.requireActual('../lib/analytics'), track: jest.fn() }));
 
@@ -92,14 +92,14 @@ beforeEach(() => {
   appState.currentState = 'active';
 });
 
-const BANNER = { title: 'Analysing your Clean', subtitle: 'Keeps working in the background.' };
+const BANNER = { title: 'Tracking your lift', subtitle: 'Keeps working in the background.' };
 const INTERRUPTED = new Error('Could not analyse on device: interrupted: the system ended the run in the background');
 
 describe('startDeviceLift, the happy path', () => {
   it('analyses on the phone with no server call first, keeps the result locally, counts it and queues the slim record', async () => {
     await startDeviceLift(SUB);
     expect(prepareClip).toHaveBeenCalledTimes(1);
-    expect(mockAnalyse).toHaveBeenCalledWith('file:///clip.mov.mp4', 'snatch', undefined, { title: 'Analysing your Snatch', subtitle: 'Keeps working in the background.', from: 0, to: 0.8 });
+    expect(mockAnalyse).toHaveBeenCalledWith('file:///clip.mov.mp4', 'snatch', undefined, { title: 'Tracking your lift', subtitle: 'Keeps working in the background.', from: 0, to: 0.8 });
     expect(mockTrace).toHaveBeenCalledWith({ traceVersion: 1, frames: [] }, 'snatch', { analysisId: 'lift-1', assetPrefix: 'lift-1' });
     expect(saveLocalLift).toHaveBeenCalledWith('lift-1', expect.objectContaining({ id: 'lift-1', movement: 'snatch', loadKg: 70 }), 'file:///cache/pose-coreml/trace.json.gz', {}, null);
     expect(keepClip).toHaveBeenCalledWith('lift-1', 'file:///clip.mov.mp4');
@@ -248,7 +248,7 @@ describe('startDeviceLift when the lifter has left the app', () => {
     expect(usePipeline.getState().job?.status).toBe('done');
     expect(mockSchedule).toHaveBeenCalledTimes(1);
     expect(mockSchedule.mock.calls[0][0]).toEqual({
-      content: { title: 'Your Snatch is ready', body: 'Tap to see your cue.', data: { liftId: 'lift-1' } },
+      content: { title: 'Your lift is ready', body: 'Tap to see the bar path on your video.', data: { liftId: 'lift-1' } },
       trigger: null,
     });
   });
@@ -258,7 +258,7 @@ describe('startDeviceLift when the lifter has left the app', () => {
     mockPermissions.mockResolvedValueOnce({ status: 'granted' });
     mockTrace.mockReturnValue({ ...snatchMock, id: 'x', failure: { reason: 'no_reps', code: 'no_reps' } });
     await startDeviceLift(SUB);
-    expect(mockSchedule.mock.calls[0][0].content).toEqual({ title: "We couldn't read your Snatch", body: 'Tap to see why, and what to try next.', data: { liftId: 'lift-1' } });
+    expect(mockSchedule.mock.calls[0][0].content).toEqual({ title: "We couldn't track your clip", body: 'Tap to see why, and what to try next.', data: { liftId: 'lift-1' } });
   });
 
   it('posts nothing when notifications are off, or when the app is in front', async () => {

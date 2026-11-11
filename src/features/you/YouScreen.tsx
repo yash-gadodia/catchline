@@ -35,7 +35,7 @@ import {
   type Settings,
 } from './settings';
 
-type Nav = { onDemo: () => void; onWhatIsStored: () => void; onDeleteAccount: () => void; onPlan: () => void; onReport: () => void; onSupport?: () => void; onWhatsNew: () => void; onHelp: () => void };
+type Nav = { onDemo?: () => void; onWhatIsStored: () => void; onDeleteAccount: () => void; onPlan: () => void; onReport: () => void; onSupport?: () => void; onWhatsNew: () => void; onHelp: () => void };
 type Picker = 'name' | 'language' | 'units' | 'defaultMovement' | 'frameRate' | 'cueReminder' | 'autoDelete' | null;
 
 function options<T extends string>(labels: Record<T, string>): { value: T; label: string }[] {
@@ -148,7 +148,6 @@ export default function YouScreen({
             testID="row-plan"
           />
         ) : null}
-        <Row title={t('you.seeHowItWorks')} right={<Value>›</Value>} onPress={nav.onDemo} testID="row-demo" />
         <Row
           title={t('you.language')}
           right={<Value>{languageLabel(settings.language)}</Value>}

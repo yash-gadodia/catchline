@@ -11,7 +11,6 @@ import {
   phaseAt,
   phaseFrame,
   phaseOfFrame,
-  phaseRail,
   phaseSeconds,
   phaseTicks,
   pointAt,
@@ -129,13 +128,6 @@ describe('phase timing', () => {
     expect(phaseSeconds(rep.phases[1], 60)).toBeCloseTo(0.5, 6);
   });
 
-  it('weights the rail by phase length', () => {
-    expect(phaseRail(rep)).toEqual([
-      { name: 'setup', weight: 20 },
-      { name: 'first_pull', weight: 30 },
-      { name: 'transition', weight: 50 },
-    ]);
-  });
 });
 
 describe('liftPath', () => {
