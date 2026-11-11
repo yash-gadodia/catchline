@@ -42,6 +42,8 @@ for (const file of process.argv.slice(2)) {
     if (start && src[seed] === 1) {
       const ok = onPlate(src, fit, centres, wr, seed, yaw ?? 0);
       res.ok = ok.filter(Boolean).length;
+      const heldQ = (k: number) => { const v = ok.flatMap((o, f) => (o ? [fit[f][k]] : [])).sort((a, b) => a - b); return v.length ? r(v[Math.floor(v.length / 2)], 2) : null; };
+      res.held = { rim: heldQ(1), pol: heldQ(2) };
       const M0 = fit[seed][0], home = dist(centres[seed], wr[seed]);
       const det = src.flatMap((s, f) => (s === 1 ? [f] : []));
       const q = (v: number[]) => { const s = v.filter(Number.isFinite).sort((a, b) => a - b); return s.length ? [0.1, 0.5, 0.9].map((p) => r(s[Math.floor(p * (s.length - 1))], 2)) : null; };

@@ -305,8 +305,9 @@ const PLATE_START_SIZE = 0.3;
 const PLATE_SHARE_MIN = 0.1;
 const PLATE_FIT_SIZE: [number, number] = [0.25, 0.85];
 const PLATE_RIM_ALONE = 0.55;
-const PLATE_POLARITY_ALONE = 0.6;
-const PLATE_SAME = 0.15;
+const PLATE_POLARITY_ALONE = 0.7;
+const PLATE_SAME = 0.1;
+const PLATE_RUN_SHARED = 6;
 const PLATE_FAR = 1.0;
 const PLATE_MOVES = 0.5;
 
@@ -321,9 +322,12 @@ function fusePlate(held: Pt[], barRaw: Pt[], Ms: Affine[], fps: number): { drawn
   return { drawn: lowpassPts(fused.path, fps, 6.0), plate: fused.plate };
 }
 
-// Two follows are of one plate when they sit the same way from the hands (the middle offset over the frames each
-// holds, within PLATE_SAME setup heights): the near and the far plate of one bar do not.
+// Two follows are of one plate when they put it in one place on the frames both hold (the middle distance within
+// PLATE_SAME setup heights); holding no frame in common, when they sit the same way from the hands (the middle
+// offset over the frames each holds). The near and the far plate of one bar do neither.
 function samePlate(a: Pt[], b: Pt[], kw: K, setupH: number): boolean {
+  const both = a.flatMap((p, f) => (finitePt(p) && finitePt(b[f]) ? [dist(p, b[f])] : []));
+  if (both.length >= PLATE_RUN_SHARED) return median(both) <= PLATE_SAME * setupH;
   const off = (c: Pt[]) => {
     const d = c.flatMap((p, f): Pt[] => (finitePt(p) && finitePt(kw[f][L_WRI]) && finitePt(kw[f][R_WRI]) ? [sub(p, midPt(kw[f][L_WRI], kw[f][R_WRI]))] : []));
     return d.length ? ([median(d.map((p) => p[0])), median(d.map((p) => p[1]))] as Pt) : NAN_PT;
