@@ -3,6 +3,7 @@ import { newClip, useCapture } from './store';
 import { useOnboarding } from '../onboarding/store';
 import { usePurchases } from '../purchases/usePurchases';
 import { useUsage } from '../paywall/usageStore';
+import { weekKey } from '../paywall/entitlements';
 import { startLift } from '../../data/pipeline';
 import * as SecureStore from 'expo-secure-store';
 
@@ -35,22 +36,22 @@ test('after a purchase the saved clip is analysed, replacing the paywall', async
   expect(mockNav.push).not.toHaveBeenCalled();
 });
 
-test('a free lifter with no videos left still gets the paywall, not a loop', async () => {
+test('a free lifter with no videos left this week still gets the paywall, not a loop', async () => {
   useCapture.setState({ draft: newClip({ uri: 'file:///clip.mov', durationS: 8, fps: 30, source: 'camera', movement: 'snatch' }) });
   usePurchases.setState({ tier: 'free', period: null });
-  useUsage.setState({ usage: { lifetime: 3, month: '', thisMonth: 0 } });
+  useUsage.setState({ usage: { lifetime: 3, week: weekKey(new Date()), thisWeek: 3 } });
   mockAllowance.mockResolvedValue({ plan: 'free', period: 'lifetime', cap: 3, used: 3, bonus: 0, remaining: 0 });
 
   expect(submitDraft({ replace: true })).toBe(true);
   await flush();
   expect(startLift).not.toHaveBeenCalled();
-  expect(mockNav.replace).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/paywall' }));
+  expect(mockNav.replace).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/paywall/cap' }));
 });
 
 test('the gate never waits on the server: a lower server count changes nothing (3.1: the phone decides)', async () => {
   useCapture.setState({ draft: newClip({ uri: 'file:///clip.mov', durationS: 8, fps: 30, source: 'camera', movement: 'snatch' }) });
   usePurchases.setState({ tier: 'free', period: null });
-  useUsage.setState({ usage: { lifetime: 3, month: '', thisMonth: 0 } });
+  useUsage.setState({ usage: { lifetime: 3, week: weekKey(new Date()), thisWeek: 3 } });
   mockAllowance.mockResolvedValue({ plan: 'free', period: 'lifetime', cap: 3, used: 2, bonus: 0, remaining: 1 });
 
   expect(submitDraft({ replace: true })).toBe(true);
@@ -58,32 +59,32 @@ test('the gate never waits on the server: a lower server count changes nothing (
 
   expect(useUsage.getState().usage.lifetime).toBe(3);
   expect(startLift).not.toHaveBeenCalled();
-  expect(mockNav.replace).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/paywall' }));
+  expect(mockNav.replace).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/paywall/cap' }));
 });
 
-test('a reinstall: the Keychain count survives and gates the fourth lift', async () => {
-  await SecureStore.setItemAsync('catchline.free_used', '3');
+test('a reinstall: this week’s Keychain count survives and gates the fourth lift', async () => {
+  await SecureStore.setItemAsync('catchline.free_week', `${weekKey(new Date())}:3`);
   useCapture.setState({ draft: newClip({ uri: 'file:///clip.mov', durationS: 8, fps: 30, source: 'camera', movement: 'snatch' }) });
   usePurchases.setState({ tier: 'free', period: null });
 
   submitDraft({ replace: true });
   await flush();
 
-  expect(useUsage.getState().usage.lifetime).toBe(3);
+  expect(useUsage.getState().usage.thisWeek).toBe(3);
   expect(startLift).not.toHaveBeenCalled();
-  expect(mockNav.replace).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/paywall' }));
+  expect(mockNav.replace).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/paywall/cap' }));
 });
 
 test('offline, the local count still gates', async () => {
   useCapture.setState({ draft: newClip({ uri: 'file:///clip.mov', durationS: 8, fps: 30, source: 'camera', movement: 'snatch' }) });
   usePurchases.setState({ tier: 'free', period: null });
-  useUsage.setState({ usage: { lifetime: 3, month: '', thisMonth: 0 } });
+  useUsage.setState({ usage: { lifetime: 3, week: weekKey(new Date()), thisWeek: 3 } });
 
   submitDraft({ replace: true });
   await flush();
 
   expect(startLift).not.toHaveBeenCalled();
-  expect(mockNav.replace).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/paywall' }));
+  expect(mockNav.replace).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/paywall/cap' }));
 });
 
 test('no saved clip: nothing is submitted', () => {

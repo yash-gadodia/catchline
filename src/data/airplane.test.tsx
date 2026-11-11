@@ -10,9 +10,9 @@ import { tusUpload } from '../lib/api/tus';
 import { submitClip, type ClipSubmission } from '../features/capture/submit';
 import { usePurchases } from '../features/purchases/usePurchases';
 import { useUsage } from '../features/paywall/usageStore';
-import { EMPTY_USAGE } from '../features/paywall/entitlements';
+import { EMPTY_USAGE, weekKey } from '../features/paywall/entitlements';
 import { useOnboarding } from '../features/onboarding/store';
-import { FREE_USED_KEY } from './freeLifts';
+import { FREE_USED_KEY, FREE_WEEK_KEY } from './freeLifts';
 import { useLiftOutbox } from './liftOutbox';
 import { usePipeline } from './pipeline';
 import ProcessingRoute from '../../app/analysis/processing';
@@ -119,7 +119,7 @@ beforeEach(() => {
   usePipeline.getState().clear();
   useLiftOutbox.setState({ items: [], cues: [] });
   usePurchases.setState({ tier: 'free', period: null });
-  useUsage.setState({ usage: EMPTY_USAGE, variant: 'organic', queue: [] });
+  useUsage.setState({ usage: EMPTY_USAGE });
   useOnboarding.setState({ consent: { version: 1, acceptedAt: '2026-10-11T07:00:00Z' } });
   (analyseTrace as jest.Mock).mockImplementation((_t: unknown, _m: string, o: { analysisId: string }): Analysis => ({ ...(mock as unknown as Analysis), id: o.analysisId }));
 });
@@ -159,33 +159,34 @@ describe('airplane mode, fresh install', () => {
     noServerAnalysis();
   });
 
-  it('three free lifts, counted in the Keychain and queued for sync_lift; the fourth goes to the paywall', async () => {
+  it('three free lifts in a week, counted in the Keychain and queued for sync_lift; the fourth goes to the weekly cap', async () => {
     const ids = [await analyse(), await analyse(), await analyse()];
     expect(new Set(ids).size).toBe(3);
     expect(useUsage.getState().usage.lifetime).toBe(3);
     expect(await SecureStore.getItemAsync(FREE_USED_KEY)).toBe('3');
+    expect(await SecureStore.getItemAsync(FREE_WEEK_KEY)).toBe(`${weekKey(new Date())}:3`);
     expect(useLiftOutbox.getState().items.map((i) => [i.id, i.synced ?? false])).toEqual(ids.map((id) => [id, false]));
     expect(useLiftOutbox.getState().items[0].lift).toMatchObject({ movement: 'snatch', loadKg: 62.5, made: true });
 
     await submitClip(CLIP);
     const [{ pathname, params: p }] = nav.push.mock.calls[nav.push.mock.calls.length - 1];
-    expect(pathname).toBe('/paywall');
+    expect(pathname).toBe('/paywall/cap');
     expect(p.movement).toBe('snatch');
     expect(analyseOnDevice).toHaveBeenCalledTimes(3);
     expect(usePipeline.getState().job?.liftId).toBe(ids[2]);
     noServerAnalysis();
   });
 
-  it('a reinstall reads the Keychain count, so the free lifts are not handed back', async () => {
-    await SecureStore.setItemAsync(FREE_USED_KEY, '3');
+  it('a reinstall reads this week’s Keychain count, so the free lifts are not handed back', async () => {
+    await SecureStore.setItemAsync(FREE_WEEK_KEY, `${weekKey(new Date())}:3`);
     await submitClip(CLIP);
-    expect(nav.push).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/paywall' }));
+    expect(nav.push).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/paywall/cap' }));
     expect(analyseOnDevice).not.toHaveBeenCalled();
   });
 
   it('a paid plan from the cached entitlement keeps analysing past the free three', async () => {
     usePurchases.setState({ tier: 'pull', period: 'monthly' });
-    useUsage.setState({ usage: { lifetime: 3, month: '2026-10', thisMonth: 3 } });
+    useUsage.setState({ usage: { lifetime: 3, week: weekKey(new Date()), thisWeek: 3 } });
     await analyse();
     expect(analyseOnDevice).toHaveBeenCalledTimes(1);
     noServerAnalysis();

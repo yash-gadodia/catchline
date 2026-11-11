@@ -9,7 +9,7 @@ jest.mock('../auth/appleSignIn', () => ({ signInWithApple: jest.fn() }));
 const { supabase } = jest.requireMock('../../lib/supabase') as { supabase: { auth: { getSession: jest.Mock } } };
 const { signInWithApple } = jest.requireMock('../auth/appleSignIn') as { signInWithApple: jest.Mock };
 
-const PLAN: Plan = { kind: 'sub', tier: 'pull', period: 'annual' };
+const PLAN: Plan = { kind: 'pro', period: 'annual' };
 const session = (anonymous: boolean | null) =>
   supabase.auth.getSession.mockResolvedValue({ data: { session: anonymous === null ? null : { user: { id: 'u1', is_anonymous: anonymous } } } });
 

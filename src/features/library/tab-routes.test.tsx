@@ -3,6 +3,7 @@ import TabsLayout from '../../../app/(tabs)/_layout';
 import LiftsRoute from '../../../app/(tabs)/index';
 import { useOnboarding } from '../onboarding/store';
 import { useUsage } from '../paywall/usageStore';
+import { weekKey } from '../paywall/entitlements';
 import { loadLibrary } from './repository';
 
 const mockNav = { push: jest.fn(), replace: jest.fn(), back: jest.fn() };
@@ -34,11 +35,11 @@ describe('import-first routing', () => {
     expect(mockNav.push).toHaveBeenCalledWith('/capture/import');
   });
 
-  it('keeps the last-free-video heads-up in front of the picker', async () => {
-    useUsage.setState({ usage: { lifetime: 2, month: '', thisMonth: 0 } });
+  it('with one free video left this week the picker still opens directly: no heads-up screen', async () => {
+    useUsage.setState({ usage: { lifetime: 2, week: weekKey(new Date()), thisWeek: 2 } });
     const view = await render(<TabsLayout />);
     await press(view.getByTestId('tab-import'));
-    expect(mockNav.push).toHaveBeenCalledWith('/paywall/last?next=%2Fcapture%2Fimport');
+    expect(mockNav.push.mock.calls).toEqual([['/capture/import']]);
   });
 
   it('the empty Lifts tab imports first, records second and replays the demo', async () => {
