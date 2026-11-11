@@ -4,6 +4,7 @@ import { useOnboarding, type Units } from '../onboarding/store';
 import type { CheckId } from './checks';
 import { useCapture, type Clip, type ClipSource } from './store';
 import type { Trim } from './trim';
+import type { PlateMark } from './plateMark';
 import { nextClipGate, syncKeychainUsage } from '../paywall/hooks';
 import { onDeviceAnalysisEnabled } from '../../data/onDeviceAnalysis';
 import { startLift } from '../../data/pipeline';
@@ -18,6 +19,7 @@ export type ClipSubmission = {
   source: ClipSource;
   fps: number | null;
   overridden: CheckId[];
+  plateMark?: PlateMark | null;
 };
 
 const LB_TO_KG = 0.45359237;
@@ -38,6 +40,7 @@ export function toSubmission(clip: Clip, weight: string, units: Units): ClipSubm
     source: clip.source,
     fps: clip.fps,
     overridden: clip.overridden,
+    plateMark: clip.plateMark ?? null,
   };
 }
 

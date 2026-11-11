@@ -66,6 +66,11 @@ export default function TrackerScreen({
   const [drawing, setDrawing] = useState(false);
   const [shapes, setShapes] = useState<Shape[]>([]);
   const frameRef = useRef(0);
+  // The player keeps to the lift itself (tracking marks it) until the lifter asks for the whole clip.
+  const lift = analysis.lift && analysis.lift.endFrame < count ? analysis.lift : null;
+  const [whole, setWhole] = useState(false);
+  const first = lift && !whole ? lift.startFrame : 0;
+  const last = lift && !whole ? lift.endFrame : count - 1;
 
   const player = useVideoPlayer(clipUri, (p) => {
     p.loop = false;
@@ -79,18 +84,26 @@ export default function TrackerScreen({
     const time = player.addListener('timeUpdate', ({ currentTime }) => {
       if (player.duration > 0 && Math.abs(player.duration - duration) > 0.01) setDuration(player.duration);
       const f = frameAt(currentTime, fps, count);
+      if (f > last && player.playing) player.pause();
       if (f === frameRef.current) return;
       frameRef.current = f;
       setFrameState(f);
     });
-    const loaded = player.addListener('sourceLoad', (e) => e.duration > 0 && setDuration(e.duration));
+    const loaded = player.addListener('sourceLoad', (e) => {
+      if (e.duration > 0) setDuration(e.duration);
+      if (first > 0 && frameRef.current < first) {
+        frameRef.current = first;
+        setFrameState(first);
+        player.currentTime = timeOf(first, e.duration > 0 ? count0 / e.duration : fps);
+      }
+    });
     const play = player.addListener('playingChange', ({ isPlaying }) => setPlaying(isPlaying));
     return () => {
       time.remove();
       play.remove();
       loaded.remove();
     };
-  }, [player, fps, count, duration]);
+  }, [player, fps, count, duration, first, last]);
 
   const exitDraw = () => {
     setDrawing(false);
@@ -98,7 +111,7 @@ export default function TrackerScreen({
   };
 
   const seek = (next: number) => {
-    const f = Math.min(Math.max(0, Math.round(next)), count - 1);
+    const f = Math.min(Math.max(first, Math.round(next)), last);
     player.pause();
     if (f === frameRef.current) return;
     frameRef.current = f;
@@ -115,18 +128,18 @@ export default function TrackerScreen({
     impact('light');
     if (playing) return player.pause();
     exitDraw();
-    if (frameRef.current >= count - 1) player.currentTime = 0;
+    if (frameRef.current >= last || frameRef.current < first) player.currentTime = timeOf(first, fps);
     player.play();
   };
 
-  const scrub = useRef({ seek, count, width });
-  scrub.current = { seek, count, width };
+  const scrub = useRef({ seek, first, last, width });
+  scrub.current = { seek, first, last, width };
   const pan = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: (e) => scrub.current.seek((e.nativeEvent.pageX / scrub.current.width) * (scrub.current.count - 1)),
-      onPanResponderMove: (e) => scrub.current.seek((e.nativeEvent.pageX / scrub.current.width) * (scrub.current.count - 1)),
+      onPanResponderGrant: (e) => scrub.current.seek(scrub.current.first + (e.nativeEvent.pageX / scrub.current.width) * (scrub.current.last - scrub.current.first)),
+      onPanResponderMove: (e) => scrub.current.seek(scrub.current.first + (e.nativeEvent.pageX / scrub.current.width) * (scrub.current.last - scrub.current.first)),
     }),
   ).current;
 
@@ -164,7 +177,7 @@ export default function TrackerScreen({
       </View>
       <View {...pan.panHandlers} testID="tracker-scrub" accessibilityRole="adjustable" accessibilityLabel={t('analysis.tracker.scrub')} style={{ height: SCRUB_H, justifyContent: 'center' }}>
         <View style={{ height: 3, backgroundColor: colors.hairline }}>
-          <View style={{ height: 3, width: `${(frame / Math.max(count - 1, 1)) * 100}%`, backgroundColor: colors.text }} />
+          <View style={{ height: 3, width: `${(Math.min(Math.max(frame - first, 0), last - first) / Math.max(last - first, 1)) * 100}%`, backgroundColor: colors.text }} />
         </View>
       </View>
       <View style={{ borderBottomWidth: stroke.hairline, borderBottomColor: colors.hairline }}>
@@ -207,6 +220,11 @@ export default function TrackerScreen({
                 {t(`analysis.tracker.overlay.${k}`)}
               </Chip>
             ))}
+          {lift ? (
+            <Chip testID="toggle-whole" toggle on={whole} onPress={() => setWhole((w) => !w)}>
+              {t('analysis.tracker.wholeClip')}
+            </Chip>
+          ) : null}
           {playing ? null : (
             <Chip testID="toggle-draw" toggle on={drawing} onPress={() => (drawing ? exitDraw() : setDrawing(true))}>
               {t('analysis.player.overlay.draw')}

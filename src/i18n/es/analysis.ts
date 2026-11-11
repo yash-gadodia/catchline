@@ -48,6 +48,7 @@ export const analysis: Strings<typeof en> = {
   'analysis.tracker.overlay.lines': "líneas",
   'analysis.tracker.overlay.body': "cuerpo",
   'analysis.tracker.overlay.angles': "ángulos",
+  'analysis.tracker.wholeClip': "clip entero",
   'analysis.tracker.prevFrame': "Fotograma anterior",
   'analysis.tracker.nextFrame': "Fotograma siguiente",
   'analysis.tracker.scrub': "Recorrer el vídeo",

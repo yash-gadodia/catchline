@@ -176,6 +176,7 @@ describe('submit', () => {
       source: 'camera',
       fps: 30,
       overridden: ['whole_body'],
+      plateMark: null
     });
   });
 

@@ -8,6 +8,9 @@ import {
 } from './movement';
 import { AnalysisJson, Ctx, PlateTap, fail, pathOnly } from './pipeline';
 import { DeviceInput } from './source';
+import { liftWindow } from './liftWindow';
+import { midPt } from './geometry';
+import { percentile } from './num';
 
 // The joints kept per frame, in this order; a frame holds x, y for each (normalised to the frame), null where the
 // pose has no such joint on that frame.
@@ -88,5 +91,13 @@ export function track(input: DeviceInput, opts: { analysisId?: string; assetPref
       return [p.x, p.y];
     }),
   );
+  // where the lift is in the clip: the hands' height above the feet, in standing heights (the shoulders stand at
+  // about 0.82 of it)
+  const drop = ksm.map((row) => midPt(row[L_ANK], row[R_ANK])[1] - midPt(row[L_SHO], row[R_SHO])[1]).filter(Number.isFinite);
+  const stand = drop.length ? percentile(drop, 90) / 0.82 : NaN;
+  const lift = only.analysis.traceKind === 'bar' && stand > 0
+    ? liftWindow(ksm.map((row, f) => (finitePt(kr[f][L_WRI]) || finitePt(kr[f][R_WRI]) ? (midPt(row[L_ANK], row[R_ANK])[1] - Math.max(...[row[L_WRI], row[R_WRI]].filter(finitePt).map((p) => p[1]))) / stand : NaN)), meta.fps)
+    : null;
+  if (lift) only.analysis.lift = lift;
   return { analysis: only.analysis, body: { version: 1, frames } };
 }

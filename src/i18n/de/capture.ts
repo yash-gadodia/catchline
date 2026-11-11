@@ -30,6 +30,13 @@ export const capture: Strings<typeof en> = {
   'capture.import.record': "Lieber aufnehmen",
   'capture.import.failedTitle': "Das Video ließ sich nicht öffnen",
   'capture.import.failedBody': "Versuch es noch einmal oder wähl ein Video, das auf diesem Handy gespeichert ist.",
+  'capture.mark.title': "Scheibe markieren",
+  'capture.mark.back': "Zurück",
+  'capture.mark.help': "Drücke auf die Mitte der Scheibe, die der Kamera am nächsten ist, und ziehe bis zu ihrem Rand.",
+  'capture.mark.redo': "Markiert. Zum Ändern erneut drücken und ziehen.",
+  'capture.mark.track': "Tracken",
+  'capture.mark.skip': "Überspringen, Scheibe selbst finden",
+  'capture.mark.stage': "Das erste Bild deines Clips. Drücke auf die Mitte der Scheibe und ziehe bis zum Rand.",
   'capture.trim.title': "Schneiden",
   'capture.trim.cancel': "Abbrechen",
   // REVIEW
