@@ -38,11 +38,15 @@ export async function renderTrackImage(clipUri: string, spec: TrackSpec): Promis
   return (await Transcoder.renderTrackImage(clipUri, JSON.stringify(spec))).uri;
 }
 
+export type ShareResult = { outcome: 'shared' | 'cancelled'; activity: string | null };
+
 // The iOS share sheet with the file: Instagram (Stories, Reels, Feed), WhatsApp,
-// Messages, Save, AirDrop.
-export async function shareFile(uri: string): Promise<'shared' | 'cancelled'> {
+// Messages, Save, AirDrop. iOS says which activity took the file (an identifier such as
+// com.apple.UIKit.activity.SaveToCameraRoll), never what happened inside that app.
+export async function shareFile(uri: string): Promise<ShareResult> {
   const res = await Share.share({ url: uri });
-  return res.action === Share.dismissedAction ? 'cancelled' : 'shared';
+  if (res.action === Share.dismissedAction) return { outcome: 'cancelled', activity: null };
+  return { outcome: 'shared', activity: res.activityType ?? null };
 }
 
 export async function saveToPhotos(uri: string): Promise<'saved' | 'denied'> {

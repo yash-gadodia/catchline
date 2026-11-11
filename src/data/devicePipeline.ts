@@ -11,6 +11,8 @@ import type { Analysis, Failure, Movement } from '../analysis/types';
 import type { ClipSubmission } from '../features/capture/submit';
 import { notifyLiftReady } from '../features/notifications';
 import { rememberClip } from '../features/share/localClips';
+import { hasBarPath } from '../features/share/trackShare';
+import { plateMarkSupported } from '../features/capture/plateMark';
 import { usePurchases } from '../features/purchases/usePurchases';
 import { randomUUID } from 'expo-crypto';
 import type { SyncLiftInput } from '../lib/api';
@@ -205,6 +207,10 @@ export async function startDeviceLift(sub: ClipSubmission & { uri: string }): Pr
     stage: null,
     fraction: 0,
   });
+  const startedAt = Date.now();
+  // the lifter's mark on the plate: made, skipped, or never asked for (the binary cannot start from one)
+  const mark = sub.plateMark ? 'made' : plateMarkSupported() ? 'skipped' : 'not_asked';
+  track(EVENTS.TRACK_STARTED, { source: sub.source, mark });
   let prepared: string | null = null;
   activateKeepAwakeAsync(KEEP_AWAKE_TAG).catch(() => undefined);
   try {
@@ -227,6 +233,7 @@ export async function startDeviceLift(sub: ClipSubmission & { uri: string }): Pr
       track(EVENTS.ANALYSIS_FAILED, { movement: sub.movement, code: record.failureCode ?? 'unknown' });
       patch({ status: 'failed', error: 'analysis_failed', result: local });
     } else {
+      track(EVENTS.TRACK_COMPLETED, { seconds: Math.round((Date.now() - startedAt) / 1000), frames: local.video.frameCount, has_bar_path: hasBarPath(local), mark });
       track(EVENTS.ANALYSIS_COMPLETED, { movement: sub.movement, cue_confidence: local.cue?.confidence ?? 'none', no_cue_code: record.noCueCode ?? 'none', made: record.made ?? 'unknown' });
       patch({ status: 'done', result: local });
     }

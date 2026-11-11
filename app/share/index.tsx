@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAnalysis } from '../../src/analysis/useAnalysis';
@@ -10,11 +11,18 @@ import ShareScreen from '../../src/features/share/ShareScreen';
 import TrackShareScreen from '../../src/features/share/TrackShareScreen';
 import { localClipFor } from '../../src/features/share/localClips';
 import { SHARE_ASPECTS } from '../../src/features/share/overlay';
+import { EVENTS, track } from '../../src/lib/analytics';
+
+// Where a share can be opened from; anything else in the link counts as the player.
+const FROM = ['player', 'reveal'];
 
 export default function ShareRoute() {
   // Dev links: &clip=<file uri>&start=<s> stand in for the lifter's own clip (simulator QA).
-  const p = useLocalSearchParams<{ fixture?: string; aspect?: string; tier?: string; clip?: string; start?: string }>();
+  const p = useLocalSearchParams<{ fixture?: string; aspect?: string; tier?: string; clip?: string; start?: string; from?: string }>();
   const router = useRouter();
+  useEffect(() => {
+    track(EVENTS.SHARE_OPENED, { from: p.from && FROM.includes(p.from) ? p.from : 'player' });
+  }, []);
   const isPro = usePurchases((s) => hasFeature(s.tier, 'watermarkFreeExport'));
   const load = useAnalysis(p.fixture);
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));

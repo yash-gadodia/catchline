@@ -56,6 +56,11 @@ export function pxPerPt(video: Size): number {
   return video.width / Math.min(SCREEN.width, Math.round((Math.round(SCREEN.height * 0.6) * video.width) / video.height));
 }
 
+// A bar path was drawn for this lift (the plate was followed); a hip trail or a body-only result is not one.
+export function hasBarPath(analysis: Analysis): boolean {
+  return analysis.traceKind === 'bar' && (analysis.reps[0]?.path.length ?? 0) > 0;
+}
+
 const px = (pt: number, unit: number) => Number((pt * unit).toFixed(2));
 
 export function frameCountOf(analysis: Analysis, body: Body | null): number {

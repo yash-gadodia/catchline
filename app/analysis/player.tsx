@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
 import { useLocalSearchParams, useNavigation, useRouter, type Href } from 'expo-router';
+import { EVENTS, track } from '../../src/lib/analytics';
+import { hasBarPath } from '../../src/features/share/trackShare';
 import { useAnalysis } from '../../src/analysis/useAnalysis';
 import AnalysisPlaceholder from '../../src/features/analysis/AnalysisPlaceholder';
 import PlayerScreen from '../../src/features/analysis/PlayerScreen';
@@ -25,6 +27,10 @@ export default function PlayerRoute() {
   const load = useAnalysis(fixture);
   const id = Array.isArray(fixture) ? fixture[0] : fixture;
   const clip = id ? localClipUri(id) : null;
+  const opened = load.status === 'ready' ? load.analysis : null;
+  useEffect(() => {
+    if (opened) track(EVENTS.PLAYER_OPENED, { kind: clip ? 'tracker' : 'stills', has_bar_path: hasBarPath(opened) });
+  }, [opened?.id]);
   const lift = useLift(id);
   const body = useLocalBody(id, !!clip);
   // A 4.0 lift (its clip is kept) plays on the tracker and lands here straight from the tracking; a 3.x lift opens on its stills.
