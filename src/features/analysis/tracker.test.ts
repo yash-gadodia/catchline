@@ -1,5 +1,5 @@
 import type { Body } from '../../analysis/device/tracking';
-import { bones, drawnSide, floorY, frameAt, jointAngles, joints, liftRange, mostlyPlate, spread, timeOf } from './tracker';
+import { bones, drawnSide, floorY, frameAt, jointAngles, joints, liftRange, spread, timeOf } from './tracker';
 
 // shoulder, elbow, wrist, hip, knee, ankle, heel, toe; left then right. The right side is unseen but for the hip.
 const row = (pts: Record<number, [number, number]>): (number | null)[] => {
@@ -74,14 +74,6 @@ describe('the body on a frame', () => {
   it('puts the floor under the feet of the first frame that shows them', () => {
     expect(floorY(body)).toBe(0.93);
     expect(floorY(null)).toBeNull();
-  });
-});
-
-describe('mostlyPlate', () => {
-  it('is true when at least half the path came off the plate', () => {
-    expect(mostlyPlate([{ frame: 0, x: 0, y: 0, src: 'plate' }, { frame: 1, x: 0, y: 0, src: 'wrist' }])).toBe(true);
-    expect(mostlyPlate([{ frame: 0, x: 0, y: 0, src: 'wrist' }, { frame: 1, x: 0, y: 0 }])).toBe(false);
-    expect(mostlyPlate([])).toBe(false);
   });
 });
 

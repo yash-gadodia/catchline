@@ -1,5 +1,5 @@
 import type { Size } from '../../analysis/geometry';
-import type { Point, Rep, TracePoint } from '../../analysis/types';
+import type { Point, Rep } from '../../analysis/types';
 import type { Body } from '../../analysis/device/tracking';
 import { angleAt } from './drawGeometry';
 
@@ -109,12 +109,6 @@ export function floorY(body: Body | null): number | null {
     if (ys.length >= 2) return Math.max(...ys);
   }
   return null;
-}
-
-// Whether most of the path was read off the plate (else the hands stand in for the bar).
-export function mostlyPlate(path: TracePoint[]): boolean {
-  if (!path.length) return false;
-  return path.filter((p) => p.src === 'plate').length >= path.length / 2;
 }
 
 // Angles are read in the image plane, so they are only shown when the camera is near side-on.

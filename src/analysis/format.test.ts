@@ -1,11 +1,9 @@
 import type { Cue, Measurement } from './types';
 import {
-  evidenceReadout,
   fmt,
   formatWait,
   heroValue,
   liftTitle,
-  movementNote,
   speedRows,
   phaseLabel,
   processingSteps,
@@ -34,26 +32,6 @@ describe('fmt', () => {
   });
 });
 
-describe('movementNote', () => {
-  it('says what the clip looked like and that it was analysed that way', () => {
-    const a = { ...snatchMock, detectedMovement: { movement: 'clean' as const, confidence: 0.9 }, movementUsed: 'clean' as const };
-    expect(movementNote(a)).toBe('Looks like a clean, not a snatch. Analysed as a clean.');
-  });
-
-  it('asks when the detection was too weak to switch', () => {
-    const a = { ...snatchMock, detectedMovement: { movement: 'clean' as const, confidence: 0.7 }, movementUsed: 'snatch' as const };
-    expect(movementNote(a)).toBe('Looks like a clean, not a snatch. Keep as snatch?');
-    const gym = { ...snatchMock, movement: 'kipping_pull_up' as const, detectedMovement: { movement: 'jerk' as const, confidence: 0.7 } };
-    expect(movementNote(gym)).toBe('Looks like a jerk, not a kipping pull-up. Keep as kipping pull-up?');
-  });
-
-  it('is silent when the detection agrees, is unknown, or is missing', () => {
-    expect(movementNote({ ...snatchMock, detectedMovement: { movement: 'snatch', confidence: 0.9 }, movementUsed: 'snatch' })).toBeNull();
-    expect(movementNote({ ...snatchMock, detectedMovement: { movement: 'unknown', confidence: 0 } })).toBeNull();
-    expect(movementNote(snatchMock)).toBeNull();
-  });
-});
-
 describe('titles', () => {
   it('reads movement, load and rep', () => {
     expect(liftTitle(snatchMock, 2)).toBe('Snatch · 62.5 kg · rep 2');
@@ -68,9 +46,8 @@ describe('titles', () => {
 });
 
 describe('evidence', () => {
-  it('formats the hero number and the readout from the cue', () => {
+  it('formats the hero number from the cue', () => {
     expect(heroValue(snatchMock.cue!)).toBe('6 cm');
-    expect(evidenceReadout(snatchMock.cue!)).toBe('frame 422 · hip · 6 cm fwd · best 2 cm');
   });
 });
 
