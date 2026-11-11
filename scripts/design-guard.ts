@@ -119,6 +119,13 @@ export function runDesignGuard(rule: Rule): void {
     if (lines.length <= allowed) continue;
     over.push(`  ${rel}: ${lines.length} found, baseline ${allowed} (lines ${lines.join(', ')})`);
   }
+  // A whole-repo run also fails on budget left behind by a deleted file, so the baseline cannot rot.
+  const stale = args.length > 0 ? [] : Object.keys(budget).filter((rel) => !existsSync(join(ROOT, rel)));
+  if (stale.length > 0) {
+    console.error(`${rule.name}: scripts/design-baseline.json lists files that no longer exist; delete their entries:`);
+    for (const rel of stale) console.error(`  ${rel}`);
+    if (over.length === 0) process.exit(1);
+  }
   if (over.length === 0) return;
   console.error(`${rule.name}: ${rule.message}`);
   for (const o of over) console.error(o);
