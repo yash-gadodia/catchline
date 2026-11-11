@@ -9,15 +9,15 @@ function offerings(packages: PurchasesPackage[]) {
   return { current: null, all: { default: { availablePackages: packages } } } as unknown as PurchasesOfferings;
 }
 
-const PULL_ANNUAL = { kind: 'sub', tier: 'pull', period: 'annual' } as const;
+const PRO_ANNUAL = { kind: 'pro', period: 'annual' } as const;
 
 describe('store prices', () => {
   it('uses the localised price string once offerings load, the USD table before', () => {
-    expect(makePriceFor(null)(PULL_ANNUAL)).toBe('$19.99');
-    expect(makePriceFor(offerings([pkg('pull_annual', 78.98, 'S$78.98')]))(PULL_ANNUAL)).toBe('S$78.98');
+    expect(makePriceFor(null)(PRO_ANNUAL)).toBe('$19.99');
+    expect(makePriceFor(offerings([pkg('pull_annual', 78.98, 'S$78.98')]))(PRO_ANNUAL)).toBe('S$78.98');
   });
 
-  it('computes the annual saving from the store prices of Pull', () => {
+  it('computes the annual saving from the store prices of Pro', () => {
     const sgd = offerings([pkg('pull_monthly', 13.98, 'S$13.98'), pkg('pull_annual', 78.98, 'S$78.98')]);
     expect(annualSavingFor(sgd)).toBe(53);
   });

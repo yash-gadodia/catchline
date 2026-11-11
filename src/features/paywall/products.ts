@@ -1,40 +1,21 @@
-import type { Period, StorePlatform, SubTier } from './entitlements';
+import type { Period } from './entitlements';
 
-// The purchasable plans. Mirrors docs/catchline/PRODUCTS.md; change both together.
-export type Plan = { kind: 'sub'; tier: SubTier; period: Period; trial?: boolean } | { kind: 'founding' };
+// What the app sells: Catchline Pro (the Pull subscriptions) and the Founding seat.
+// Mirrors docs/catchline/PRODUCTS.md; change both together.
+//   pro monthly  package `pull_monthly`  App Store `catchline_pull_monthly`  Play `catchline_pull:monthly`
+//   pro annual   package `pull_annual`   App Store `catchline_pull_annual`   Play `catchline_pull:annual`
+//   founding     package `founding`      `catchline_founding_lifetime` on both stores
+export type Plan = { kind: 'pro'; period: Period } | { kind: 'founding' };
 
-export const OFFERING = { default: 'default', adTrial: 'ad_trial' } as const;
+export const OFFERING = 'default';
 
-export function offeringFor(plan: Plan): string {
-  return plan.kind === 'sub' && plan.trial ? OFFERING.adTrial : OFFERING.default;
-}
-
-// Package identifiers inside the offering. The trial offering uses RevenueCat's standard
-// $rc_annual / $rc_monthly so the hosted paywall can render it too.
+// The package identifier inside the offering; also the plan's name in analytics.
 export function packageIdFor(plan: Plan): string {
-  if (plan.kind === 'founding') return 'founding';
-  if (plan.trial) return plan.period === 'annual' ? '$rc_annual' : '$rc_monthly';
-  return `${plan.tier}_${plan.period}`;
-}
-
-// App Store product ids are flat; Play subscriptions are `subscriptionId:basePlanId`.
-export function productIdFor(plan: Plan, platform: StorePlatform): string {
-  if (plan.kind === 'founding') return 'catchline_founding_lifetime';
-  if (platform === 'ios') return `catchline_${plan.tier}_${plan.period}${plan.trial ? '_trial7' : ''}`;
-  return `catchline_${plan.tier}:${plan.period}${plan.trial ? '-trial7' : ''}`;
-}
-
-// Play upgrades name the subscription id only (no base plan).
-export function playSubscriptionId(tier: SubTier): string {
-  return `catchline_${tier}`;
+  return plan.kind === 'founding' ? 'founding' : `pull_${plan.period}`;
 }
 
 export function periodFromProductId(id: string): Period | null {
   if (id.includes('annual')) return 'annual';
   if (id.includes('monthly')) return 'monthly';
   return null;
-}
-
-export function planKey(plan: Plan): string {
-  return plan.kind === 'founding' ? 'founding' : `${plan.tier}_${plan.period}${plan.trial ? '_trial' : ''}`;
 }

@@ -35,7 +35,7 @@ describe('release build: the dev entries redirect home', () => {
   it('/paywall/dev', async () => {
     const view = await render(<PaywallDev />);
     expect(view.getByTestId('redirect')).toHaveTextContent('/');
-    expect(view.queryByText('DEV · PAYWALL AND PLANS')).toBeNull();
+    expect(view.queryByText('DEV · PAYWALL')).toBeNull();
   });
 });
 
@@ -50,6 +50,6 @@ describe('dev build: the dev entries list every state', () => {
   it('/paywall/dev', async () => {
     const view = await render(<PaywallDev />);
     expect(view.queryByTestId('redirect')).toBeNull();
-    expect(view.getByText('DEV · PAYWALL AND PLANS')).toBeOnTheScreen();
+    expect(view.getByText('DEV · PAYWALL')).toBeOnTheScreen();
   });
 });

@@ -30,8 +30,8 @@ const cue: CueRecord = {
 afterEach(() => setLanguage('en'));
 
 describe.each([
-  ['es', 'Tú', 'Idioma', 'Indicaciones', 'Aterriza en la línea donde empezaste.', 'Qué pasa con tu vídeo', 'La indicación es una estimación de IA, no un consejo médico.'],
-  ['de', 'Du', 'Sprache', 'Hinweise', 'Lande auf der Linie, auf der du gestartet bist.', 'Was mit deinem Video passiert', 'Der Hinweis ist eine KI-Schätzung, kein medizinischer Rat.'],
+  ['es', 'Tú', 'Idioma', 'Indicaciones', 'Aterriza en la línea donde empezaste.', 'Qué pasa con tu vídeo', 'Medimos posiciones, no caras.'],
+  ['de', 'Du', 'Sprache', 'Hinweise', 'Lande auf der Linie, auf der du gestartet bist.', 'Was mit deinem Video passiert', 'Wir messen Positionen, keine Gesichter.'],
 ] as const)('screens in %s', (locale, you, language, cuesTitle, cueText, privacyTitle, estimate) => {
   beforeEach(() => setLanguage(locale));
 

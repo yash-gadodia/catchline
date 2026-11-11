@@ -51,21 +51,6 @@ export function groups(): { id: LiftGroup; label: string }[] {
   ];
 }
 
-// The stored values stay English; focusLabel shows them in the current language.
-export const FOCUS = ['Bar swings forward', 'Missing behind', "Can't link reps", 'First muscle-up'];
-
-const FOCUS_KEYS: Record<string, Key> = {
-  'Bar swings forward': 'onboarding.lifts.focus.barSwingsForward',
-  'Missing behind': 'onboarding.lifts.focus.missingBehind',
-  "Can't link reps": 'onboarding.lifts.focus.cantLinkReps',
-  'First muscle-up': 'onboarding.lifts.focus.firstMuscleUp',
-};
-
-export function focusLabel(f: string): string {
-  const key = FOCUS_KEYS[f];
-  return key ? t(key) : f;
-}
-
 export function liftById(id: Movement): Lift {
   return LIFTS.find((l) => l.id === id)!;
 }

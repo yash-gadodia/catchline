@@ -63,7 +63,6 @@ function offerings() {
     current: null,
     all: {
       default: { availablePackages: [pkg('hook_annual'), pkg('pull_annual'), pkg('pull_monthly'), pkg('founding')] },
-      ad_trial: { availablePackages: [pkg('$rc_annual'), pkg('$rc_monthly')] },
     },
   };
 }
@@ -79,7 +78,6 @@ function sdk() {
     restorePurchases: jest.fn(),
     logIn: jest.fn(),
     logOut: jest.fn(async () => info({})),
-    STORE_REPLACEMENT_MODE: { CHARGE_PRORATED_PRICE: 'CHARGE_PRORATED_PRICE', DEFERRED: 'DEFERRED' },
   };
 }
 
@@ -149,7 +147,7 @@ describe('demo mode (no SDK)', () => {
   });
 
   it('a successful demo purchase unlocks the plan locally', async () => {
-    const status = await usePurchases.getState().purchase({ kind: 'sub', tier: 'pull', period: 'annual' });
+    const status = await usePurchases.getState().purchase({ kind: 'pro', period: 'annual' });
     expect(status).toBe('success');
     expect(usePurchases.getState().tier).toBe('pull');
     expect(usePurchases.getState().period).toBe('annual');
@@ -163,7 +161,7 @@ describe('demo mode (no SDK)', () => {
 
   it('a failing demo outcome leaves the tier alone', async () => {
     usePurchases.getState().setDemoOutcome('offline');
-    const status = await usePurchases.getState().purchase({ kind: 'sub', tier: 'hook', period: 'monthly' });
+    const status = await usePurchases.getState().purchase({ kind: 'pro', period: 'monthly' });
     expect(status).toBe('offline');
     expect(usePurchases.getState().tier).toBe('free');
   });
@@ -224,24 +222,17 @@ describe('with the SDK', () => {
     const Purchases = sdk();
     Purchases.purchasePackage.mockResolvedValue({ customerInfo: PULL_ANNUAL });
     mockLoadPurchases.mockReturnValue({ Purchases, RevenueCatUI: null });
-    const status = await usePurchases.getState().purchase({ kind: 'sub', tier: 'pull', period: 'annual' });
+    const status = await usePurchases.getState().purchase({ kind: 'pro', period: 'annual' });
     expect(status).toBe('success');
-    expect(Purchases.purchasePackage).toHaveBeenCalledWith(pkg('pull_annual'), null, null);
+    expect(Purchases.purchasePackage).toHaveBeenCalledWith(pkg('pull_annual'));
     expect(usePurchases.getState().tier).toBe('pull');
-  });
-
-  it('buys the trial package from the ad_trial offering', async () => {
-    const Purchases = sdk();
-    Purchases.purchasePackage.mockResolvedValue({ customerInfo: PULL_ANNUAL });
-    mockLoadPurchases.mockReturnValue({ Purchases, RevenueCatUI: null });
-    await usePurchases.getState().purchase({ kind: 'sub', tier: 'pull', period: 'annual', trial: true });
-    expect(Purchases.purchasePackage).toHaveBeenCalledWith(pkg('$rc_annual'), null, null);
   });
 
   it('fails when the offering has no such package', async () => {
     const Purchases = sdk();
     mockLoadPurchases.mockReturnValue({ Purchases, RevenueCatUI: null });
-    const status = await usePurchases.getState().purchase({ kind: 'sub', tier: 'platform', period: 'annual' });
+    Purchases.getOfferings.mockResolvedValue({ current: null, all: { default: { availablePackages: [pkg('pull_annual')] } } });
+    const status = await usePurchases.getState().purchase({ kind: 'pro', period: 'monthly' });
     expect(status).toBe('failed');
     expect(Purchases.purchasePackage).not.toHaveBeenCalled();
   });
@@ -254,19 +245,6 @@ describe('with the SDK', () => {
     Purchases.purchasePackage.mockRejectedValueOnce({ code: '35' });
     expect(await usePurchases.getState().purchase({ kind: 'founding' })).toBe('offline');
     expect(usePurchases.getState().tier).toBe('free');
-  });
-
-  it('on Play, an upgrade charges the prorated price against the old subscription', async () => {
-    mockPlatform.OS = 'android';
-    const Purchases = sdk();
-    Purchases.purchasePackage.mockResolvedValue({ customerInfo: PULL_ANNUAL });
-    mockLoadPurchases.mockReturnValue({ Purchases, RevenueCatUI: null });
-    usePurchases.setState({ tier: 'hook', period: 'annual' });
-    await usePurchases.getState().purchase({ kind: 'sub', tier: 'pull', period: 'annual' });
-    expect(Purchases.purchasePackage).toHaveBeenCalledWith(pkg('pull_annual'), null, {
-      oldProductIdentifier: 'catchline_hook',
-      replacementMode: 'CHARGE_PRORATED_PRICE',
-    });
   });
 
   it('restore reads the restored plan', async () => {
@@ -346,7 +324,7 @@ describe('with the SDK and the backend on', () => {
     mockGetAllowance.mockResolvedValue({ plan: 'pull' });
     mockLoadPurchases.mockReturnValue({ Purchases, RevenueCatUI: null });
     usePurchases.setState({ ready: true, demo: false });
-    const status = await usePurchases.getState().purchase({ kind: 'sub', tier: 'pull', period: 'annual' });
+    const status = await usePurchases.getState().purchase({ kind: 'pro', period: 'annual' });
     expect(status).toBe('success');
     expect(order).toEqual(['logIn', 'purchase']);
     expect(Purchases.logIn).toHaveBeenCalledWith(UID);
@@ -407,7 +385,7 @@ describe('with the SDK and the backend on', () => {
     mockGetAllowance.mockResolvedValue({ plan: 'pull' });
     mockLoadPurchases.mockReturnValue({ Purchases, RevenueCatUI: null });
     usePurchases.setState({ appUserId: UID });
-    const status = await usePurchases.getState().purchase({ kind: 'sub', tier: 'pull', period: 'annual' });
+    const status = await usePurchases.getState().purchase({ kind: 'pro', period: 'annual' });
     expect(status).toBe('success');
     expect(Purchases.restorePurchases).toHaveBeenCalledTimes(1);
     expect(usePurchases.getState().tier).toBe('pull');
@@ -420,7 +398,7 @@ describe('with the SDK and the backend on', () => {
     mockEnsureSession.mockResolvedValue(UID);
     mockLoadPurchases.mockReturnValue({ Purchases, RevenueCatUI: null });
     usePurchases.setState({ appUserId: UID });
-    expect(await usePurchases.getState().purchase({ kind: 'sub', tier: 'pull', period: 'annual' })).toBe('failed');
+    expect(await usePurchases.getState().purchase({ kind: 'pro', period: 'annual' })).toBe('failed');
     expect(mockGetAllowance).not.toHaveBeenCalled();
   });
 
