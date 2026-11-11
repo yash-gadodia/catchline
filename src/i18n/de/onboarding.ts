@@ -2,10 +2,9 @@ import type { Strings } from '../types';
 import type { onboarding as en } from '../en/onboarding';
 
 export const onboarding: Strings<typeof en> = {
-  'onboarding.welcome.title': "Sieh deinen Lift.",
-  'onboarding.welcome.body': "Stangenweg und Körperlinien in jedem Bild.",
+  'onboarding.welcome.title': "Sieh deinen Lift so.",
+  'onboarding.welcome.body': "Wähle ein Video von einem Lift. Dein Handy zeichnet Hantelweg und Körperlinien darauf.",
   'onboarding.welcome.private': "Alles läuft auf deinem Handy. Dein Video verlässt es nie.",
-  'onboarding.welcome.start': "Los geht's",
   'onboarding.welcome.agree': "Wenn du fortfährst, bestätigst du, dass du über 16 bist, und akzeptierst die Nutzungsbedingungen und den Datenschutz.",
   'onboarding.lifts.sub.barPath': "Stangenweg",
   'onboarding.lifts.sub.hipPath': "Hüftweg",
@@ -26,7 +25,6 @@ export const onboarding: Strings<typeof en> = {
   'onboarding.guide.frame': "Dein ganzer Körper und die Scheibe im Bild.",
   'onboarding.guide.angle': "Von der Seite gelingt der Stangenweg am besten. Für Körperlinien geht jeder Winkel.",
   'onboarding.guide.caption': "Handy ruhig, seitlich für den Stangenweg",
-  'onboarding.guide.next': "Weiter",
   'onboarding.guide.done': "Verstanden",
   'onboarding.add.title': "Füge dein erstes Video hinzu",
   'onboarding.add.body': "Wähle eins aus Fotos oder filme jetzt einen Lift. Die Kamera nimmt nur auf, wenn du den Knopf drückst.",
@@ -43,4 +41,6 @@ export const onboarding: Strings<typeof en> = {
   'onboarding.privacy.continue': "Weiter",
   'onboarding.privacy.policy': "Datenschutz",
   'onboarding.privacy.terms': "Nutzungsbedingungen",
+  'onboarding.welcome.pick': "Einen deiner Lifts auswählen",
+  'onboarding.welcome.film': "Jetzt einen Lift filmen",
 };

@@ -2,10 +2,9 @@ import type { Strings } from '../types';
 import type { onboarding as en } from '../en/onboarding';
 
 export const onboarding: Strings<typeof en> = {
-  'onboarding.welcome.title': "Vois ton mouvement.",
-  'onboarding.welcome.body': "Trajectoire de barre et lignes du corps sur chaque image.",
+  'onboarding.welcome.title': "Vois ton mouvement comme ça.",
+  'onboarding.welcome.body': "Choisis une vidéo d'un mouvement. Ton téléphone y trace la trajectoire de barre et les lignes du corps.",
   'onboarding.welcome.private': "Tout se passe sur ton téléphone. Ta vidéo ne le quitte jamais.",
-  'onboarding.welcome.start': "Commencer",
   'onboarding.welcome.agree': "En continuant, tu confirmes avoir plus de 16 ans et tu acceptes les conditions et la politique de confidentialité.",
   'onboarding.lifts.sub.barPath': "trajectoire de la barre",
   'onboarding.lifts.sub.hipPath': "trajectoire des hanches",
@@ -26,7 +25,6 @@ export const onboarding: Strings<typeof en> = {
   'onboarding.guide.frame': "Tout ton corps et le disque dans le cadre.",
   'onboarding.guide.angle': "De profil, la trajectoire de barre est la plus nette. Pour les lignes du corps, tout angle convient.",
   'onboarding.guide.caption': "téléphone immobile, de profil pour la barre",
-  'onboarding.guide.next': "Suivant",
   'onboarding.guide.done': "Compris",
   'onboarding.add.title': "Ajoute ta première vidéo",
   'onboarding.add.body': "Choisis-en une dans Photos ou filme un mouvement maintenant. La caméra n'enregistre que lorsque tu appuies sur le bouton.",
@@ -43,4 +41,6 @@ export const onboarding: Strings<typeof en> = {
   'onboarding.privacy.continue': "Continuer",
   'onboarding.privacy.policy': "politique de confidentialité",
   'onboarding.privacy.terms': "conditions",
+  'onboarding.welcome.pick': "Choisir un de tes mouvements",
+  'onboarding.welcome.film': "Filmer un mouvement maintenant",
 };
