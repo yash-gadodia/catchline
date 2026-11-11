@@ -40,6 +40,18 @@ export function track(input: DeviceInput, opts: { analysisId?: string; assetPref
   if (sig === null) return { analysis: fail(ctx, 'unsupported_movement', 'no_person', 'Could not find a person in this clip.').analysis, body: null };
   const only = pathOnly(ctx, 'no_reps');
   if (!only) return { analysis: fail(ctx, 'unsupported_movement', 'no_path', 'Could not follow the bar or the body in this clip.').analysis, body: null };
+  // Once the plate has been followed, the path is the plate's: the hands before it is first read and after it is last
+  // read (walking up to the bar, the bar dropped and the lifter moving off) are not the bar, so they are not drawn.
+  const rep = (only.analysis.reps as { path: { x: number; src?: string }[]; guides?: { startX: number } }[])[0];
+  const firstPlate = rep.path.findIndex((p) => p.src === 'plate');
+  if (firstPlate >= 0) {
+    let lastPlate = rep.path.length - 1;
+    while (rep.path[lastPlate].src !== 'plate') lastPlate -= 1;
+    if (lastPlate > firstPlate) {
+      rep.path = rep.path.slice(firstPlate, lastPlate + 1);
+      if (rep.guides) rep.guides.startX = rep.path[0].x;
+    }
+  }
   const det = detect(world, meta.fps);
   only.analysis.detectedMovement = { movement: det.movement, confidence: det.confidence };
 
