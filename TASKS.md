@@ -16,12 +16,17 @@ Owner decision 11-11: drop cues; the app tracks any lift or gymnastics clip and 
 - [ ] Store listing copy and screenshots
 - [ ] Follow-ups from the onboarding/paywall pass: Lifts chip, capture `freeUsed` and library `freeVideosUsed` still read the lifetime count (use `useVideosLeft()`); `app/(tabs)` still links `/onboarding/demo` and `/paywall/plans` (both gone); drop `captureHref`, `routeAfterAnalysis`, submit's 'paywall'/'trial' branches and devicePipeline's `writeFreeUsed`; nothing asks for notifications before the first result any more
 ## Phase 3: store build
-- [ ] Burned-in share video (path, lines, body), 60 fps camera, faster tracking (detector every Nth frame)
+- [x] Burned-in share video and image (path, lines, body, 0.25/0.5/1x): `modules/clip-transcoder/ios/TrackRenderer.swift`, spec from `src/features/share/trackShare.ts`, screen `TrackShareScreen` (branch v40/native-share)
+- [x] 60 fps camera: `modules/lift-camera` (1080p60 where the back camera has the format, else 30); `expo.version` 4.0.0, so this ships in a store build only
+- [ ] (Yash) On a phone: film at 60 fps (portrait and landscape hold), check the badge, the file's frame rate and that the tracker stays in step to the last frame; share a video and an image from the share sheet
+- [ ] Faster tracking (detector every Nth frame)
 ## Notes
 - A lift is submitted and synced as movement 'snatch' whatever it shows (`toSubmission`); a 4.0 lift is titled by date, time and load (`liftTitle` in library/derive), never by that movement.
 - The session scratchpad is shared by every agent of a team: keep scripts in a subfolder of your own (another agent's `i18n.py` overwrote one of the same name and was run by mistake).
 - The native pass is always asked for as 'snatch' (standing lifter selection); a hanging clip is told apart in TS (`family(signals)`), so a crowded gymnastics clip may pick the wrong person until the native side changes.
 - A symlinked node_modules runs the other checkout's code in Metro: clone it (`cp -cR`) for simulator checks. Fast Refresh did not pick up edits on the sim; relaunch the app.
+- Share renderer off-device: `modules/clip-transcoder/harness` (`swift build -c release`, then `track-share video|image <clip> --spec spec.json --out file`); the spec is `JSON.stringify(buildTrackSpec(...))`. A decoded frame from AVAssetReader has no duration (CMSampleBufferGetDuration is invalid), so frame lengths come from the next frame's timestamp.
+- Variable-frame-rate clips: the transcoder keeps every frame's own timestamp (not constant rate) and `analysis.video.fps` is 1 / the shortest frame, so `frameAt(time)` in the player can drift on such a clip; the share render goes by frame order and is not affected.
 - Simulator check without running pose: `trackTrace` on a phone trace + the clip into `Documents/lifts/<id>/` (analysis.json, body.json, clip.mp4), then `catchline://analysis/player?fixture=<id>`.
 
 - [ ] (Claude, build 29, Yash 15-10) Compare with a past lift: pick any earlier lift of the same movement, ghost its bar path aligned at lift-off, side by side (compare is dev-only today, fixtures)

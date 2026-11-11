@@ -1,5 +1,5 @@
 import type { Size } from '../../analysis/geometry';
-import type { Point, TracePoint } from '../../analysis/types';
+import type { Point, Rep, TracePoint } from '../../analysis/types';
 import type { Body } from '../../analysis/device/tracking';
 import { angleAt } from './drawGeometry';
 
@@ -80,6 +80,12 @@ export function jointAngles(j: (Point | null)[], video: Size, side: Side = 'both
     out.push({ name, deg, at });
   }
   return out;
+}
+
+// The start line: where the bar began (the rep's guide, else the first traced point).
+export function startLineX(rep: Rep | undefined): number | null {
+  if (!rep) return null;
+  return rep.guides && Number.isFinite(rep.guides.startX) ? rep.guides.startX : (rep.path[0]?.x ?? null);
 }
 
 // Where the feet stood on the first frame that shows them: the floor line.

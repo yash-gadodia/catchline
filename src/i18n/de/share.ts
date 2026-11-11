@@ -18,4 +18,5 @@ export const share: Strings<typeof en> = {
   'share.shareVideo': "Video teilen",
   'share.saveToPhotos': "In Fotos sichern",
   'share.drawing': "Dein Stangenweg wird gezeichnet",
+  'share.renderFailed': "Das hat nicht geklappt. Versuch es noch einmal.",
 };

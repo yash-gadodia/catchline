@@ -6,6 +6,7 @@ import { Asset, requestPermissionsAsync } from 'expo-media-library';
 import Transcoder from '../../../modules/clip-transcoder';
 import type { OverlaySpec, ShareAspect } from './overlay';
 import { OUTPUT } from './overlay';
+import type { TrackSpec } from './trackShare';
 
 // The still card renders on-device: the card view is captured at export size.
 export async function renderStill(ref: RefObject<View | null>, aspect: ShareAspect): Promise<string> {
@@ -21,6 +22,20 @@ export async function renderVideo(uri: string, spec: OverlaySpec, onProgress: (p
   } finally {
     sub.remove();
   }
+}
+
+// 4.0: the lift's kept clip with the tracker's overlay burned in, and one frame of it as an image.
+export async function renderTrackVideo(clipUri: string, spec: TrackSpec, onProgress: (p: number) => void): Promise<string> {
+  const sub = Transcoder.addListener('onProgress', (e) => onProgress(e.progress));
+  try {
+    return (await Transcoder.renderTrackVideo(clipUri, JSON.stringify(spec))).uri;
+  } finally {
+    sub.remove();
+  }
+}
+
+export async function renderTrackImage(clipUri: string, spec: TrackSpec): Promise<string> {
+  return (await Transcoder.renderTrackImage(clipUri, JSON.stringify(spec))).uri;
 }
 
 // The iOS share sheet with the file: Instagram (Stories, Reels, Feed), WhatsApp,
