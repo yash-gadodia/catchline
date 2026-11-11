@@ -31,6 +31,8 @@ export type PlateFollow = {
   fit: [number, number, number, number][];
 };
 
+export type FollowHow = { tap?: Pt; back?: boolean };
+
 export interface FrameSource {
   // Frames [start, start + count) of the clip (fewer when the clip ends sooner): per frame the 2x3 affine mapping its
   // inference px to the window's first frame (background motion, people masked), and the RANSAC inlier count of each
@@ -47,7 +49,10 @@ export interface FrameSource {
   // Follow the near plate through a window from its seed frame (window index) to stop (window index, exclusive; null =
   // the window's end). Returns one entry per window frame.
   trackPlate(windowStart: number, windowLength: number, seed: number, plate: PlateObservation, stop: number | null): PlateTrack;
-  followPlate?(windowStart: number, windowLength: number, seed: number, wrists: Pt[], hands: [Pt, Pt], bodyH: number, setupH: number): PlateFollow;
+  // The near plate followed through a window from its seed frame, started by a search around the hands there, or
+  // (how.tap) on the plate under a point the user put on it on that frame (inference px); how.back also follows it
+  // over the frames before the seed. One entry per window frame: src 1 detected, 2 carried on optical flow, 0 not held.
+  followPlate?(windowStart: number, windowLength: number, seed: number, wrists: Pt[], hands: [Pt, Pt], bodyH: number, setupH: number, how?: FollowHow): PlateFollow;
 }
 
 export type Lifter = {

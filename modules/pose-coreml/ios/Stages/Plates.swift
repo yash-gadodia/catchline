@@ -218,25 +218,52 @@ func startPlate(_ img: BGRImage, _ gray: GrayImage, wrist: Point, wristA: Point,
   return best
 }
 
+// The plate around a point the user put on its middle: the best-edged disc centred within 0.15 of its own size of
+// the point, any size from a fifth of the setup height to 1.3 of it (a plate close to the camera is several times
+// the size the lifter's suggests) and any squeeze down to half; of the discs within 0.05 of the best rim the
+// largest. Held near the point the candidates are the plate's own rings (hub, inner ring, outer rim), so whichever
+// wins, its centre is the plate's: a point anywhere on the plate let an arc of the rim and the plate's lettering
+// make an off-centre disc (IMG_0596). Nil when no disc there has edges.
+func startPlateAt(_ img: BGRImage, _ gray: GrayImage, tap: Point, setupH: Double) throws -> Plate? {
+  guard tap.x.isFinite, tap.y.isFinite, setupH.isFinite, setupH > 0 else { return nil }
+  let majors = linspace(0.2, 1.3, 23).map { $0 * setupH }
+  let reach = 0.85 * majors.last!
+  let G = gradient(gray, around: [tap], reach: reach)
+  let m = plateMask(img, around: [tap], reach: reach)
+  var found: [Plate] = []
+  for M in majors {
+    var centres: [Point] = []
+    for dx in linspace(-0.15, 0.15, 11) { for dy in linspace(-0.15, 0.15, 11) { centres.append(tap + Point(dx * M, dy * M)) } }
+    if let p = searchPlate(m, G, centres, [M], [0.5, 0.6, 0.7, 0.8, 0.9, 1.0]) {
+      let r = rimSupport(G, p.centre, p.axes.0, p.axes.1 / p.axes.0)
+      if r.inside >= 0.6 { var q = p; q.score = r.rim; found.append(q) }
+    }
+  }
+  guard let top = found.map({ $0.score }).max(), top >= 0.4 else { return nil }
+  return found.filter { $0.score >= top - 0.05 }.max { $0.axes.0 < $1.axes.0 }
+}
+
 func followPlateStep(_ img: BGRImage, _ gray: GrayImage, _ s: inout PlateFollow, wrist: Point) -> Int {
   defer { s.prev = gray }
   let M = s.major
+  let R = max(s.reach ?? M, M)
   let hasAnchor = wrist.x.isFinite && wrist.y.isFinite
   let anchor = hasAnchor ? wrist + s.offset : s.centre
   let pred = s.centre + s.velocity
   let lost = s.lost > 0
-  let g = lost ? linspace(-1.0, 1.0, 21) : linspace(-0.4, 0.4, 17)
+  // the grid keeps its step in plate sizes (a tenth lost, a twentieth held) when the reach is longer than the plate
+  let g = lost ? linspace(-1.0, 1.0, min(61, Int((20 * R / M).rounded()) + 1)) : linspace(-0.4, 0.4, min(41, Int((16 * R / M).rounded()) + 1))
   var cands: [Point] = []
   for p in lost ? [anchor] : (hasAnchor ? [pred, anchor] : [pred]) {
-    for dx in g { for dy in g { cands.append(p + Point(dx * M, dy * M)) } }
+    for dx in g { for dy in g { cands.append(p + Point(dx * R, dy * R)) } }
   }
   let majors = [0.9, 1.0, 1.1].map { $0 * M }
   let G = gradient(gray, around: cands, reach: 0.6 * majors.last!)
   let m = plateMask(img, around: cands, reach: 0.7 * majors.last!)
-  let gate = (lost ? 1.2 : 0.6) * M
-  func leashed(_ c: Point) -> Bool { !hasAnchor || norm(c - wrist) < norm(s.home) + 0.6 * M }
+  let gate = (lost ? 1.2 : 0.6) * R
+  func leashed(_ c: Point) -> Bool { !hasAnchor || norm(c - wrist) < norm(s.home) + 0.6 * R }
   func accepted(_ c: Point) -> Bool {
-    let near = (!hasAnchor || norm(c - anchor) < gate || (!lost && norm(c - pred) < 0.3 * M))
+    let near = (!hasAnchor || norm(c - anchor) < gate || (!lost && norm(c - pred) < 0.3 * R))
     let side = s.side == 0 || !hasAnchor || (c.x - wrist.x) * s.side > 0
     return near && side && leashed(c)
   }
@@ -270,7 +297,7 @@ func followPlateStep(_ img: BGRImage, _ gray: GrayImage, _ s: inout PlateFollow,
     next = d.centre
     src = 1
     s.flowRun = 0
-    s.major = 0.8 * M + 0.2 * d.axes.0
+    s.major = min(max(0.8 * M + 0.2 * d.axes.0, followSize.0 * s.major0), followSize.1 * s.major0)
   } else if let f = flow {
     next = f
     src = 2
@@ -430,7 +457,10 @@ private func gradient(_ g: GrayImage, around points: [Point], reach: Double) -> 
 
 private func box(around c: Point, half: Double, _ g: GrayImage) -> (Int, Int, Int, Int) {
   guard c.x.isFinite, c.y.isFinite else { return (0, 0, 0, 0) }
-  return (max(0, Int(c.x - half)), max(0, Int(c.y - half)), min(g.width, Int(c.x + half) + 1), min(g.height, Int(c.y + half) + 1))
+  // an empty box (x1 == x0) when the disc is wholly outside the frame: a followed plate that left the top of the
+  // frame gave a range running backwards here, which trapped
+  let x0 = min(max(0, Int(c.x - half)), g.width), y0 = min(max(0, Int(c.y - half)), g.height)
+  return (x0, y0, max(x0, min(g.width, Int(c.x + half) + 1)), max(y0, min(g.height, Int(c.y + half) + 1)))
 }
 
 private func crop(_ g: GrayImage, _ x0: Int, _ y0: Int, _ x1: Int, _ y1: Int) -> GrayImage {

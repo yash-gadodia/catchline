@@ -101,6 +101,20 @@ describe('track (4.0: tracking only)', () => {
     expect(path[0].y).toBeCloseTo(740 / 1280, 2);
   });
 
+  it('follows the plate under a point the user put on it, both ways from that frame, whatever its rim reads', () => {
+    const input = followed(0.6, 0.3);
+    const follow = input.source.followPlate;
+    const asked: unknown[] = [];
+    input.source.followPlate = (s0, len, seed, wrists, hands, bodyH, setupH, how) => {
+      asked.push([seed, how]);
+      return follow!(s0, len, seed, wrists, hands, bodyH, setupH, how);
+    };
+    const path = (track(input, { plateTap: { frame: 30, x: 0.5, y: 0.25 } }).analysis as { reps: { path: { src?: string }[] }[] }).reps[0].path;
+    expect(asked).toEqual([[30, { tap: [360, 320], back: true }]]);
+    expect(path).toHaveLength(90);
+    expect(path.every((p) => p.src === 'plate')).toBe(true);
+  });
+
   it('fails as no person when the pose saw nobody', () => {
     const { analysis, body } = track(clip(90, false));
     expect((analysis as { failure: { code: string } }).failure.code).toBe('no_person');

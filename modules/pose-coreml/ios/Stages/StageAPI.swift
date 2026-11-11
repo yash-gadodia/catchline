@@ -72,8 +72,18 @@ struct PlateTrack {
   }
 }
 
+// A followed plate is re-sized a little every frame towards the best of three sizes. Unbounded, that walked it down
+// onto the plate's inner rings and lettering while the plate lay still (IMG_0596: 236 to 167 px in two seconds), or
+// up without end once the plate had left the frame (IMG_0830). A bar moving towards or away from a close camera
+// changes the plate's size by less than this.
+let followSize = (0.85, 1.5)
+
 struct PlateFollow {
   var major: Double
+  let major0: Double  // the start plate's size: the followed size stays within followSize of it
+  // the length the search around the hands and the leash to them are measured in: the plate's size, or more when the
+  // start is a small ring of a larger plate (a tapped hub), whose own size is too tight a leash off side-on
+  var reach: Double? = nil
   let ratio: Double
   var centre: Point
   var velocity = Point(0, 0)
@@ -87,6 +97,7 @@ struct PlateFollow {
 
   init(seed: Plate, wrist: Point, gray: GrayImage) {
     major = seed.axes.0
+    major0 = seed.axes.0
     ratio = min(seed.axes.1 / seed.axes.0, 1.0)
     centre = seed.centre
     offset = wrist.x.isFinite && wrist.y.isFinite ? seed.centre - wrist : Point(0, 0)

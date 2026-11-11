@@ -8,13 +8,25 @@ import Foundation
 // ExpoModulesCore: the macOS harness drives this same file.
 
 private let cameraSmallHeight = 360
+// the follow backwards from its seed: frames kept (about 0.2 MB each as JPEG) and their quality
+private let followBackMax = 900
+private let followBackQuality = 0.85
 private let L_WRI = 9, R_WRI = 10
 
 struct AnalysePlan {
   struct Window { let s0: Int; let count: Int }
   struct PlateRequest { let frame: Int; let wristA: Point; let wristB: Point; let bodyH: Double; let setupH: Double? }
   struct TrackRequest { let s0: Int; let n: Int; let start: Int; let plate: Plate }
-  struct FollowRequest { let s0: Int; let n: Int; let seed: Int; let wrists: [Point]; let wristA: Point; let wristB: Point; let bodyH: Double; let setupH: Double }
+  // tap: a point the user put on the plate on the seed frame (inference px), which then starts the follow in place
+  // of the search around the hands; back: the plate is also followed over the frames before the seed
+  struct FollowRequest {
+    let s0: Int; let n: Int; let seed: Int; let wrists: [Point]; let wristA: Point; let wristB: Point; let bodyH: Double; let setupH: Double
+    var tap: Point? = nil
+    var back = false
+    // a follow is recorded by its window and seed frame; a tapped one also by its point, so it never answers for the
+    // automatic follow of the same frame
+    var key: String { tap.map { "\(s0):\(n):\(seed):tap:\(Int($0.x.rounded())),\(Int($0.y.rounded()))" } ?? "\(s0):\(n):\(seed)" }
+  }
   struct KeyframeRequest { let name: String; let frame: Int }
 
   var windows: [Window] = []
@@ -57,7 +69,8 @@ struct AnalysePlan {
     for t in json["follows"] as? [[String: Any]] ?? [] {
       follows.append(FollowRequest(s0: try int(t, "s0"), n: try int(t, "n"), seed: try int(t, "seed"),
                                    wrists: (t["wrists"] as? [Any] ?? []).map(point), wristA: point(t["wristA"]), wristB: point(t["wristB"]),
-                                   bodyH: try num(t, "bodyH"), setupH: try num(t, "setupH")))
+                                   bodyH: try num(t, "bodyH"), setupH: try num(t, "setupH"),
+                                   tap: t["tap"] == nil || t["tap"] is NSNull ? nil : point(t["tap"]), back: (t["back"] as? NSNumber)?.boolValue ?? false))
     }
     for k in json["keyframes"] as? [[String: Any]] ?? [] {
       guard let name = k["name"] as? String else { throw StageError.invalid("plan: keyframe name missing") }
@@ -405,6 +418,9 @@ final class DeviceAnalyser {
       var centres: [Double]
       var fit: [Double]
       var src: [Double]
+      // the frames before the seed (JPEG, the last followBackMax of them), for the follow backwards from it
+      var before: [Data] = []
+      var beforeStart = 0
       init(_ f: AnalysePlan.FollowRequest) {
         req = f
         centres = [Double](repeating: .nan, count: f.n * 2)
@@ -467,17 +483,43 @@ final class DeviceAnalyser {
         t.centres[i * 2 + 1] = t.track.centre.y
         t.scores[i] = t.track.score
       }
+      for t in follows where t.req.back && f >= t.req.s0 && f < t.req.s0 + t.req.seed {
+        if t.before.isEmpty { t.beforeStart = f - t.req.s0 }
+        t.before.append(try jpegData(image(), quality: followBackQuality))
+        if t.before.count > followBackMax { t.before.removeFirst(); t.beforeStart += 1 }
+      }
       for t in follows where f >= t.req.s0 + t.req.seed && f < t.req.s0 + t.req.n {
         let i = f - t.req.s0
         let gray = grayscale(image())
         if i == t.req.seed {
-          if let p = try startPlate(image(), gray, wrist: t.wrist(i), wristA: t.req.wristA, wristB: t.req.wristB, bodyH: t.req.bodyH, setupH: t.req.setupH) {
+          let found: Plate?
+          if let tap = t.req.tap {
+            found = try startPlateAt(image(), gray, tap: tap, setupH: t.req.setupH)
+          } else {
+            found = try startPlate(image(), gray, wrist: t.wrist(i), wristA: t.req.wristA, wristB: t.req.wristB, bodyH: t.req.bodyH, setupH: t.req.setupH)
+          }
+          if let p = found {
             t.start = p
             t.follow = PlateFollow(seed: p, wrist: t.wrist(i), gray: gray)
+            if t.req.tap != nil { t.follow!.reach = max(p.axes.0, 0.3 * t.req.setupH) }
             t.centres[i * 2] = p.centre.x
             t.centres[i * 2 + 1] = p.centre.y
             t.src[i] = 1
+            // backwards from the seed over the kept frames, the same step with time reversed
+            var back = t.follow!
+            for j in stride(from: t.before.count - 1, through: 0, by: -1) {
+              guard let img = bgrImage(jpeg: t.before[j], width: outW, height: poseInferHeight) else { break }
+              let k = t.beforeStart + j
+              let g = grayscale(img)
+              t.src[k] = Double(followPlateStep(img, g, &back, wrist: t.wrist(k)))
+              guard t.src[k] > 0 else { continue }
+              t.centres[k * 2] = back.centre.x
+              t.centres[k * 2 + 1] = back.centre.y
+              let fit = plateFit(g, back.centre, back.major, p.axes.1 / p.axes.0)
+              t.fit.replaceSubrange(k * 4 ..< k * 4 + 4, with: [back.major, fit.rim, fit.polarity, fit.interior])
+            }
           }
+          t.before = []
         } else if t.follow != nil {
           t.src[i] = Double(followPlateStep(image(), gray, &t.follow!, wrist: t.wrist(i)))
           if t.src[i] > 0 {
@@ -509,7 +551,7 @@ final class DeviceAnalyser {
         .append(tup([nd([t.req.n, 2], t.centres), nd([t.req.n], t.scores)]))
     }
     for t in follows {
-      r.calls["follow_plate", default: [:]]["\(t.req.s0):\(t.req.n):\(t.req.seed)", default: []]
+      r.calls["follow_plate", default: [:]][t.req.key, default: []]
         .append(tup([nd([t.req.n, 2], t.centres), nd([t.req.n], t.src), nd([t.req.n, 4], t.fit), t.start.map(plateDict) ?? NSNull()]))
     }
     progress("pixels", 1)

@@ -60,6 +60,26 @@ func jpegData(_ img: BGRImage, quality: Double) throws -> Data {
 
 // The sample covering `start`, converted while the reader is still alive
 // (alwaysCopiesSampleData is off, so the buffer is the reader's).
+// A JPEG written by jpegData back as the BGR image, nil when it does not decode to that size.
+func bgrImage(jpeg: Data, width: Int, height: Int) -> BGRImage? {
+  guard let src = CGImageSourceCreateWithData(jpeg as CFData, nil), let cg = CGImageSourceCreateImageAtIndex(src, 0, nil),
+        cg.width == width, cg.height == height else { return nil }
+  var bgra = [UInt8](repeating: 0, count: width * height * 4)
+  let info = CGImageAlphaInfo.noneSkipFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue
+  let drawn = bgra.withUnsafeMutableBytes { buf -> Bool in
+    guard let ctx = CGContext(data: buf.baseAddress, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
+                              space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: info) else { return false }
+    ctx.draw(cg, in: CGRect(x: 0, y: 0, width: width, height: height))
+    return true
+  }
+  guard drawn else { return nil }
+  var out = [UInt8](repeating: 0, count: width * height * 3)
+  for i in 0 ..< width * height {
+    out[i * 3] = bgra[i * 4]; out[i * 3 + 1] = bgra[i * 4 + 1]; out[i * 3 + 2] = bgra[i * 4 + 2]
+  }
+  return BGRImage(width: width, height: height, data: out)
+}
+
 private func decodeFrame(_ asset: AVAsset, _ track: AVAssetTrack, from start: CMTime, rotation: Int, outW: Int) throws -> BGRImage? {
   let reader = try AVAssetReader(asset: asset)
   let output = AVAssetReaderTrackOutput(track: track, outputSettings: [

@@ -76,7 +76,7 @@ import {
   segmentSnatch,
 } from './phases';
 import * as rules from './rules';
-import { DeviceInput, FrameSource, PlateObservation } from './source';
+import { DeviceInput, FollowHow, FrameSource, PlateObservation } from './source';
 import type { PathOnlyGate, PathSource, RepGuides, RepTracks, TracePoint, TrackName } from '../types';
 
 export const KEYFRAME_H = 1080;
@@ -240,7 +240,10 @@ export type Ctx = {
   H: number;
   W: number;
   n: number;
+  // 4.0: a point the user put on the plate (frame, and x, y as shares of the frame), which seeds the plate follow
+  plateTap?: PlateTap;
 };
+export type PlateTap = { frame: number; x: number; y: number };
 
 export type Result = { analysis: AnalysisJson; reps: RepInfo[]; repCalls: (RepInfo | null | false)[] };
 
@@ -305,6 +308,7 @@ const PLATE_START_SIZE = 0.3;
 const PLATE_SHARE_MIN = 0.1;
 const PLATE_FIT_SIZE: [number, number] = [0.25, 0.85];
 const PLATE_RIM_ALONE = 0.55;
+const PLATE_RIM_FITTED = 0.45;
 const PLATE_POLARITY_ALONE = 0.7;
 const PLATE_SAME = 0.1;
 const PLATE_RUN_SHARED = 6;
@@ -339,7 +343,7 @@ function samePlate(a: Pt[], b: Pt[], kw: K, setupH: number): boolean {
 // The near plate's centre (the frame's own px) on the window frames a follow seeded at `seed` holds it, NaN elsewhere;
 // null when no follow is believed. Up to two follows are judged, the one anchored on the hands and, where the fitted
 // plate sits beyond the start search's reach of them, the one anchored on it; the one holding more frames is kept.
-export function plateHeld(source: FrameSource, s0: number, L: number, seed: number, kw: K, bodyH: number, setupH: number, fps: number, offSide: number, plates: Plate[] = []): Pt[] | null {
+export function plateHeld(source: FrameSource, s0: number, L: number, seed: number, kw: K, bodyH: number, setupH: number, fps: number, offSide: number, plates: Plate[] = [], how: FollowHow = {}): Pt[] | null {
   if (!source.followPlate || !(Number.isFinite(setupH) && Number.isFinite(bodyH)) || seed < 0 || seed >= L) return null;
   const wristsW = barFromWrists(col(kw, L_WRI), col(kw, R_WRI), 0.12 * bodyH);
   // a fitted outline outside the sizes the start search can return (PLATE_FIT_SIZE setup heights) is clutter, not the
@@ -354,16 +358,18 @@ export function plateHeld(source: FrameSource, s0: number, L: number, seed: numb
   const k = far ? 1 - (PLATE_HOME * setupH) / away : 0;
   const shift = far ? sub(fitted.centre, wristsW[seed]).map((v) => v * k) : [0, 0];
   const tries: [number, Pt[]][] = [[seed, wristsW]];
-  if (far) tries.push([seed + 1, wristsW.map((p): Pt => (finitePt(p) ? [p[0] + shift[0], p[1] + shift[1]] : p))]);
+  if (far && !how.tap) tries.push([seed + 1, wristsW.map((p): Pt => (finitePt(p) ? [p[0] + shift[0], p[1] + shift[1]] : p))]);
   let best: Pt[] | null = null;
   let most = 0;
   for (const [at, anchor] of tries) {
-    const follow = source.followPlate(s0, L, at, anchor, [kw[at][L_WRI], kw[at][R_WRI]], bodyH, setupH);
+    const follow = source.followPlate(s0, L, at, anchor, [kw[at][L_WRI], kw[at][R_WRI]], bodyH, setupH, how);
     if (follow.src[at] !== 1) continue;
     const ok = onPlate(follow.src, follow.fit, follow.centres, anchor, at, offSide);
     const held = ok.flatMap((v, f) => (v ? [f] : []));
     // a plate held on under a tenth of the window (a second, in a long clip) re-bases the hands' path on an offset
     // read from too few frames
+    // the plate the user pointed at is the plate: its frames are drawn wherever onPlate holds them
+    if (how.tap) return held.length ? follow.centres.map((p, f): Pt => (ok[f] ? p : NAN_PT)) : null;
     if (held.length <= most || held.length < Math.min(PLATE_SHARE_MIN * L, fps)) continue;
     // and a disc that never rises or falls is not on the bar (a plate leaning on a wall behind hands that stay still)
     const ys = held.map((f) => follow.centres[f][1]).sort((a, b) => a - b);
@@ -372,7 +378,9 @@ export function plateHeld(source: FrameSource, s0: number, L: number, seed: numb
     // a dark plate on a dark floor: the finder reads colour), when its rim is one clear circle of one polarity on the
     // frames it holds (6VWB9RY9XPg: a rim of mixed polarity against a bright window was 2.4 radii off the plate)
     const agrees = fitted !== undefined && dist(follow.centres[at], fitted.centre) <= PLATE_START * setupH && Math.abs(follow.fit[at][0] / (fitted.diameter_px as number) - 1) <= PLATE_START_SIZE;
-    if (!agrees && (median(held.map((f) => follow.fit[f][1])) < PLATE_RIM_ALONE || median(held.map((f) => follow.fit[f][2])) < PLATE_POLARITY_ALONE)) continue;
+    const rim = median(held.map((f) => follow.fit[f][1]));
+    // (agreeing with a fitted outline is not enough alone: IMG_1179, ring work, a fitted shoe and a rim of 0.43)
+    if (rim < PLATE_RIM_FITTED || (!agrees && (rim < PLATE_RIM_ALONE || median(held.map((f) => follow.fit[f][2])) < PLATE_POLARITY_ALONE))) continue;
     most = held.length;
     best = follow.centres.map((p, f): Pt => (ok[f] ? p : NAN_PT));
   }
@@ -457,12 +465,19 @@ export function pathOnly(ctx: Ctx, gate: PathOnlyGate): Result | null {
   const setupH = bodyScale ? SETUP_CM * bodyScale : bodyH;
   // a plate the finder did not fit is followed too (its colour mask sees only dark and green plates, the follower's
   // start search reads edges), at any camera angle: what is drawn is what plateHeld believes, the lowest-bar seed's
-  // first and the earlier seed's on the frames that one does not hold
-  const plateAt = seeds.map((seed) => {
-    const found = input.source.plates(seed, kw[seed][L_WRI], kw[seed][R_WRI], bodyH, setupH).map((p): Plate => ({ ...p, diameter_px: Math.max(...p.axes), refined: p.fitInliers !== undefined }));
-    return plateHeld(input.source, 0, L, seed, kw, bodyH, setupH, fps, yaw ?? 0, found);
-  });
-  const held = plateAt.reduceRight<Pt[] | null>((a, b) => (a && b ? (samePlate(a, b, kw, setupH) ? a.map((p, f) => (finitePt(p) ? p : b[f])) : a) : a ?? b), null);
+  // first and the earlier seed's on the frames that one does not hold. A point the user put on the plate replaces
+  // the search: that plate is followed from its frame, both ways.
+  const tap = ctx.plateTap && !hanging && ctx.plateTap.frame >= 0 && ctx.plateTap.frame < L ? ctx.plateTap : null;
+  const plateAt = tap
+    ? [plateHeld(input.source, 0, L, tap.frame, kw, bodyH, setupH, fps, yaw ?? 0, [], { tap: [tap.x * W, tap.y * H], back: true })]
+    : seeds.map((seed) => {
+        const found = input.source.plates(seed, kw[seed][L_WRI], kw[seed][R_WRI], bodyH, setupH).map((p): Plate => ({ ...p, diameter_px: Math.max(...p.axes), refined: p.fitInliers !== undefined }));
+        return plateHeld(input.source, 0, L, seed, kw, bodyH, setupH, fps, yaw ?? 0, found);
+      });
+  // a plate whose centre has left the frame is not drawn there (IMG_0830: overhead, out of the top of the picture)
+  const inFrame = (p: Pt): Pt => (p[0] >= 0 && p[0] <= W && p[1] >= 0 && p[1] <= H ? p : NAN_PT);
+  const merged = plateAt.reduceRight<Pt[] | null>((a, b) => (a && b ? (samePlate(a, b, kw, setupH) ? a.map((p, f) => (finitePt(p) ? p : b[f])) : a) : a ?? b), null);
+  const held = merged && merged.map(inFrame).some(finitePt) ? merged.map(inFrame) : null;
   const fused = held ? fusePlate(held, barRaw, Ms, fps) : null;
   const bar = hanging ? mid(ksm, L_HIP, R_HIP) : fused ? fused.drawn : lowpassPts(barRaw, fps, 6.0);
   const seen = (f: number) => (hanging ? finitePt(kw[f][L_HIP]) && finitePt(kw[f][R_HIP]) : finitePt(kw[f][L_WRI]) || finitePt(kw[f][R_WRI]));
