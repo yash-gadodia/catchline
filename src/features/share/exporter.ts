@@ -43,6 +43,8 @@ export type ShareResult = { outcome: 'shared' | 'cancelled'; activity: string | 
 // The iOS share sheet with the file: Instagram (Stories, Reels, Feed), WhatsApp,
 // Messages, Save, AirDrop. iOS says which activity took the file (an identifier such as
 // com.apple.UIKit.activity.SaveToCameraRoll), never what happened inside that app.
+// The file goes alone: a text item beside a video takes Instagram off the sheet and makes WhatsApp send the text
+// without the video, and React Native's Share cannot give a text to some activities only (docs/catchline/analytics-4.0.md).
 export async function shareFile(uri: string): Promise<ShareResult> {
   const res = await Share.share({ url: uri });
   if (res.action === Share.dismissedAction) return { outcome: 'cancelled', activity: null };
