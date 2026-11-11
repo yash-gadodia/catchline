@@ -87,6 +87,15 @@ private func nanmedian(_ v: [Double]) -> Double {
 
 private func affineND(_ M: Affine) -> [String: Any] { nd([2, 3], M) }
 
+private final class ReadAhead<T>: @unchecked Sendable {
+  let lock = NSLock()
+  var items: [T?] = []
+  var stop = false
+  var failure: Error?
+}
+
+private struct ReadAheadStopped: Error {}
+
 // Sequential decode of the clip's video track as 4:2:0 pixel buffers, one autorelease pool per frame.
 struct ClipReader {
   let asset: AVURLAsset
@@ -134,6 +143,47 @@ struct ClipReader {
       }
     }
     if reader.status == .failed { throw PoseCoreMLError.readFailed(reader.error?.localizedDescription ?? "read") }
+    return i
+  }
+
+  // read with `prepare` (decode + colour conversion, CPU only) running on its own thread up to `ahead` frames in
+  // front of `body` (inference, which mostly waits on the GPU / Neural Engine). Same frames, same order, same values.
+  func read<T>(ahead: Int, prepare: @escaping (Int, CVPixelBuffer) -> T, _ body: (Int, T) throws -> Void) throws -> Int {
+    let shared = ReadAhead<T>()
+    let slots = DispatchSemaphore(value: ahead), ready = DispatchSemaphore(value: 0)
+    let thread = Thread {
+      do {
+        _ = try self.read { f, pb in
+          slots.wait()
+          let stop = shared.lock.withLock { shared.stop }
+          if stop { throw ReadAheadStopped() }
+          let item = prepare(f, pb)
+          shared.lock.withLock { shared.items.append(item) }
+          ready.signal()
+        }
+      } catch {
+        shared.lock.withLock { if !(error is ReadAheadStopped) { shared.failure = error } }
+      }
+      shared.lock.withLock { shared.items.append(nil) }
+      ready.signal()
+    }
+    thread.qualityOfService = .userInitiated
+    thread.start()
+    var i = 0
+    var bodyError: Error?
+    while true {
+      ready.wait()
+      guard let item = shared.lock.withLock({ shared.items.removeFirst() }) else { break }
+      if bodyError == nil {
+        do { try autoreleasepool { try body(i, item) }; i += 1 } catch {
+          bodyError = error
+          shared.lock.withLock { shared.stop = true }
+        }
+      }
+      slots.signal()
+    }
+    if let bodyError { throw bodyError }
+    if let failure = shared.failure { throw failure }
     return i
   }
 }
@@ -221,9 +271,10 @@ struct PoseRun {
   var meta: [String: Any]
 }
 
-// Seconds per stage of the last pose pass (the harness prints ms per frame)
+// Seconds per stage of the last pose pass (the harness prints ms per frame). upright (decode, scaling, colour) runs on
+// its own thread, so the stages add up to more than wall; wait is the model thread waiting for the next frame.
 struct PoseTiming {
-  var decode = 0.0, upright = 0.0, detect = 0.0, pose = 0.0, camera = 0.0
+  var upright = 0.0, wait = 0.0, detect = 0.0, pose = 0.0, camera = 0.0, wall = 0.0
   var frames = 0, people = 0, posed = 0
 }
 
@@ -296,12 +347,22 @@ final class DeviceAnalyser {
       }
       return (row, next)
     }
-    let n = try clip.read { f, pb in
-      if shouldStop() { throw PoseCoreMLError.interrupted }
-      tm.decode += lap()
-      let planes = UprightPlanes(pb, rotation: clip.rotation)
+    // Decode and the two scaled copies of the frame (1280 px for pose, 360 px grey for the camera path) are made one
+    // frame ahead on a second thread while this one runs the models
+    struct Prepared { let img: BGRImage; let small: GrayImage?; let seconds: Double }
+    let rotation = clip.rotation
+    let started = Date()
+    let n = try clip.read(ahead: 2, prepare: { _, pb -> Prepared in
+      let t = Date()
+      let planes = UprightPlanes(pb, rotation: rotation)
       let img = uprightBGR(planes, outW: outW, outH: poseInferHeight)
-      tm.upright += lap()
+      let small = cameraPath ? grayscale(uprightBGR(planes, outW: smallW, outH: cameraSmallHeight)) : nil
+      return Prepared(img: img, small: small, seconds: Date().timeIntervalSince(t))
+    }) { f, frame in
+      if shouldStop() { throw PoseCoreMLError.interrupted }
+      tm.wait += lap()
+      tm.upright += frame.seconds
+      let img = frame.img
       var row: [PosePerson] = []
       var posedCount = 0
       if tracking && f - lastDetect < detectEvery, let carried = try carry(img, from: tracked) {
@@ -330,7 +391,7 @@ final class DeviceAnalyser {
       tm.posed += posedCount
       if twoPass { row = try invertedPass(img, upright: row, models) }
       // track.py camera_path: KLT on the clip at 360 px tall, the previous frame's people masked
-      let small = cameraPath ? grayscale(uprightBGR(planes, outW: smallW, outH: cameraSmallHeight)) : nil
+      let small = frame.small
       if let prev = prevSmall, let small {
         let boxes = people[f - 1].map { $0.box.map { Double($0) * s } }
         let mask = try foregroundMask(width: smallW, height: cameraSmallHeight, boxes: boxes, wrists: nil, scale: 0)
@@ -345,6 +406,7 @@ final class DeviceAnalyser {
       if p - sent >= 0.02 { sent = p; progress("pose", p) }
     }
     progress("pose", 1)
+    tm.wall = Date().timeIntervalSince(started)
     timing = tm
     let lifter = selectLifter(people, hanging: hanging)
     var k: [Double] = [], ks: [Double] = [], boxes: [Double] = []
