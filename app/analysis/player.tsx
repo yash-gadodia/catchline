@@ -4,6 +4,7 @@ import { useAnalysis } from '../../src/analysis/useAnalysis';
 import AnalysisPlaceholder from '../../src/features/analysis/AnalysisPlaceholder';
 import PlayerScreen from '../../src/features/analysis/PlayerScreen';
 import TrackerScreen from '../../src/features/analysis/TrackerScreen';
+import PlateFramesAsk from '../../src/features/plateFrames/PlateFramesAsk';
 import { useLocalBody } from '../../src/features/analysis/useLocalBody';
 import { localClipUri } from '../../src/data/localLifts';
 import { liftTitle } from '../../src/features/library/derive';
@@ -35,7 +36,21 @@ export default function PlayerRoute() {
   const share = () => router.push({ pathname: '/share', params: { fixture: analysis.id } });
   if (clip) {
     if (!body.ready) return <AnalysisPlaceholder status="loading" onBack={back} />;
-    return <TrackerScreen key={analysis.id} analysis={analysis} clipUri={clip} body={body.body} title={lift ? liftTitle(lift) : ''} onBack={back} onShare={share} />;
+    return (
+      <>
+        <TrackerScreen
+          key={analysis.id}
+          analysis={analysis}
+          clipUri={clip}
+          body={body.body}
+          title={lift ? liftTitle(lift) : ''}
+          onBack={back}
+          onShare={share}
+          onPathWrong={(at) => router.push({ pathname: '/analysis/correct', params: { fixture: analysis.id, frame: String(at) } })}
+        />
+        {analysis.failure ? null : <PlateFramesAsk liftId={analysis.id} />}
+      </>
+    );
   }
   return (
     <PlayerScreen

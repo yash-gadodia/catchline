@@ -120,4 +120,22 @@ export const analysis: Strings<typeof en> = {
   'analysis.processing.step.bar': "Suivre la barre",
   'analysis.processing.step.body': "Suivre ton corps",
   'analysis.processing.step.lines': "Tracer les lignes",
+  // REVIEW
+  'analysis.tracker.pathWrong': "La trajectoire est fausse",
+  // REVIEW
+  'analysis.correct.title': "Marquez le disque",
+  // REVIEW
+  'analysis.correct.back': "Retour",
+  // REVIEW
+  'analysis.correct.stage': "Cette image de votre mouvement. Appuyez sur le disque et faites glisser jusqu’au bord.",
+  // REVIEW
+  'analysis.correct.help': "Appuyez au centre du disque le plus proche de la caméra et faites glisser jusqu’au bord.",
+  // REVIEW
+  'analysis.correct.redo': "Faites glisser à nouveau pour recommencer.",
+  // REVIEW
+  'analysis.correct.sent': "Un recadrage de cette image est envoyé pour améliorer le détecteur de disques. Pas votre vidéo.",
+  // REVIEW
+  'analysis.correct.local': "Enregistré sur ce téléphone uniquement.",
+  // REVIEW
+  'analysis.correct.save': "Enregistrer",
 };

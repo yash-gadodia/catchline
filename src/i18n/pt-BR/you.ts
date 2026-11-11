@@ -143,4 +143,24 @@ export const you: Strings<typeof en> = {
   'you.whatsNew.v31.reads': "Leituras mais precisas de levantamentos filmados em ângulo e do hang, e um arremesso completo é lido como um só levantamento.",
   // REVIEW
   'you.whatsNew.v31.hips': "Corrigido: uma barra que trava no quadril não atrapalha mais a leitura.",
+  // REVIEW
+  'you.plates.title': "Ajude o Catchline a encontrar melhor as anilhas",
+  // REVIEW
+  'you.plates.body': "Envie os quadros que você marca: pequenos recortes quadrados ao redor da anilha, com o seu círculo. Não o seu vídeo.",
+  // REVIEW
+  'you.plates.detail': "De cada levantamento recebemos o quadro que você marcou e até mais quatro da trajetória rastreada. Um recorte pode mostrar parte de você ou de alguém por perto. Usamos apenas para treinar o localizador de anilhas e guardamos por até 24 meses. Você pode desativar ou apagar o que enviou na aba Você.",
+  // REVIEW
+  'you.plates.yes': "Enviar meus quadros",
+  // REVIEW
+  'you.plates.no': "Agora não",
+  // REVIEW
+  'you.plates.toggle': "Ajudar a encontrar melhor as anilhas",
+  // REVIEW
+  'you.plates.toggleSub': "Envia pequenos recortes ao redor da anilha dos seus levantamentos. Não o seu vídeo. Um recorte pode mostrar parte de você.",
+  // REVIEW
+  'you.plates.delete': "Apagar os quadros que enviei",
+  // REVIEW
+  'you.plates.deleted': "Apagados dos nossos servidores. O próximo localizador de anilhas será treinado sem eles.",
+  // REVIEW
+  'you.plates.deleteFailed': "Não foi possível apagar agora. Verifique sua conexão e tente de novo.",
 };

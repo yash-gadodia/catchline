@@ -143,4 +143,24 @@ export const you: Strings<typeof en> = {
   'you.whatsNew.v31.reads': "Lecturas más precisas de levantamientos grabados en ángulo y desde colgado, y un dos tiempos completo se lee como un solo levantamiento.",
   // REVIEW
   'you.whatsNew.v31.hips': "Corregido: una barra que se frena en la cadera ya no altera la lectura.",
+  // REVIEW
+  'you.plates.title': "Ayuda a Catchline a encontrar mejor los discos",
+  // REVIEW
+  'you.plates.body': "Envía los fotogramas que marcas: pequeños recortes cuadrados alrededor del disco, con tu círculo. No tu vídeo.",
+  // REVIEW
+  'you.plates.detail': "De cada levantamiento recibimos el fotograma que marcaste y hasta cuatro más de la trayectoria seguida. Un recorte puede mostrar parte de ti o de alguien cercano. Los usamos solo para entrenar el buscador de discos y los guardamos hasta 24 meses. Puedes desactivarlo o borrar lo que enviaste en la pestaña Tú.",
+  // REVIEW
+  'you.plates.yes': "Enviar mis fotogramas",
+  // REVIEW
+  'you.plates.no': "Ahora no",
+  // REVIEW
+  'you.plates.toggle': "Ayudar a encontrar mejor los discos",
+  // REVIEW
+  'you.plates.toggleSub': "Envía pequeños recortes alrededor del disco de tus levantamientos. No tu vídeo. Un recorte puede mostrar parte de ti.",
+  // REVIEW
+  'you.plates.delete': "Borrar los fotogramas que envié",
+  // REVIEW
+  'you.plates.deleted': "Borrados de nuestros servidores. El próximo buscador de discos se entrena sin ellos.",
+  // REVIEW
+  'you.plates.deleteFailed': "No se pudo borrar ahora. Revisa tu conexión e inténtalo de nuevo.",
 };

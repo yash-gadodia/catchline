@@ -120,4 +120,22 @@ export const analysis: Strings<typeof en> = {
   'analysis.processing.step.bar': "Der Stange folgen",
   'analysis.processing.step.body': "Deinem Körper folgen",
   'analysis.processing.step.lines': "Linien zeichnen",
+  // REVIEW
+  'analysis.tracker.pathWrong': "Der Pfad stimmt nicht",
+  // REVIEW
+  'analysis.correct.title': "Scheibe markieren",
+  // REVIEW
+  'analysis.correct.back': "Zurück",
+  // REVIEW
+  'analysis.correct.stage': "Dieses Bild deines Lifts. Drücke auf die Scheibe und ziehe bis zum Rand.",
+  // REVIEW
+  'analysis.correct.help': "Drücke auf die Mitte der Scheibe, die der Kamera am nächsten ist, und ziehe bis zum Rand.",
+  // REVIEW
+  'analysis.correct.redo': "Ziehe erneut, um es zu ändern.",
+  // REVIEW
+  'analysis.correct.sent': "Ein Ausschnitt dieses Bildes wird gesendet, um den Scheibenfinder zu verbessern. Nicht dein Video.",
+  // REVIEW
+  'analysis.correct.local': "Nur auf diesem Telefon gespeichert.",
+  // REVIEW
+  'analysis.correct.save': "Sichern",
 };

@@ -120,4 +120,22 @@ export const analysis: Strings<typeof en> = {
   'analysis.processing.step.bar': "Seguir la barra",
   'analysis.processing.step.body': "Seguir tu cuerpo",
   'analysis.processing.step.lines': "Dibujar las líneas",
+  // REVIEW
+  'analysis.tracker.pathWrong': "La trayectoria está mal",
+  // REVIEW
+  'analysis.correct.title': "Marca el disco",
+  // REVIEW
+  'analysis.correct.back': "Atrás",
+  // REVIEW
+  'analysis.correct.stage': "Este fotograma de tu levantamiento. Pulsa el disco y arrastra hasta su borde.",
+  // REVIEW
+  'analysis.correct.help': "Pulsa el centro del disco más cercano a la cámara y arrastra hasta su borde.",
+  // REVIEW
+  'analysis.correct.redo': "Arrastra de nuevo para rehacerlo.",
+  // REVIEW
+  'analysis.correct.sent': "Se envía un recorte de este fotograma para mejorar el buscador de discos. No tu vídeo.",
+  // REVIEW
+  'analysis.correct.local': "Se guarda solo en este teléfono.",
+  // REVIEW
+  'analysis.correct.save': "Guardar",
 };

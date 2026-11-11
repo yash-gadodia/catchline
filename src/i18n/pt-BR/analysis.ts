@@ -120,4 +120,22 @@ export const analysis: Strings<typeof en> = {
   'analysis.processing.step.bar': "Seguir a barra",
   'analysis.processing.step.body': "Seguir seu corpo",
   'analysis.processing.step.lines': "Desenhar as linhas",
+  // REVIEW
+  'analysis.tracker.pathWrong': "A trajetória está errada",
+  // REVIEW
+  'analysis.correct.title': "Marque a anilha",
+  // REVIEW
+  'analysis.correct.back': "Voltar",
+  // REVIEW
+  'analysis.correct.stage': "Este quadro do seu levantamento. Pressione a anilha e arraste até a borda.",
+  // REVIEW
+  'analysis.correct.help': "Pressione o centro da anilha mais próxima da câmera e arraste até a borda.",
+  // REVIEW
+  'analysis.correct.redo': "Arraste de novo para refazer.",
+  // REVIEW
+  'analysis.correct.sent': "Um recorte deste quadro é enviado para melhorar o localizador de anilhas. Não o seu vídeo.",
+  // REVIEW
+  'analysis.correct.local': "Salvo apenas neste telefone.",
+  // REVIEW
+  'analysis.correct.save': "Salvar",
 };

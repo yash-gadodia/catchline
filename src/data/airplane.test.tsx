@@ -45,6 +45,7 @@ jest.mock('./prepare', () => ({
   }),
   discardPrepared: jest.fn(),
 }));
+jest.mock('../features/plateFrames/local', () => ({ saveLocalMark: jest.fn(), readLocalPlate: jest.fn(async () => null) }));
 jest.mock('./localLifts', () => ({
   saveLocalLift: jest.fn((_id: string, a: unknown) => a),
   keepClip: jest.fn(),

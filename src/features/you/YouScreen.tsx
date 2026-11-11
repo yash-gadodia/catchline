@@ -13,6 +13,7 @@ import SmallCaps from '../../components/SmallCaps';
 import { colors, shape, space } from '../../design/tokens';
 import { display, fontFamily, type } from '../../design/typography';
 import { useOnboarding } from '../onboarding/store';
+import { usePlateFramesSettings } from '../plateFrames/settings';
 import { Chip, SheetTitle, Toggle } from '../share/ui';
 import { useScreenshotFeedback } from '../feedback/screenshot';
 import { signInWithApple, type AppleSignIn } from '../auth/appleSignIn';
@@ -86,6 +87,7 @@ export default function YouScreen({
   const account = useAccountView();
   const settings = useSettings();
   const shotPrompt = useScreenshotFeedback((s) => s.enabled);
+  const plates = usePlateFramesSettings();
   const units = useOnboarding((s) => s.units);
   const labels = settingLabels(settings);
   const PICKERS = pickers();
@@ -173,6 +175,23 @@ export default function YouScreen({
         />
         <Section>{t('you.section.privacy')}</Section>
         <Row title={t('you.whatIsStored')} right={<Value>›</Value>} onPress={nav.onWhatIsStored} testID="row-stored" />
+        {plates.supported ? (
+          <Row
+            title={t('you.plates.toggle')}
+            sub={t('you.plates.toggleSub')}
+            right={<Toggle value={plates.on} onChange={plates.toggle} testID="toggle-plates" />}
+            testID="row-plates"
+          />
+        ) : null}
+        {plates.supported && plates.canDelete ? (
+          <Row
+            title={t('you.plates.delete')}
+            sub={plates.note === 'deleted' ? t('you.plates.deleted') : plates.note === 'failed' ? t('you.plates.deleteFailed') : undefined}
+            right={<Value>›</Value>}
+            onPress={() => void plates.deleteSent()}
+            testID="row-plates-delete"
+          />
+        ) : null}
         <Row title={t('you.autoDelete')} right={<Value>{labels.autoDelete}</Value>} onPress={() => setPicker('autoDelete')} testID="row-auto-delete" />
         <Row
           title={t('you.exportLifts')}

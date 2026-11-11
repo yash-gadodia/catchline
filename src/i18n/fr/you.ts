@@ -143,4 +143,24 @@ export const you: Strings<typeof en> = {
   'you.whatsNew.v31.reads': "Lectures plus précises des levées filmées de biais et des levées depuis la suspension, et un épaulé-jeté complet est lu comme une seule levée.",
   // REVIEW
   'you.whatsNew.v31.hips': "Corrigé : une barre qui cale au niveau des hanches ne fausse plus la lecture.",
+  // REVIEW
+  'you.plates.title': "Aidez Catchline à mieux trouver les disques",
+  // REVIEW
+  'you.plates.body': "Envoyez les images que vous marquez : de petits carrés découpés autour du disque, avec votre cercle. Pas votre vidéo.",
+  // REVIEW
+  'you.plates.detail': "Pour chaque mouvement, nous recevons l’image que vous avez marquée et jusqu’à quatre autres de la trajectoire suivie. Un recadrage peut montrer une partie de vous ou d’une personne proche. Nous les utilisons uniquement pour entraîner le détecteur de disques et les conservons jusqu’à 24 mois. Vous pouvez désactiver cette option ou supprimer vos envois dans l’onglet Vous.",
+  // REVIEW
+  'you.plates.yes': "Envoyer mes images",
+  // REVIEW
+  'you.plates.no': "Pas maintenant",
+  // REVIEW
+  'you.plates.toggle': "Aider à mieux trouver les disques",
+  // REVIEW
+  'you.plates.toggleSub': "Envoie de petits recadrages autour du disque de vos mouvements. Pas votre vidéo. Un recadrage peut montrer une partie de vous.",
+  // REVIEW
+  'you.plates.delete': "Supprimer les images envoyées",
+  // REVIEW
+  'you.plates.deleted': "Supprimées de nos serveurs. Le prochain détecteur de disques sera entraîné sans elles.",
+  // REVIEW
+  'you.plates.deleteFailed': "Suppression impossible pour le moment. Vérifiez votre connexion et réessayez.",
 };

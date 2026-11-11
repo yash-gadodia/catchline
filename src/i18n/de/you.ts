@@ -143,4 +143,24 @@ export const you: Strings<typeof en> = {
   'you.whatsNew.v31.reads': "Genauere Analyse von schräg gefilmten Lifts und Lifts aus dem Hang, und ein ganzes Umsetzen und Stoßen wird als ein Lift gelesen.",
   // REVIEW
   'you.whatsNew.v31.hips': "Behoben: Eine Stange, die an der Hüfte stockt, bringt die Analyse nicht mehr durcheinander.",
+  // REVIEW
+  'you.plates.title': "Hilf Catchline, Scheiben besser zu finden",
+  // REVIEW
+  'you.plates.body': "Sende die Bilder, die du markierst: kleine quadratische Ausschnitte rund um die Scheibe, mit deinem Kreis. Nicht dein Video.",
+  // REVIEW
+  'you.plates.detail': "Von jedem Lift erhalten wir das Bild, das du markiert hast, und bis zu vier weitere vom verfolgten Pfad. Ein Ausschnitt kann einen Teil von dir oder einer Person in der Nähe zeigen. Wir nutzen sie nur, um den Scheibenfinder zu trainieren, und bewahren sie bis zu 24 Monate auf. Im Tab Du kannst du das ausschalten oder löschen, was du gesendet hast.",
+  // REVIEW
+  'you.plates.yes': "Meine Bilder senden",
+  // REVIEW
+  'you.plates.no': "Nicht jetzt",
+  // REVIEW
+  'you.plates.toggle': "Scheiben besser finden helfen",
+  // REVIEW
+  'you.plates.toggleSub': "Sendet kleine Ausschnitte rund um die Scheibe aus deinen Lifts. Nicht dein Video. Ein Ausschnitt kann einen Teil von dir zeigen.",
+  // REVIEW
+  'you.plates.delete': "Gesendete Bilder löschen",
+  // REVIEW
+  'you.plates.deleted': "Von unseren Servern gelöscht. Der nächste Scheibenfinder wird ohne sie trainiert.",
+  // REVIEW
+  'you.plates.deleteFailed': "Löschen gerade nicht möglich. Prüfe deine Verbindung und versuche es erneut.",
 };

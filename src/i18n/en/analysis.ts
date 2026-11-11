@@ -114,4 +114,13 @@ export const analysis = {
   'analysis.processing.step.bar': "Following the bar",
   'analysis.processing.step.body': "Following your body",
   'analysis.processing.step.lines': "Drawing the lines",
+  'analysis.tracker.pathWrong': "The path is wrong",
+  'analysis.correct.title': "Mark the plate",
+  'analysis.correct.back': "Back",
+  'analysis.correct.stage': "This frame of your lift. Press the plate and drag to its edge.",
+  'analysis.correct.help': "Press the middle of the plate nearest the camera and drag to its edge.",
+  'analysis.correct.redo': "Drag again to redo it.",
+  'analysis.correct.sent': "A crop of this frame is sent to help the plate finder. Not your video.",
+  'analysis.correct.local': "Saved on this phone only.",
+  'analysis.correct.save': "Save",
 } as const;

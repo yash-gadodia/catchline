@@ -34,6 +34,7 @@ export default function TrackerScreen({
   onBack,
   onShare,
   onMore,
+  onPathWrong,
 }: {
   analysis: Analysis;
   clipUri: string;
@@ -42,6 +43,8 @@ export default function TrackerScreen({
   onBack: () => void;
   onShare?: () => void;
   onMore?: () => void;
+  // "The path is wrong": the lifter marks the plate on the frame they are on (plateFrames/CorrectScreen).
+  onPathWrong?: (frame: number) => void;
 }) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -258,11 +261,26 @@ export default function TrackerScreen({
             </Text>
           ) : null}
         </View>
-        {onShare ? (
-          <Btn kind="secondary" compact onPress={onShare} testID="tracker-share">
-            {t('analysis.player.share')}
-          </Btn>
-        ) : null}
+        <View style={{ gap: space.s2 }}>
+          {onPathWrong && analysis.traceKind === 'bar' ? (
+            <Btn
+              kind="text"
+              compact
+              onPress={() => {
+                player.pause();
+                onPathWrong(frameRef.current);
+              }}
+              testID="tracker-path-wrong"
+            >
+              {t('analysis.tracker.pathWrong')}
+            </Btn>
+          ) : null}
+          {onShare ? (
+            <Btn kind="secondary" compact onPress={onShare} testID="tracker-share">
+              {t('analysis.player.share')}
+            </Btn>
+          ) : null}
+        </View>
       </View>
     </View>
   );
