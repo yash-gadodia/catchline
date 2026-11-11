@@ -96,10 +96,12 @@ describe('which followed plate frames are on the plate', () => {
     const last = [...new Array<boolean>(n - 1).fill(true), false];
     expect(onPlate(detected, fits({ [n - 1]: [140, 0.7, 0.8, 30] }), centres, wrists, 0)).toEqual(last);
     expect(onPlate(detected, fits({ [n - 1]: [85, 0.7, 0.8, 30] }), centres, wrists, 0)).toEqual(last);
-    const far = centres.map(([x, y], f): Pt => (f >= 8 ? [x + 160, y] : [x, y]));
-    expect(onPlate(detected, fits({}), far, wrists, 0)).toEqual(half);
-    const onHands = centres.map(([x, y], f): Pt => (f >= 8 ? [x, y - 45] : [x, y]));
-    expect(onPlate(detected, fits({}), onHands, wrists, 0)).toEqual(half);
+    // the plate's place by the hands is the middle of all detections, so the frames that left it are the fewer
+    const most = [...new Array<boolean>(9).fill(true), ...new Array<boolean>(7).fill(false)];
+    const far = centres.map(([x, y], f): Pt => (f >= 9 ? [x + 160, y] : [x, y]));
+    expect(onPlate(detected, fits({}), far, wrists, 0)).toEqual(most);
+    const onHands = centres.map(([x, y], f): Pt => (f >= 9 ? [x, y - 45] : [x, y]));
+    expect(onPlate(detected, fits({}), onHands, wrists, 0)).toEqual(most);
   });
 
   it('draws nothing from flow-carried frames, which bridge a run without breaking it, and drops runs under six frames', () => {
