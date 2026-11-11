@@ -313,6 +313,7 @@ const PLATE_POLARITY_ALONE = 0.62;
 const PLATE_SAME = 0.1;
 const PLATE_RUN_SHARED = 6;
 const PLATE_FAR = 1.0;
+const PLATE_TAP_REACH = 0.35;
 const PLATE_MOVES = 0.5;
 
 export function platePath(source: FrameSource, s0: number, L: number, seed: number, kw: K, bodyH: number, setupH: number, barRaw: Pt[], Ms: Affine[], fps: number, offSide: number, plates: Plate[] = []): { drawn: Pt[]; plate: boolean[] } | null {
@@ -364,12 +365,17 @@ export function plateHeld(source: FrameSource, s0: number, L: number, seed: numb
   for (const [at, anchor] of tries) {
     const follow = source.followPlate(s0, L, at, anchor, [kw[at][L_WRI], kw[at][R_WRI]], bodyH, setupH, how);
     if (follow.src[at] !== 1) continue;
+    // a tapped plate is followed by its rings and judged natively (ringTrackStep): every held frame is the plate
+    // but not where it sits further from the hands than at the tap by more than PLATE_TAP_REACH setup heights: the bar
+    // has left the hands, or the tracker has settled on a look-alike (IMG_0975: floor shadows under a speckled plate)
+    if (how.tap) {
+      const home = finitePt(anchor[at]) ? dist(follow.centres[at], anchor[at]) : NaN;
+      return follow.centres.map((p, f): Pt => (follow.src[f] === 1 && !(finitePt(anchor[f]) && Number.isFinite(home) && dist(p, anchor[f]) - home > PLATE_TAP_REACH * setupH) ? p : NAN_PT));
+    }
     const ok = onPlate(follow.src, follow.fit, follow.centres, anchor, at, offSide);
     const held = ok.flatMap((v, f) => (v ? [f] : []));
     // a plate held on under a tenth of the window (a second, in a long clip) re-bases the hands' path on an offset
     // read from too few frames
-    // the plate the user pointed at is the plate: its frames are drawn wherever onPlate holds them
-    if (how.tap) return held.length ? follow.centres.map((p, f): Pt => (ok[f] ? p : NAN_PT)) : null;
     if (held.length <= most || held.length < Math.min(PLATE_SHARE_MIN * L, fps)) continue;
     // and a disc that never rises or falls is not on the bar (a plate leaning on a wall behind hands that stay still)
     const ys = held.map((f) => follow.centres[f][1]).sort((a, b) => a - b);

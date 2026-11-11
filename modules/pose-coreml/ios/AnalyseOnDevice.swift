@@ -414,6 +414,7 @@ final class DeviceAnalyser {
     final class FollowState {
       let req: AnalysePlan.FollowRequest
       var follow: PlateFollow?
+      var tapTrack: TapFollow?
       var start: Plate?
       var centres: [Double]
       var fit: [Double]
@@ -498,10 +499,28 @@ final class DeviceAnalyser {
           } else {
             found = try startPlate(image(), gray, wrist: t.wrist(i), wristA: t.req.wristA, wristB: t.req.wristB, bodyH: t.req.bodyH, setupH: t.req.setupH)
           }
-          if let p = found {
+          if let p = found, t.req.tap != nil {
+            // a tapped plate is followed by TapFollow, both ways, with no leash to the hands
+            if let seedImage = cgImage(image()), let fwd = TapFollow(seed: p, image: seedImage, gray: gray, minRadius: 0.2 * t.req.setupH) {
+              t.start = p
+              func record(_ k: Int, _ r: RingTrack) {
+                t.src[k] = 1
+                t.centres[k * 2] = r.centre.x
+                t.centres[k * 2 + 1] = r.centre.y
+                t.fit.replaceSubrange(k * 4 ..< k * 4 + 4, with: [2 * r.radius, r.score, 1, Double(r.profile.mid[0])])
+              }
+              record(i, fwd.ring)
+              if !t.before.isEmpty, let back = TapFollow(from: fwd, image: seedImage) {
+                for j in stride(from: t.before.count - 1, through: 0, by: -1) {
+                  guard let img = bgrImage(jpeg: t.before[j], width: outW, height: poseInferHeight), let cg = cgImage(jpeg: t.before[j]) else { break }
+                  if back.step(cg, grayscale(img)) > 0 { record(t.beforeStart + j, back.ring) }
+                }
+              }
+              t.tapTrack = fwd
+            }
+          } else if let p = found {
             t.start = p
             t.follow = PlateFollow(seed: p, wrist: t.wrist(i), gray: gray)
-            if t.req.tap != nil { t.follow!.reach = max(p.axes.0, 0.3 * t.req.setupH) }
             t.centres[i * 2] = p.centre.x
             t.centres[i * 2 + 1] = p.centre.y
             t.src[i] = 1
@@ -520,6 +539,13 @@ final class DeviceAnalyser {
             }
           }
           t.before = []
+        } else if let track = t.tapTrack {
+          if let cg = cgImage(image()), track.step(cg, gray) > 0 {
+            t.src[i] = 1
+            t.centres[i * 2] = track.ring.centre.x
+            t.centres[i * 2 + 1] = track.ring.centre.y
+            t.fit.replaceSubrange(i * 4 ..< i * 4 + 4, with: [2 * track.ring.radius, track.ring.score, 1, Double(track.ring.profile.mid[0])])
+          }
         } else if t.follow != nil {
           t.src[i] = Double(followPlateStep(image(), gray, &t.follow!, wrist: t.wrist(i)))
           if t.src[i] > 0 {
@@ -527,7 +553,7 @@ final class DeviceAnalyser {
             t.centres[i * 2 + 1] = t.follow!.centre.y
           }
         }
-        if t.src[i] > 0, let st = t.start {
+        if t.src[i] > 0, t.follow != nil, let st = t.start {
           let fit = plateFit(gray, Point(t.centres[i * 2], t.centres[i * 2 + 1]), t.follow!.major, st.axes.1 / st.axes.0)
           t.fit.replaceSubrange(i * 4 ..< i * 4 + 4, with: [t.follow!.major, fit.rim, fit.polarity, fit.interior])
         }

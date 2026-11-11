@@ -37,6 +37,25 @@ func keyframeJPEG(_ img: BGRImage, blur: [Box]) throws -> Data {
   return try jpegData(img, quality: keyframeJPEGQuality)
 }
 
+// The BGR image as a CGImage (a copy), nil when it cannot be made.
+func cgImage(_ img: BGRImage) -> CGImage? {
+  var bgra = [UInt8](repeating: 255, count: img.width * img.height * 4)
+  img.data.withUnsafeBufferPointer { s in
+    for i in 0 ..< img.width * img.height {
+      bgra[i * 4] = s[i * 3]; bgra[i * 4 + 1] = s[i * 3 + 1]; bgra[i * 4 + 2] = s[i * 3 + 2]
+    }
+  }
+  let info = CGBitmapInfo(rawValue: CGImageAlphaInfo.noneSkipFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue)
+  guard let provider = CGDataProvider(data: Data(bgra) as CFData) else { return nil }
+  return CGImage(width: img.width, height: img.height, bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: img.width * 4,
+                 space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: info, provider: provider, decode: nil,
+                 shouldInterpolate: false, intent: .defaultIntent)
+}
+
+func cgImage(jpeg: Data) -> CGImage? {
+  CGImageSourceCreateWithData(jpeg as CFData, nil).flatMap { CGImageSourceCreateImageAtIndex($0, 0, nil) }
+}
+
 func jpegData(_ img: BGRImage, quality: Double) throws -> Data {
   var bgra = [UInt8](repeating: 255, count: img.width * img.height * 4)
   img.data.withUnsafeBufferPointer { s in
