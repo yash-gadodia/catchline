@@ -21,6 +21,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -38,6 +40,12 @@ jobs:
         run: npm run typecheck
       - name: Tests
         run: npm test -- --ci
+
+      # CI cannot reach the clips on the Mac Mini, so a production build from here needs the committed
+      # baseline to cover this commit (no tracking or native change since scripts/eval31/gate.sh --record).
+      - name: Real-clip gate
+        if: ${{ inputs.profile == 'production' }}
+        run: scripts/eval31/gate.sh --require --full
 
       - name: EAS build (iOS)
         run: eas build --platform ios --profile ${{ inputs.profile }} --non-interactive

@@ -21,6 +21,7 @@ Owner decision 11-11: drop cues; the app tracks any lift or gymnastics clip and 
 - [ ] (Yash) On a phone: film at 60 fps (portrait and landscape hold), check the badge, the file's frame rate and that the tracker stays in step to the last frame; share a video and an image from the share sheet
 - [ ] Faster tracking (detector every Nth frame)
 ## Notes
+- Release gate (11-11): `scripts/eval31/gate.sh` (`--check`, `--replay`, `--record`, `--sheets`, `--original`) runs the 14 clips of `gate-clips.json` on the Mini in `~/catchline-gate`, prepared by the app's own transcoder code (`modules/clip-transcoder/harness` `probe` / `transcode`, behind a stand-in ExpoModulesCore) and tracked like the phone. `ota.sh publish` and `store-build.sh` need a passing result for the commit; read `.claude/skills/release-verify` before any release.
 - A lift is submitted and synced as movement 'snatch' whatever it shows (`toSubmission`); a 4.0 lift is titled by date, time and load (`liftTitle` in library/derive), never by that movement.
 - The session scratchpad is shared by every agent of a team: keep scripts in a subfolder of your own (another agent's `i18n.py` overwrote one of the same name and was run by mistake).
 - The native pass is always asked for as 'snatch' (standing lifter selection); a hanging clip is told apart in TS (`family(signals)`), so a crowded gymnastics clip may pick the wrong person until the native side changes.
