@@ -7,14 +7,12 @@ import type { Session } from '../../src/features/capture/session';
 import { deleteOriginals, secondsLeft } from '../../src/features/capture/storage';
 import { newClip, useCapture, useCaptureHydrated } from '../../src/features/capture/store';
 import ViewfinderScreen from '../../src/features/capture/ViewfinderScreen';
-import { groupOf } from '../../src/features/onboarding/lifts';
 import { hasConsent, useHydrated, useOnboarding } from '../../src/features/onboarding/store';
 import { colors } from '../../src/design/tokens';
 import { useLibrary } from '../../src/features/library/repository';
-import { previousValue, targetLine } from '../../src/features/library/retest';
 import { FREE_VIDEOS } from '../../src/features/library/types';
 
-type Params = { checks?: string; state?: string; still?: string; left?: string; retest?: string };
+type Params = { checks?: string; state?: string; still?: string; left?: string };
 
 // Dev links: ?still=1 (no camera), &checks=whole_body, &state=countdown|recording|toolong|storage.
 function initialSession(state?: string, left?: string): Session {
@@ -34,15 +32,9 @@ export default function CaptureRoute() {
   const hydrated = onboarded && captureReady;
   const consent = useOnboarding((s) => s.consent);
   const camera = useCameraPermission();
-  const { movement, setMovement, originals, setOriginals, setDraft, addOriginal } = useCapture();
+  const { originals, setOriginals, setDraft, addOriginal } = useCapture();
   const checker = useMemo(() => (params.checks ? fixedChecker(parseChecks(params.checks)) : stubChecker), [params.checks]);
-  const { cues, sessions, lifts, plan, freeVideosUsed } = useLibrary();
-  const retest = cues.find((c) => c.id === params.retest && c.status === 'trying');
-
-  // A retest films the cue's movement.
-  useEffect(() => {
-    if (retest && captureReady) setMovement(retest.movement);
-  }, [retest?.id, captureReady]);
+  const { plan, freeVideosUsed } = useLibrary();
 
   const blocked = !still && (!hydrated || !hasConsent(consent) || !camera.ready || camera.status !== 'granted');
 
@@ -55,8 +47,6 @@ export default function CaptureRoute() {
   if (blocked) return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
   return (
     <ViewfinderScreen
-      movement={movement}
-      onMovement={setMovement}
       checker={checker}
       fps={RECORD_FPS}
       freeUsed={plan === 'free' ? Math.min(freeVideosUsed, FREE_VIDEOS) : undefined}
@@ -64,15 +54,13 @@ export default function CaptureRoute() {
       secondsLeft={() => secondsLeft(RECORD_FPS)}
       originals={originals.length}
       onDeleteOriginals={() => setOriginals(deleteOriginals(originals))}
-      onImport={() => router.push(retest ? { pathname: '/capture/import', params: { retest: retest.id } } : '/capture/import')}
-      onGuide={() => router.push({ pathname: '/onboarding/guide', params: { group: groupOf(movement), from: 'capture' } })}
+      onImport={() => router.push('/capture/import')}
+      onGuide={() => router.push({ pathname: '/onboarding/guide', params: { from: 'capture' } })}
       onRecorded={({ uri, durationS, overridden }) => {
         if (uri) addOriginal(uri);
-        const target = retest ? { retest: { cueId: retest.id, movement: retest.movement } } : {};
-        setDraft(newClip({ uri, durationS, fps: RECORD_FPS, source: 'camera', movement, overridden, ...target }));
-        router.push('/capture/review');
+        setDraft(newClip({ uri, durationS, fps: RECORD_FPS, source: 'camera', overridden }));
+        router.push('/capture/trim');
       }}
-      target={retest && retest.movement === movement ? targetLine(retest, previousValue(retest, sessions, lifts)) : undefined}
       camera={!still}
       initial={initialSession(params.state, params.left)}
     />

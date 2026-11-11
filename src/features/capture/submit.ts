@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import type { Movement } from '../../analysis/types';
 import { useOnboarding, type Units } from '../onboarding/store';
 import type { CheckId } from './checks';
-import { activeTrim, useCapture, type Clip, type ClipSource } from './store';
+import { useCapture, type Clip, type ClipSource } from './store';
 import type { Trim } from './trim';
 import { nextClipGate, syncKeychainUsage } from '../paywall/hooks';
 import { onDeviceAnalysisEnabled } from '../../data/onDeviceAnalysis';
@@ -10,6 +10,7 @@ import { startLift } from '../../data/pipeline';
 
 export type ClipSubmission = {
   uri: string | null;
+  // Every clip is tracked the same way; the store and the server sync still want a movement, so it is always 'snatch'.
   movement: Movement;
   loadKg: number | null;
   trim: Trim;
@@ -17,7 +18,6 @@ export type ClipSubmission = {
   source: ClipSource;
   fps: number | null;
   overridden: CheckId[];
-  retestCueId?: string;
 };
 
 const LB_TO_KG = 0.45359237;
@@ -31,34 +31,23 @@ export function parseWeight(text: string, units: Units): number | null {
 export function toSubmission(clip: Clip, weight: string, units: Units): ClipSubmission {
   return {
     uri: clip.uri,
-    movement: clip.movement,
+    movement: 'snatch',
     loadKg: parseWeight(weight, units),
-    trim: activeTrim(clip),
-    rep: clip.rep,
+    trim: clip.trim,
+    rep: 'all',
     source: clip.source,
     fps: clip.fps,
     overridden: clip.overridden,
-    // A clip moved to another movement is no longer a test of that cue.
-    retestCueId: clip.retest?.movement === clip.movement ? clip.retest.cueId : undefined,
   };
 }
 
-// Analyse: the paywall gate first, then the analysis on the phone (3.1: the clip
-// never leaves it, no backend or network needed), or the bundled sample where there
-// is no native module (dev without it). A clip with no file (the sample) only exists
-// in dev builds; a release build goes back to capture rather than play the fixture
-// as the lifter's own lift.
-// Pose runs on every frame, so a 33 s clip is minutes on the phone (26-10, a lifter gave up at
-// "5%"): a trim longer than one lift goes to the trim screen first, which then analyses.
-export const LONG_LIFT_S = 15;
-
-export function needsTrim(trim: Trim): boolean {
-  return trim.end - trim.start > LONG_LIFT_S;
-}
-
-export async function submitClip(clip: ClipSubmission, opts: { replace?: boolean; trimmed?: boolean } = {}): Promise<void> {
+// Track: the paywall gate first, then the tracking on the phone (the clip never
+// leaves it, no backend or network needed), or the bundled sample where there is no
+// native module (dev without it). A clip with no file (the sample) only exists in dev
+// builds; a release build goes back to capture rather than play the fixture as the
+// lifter's own lift.
+export async function submitClip(clip: ClipSubmission, opts: { replace?: boolean } = {}): Promise<void> {
   const go = opts.replace ? router.replace : router.push;
-  if (!opts.trimmed && clip.uri && needsTrim(clip.trim)) return go({ pathname: '/capture/trim', params: { then: 'analyse' } });
   // The Keychain count first (a reinstall must not hand the free lifts back); the
   // gate itself is local and works offline. The server mirror is read at launch.
   await syncKeychainUsage();
@@ -69,7 +58,7 @@ export async function submitClip(clip: ClipSubmission, opts: { replace?: boolean
   if (gate === 'trial') return go('/paywall/funnel/trial');
   if (!clip.uri && !__DEV__) return go('/capture');
   if (!onDeviceAnalysisEnabled() || !clip.uri) {
-    go({ pathname: '/analysis/processing', params: { fixture: 'snatch-mock', count: '1', ...(clip.retestCueId ? { retest: clip.retestCueId } : {}) } });
+    go({ pathname: '/analysis/processing', params: { fixture: 'snatch-mock', count: '1' } });
     return;
   }
   startLift({ ...clip, uri: clip.uri });
@@ -78,7 +67,7 @@ export async function submitClip(clip: ClipSubmission, opts: { replace?: boolean
 
 // After a paywall or trial purchase: send the clip the lifter already picked.
 // Returns false when there is no saved clip (the paywall was opened elsewhere).
-export function submitDraft(opts: { replace?: boolean; trimmed?: boolean } = {}): boolean {
+export function submitDraft(opts: { replace?: boolean } = {}): boolean {
   const { draft, lastWeight } = useCapture.getState();
   if (!draft) return false;
   void submitClip(toSubmission(draft, lastWeight, useOnboarding.getState().units), opts);

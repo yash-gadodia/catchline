@@ -54,7 +54,7 @@ beforeEach(() => {
 
 describe('TrimScreen', () => {
   it('asks for filmstrip frames once the clip has loaded, and shows them', async () => {
-    const screen = await render(<TrimScreen clip={clip} onCancel={jest.fn()} onDone={jest.fn()} />);
+    const screen = await render(<TrimScreen clip={clip} units="kg" weight="" onWeight={jest.fn()} onCancel={jest.fn()} onTrack={jest.fn()} />);
     const thumbs = mockPlayers.find((p) => p.listeners.statusChange)!;
     expect(thumbs.generateThumbnailsAsync).not.toHaveBeenCalled();
     expect(screen.queryAllByTestId('trim-thumb')).toHaveLength(0);
@@ -65,7 +65,7 @@ describe('TrimScreen', () => {
   });
 
   it('seeks with zero tolerance, follows playback with the playhead and pauses on a tap', async () => {
-    const screen = await render(<TrimScreen clip={clip} onCancel={jest.fn()} onDone={jest.fn()} />);
+    const screen = await render(<TrimScreen clip={clip} units="kg" weight="" onWeight={jest.fn()} onCancel={jest.fn()} onTrack={jest.fn()} />);
     const video = videoPlayer();
     expect(video.seekTolerance).toEqual({ toleranceBefore: 0, toleranceAfter: 0 });
     expect(screen.getByTestId('trim-head-time')).toHaveTextContent('00:01.4');
@@ -81,7 +81,7 @@ describe('TrimScreen', () => {
   });
 
   it('moves the playhead inside the trim and seeks the preview to it', async () => {
-    const screen = await render(<TrimScreen clip={clip} onCancel={jest.fn()} onDone={jest.fn()} />);
+    const screen = await render(<TrimScreen clip={clip} units="kg" weight="" onWeight={jest.fn()} onCancel={jest.fn()} onTrack={jest.fn()} />);
     const video = videoPlayer();
     await act(async () => fireEvent(screen.getByTestId('trim-strip'), 'layout', { nativeEvent: { layout: { width: 300 } } }));
     await act(async () => fireEvent(screen.getByTestId('trim-playhead'), 'accessibilityAction', { nativeEvent: { actionName: 'increment' } }));
@@ -93,11 +93,4 @@ describe('TrimScreen', () => {
     expect(screen.getByTestId('trim-head-time')).toHaveTextContent('00:01.4');
     expect(video.currentTime).toBe(1.4);
   });
-});
-
-test('sent here by Analyse, the screen says why and that Done analyses', async () => {
-  const long = { ...demoClip('ok'), uri: 'file:///long.mov', durationS: 33, trim: { start: 0, end: 33 } };
-  const screen = await render(<TrimScreen clip={long} nudge onCancel={jest.fn()} onDone={jest.fn()} />);
-  expect(screen.getByTestId('trim-nudge')).toHaveTextContent('Long clips take minutes on the phone. Trim to one lift, under 15 s, for a fast read.');
-  expect(screen.queryByTestId('trim-problem')).toBeNull();
 });
