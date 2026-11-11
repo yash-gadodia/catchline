@@ -1,4 +1,5 @@
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
+import { useVideoPlayer } from 'expo-video';
 import type { Analysis } from '../../analysis/types';
 import type { Body } from '../../analysis/device/tracking';
 import { snatchMock } from '../../analysis/fixtures';
@@ -78,6 +79,98 @@ describe('TrackShareScreen', () => {
     expect(spec.frame).toBe(0);
     expect(spec.watermark).toBe('catchline');
     expect(d.renderVideo).not.toHaveBeenCalled();
+  });
+
+  it('has no whole-clip chip when tracking marked no lift, and shares every frame', async () => {
+    const d = deps();
+    const { getByTestId, queryByTestId } = await render(<TrackShareScreen analysis={analysis} body={body} clipUri={CLIP} watermark onBack={() => {}} deps={d} />);
+    expect(queryByTestId('share-toggle-whole')).toBeNull();
+    await press(getByTestId('share-video-btn'));
+    await waitFor(() => expect(d.share).toHaveBeenCalledWith(VIDEO));
+    expect([specOf(d.renderVideo).startFrame, specOf(d.renderVideo).endFrame]).toEqual([0, 3]);
+  });
+
+  describe('a clip with the lift marked', () => {
+    const long: Analysis = { ...analysis, video: { ...analysis.video, fps: 60, frameCount: 300 }, lift: { startFrame: 90, endFrame: 240 } };
+    type Fake = { play: jest.Mock; pause: jest.Mock; currentTime?: number; emit: (event: string, payload: object) => void };
+    const players: Fake[] = [];
+    const real = jest.mocked(useVideoPlayer).getMockImplementation();
+
+    beforeEach(() => {
+      players.length = 0;
+      jest.mocked(useVideoPlayer).mockImplementation(((_source: unknown, setup?: (p: Fake) => void) => {
+        if (players.length) return players[0];
+        const listeners: Record<string, ((payload: object) => void)[]> = {};
+        const player = {
+          play: jest.fn(),
+          pause: jest.fn(),
+          addListener: (event: string, fn: (payload: object) => void) => {
+            (listeners[event] ??= []).push(fn);
+            return { remove: () => void listeners[event].splice(listeners[event].indexOf(fn), 1) };
+          },
+          emit: (event: string, payload: object) => [...(listeners[event] ?? [])].forEach((fn) => fn(payload)),
+        };
+        setup?.(player);
+        players.push(player);
+        return player;
+      }) as unknown as typeof useVideoPlayer);
+    });
+    afterEach(() => {
+      jest.mocked(useVideoPlayer).mockImplementation(real);
+    });
+
+    const at = async (time: number) => {
+      await act(async () => {
+        players[0].emit('timeUpdate', { currentTime: time });
+      });
+    };
+
+    it('opens on the first frame of the lift and plays round inside it', async () => {
+      const { getByTestId } = await render(<TrackShareScreen analysis={long} body={null} clipUri={CLIP} watermark onBack={() => {}} deps={deps()} />);
+      expect(players[0].currentTime).toBeCloseTo(90.5 / 60, 6);
+      expect(getByTestId('share-toggle-whole').props.accessibilityState).toEqual({ selected: false, disabled: false });
+      await at(200.5 / 60);
+      expect(players[0].currentTime).toBeCloseTo(90.5 / 60, 6);
+      // one frame past the lift's last: back to its first
+      players[0].currentTime = undefined;
+      await at(241.5 / 60);
+      expect(players[0].currentTime).toBeCloseTo(90.5 / 60, 6);
+    });
+
+    it('shares the lift only, and the image from inside it', async () => {
+      const d = deps();
+      const { getByTestId } = await render(<TrackShareScreen analysis={long} body={null} clipUri={CLIP} watermark onBack={() => {}} deps={d} />);
+      await press(getByTestId('share-image-btn'));
+      await waitFor(() => expect(d.share).toHaveBeenCalledWith(IMAGE));
+      expect(specOf(d.renderImage).frame).toBe(90);
+      await at(150.5 / 60);
+      await press(getByTestId('share-image-btn'));
+      await waitFor(() => expect(d.renderImage).toHaveBeenCalledTimes(2));
+      expect(specOf(d.renderImage, 1).frame).toBe(150);
+      await press(getByTestId('share-video-btn'));
+      await waitFor(() => expect(d.share).toHaveBeenCalledWith(VIDEO));
+      expect([specOf(d.renderVideo).startFrame, specOf(d.renderVideo).endFrame]).toEqual([90, 240]);
+    });
+
+    it('shares the whole clip when asked, as a different file, and comes back into the lift', async () => {
+      const d = deps();
+      const { getByTestId } = await render(<TrackShareScreen analysis={long} body={null} clipUri={CLIP} watermark onBack={() => {}} deps={d} />);
+      await press(getByTestId('share-video-btn'));
+      await waitFor(() => expect(d.share).toHaveBeenCalledTimes(1));
+      await press(getByTestId('share-toggle-whole'));
+      expect(getByTestId('share-toggle-whole').props.accessibilityState).toEqual({ selected: true, disabled: false });
+      await press(getByTestId('share-video-btn'));
+      await waitFor(() => expect(d.share).toHaveBeenCalledTimes(2));
+      expect(d.renderVideo).toHaveBeenCalledTimes(2);
+      expect([specOf(d.renderVideo, 1).startFrame, specOf(d.renderVideo, 1).endFrame]).toEqual([0, 299]);
+      // on a frame outside the lift, then back to the lift: the frame moves to the lift's first
+      await at(10.5 / 60);
+      await press(getByTestId('share-toggle-whole'));
+      expect(players[0].currentTime).toBeCloseTo(90.5 / 60, 6);
+      await press(getByTestId('share-image-btn'));
+      await waitFor(() => expect(d.renderImage).toHaveBeenCalledTimes(1));
+      expect(specOf(d.renderImage).frame).toBe(90);
+    });
   });
 
   it('has no body toggle for a lift without joints', async () => {

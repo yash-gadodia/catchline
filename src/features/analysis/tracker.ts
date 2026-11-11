@@ -13,6 +13,15 @@ export function timeOf(frame: number, fps: number): number {
   return (frame + 0.5) / fps;
 }
 
+// The frames a screen keeps to: the lift itself where tracking marked one that fits the clip, else (or when the
+// lifter asks for the whole clip) every frame.
+export type FrameRange = { cropped: boolean; first: number; last: number };
+export function liftRange(lift: { startFrame: number; endFrame: number } | undefined, count: number, whole: boolean): FrameRange {
+  const end = Math.max(0, count - 1);
+  const ok = lift !== undefined && lift.startFrame >= 0 && lift.startFrame < lift.endFrame && lift.endFrame < count;
+  return ok && !whole ? { cropped: true, first: lift.startFrame, last: lift.endFrame } : { cropped: false, first: 0, last: end };
+}
+
 // Body.frames order (tracking.ts BODY_JOINTS): shoulder, elbow, wrist, hip, knee, ankle, heel, toe, each left then right.
 const SHO = 0, ELB = 2, WRI = 4, HIP = 6, KNEE = 8, ANK = 10, HEEL = 12, TOE = 14;
 const SIDE_BONES: [number, number][] = [[SHO, ELB], [ELB, WRI], [SHO, HIP], [HIP, KNEE], [KNEE, ANK], [ANK, HEEL], [HEEL, TOE]];

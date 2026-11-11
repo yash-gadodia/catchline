@@ -1,5 +1,5 @@
 import type { Body } from '../../analysis/device/tracking';
-import { bones, drawnSide, floorY, frameAt, jointAngles, joints, mostlyPlate, spread, timeOf } from './tracker';
+import { bones, drawnSide, floorY, frameAt, jointAngles, joints, liftRange, mostlyPlate, spread, timeOf } from './tracker';
 
 // shoulder, elbow, wrist, hip, knee, ankle, heel, toe; left then right. The right side is unseen but for the hip.
 const row = (pts: Record<number, [number, number]>): (number | null)[] => {
@@ -28,6 +28,21 @@ describe('frames and time', () => {
       expect(frameAt(f / 60, 60, 600)).toBe(f);
       expect(frameAt(f / (60000 / 1001), 60000 / 1001, 600)).toBe(f);
     }
+  });
+});
+
+describe('liftRange', () => {
+  it('is the lift where tracking marked one, the whole clip when asked or when there is none', () => {
+    expect(liftRange({ startFrame: 90, endFrame: 240 }, 300, false)).toEqual({ cropped: true, first: 90, last: 240 });
+    expect(liftRange({ startFrame: 90, endFrame: 240 }, 300, true)).toEqual({ cropped: false, first: 0, last: 299 });
+    expect(liftRange(undefined, 300, false)).toEqual({ cropped: false, first: 0, last: 299 });
+  });
+
+  it('ignores a lift that does not fit the clip', () => {
+    expect(liftRange({ startFrame: 90, endFrame: 300 }, 300, false)).toEqual({ cropped: false, first: 0, last: 299 });
+    expect(liftRange({ startFrame: 240, endFrame: 240 }, 300, false)).toEqual({ cropped: false, first: 0, last: 299 });
+    expect(liftRange({ startFrame: -1, endFrame: 240 }, 300, false)).toEqual({ cropped: false, first: 0, last: 299 });
+    expect(liftRange(undefined, 0, false)).toEqual({ cropped: false, first: 0, last: 0 });
   });
 });
 
