@@ -403,3 +403,56 @@ func renderTrackImage(source: URL, to url: URL, spec: TrackSpec) async throws ->
     return (src.width, src.height)
   }
 }
+
+// Plate frames (opt-in, src/features/plateFrames): square crops of single frames as JPEGs, never a whole frame.
+// left / top are shares of the frame's width / height, side a share of its height; px is the output's side.
+struct FrameCrop: Decodable {
+  var id: String
+  var frame: Int
+  var left: Double
+  var top: Double
+  var side: Double
+  var px: Int
+}
+
+func cropFrames(source: URL, crops: [FrameCrop], into dir: URL) async throws -> [[String: Any]] {
+  let src = try await openTrackSource(source)
+  return try await onQueue {
+    defer { src.reader.cancelReading() }
+    let ci = CIContext(options: [.workingColorSpace: NSNull(), .outputColorSpace: NSNull()])
+    let srgb = CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
+    let wanted = crops.sorted { $0.frame < $1.frame }
+    var out: [[String: Any]] = []
+    var frame = -1
+    var next = 0
+    while next < wanted.count, let sample = src.output.copyNextSampleBuffer() {
+      guard let pixels = CMSampleBufferGetImageBuffer(sample) else { continue }
+      frame += 1
+      while next < wanted.count, wanted[next].frame == frame {
+        let c = wanted[next]
+        next += 1
+        let w = Double(src.width), h = Double(src.height)
+        let side = min(c.side * h, w, h)
+        guard side >= 16, c.px >= 16, c.px <= 512 else { continue }
+        let x = min(max(c.left * w, 0), w - side)
+        let y = min(max(c.top * h, 0), h - side)
+        var image = CIImage(cvPixelBuffer: pixels, options: [.colorSpace: NSNull()]).oriented(src.orientation)
+        image = image.transformed(by: CGAffineTransform(translationX: -image.extent.minX, y: -image.extent.minY))
+        image = image.transformed(by: CGAffineTransform(scaleX: w / image.extent.width, y: h / image.extent.height))
+        // Core Image counts y from the bottom; the crop is given from the top.
+        let scale = Double(c.px) / side
+        image = image.cropped(to: CGRect(x: x, y: h - y - side, width: side, height: side))
+          .transformed(by: CGAffineTransform(translationX: -x, y: -(h - y - side)))
+          .transformed(by: CGAffineTransform(scaleX: scale, y: scale))
+        let url = dir.appendingPathComponent("\(c.id).jpg")
+        guard let cg = ci.createCGImage(image, from: CGRect(x: 0, y: 0, width: c.px, height: c.px), format: .RGBA8, colorSpace: srgb),
+          let dest = CGImageDestinationCreateWithURL(url as CFURL, UTType.jpeg.identifier as CFString, 1, nil)
+        else { throw TrackRenderError(message: "crop \(c.id)") }
+        CGImageDestinationAddImage(dest, cg, [kCGImageDestinationLossyCompressionQuality: 0.8] as CFDictionary)
+        guard CGImageDestinationFinalize(dest) else { throw TrackRenderError(message: "jpeg \(c.id)") }
+        out.append(["id": c.id, "uri": url.absoluteString, "px": c.px, "frame": frame])
+      }
+    }
+    return out
+  }
+}

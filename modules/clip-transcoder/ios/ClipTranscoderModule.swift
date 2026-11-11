@@ -83,6 +83,21 @@ public class ClipTranscoderModule: Module {
         throw ShareRenderFailedException(e.message)
       }
     }
+
+    // Plate frames (opt-in): square JPEG crops of single frames of the lift's kept clip. `crops` is the JSON of
+    // [{ id, frame, left, top, side, px }] (src/features/plateFrames/crops.ts). A frame past the clip's end is left out.
+    AsyncFunction("cropFrames") { (uri: String, crops: String) async throws -> [[String: Any]] in
+      let dir = FileManager.default.temporaryDirectory.appendingPathComponent("plate-frames", isDirectory: true)
+      try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+      do {
+        let wanted = try JSONDecoder().decode([FrameCrop].self, from: Data(crops.utf8))
+        return try await cropFrames(source: fileURL(uri), crops: wanted, into: dir)
+      } catch let e as TrackRenderError {
+        throw ShareRenderFailedException(e.message)
+      } catch {
+        throw ShareRenderFailedException("crops: \(error)")
+      }
+    }
   }
 
   // Trim + scale + re-encode to H.264 with AVAssetReader/Writer. Every source frame

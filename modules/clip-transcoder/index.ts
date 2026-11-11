@@ -34,6 +34,10 @@ declare class ClipTranscoderModule extends NativeModule<Events> {
   renderTrackVideo(uri: string, spec: string): Promise<TrackVideoResult>;
   // Image: frame spec.frame as a JPEG with the whole path drawn.
   renderTrackImage(uri: string, spec: string): Promise<TrackImageResult>;
+  // Plate frames (the build after 41; absent before, so check it exists). `crops` is JSON.stringify of
+  // [{ id, frame, left, top, side, px }]: square JPEG crops of single frames, left / top as shares of the frame's
+  // width / height, side a share of its height, px the JPEG's side (16 to 512). A frame past the clip's end is left out.
+  cropFrames?(uri: string, crops: string): Promise<{ id: string; uri: string; px: number; frame: number }[]>;
 }
 
 export default requireNativeModule<ClipTranscoderModule>('ClipTranscoder');
