@@ -53,6 +53,20 @@ temporal model to ship.
 
 Core ML: 1.9 MB FP16 ML Program; on the M4 Mini 0.3 ms per crop with the Neural Engine, 1.6 ms CPU only.
 
+## Second round (same evening)
+
+- Label definition: the plate at the end of the lifter's bar NEAREST the camera. `evaltest.py --far` counts "picked the
+  far plate" on the 36 test frames where I marked both plates (IMG_1177, IMG_1559, IMG_1561): PlateNet 0 of 36 at thr 0.5
+  (1 at thr 0.3, IMG_1177), rules 5 (IMG_1561 overhead).
+- Candidates: the head's three best heat peaks per frame. The true plate is within 0.25 r of one of them on 92% of the
+  84 phone frames, so a one-tap choice among candidates would recover about half of the frames the top pick misses.
+- Owner labels (`~/catchline-plate-data/owner_labels.json`, `evaltest.py --owner`) replace mine per clip as they arrive.
+  First 12 (IMG_0596): PlateNet 92% within 0.25 r, 100% within 0.5 r, the same as against my own labels there.
+- Public Roboflow sets: not used. The pages and the API need an account key; licences of three of the four unconfirmed.
+- RF-DETR Nano (Apache 2.0) as a full-frame alternative: `build_coco.py` + `rfdetr_run.py` are written, **not measured**.
+  The Mac Mini kernel-panicked minutes into its training run (30 M params on a shared 16 GB machine). Do not train it
+  there while anything else runs.
+
 ## Not verified
 
 - No iPhone timing, and no run on AVFoundation-decoded pixels (training frames were decoded by OpenCV/ffmpeg from HLG clips).

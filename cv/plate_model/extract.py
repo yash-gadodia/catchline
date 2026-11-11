@@ -117,4 +117,5 @@ def main():
         print(s["id"], s["set"], "frames", len(rows), {name: sum(name in r for r in rows) for name in labs}, flush=True)
 
 
-main()
+if __name__ == "__main__":
+    main()
