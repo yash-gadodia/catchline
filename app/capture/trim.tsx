@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { demoClip } from '../../src/features/capture/demo';
 import { useCapture, useCaptureHydrated } from '../../src/features/capture/store';
 import { submitDraft } from '../../src/features/capture/submit';
+import { plateMarkSupported } from '../../src/features/capture/plateMark';
 import TrimScreen from '../../src/features/capture/TrimScreen';
 import { useOnboarding } from '../../src/features/onboarding/store';
 import { colors } from '../../src/design/tokens';
@@ -29,8 +30,10 @@ export default function TrimRoute() {
       onWeight={setLastWeight}
       onCancel={() => (router.canGoBack() ? router.back() : router.replace('/'))}
       onTrack={(trim) => {
-        updateDraft({ trim });
-        submitDraft();
+        updateDraft({ trim, plateMark: null });
+        // a real clip goes on to the mark; the dev sample has no picture to mark
+        if (draft.uri && plateMarkSupported()) router.push('/capture/mark');
+        else submitDraft();
       }}
     />
   );

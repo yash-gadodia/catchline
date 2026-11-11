@@ -30,6 +30,13 @@ export const capture: Strings<typeof en> = {
   'capture.import.record': "Grabar en su lugar",
   'capture.import.failedTitle': "No se pudo abrir ese vídeo",
   'capture.import.failedBody': "Inténtalo de nuevo o elige un vídeo guardado en este teléfono.",
+  'capture.mark.title': "Marca el disco",
+  'capture.mark.back': "Atrás",
+  'capture.mark.help': "Pulsa en el centro del disco más cercano a la cámara y arrastra hasta su borde.",
+  'capture.mark.redo': "Marcado. Pulsa y arrastra de nuevo para rehacerlo.",
+  'capture.mark.track': "Seguir",
+  'capture.mark.skip': "Omitir, encuentra el disco por mí",
+  'capture.mark.stage': "El primer fotograma de tu clip. Pulsa en el centro del disco y arrastra hasta el borde.",
   'capture.trim.title': "Recortar",
   'capture.trim.cancel': "Cancelar",
   // REVIEW
