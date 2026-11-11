@@ -430,7 +430,10 @@ private func gradient(_ g: GrayImage, around points: [Point], reach: Double) -> 
 
 private func box(around c: Point, half: Double, _ g: GrayImage) -> (Int, Int, Int, Int) {
   guard c.x.isFinite, c.y.isFinite else { return (0, 0, 0, 0) }
-  return (max(0, Int(c.x - half)), max(0, Int(c.y - half)), min(g.width, Int(c.x + half) + 1), min(g.height, Int(c.y + half) + 1))
+  // an empty box (x1 == x0) when the disc is wholly outside the frame: a followed plate that left the top of the
+  // frame gave a range running backwards here, which trapped
+  let x0 = min(max(0, Int(c.x - half)), g.width), y0 = min(max(0, Int(c.y - half)), g.height)
+  return (x0, y0, max(x0, min(g.width, Int(c.x + half) + 1)), max(y0, min(g.height, Int(c.y + half) + 1)))
 }
 
 private func crop(_ g: GrayImage, _ x0: Int, _ y0: Int, _ x1: Int, _ y1: Int) -> GrayImage {
