@@ -32,6 +32,8 @@ declare class ClipTranscoderModule extends NativeModule<Events> {
   // Video: the lift's kept clip with the overlay on every frame, H.264 MP4 at the clip's size and frame rate;
   // spec.speed 0.5 / 0.25 writes each frame 2 / 4 times. Reports onProgress.
   renderTrackVideo(uri: string, spec: string): Promise<TrackVideoResult>;
+  // Optional spec.startFrame / spec.endFrame (inclusive clip frames) cut the video to that part; the overlay still
+  // goes by the clip's own frame numbers.
   // Image: frame spec.frame as a JPEG with the whole path drawn.
   renderTrackImage(uri: string, spec: string): Promise<TrackImageResult>;
 }

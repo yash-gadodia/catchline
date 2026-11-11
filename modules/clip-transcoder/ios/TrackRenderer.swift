@@ -42,6 +42,9 @@ struct TrackSpec: Decodable {
   var bones: [[Double]]
   var joints: [[Double]]
   var watermark: String?
+  // The part of the clip the video covers, inclusive, in clip frames; absent means the whole clip.
+  var startFrame: Int?
+  var endFrame: Int?
   var style: TrackStyle
 }
 
@@ -272,7 +275,7 @@ struct TrackVideoResult {
   let durationS: Double
 }
 
-// Every frame of the clip, in order, with the overlay: H.264 MP4 at the clip's size, no audio. Each frame keeps its
+// Every frame of the clip (or of spec.startFrame...endFrame), in order, with the overlay: H.264 MP4 at the clip's size, no audio. Each frame keeps its
 // own timestamp and lasts until the next one's, so the frame rate is the clip's (variable rates included). At half or quarter speed every
 // frame is written 2 or 4 times, one frame length apart: slower, at the same frame rate, with nothing dropped.
 func renderTrackVideo(source: URL, to url: URL, spec: TrackSpec, onProgress: @escaping (Double) -> Void) async throws -> TrackVideoResult {
@@ -315,6 +318,10 @@ func renderTrackVideo(source: URL, to url: URL, spec: TrackSpec, onProgress: @es
     var last = CMTime.invalid
     var end = CMTime.zero
     var frame = 0
+    var written = 0
+    var past = false
+    let from = max(spec.startFrame ?? 0, 0)
+    let to = max(spec.endFrame ?? Int.max, from)
     // A decoded frame does not say how long it lasts: each one is held until the next arrives, and lasts until then.
     var held: (buffer: CVPixelBuffer, pts: CMTime)?
     var length = nominal
@@ -335,28 +342,39 @@ func renderTrackVideo(source: URL, to url: URL, spec: TrackSpec, onProgress: @es
     }
 
     do {
-      while let sample = src.output.copyNextSampleBuffer() {
+      while !past, let sample = src.output.copyNextSampleBuffer() {
         try autoreleasepool {
           guard CMSampleBufferGetImageBuffer(sample) != nil else { return }
+          defer { frame += 1 }
+          if frame < from { return }
           let pts = CMSampleBufferGetPresentationTimeStamp(sample)
+          if let h = held {
+            if (pts - h.pts).seconds > 0 { length = pts - h.pts }
+            try write(h.buffer, at: h.pts, lasting: length)
+            held = nil
+            written += 1
+          }
+          if frame > to {
+            past = true
+            return
+          }
           if first == nil { first = pts }
           var out: CVPixelBuffer?
           guard let pool = adaptor.pixelBufferPool, CVPixelBufferPoolCreatePixelBuffer(nil, pool, &out) == kCVReturnSuccess, let out else {
             throw TrackRenderError(message: "pixel buffer")
           }
           try compose(sample, src, into: out, ci: ci, spec: spec, frame: frame, fullPath: false)
-          if let h = held {
-            if (pts - h.pts).seconds > 0 { length = pts - h.pts }
-            try write(h.buffer, at: h.pts, lasting: length)
-          }
           held = (out, pts)
-          frame += 1
-          if frame % 5 == 0 { onProgress(min(Double(frame) / Double(max(spec.frameCount, 1)), 1)) }
+          if written % 5 == 0 { onProgress(min(Double(written) / Double(max(min(to, spec.frameCount - 1) - from + 1, 1)), 1)) }
         }
       }
+      if past { src.reader.cancelReading() }
       if src.reader.status == .failed { throw TrackRenderError(message: src.reader.error?.localizedDescription ?? "read") }
-      guard let h = held else { throw TrackRenderError(message: "no frames") }
-      try write(h.buffer, at: h.pts, lasting: length)
+      if let h = held {
+        try write(h.buffer, at: h.pts, lasting: length)
+        written += 1
+      }
+      if written == 0 { throw TrackRenderError(message: "no frames") }
     } catch {
       src.reader.cancelReading()
       writer.cancelWriting()
@@ -370,7 +388,7 @@ func renderTrackVideo(source: URL, to url: URL, spec: TrackSpec, onProgress: @es
     done.wait()
     guard writer.status == .completed else { throw TrackRenderError(message: writer.error?.localizedDescription ?? "finish") }
     onProgress(1)
-    return TrackVideoResult(width: src.width, height: src.height, frames: frame, durationS: end.seconds)
+    return TrackVideoResult(width: src.width, height: src.height, frames: written, durationS: end.seconds)
   }
 }
 
