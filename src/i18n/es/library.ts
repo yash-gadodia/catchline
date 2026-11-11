@@ -87,4 +87,6 @@ export const library: Strings<typeof en> = {
   'library.failure.unknown.primary': "Reintentar",
   'library.failure.unknown.link0': "Reintentar más tarde",
   'library.date.dayTime': "{date}, {time}",
+  'library.date.today': "Hoy",
+  'library.date.yesterday': "Ayer",
 };

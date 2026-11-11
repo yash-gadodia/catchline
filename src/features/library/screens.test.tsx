@@ -29,23 +29,25 @@ beforeEach(() => {
 });
 
 describe('LiftsScreen', () => {
-  it('lists every lift newest first: a still, the date and time, the load, and nothing about cues', async () => {
-    const at = new Date(2026, 10, 11, 14, 32).toISOString();
+  it('lists every lift newest first under its day: a still, the time, the load, and nothing about cues', async () => {
+    const at = new Date(2026, 2, 11, 14, 32).toISOString();
     useLibraryStore.getState().load({
       ...emptyLibrary(),
       lifts: [
-        { id: 'old', movement: 'clean', date: '2026-11-09', status: 'done', analysisId: 'snatch-mock-low', loadKg: 80, thumb: 'asset:snatch/2-knee' },
-        { id: 'new', movement: 'snatch', date: '2026-11-11', at, status: 'done', analysisId: 'snatch-mock', loadKg: 62.5, thumb: 'asset:snatch/6-catch' },
-        { id: 'bare', movement: 'snatch', date: '2026-11-10', status: 'processing' },
+        { id: 'old', movement: 'clean', date: '2026-03-09', status: 'done', analysisId: 'snatch-mock-low', loadKg: 80, thumb: 'asset:snatch/2-knee' },
+        { id: 'new', movement: 'snatch', date: '2026-03-11', at, status: 'done', analysisId: 'snatch-mock', loadKg: 62.5, thumb: 'asset:snatch/6-catch' },
+        { id: 'bare', movement: 'snatch', date: '2026-03-10', status: 'processing' },
       ],
     });
     const nav = liftsNav();
     const { getByTestId, getAllByTestId, queryByTestId, queryByText } = await render(<LiftsScreen nav={nav} />);
     expect(getAllByTestId(/^lift-title-/).map((n) => n.props.testID)).toEqual(['lift-title-new', 'lift-title-bare', 'lift-title-old']);
-    expect(getByTestId('lift-title-new')).toHaveTextContent('11 Nov, 14:32 · 62.5 kg');
-    expect(getByTestId('lift-title-bare')).toHaveTextContent('10 Nov');
+    expect(getAllByTestId(/^day-/).map((n) => n.props.testID)).toEqual(['day-2026-03-11', 'day-2026-03-10', 'day-2026-03-09']);
+    expect(getByTestId('day-2026-03-11')).toHaveTextContent(/^11 MAR/);
+    expect(getByTestId('lift-title-new')).toHaveTextContent('14:32 · 62.5 kg');
+    expect(getByTestId('lift-title-bare')).toHaveTextContent('10 Mar');
     expect(getByTestId('lift-detail-bare')).toHaveTextContent('tracking');
-    expect(getByTestId('lift-title-old')).toHaveTextContent('9 Nov · 80 kg');
+    expect(getByTestId('lift-title-old')).toHaveTextContent('9 Mar · 80 kg');
     expect(within(getByTestId('lift-new')).getByTestId('lift-thumb')).toBeOnTheScreen();
     for (const gone of ['cue-strip', 'group', 'movement-chips', 'made-counts']) expect(queryByTestId(gone)).toBeNull();
     expect(queryByText(/best|Trying|possible/)).toBeNull();
