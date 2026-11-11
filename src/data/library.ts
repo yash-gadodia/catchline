@@ -21,7 +21,14 @@ export function dayOf(iso: string): Day {
 function catchImage(a: Analysis | undefined): string | undefined {
   if (!a || a.reps.length === 0) return undefined;
   const rep = repByIndex(a, a.bestRepIndex);
-  return (keyFrameForPhase(rep, 'catch') ?? rep.keyFrames[rep.keyFrames.length - 1])?.image;
+  // a 3.x lift's catch; a 4.0 lift has no phases, so the last of its stills (the top of the lift), whether or not a
+  // bar path was drawn
+  return (keyFrameForPhase(rep, 'catch') ?? [...rep.keyFrames].reverse().find((k) => k.image))?.image;
+}
+
+function shows(a: Analysis | undefined): Lift['shows'] {
+  if (!a || a.failure) return undefined;
+  return a.traceKind === 'bar' && (a.reps[0]?.path.length ?? 0) > 0 ? 'bar' : 'body';
 }
 
 // The library's 'queued' means "saved, waiting for an unlock" (the row offers
@@ -60,6 +67,7 @@ export function toLift(row: LiftRow, a: Analysis | undefined, now: number = Date
     status,
     analysisId: a && !a.failure ? a.id : undefined,
     thumb: catchImage(a),
+    shows: shows(a),
     failure: a?.failure ?? (stuck ? { reason: 'unknown', message: t('library.detail.uploadStuck') } : status === 'failed' ? workerFailure(row) : undefined),
   };
 }

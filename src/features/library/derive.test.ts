@@ -63,9 +63,16 @@ describe('a lift row', () => {
     kept.add('l1');
     expect(isTracked(lift())).toBe(true);
     expect(liftDetail(lift())).toBeNull();
+    expect(liftDetail(lift({ shows: 'bar' }))).toBe('Bar path and body');
+    expect(liftDetail(lift({ shows: 'body' }))).toBe('Body only');
+    setLanguage('de');
+    expect(liftDetail(lift({ shows: 'bar' }))).toBe('Hantelweg und Körper');
+    expect(liftDetail(lift({ shows: 'body' }))).toBe('Nur Körper');
+    setLanguage('en');
     kept.clear();
     expect(isTracked(lift())).toBe(false);
     expect(liftDetail(lift({ movement: 'clean' }))).toBe('Clean');
+    expect(liftDetail(lift({ movement: 'clean', shows: 'bar' }))).toBe('Clean');
   });
 
   it('says what is happening to a lift that is not finished', () => {

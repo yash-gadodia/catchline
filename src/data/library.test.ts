@@ -111,3 +111,58 @@ describe('toLift thumbnail for a lift moved over by an account transfer', () => 
     expect(toLift(moved, analysis(undefined)).thumb).toBeUndefined();
   });
 });
+
+describe('toLift for a lift tracked on this phone (4.0)', () => {
+  const tracked = row({ id: 't1', status: 'done', error: null });
+  const still = (name: string) => `file:///docs/lifts/t1/stills/${name}.jpg`;
+  const analysis = (over: { path?: object[]; traceKind?: 'bar' | 'hip'; peak?: string | undefined }) =>
+    ({
+      version: 1,
+      id: 't1',
+      movement: 'snatch',
+      video: { uri: '', width: 1080, height: 1920, fps: 60, frameCount: 300 },
+      traceKind: over.traceKind ?? 'bar',
+      reps: [
+        {
+          index: 1,
+          startFrame: 0,
+          endFrame: 299,
+          made: false,
+          phases: [],
+          keyFrames: [
+            { phase: 'setup', frame: 4, image: still('r1-1-setup') },
+            { phase: 'peak', frame: 180, image: 'peak' in over ? over.peak : still('r1-2-peak') },
+          ],
+          path: over.path ?? [{ frame: 4, x: 0.5, y: 0.8, src: 'plate' }, { frame: 180, x: 0.5, y: 0.2, src: 'plate' }],
+        },
+      ],
+      bestRepIndex: 1,
+      cue: null,
+      measurements: [],
+      failure: null,
+    }) as unknown as Parameters<typeof toLift>[1];
+
+  it('has the bar path and the body, and the still from the top of the lift', () => {
+    const lift = toLift(tracked, analysis({}));
+    expect(lift.shows).toBe('bar');
+    expect(lift.thumb).toBe(still('r1-2-peak'));
+  });
+
+  it('with no bar path drawn is body only and keeps its still', () => {
+    const lift = toLift(tracked, analysis({ path: [] }));
+    expect(lift.shows).toBe('body');
+    expect(lift.thumb).toBe(still('r1-2-peak'));
+  });
+
+  it('is body only for a hanging movement, whose path is the hips', () => {
+    expect(toLift(tracked, analysis({ traceKind: 'hip' })).shows).toBe('body');
+  });
+
+  it('falls back to the still it has when the last one is missing', () => {
+    expect(toLift(tracked, analysis({ path: [], peak: undefined })).thumb).toBe(still('r1-1-setup'));
+  });
+
+  it('says nothing about what it shows while there is no analysis', () => {
+    expect(toLift(row({ id: 't1', status: 'analysing', error: null }), undefined, Date.parse(tracked.created_at)).shows).toBeUndefined();
+  });
+});

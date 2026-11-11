@@ -10,6 +10,8 @@ export const library = {
   'library.inFlight.title': "Tracking your lift",
   'library.detail.queued': 'Queued · free videos used',
   'library.detail.failed': "Couldn't track it",
+  'library.detail.barAndBody': "Bar path and body",
+  'library.detail.bodyOnly': "Body only",
   'library.lifts.emptyTitle': 'Add your first lift.',
   'library.lifts.emptyBody': "Any lift or gymnastics clip. Whole body in frame.",
   'library.lifts.import': 'Import a video',
