@@ -14,6 +14,8 @@ import { DeviceInput } from './source';
 export const BODY_JOINTS = [L_SHO, R_SHO, L_ELB, R_ELB, L_WRI, R_WRI, L_HIP, R_HIP, L_KNEE, R_KNEE, L_ANK, R_ANK, L_HEEL, R_HEEL, L_BIGTOE, R_BIGTOE];
 export type Body = { version: 1; frames: (number | null)[][] };
 
+const BRIDGE_S = 0.6;
+
 export type Tracked = { analysis: AnalysisJson; body: Body | null };
 
 export function track(input: DeviceInput, opts: { analysisId?: string; assetPrefix?: string } = {}): Tracked {
@@ -42,13 +44,23 @@ export function track(input: DeviceInput, opts: { analysisId?: string; assetPref
   if (!only) return { analysis: fail(ctx, 'unsupported_movement', 'no_path', 'Could not follow the bar or the body in this clip.').analysis, body: null };
   // Once the plate has been followed, the path is the plate's: the hands before it is first read and after it is last
   // read (walking up to the bar, the bar dropped and the lifter moving off) are not the bar, so they are not drawn.
-  const rep = (only.analysis.reps as { path: { x: number; src?: string }[]; guides?: { startX: number } }[])[0];
+  // Between plate readings the hands stand in only for a short loss (the blur of the pull, BRIDGE_S at most): over a
+  // longer one they have often left the bar (between two lifts, the bar on the floor), and the path then joins the
+  // two plate readings directly.
+  const rep = (only.analysis.reps as { path: { frame: number; x: number; src?: string }[]; guides?: { startX: number } }[])[0];
   const firstPlate = rep.path.findIndex((p) => p.src === 'plate');
   if (firstPlate >= 0) {
     let lastPlate = rep.path.length - 1;
     while (rep.path[lastPlate].src !== 'plate') lastPlate -= 1;
     if (lastPlate > firstPlate) {
-      rep.path = rep.path.slice(firstPlate, lastPlate + 1);
+      const span = rep.path.slice(firstPlate, lastPlate + 1);
+      const onPlate = span.filter((p) => p.src === 'plate');
+      rep.path = span.filter((p) => {
+        if (p.src === 'plate') return true;
+        const before = onPlate.filter((q) => q.frame < p.frame).pop();
+        const after = onPlate.find((q) => q.frame > p.frame);
+        return before !== undefined && after !== undefined && after.frame - before.frame <= BRIDGE_S * meta.fps;
+      });
       if (rep.guides) rep.guides.startX = rep.path[0].x;
     }
   }

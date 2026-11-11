@@ -141,12 +141,23 @@ const PLATE_SIZE: [number, number] = [0.9, 1.3];
 const PLATE_LEASH: [number, number] = [-0.35, 0.5];
 const PLATE_LEASH_YAW = 0.6;
 const PLATE_RUN = 6;
+const PLATE_SETTLE: [number, number] = [10, 40];
 const PLATE_TRAVEL = 0.5;
 const PLATE_COMOTION = 0.3;
 const PLATE_TRAVEL_RATIO: [number, number] = [0.4, 2.5];
 
 export function onPlate(src: number[], fit: [number, number, number, number][], centres: Pt[], wrists: Pt[], seed: number, yawDeg = 0): boolean[] {
-  const M0 = fit[seed][0], home = dist(centres[seed], wrists[seed]);
+  // the plate's size is the middle of the detections once the follower has settled on the rim, not the seed's: a
+  // start search that fitted the disc a quarter too large is pulled in by at most 2% a frame (38CD6F06), and every
+  // later frame then read as shrunk. Never above the seed's: a bar lifted at once towards a low camera grows
+  const det: number[] = [];
+  for (let f = seed; f < src.length && det.length < PLATE_SETTLE[1]; f++) if (src[f] === 1 && Number.isFinite(fit[f][0])) det.push(fit[f][0]);
+  const first = (det.length > 2 * PLATE_SETTLE[0] ? det.slice(PLATE_SETTLE[0]) : det).sort((a, b) => a - b);
+  const M0 = Math.min(fit[seed][0], first[Math.floor(first.length / 2)]);
+  // and its distance from the hands is the middle of every detection's: the seed frame alone can be one where the
+  // camera was still being put down (DF250CAA), after which every settled frame read as off the leash
+  const away = src.flatMap((s, f) => (s === 1 && finitePt(wrists[f]) && finitePt(centres[f]) ? [dist(centres[f], wrists[f])] : [])).sort((a, b) => a - b);
+  const home = away.length ? away[Math.floor(away.length / 2)] : dist(centres[seed], wrists[seed]);
   // off side-on the near plate's offset from the hands grows as the bar rises (it is nearer the camera), by about
   // the yaw's sine in plate widths over a lift
   const leashMax = PLATE_LEASH[1] + PLATE_LEASH_YAW * Math.sin((Math.max(0, yawDeg) * Math.PI) / 180);

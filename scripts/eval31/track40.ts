@@ -1,10 +1,11 @@
 // 4.0 tracking eval: clips through the phone pipeline as the app runs it (harness pose pass, then the plan loop of
 // trackTrace, three native passes at most), writing what the app would save per lift and one row per clip.
 //   npx tsx scripts/eval31/track40.ts --harness BIN --models DIR --out DIR clip.mov [clip.mov ...]
+// A pose pass already in DIR/<name>/ (pose.trace.json.gz + run.json) is reused.
 // Per clip in DIR/<name>/: analysis.json, body.json, trace.json.gz. DIR/rows.jsonl: frames, fps, failure, path points,
 // the share of the path read off the plate, misses left after the last pass, joints seen, seconds for the pose pass.
 import { execFileSync } from 'child_process';
-import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { basename, join } from 'path';
 import { gunzipSync, gzipSync } from 'zlib';
 
@@ -33,7 +34,7 @@ for (const clip of clips) {
   const row: Record<string, unknown> = { id };
   try {
     const t0 = Date.now();
-    sh(['pose', clip, '--models', models, '--out', join(dir, 'pose.trace.json.gz'), '--run-out', join(dir, 'run.json'), '--movement', 'snatch']);
+    if (!existsSync(join(dir, 'pose.trace.json.gz')) || !existsSync(join(dir, 'run.json'))) sh(['pose', clip, '--models', models, '--out', join(dir, 'pose.trace.json.gz'), '--run-out', join(dir, 'run.json'), '--movement', 'snatch']);
     row.poseS = Math.round((Date.now() - t0) / 100) / 10;
     let trace = parseTraceJson(gz(join(dir, 'pose.trace.json.gz'))) as Trace;
     let tracked = trackTrace(trace, { analysisId: id, assetPrefix: id });

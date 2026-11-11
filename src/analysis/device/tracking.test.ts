@@ -62,6 +62,45 @@ describe('track (4.0: tracking only)', () => {
     expect(row.slice(4, 6)).toEqual([null, null]);
   });
 
+  // The finder fitted no outline (plates: []), as on a red plate: the follow is asked for all the same.
+  function followed(rim: number, polarity: number): DeviceInput {
+    const input = clip();
+    input.source.followPlate = (_s, len, _seed, wrists) => ({
+      centres: wrists.map(([x, y]): Pt => [x, y + 60]),
+      src: new Array<number>(len).fill(1),
+      fit: Array.from({ length: len }, (): [number, number, number, number] => [100, rim, polarity, 30]),
+    });
+    return input;
+  }
+  const points = (input: DeviceInput) => (track(input).analysis as { reps: { path: { y: number; src?: string }[] }[] }).reps[0].path;
+
+  it('draws the path from a plate the finder did not fit when its rim is clear, of one polarity, and moves with the hands', () => {
+    const path = points(followed(0.8, 0.9));
+    expect(path).toHaveLength(90);
+    expect(path.every((p) => p.src === 'plate')).toBe(true);
+    expect(path[0].y).toBeCloseTo(800 / 1280, 2);
+  });
+
+  it('joins two plate readings directly when the plate was lost for long, and lets the hands bridge a short loss', () => {
+    const input = followed(0.8, 0.9);
+    const follow = input.source.followPlate;
+    input.source.followPlate = (...args) => {
+      const out = follow!(...args);
+      for (let f = 20; f < 28; f++) out.src[f] = 0;
+      for (let f = 40; f < 70; f++) out.src[f] = 0;
+      return out;
+    };
+    const path = (track(input).analysis as { reps: { path: { frame: number; src?: string }[] }[] }).reps[0].path;
+    expect(path.filter((p) => p.src === 'wrist').map((p) => p.frame)).toEqual([20, 21, 22, 23, 24, 25, 26, 27]);
+    expect(path).toHaveLength(60);
+  });
+
+  it('keeps the hands when such a plate has a rim of mixed polarity (an edge against a bright window)', () => {
+    const path = points(followed(0.6, 0.3));
+    expect(path.every((p) => p.src === 'wrist')).toBe(true);
+    expect(path[0].y).toBeCloseTo(740 / 1280, 2);
+  });
+
   it('fails as no person when the pose saw nobody', () => {
     const { analysis, body } = track(clip(90, false));
     expect((analysis as { failure: { code: string } }).failure.code).toBe('no_person');
