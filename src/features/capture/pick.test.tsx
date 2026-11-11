@@ -31,7 +31,7 @@ beforeEach(() => jest.clearAllMocks());
 
 // Upload bug (12-10-2026): an iCloud-only video failed to copy because the picker was not allowed to download it.
 test('pickClip lets the picker download a video stored only in iCloud', async () => {
-  await pickClip('snatch');
+  await pickClip();
   expect(launch).toHaveBeenCalledWith({ mediaTypes: ['videos'], quality: 1, shouldDownloadFromNetwork: true });
 });
 
@@ -45,26 +45,4 @@ test('a video that cannot be opened explains why and offers another pick or Reco
   expect(view.getByTestId('import-pick')).toHaveTextContent('Choose a video');
   expect(view.getByTestId('import-record')).toHaveTextContent('Record instead');
   expect(alert).toHaveBeenCalledWith("Couldn't open that video", 'Try again, or pick a clip saved on this phone.');
-});
-
-// prod 14-10-2026: a clean was uploaded with the selector showing snatch. The import screen must open the
-// picker with the last lift used, which means waiting for the capture store to come back from disk.
-test('an import opens the picker on the last movement used, waiting for it to load from disk', async () => {
-  useCapture.setState({ movement: 'snatch', draft: null });
-  let release!: () => void;
-  const disk = new Promise<void>((r) => (release = r));
-  (AsyncStorage.getItem as jest.Mock).mockImplementationOnce(async () => {
-    await disk;
-    return JSON.stringify({ state: { movement: 'clean', lastWeight: '', originals: [] }, version: 0 });
-  });
-  launch.mockResolvedValueOnce({ canceled: false, assets: [{ uri: 'file:///clean.mov', duration: 8000 }] });
-  const rehydrated = useCapture.persist.rehydrate();
-  await render(<ImportRoute />);
-  expect(launch).not.toHaveBeenCalled();
-  await act(async () => {
-    release();
-    await rehydrated;
-  });
-  await waitFor(() => expect(launch).toHaveBeenCalledTimes(1));
-  await waitFor(() => expect(useCapture.getState().draft?.movement).toBe('clean'));
 });

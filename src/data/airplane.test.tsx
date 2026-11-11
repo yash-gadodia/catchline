@@ -16,7 +16,6 @@ import { FREE_USED_KEY, FREE_WEEK_KEY } from './freeLifts';
 import { useLiftOutbox } from './liftOutbox';
 import { usePipeline } from './pipeline';
 import ProcessingRoute from '../../app/analysis/processing';
-import CueRoute from '../../app/analysis/cue';
 
 // 3.1 in airplane mode: every network call fails, and a fresh install still analyses
 // three free lifts on the phone, paywalls the fourth, keeps a paid plan from the
@@ -117,7 +116,7 @@ beforeEach(() => {
   (SecureStore as unknown as { __reset: () => void }).__reset();
   params.current = {};
   usePipeline.getState().clear();
-  useLiftOutbox.setState({ items: [], cues: [] });
+  useLiftOutbox.setState({ items: [] });
   usePurchases.setState({ tier: 'free', period: null });
   useUsage.setState({ usage: EMPTY_USAGE });
   useOnboarding.setState({ consent: { version: 1, acceptedAt: '2026-10-11T07:00:00Z' } });
@@ -145,15 +144,12 @@ describe('airplane mode, fresh install', () => {
     params.current = { live: '1' };
     const view = await render(<ProcessingRoute />);
     await waitFor(() => expect(view.getByTestId('processing-done')).toBeOnTheScreen());
-    expect(view.getByText('Done. 3 reps, one cue.')).toBeOnTheScreen();
+    expect(view.getByText('Done.')).toBeOnTheScreen();
     await act(async () => {
       fireEvent.press(view.getByTestId('see-it'));
     });
     expect(nav.replace).toHaveBeenCalledWith({ pathname: '/analysis/player', params: { fixture: id } });
 
-    params.current = { fixture: id };
-    const cue = await render(<CueRoute />);
-    expect(cue.getByText(mock.cue.text)).toBeOnTheScreen();
     expect(analyseOnDevice).toHaveBeenCalledTimes(1);
     expect(analyseOnDevice.mock.calls[0][0]).toBe('file:///clips/power-snatch.mov.mp4');
     noServerAnalysis();

@@ -1,31 +1,25 @@
-import { useEffect, useReducer, useRef, useState } from 'react';
+import { useEffect, useReducer, useRef } from 'react';
 import { Image, Pressable, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Speech from 'expo-speech';
-import type { Movement } from '../../analysis/types';
 import { frameSource } from '../../analysis/frames';
 import Btn from '../../components/Btn';
-import Segmented from '../../components/Segmented';
 import Sheet from '../../components/Sheet';
 import { colors, shade, shape, space, stroke } from '../../design/tokens';
 import { display, fontFamily, type } from '../../design/typography';
 import { DestructiveBtn, Note } from '../onboarding/ui';
 import { CameraSurface, type CameraHandle } from './camera';
 import { failing, firstHint, useFramingChecks, type CheckId, type FramingChecker } from './checks';
-import { CheckList, HudBadge, LiftChip, RecordButton } from './hud';
-import LiftSheet from './LiftSheet';
-import { MAX_RECORD_S, clock, isTooLong, reduce, type RepsMode, type Session } from './session';
-import Silhouette from './Silhouette';
+import { CheckList, HudBadge, RecordButton } from './hud';
+import { MAX_RECORD_S, clock, isTooLong, reduce, type Session } from './session';
 import { getLocale, t } from '../../i18n';
 
-export type Recorded = { uri: string | null; durationS: number; overridden: CheckId[]; mode: RepsMode };
+export type Recorded = { uri: string | null; durationS: number; overridden: CheckId[] };
 
 const PREVIEW_FRAME = 'asset:snatch/1-setup';
 
 export default function ViewfinderScreen({
-  movement,
-  onMovement,
   checker,
   fps,
   freeUsed,
@@ -36,13 +30,10 @@ export default function ViewfinderScreen({
   onImport,
   onGuide,
   onRecorded,
-  target,
   camera = true,
   initial = { kind: 'idle' },
   speak = (text: string) => Speech.speak(text, { language: getLocale() }),
 }: {
-  movement: Movement;
-  onMovement: (m: Movement) => void;
   checker: FramingChecker;
   fps: number;
   // Free plan only; a paid plan has no free-video count to show.
@@ -54,8 +45,6 @@ export default function ViewfinderScreen({
   onImport: () => void;
   onGuide: () => void;
   onRecorded: (r: Recorded) => void;
-  // A retest: the cue and the number to beat, one line over the shutter.
-  target?: string;
   // false: no camera (simulator, design QA), show a still frame instead.
   camera?: boolean;
   initial?: Session;
@@ -64,13 +53,11 @@ export default function ViewfinderScreen({
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const [session, dispatch] = useReducer(reduce, initial);
-  const [mode, setMode] = useState<RepsMode>('set');
-  const [picking, setPicking] = useState(false);
   const cam = useRef<CameraHandle>(null);
   const stopFake = useRef<(() => void) | null>(null);
   const elapsed = useRef(0);
   const overridden = useRef<CheckId[]>([]);
-  const results = useFramingChecks(checker, movement, session.kind === 'idle' || session.kind === 'countdown');
+  const results = useFramingChecks(checker, session.kind === 'idle' || session.kind === 'countdown');
   const hint = firstHint(results);
 
   useEffect(() => {
@@ -102,7 +89,7 @@ export default function ViewfinderScreen({
           });
     take.then((uri) => {
       stopFake.current = null;
-      onRecorded({ uri, durationS: Math.max(elapsed.current, 1), overridden: overridden.current, mode });
+      onRecorded({ uri, durationS: Math.max(elapsed.current, 1), overridden: overridden.current });
       dispatch({ type: 'cancel' });
     });
   }, [session.kind]);
@@ -125,7 +112,6 @@ export default function ViewfinderScreen({
         />
       )}
       {dim ? <View style={{ position: 'absolute', left: 0, top: 0, width, height, backgroundColor: shade(0.55) }} /> : null}
-      {session.kind === 'idle' ? <Silhouette movement={movement} width={width} height={height} /> : null}
 
       {session.kind === 'idle' ? (
         <>
@@ -136,17 +122,15 @@ export default function ViewfinderScreen({
               left: space.gutter,
               right: space.gutter,
               flexDirection: 'row',
-              justifyContent: 'space-between',
+              justifyContent: 'flex-end',
               alignItems: 'center',
+              gap: space.s2,
             }}
           >
-            <LiftChip movement={movement} onPress={() => setPicking(true)} scrim height={36} />
-            <View style={{ flexDirection: 'row', gap: space.s2 }}>
-              <HudBadge testID="fps-badge">{t('capture.viewfinder.fps', { fps })}</HudBadge>
-              <HudBadge square onPress={onGuide} testID="guide-button">
-                ?
-              </HudBadge>
-            </View>
+            <HudBadge testID="fps-badge">{t('capture.viewfinder.fps', { fps })}</HudBadge>
+            <HudBadge square onPress={onGuide} testID="guide-button">
+              ?
+            </HudBadge>
           </View>
           <View style={{ position: 'absolute', top: insets.top + 64, left: space.gutter }}>
             <CheckList results={results} />
@@ -217,30 +201,11 @@ export default function ViewfinderScreen({
             />
           ) : null}
           <View style={{ alignItems: 'center', gap: 20, paddingBottom: Math.max(insets.bottom, space.s4) + space.s5 }}>
-            {target && session.kind === 'idle' ? (
-              <Text testID="retest-target" numberOfLines={2} style={[type.label, { color: colors.text, textAlign: 'center', paddingHorizontal: space.gutter }]}>
-                {target}
-              </Text>
-            ) : null}
-            {session.kind === 'idle' ? (
-              <Segmented
-                testID="reps-mode"
-                value={mode}
-                onChange={setMode}
-                options={[
-                  { value: 'rep', label: t('capture.viewfinder.oneRep') },
-                  { value: 'set', label: t('capture.viewfinder.set') },
-                ]}
-              />
-            ) : null}
             {session.kind === 'countdown' ? <Text style={[type.label, { color: colors.text2 }]}>{t('capture.viewfinder.getSet')}</Text> : null}
             {recording && !isTooLong(session) ? (
               <View style={{ alignItems: 'center', gap: space.s2 }}>
                 <Text style={[display(28), { color: colors.text }]}>{t('capture.viewfinder.liftWhenReady')}</Text>
-                {/* TODO(on-device pose): auto-stop after the lockout in 1-rep mode. */}
-                <Text style={{ color: colors.text2, ...type.readout }}>
-                  {mode === 'rep' ? t('capture.viewfinder.stopAfterLockout') : t('capture.viewfinder.stopAfterLast')}
-                </Text>
+                <Text style={{ color: colors.text2, ...type.readout }}>{t('capture.viewfinder.stopAfterLast')}</Text>
               </View>
             ) : null}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 56 }}>
@@ -305,16 +270,6 @@ export default function ViewfinderScreen({
         </Sheet>
       ) : null}
 
-      {picking ? (
-        <LiftSheet
-          value={movement}
-          onPick={(m) => {
-            onMovement(m);
-            setPicking(false);
-          }}
-          onClose={() => setPicking(false)}
-        />
-      ) : null}
     </View>
   );
 }

@@ -95,10 +95,6 @@ export function crossesPhase(rep: Rep, a: number, b: number): boolean {
   return phaseAt(rep, a)?.name !== phaseAt(rep, b)?.name;
 }
 
-export function phaseRail(rep: Rep): { name: Phase['name']; weight: number }[] {
-  return rep.phases.map((p) => ({ name: p.name, weight: p.endFrame - p.startFrame }));
-}
-
 // Floor to the catch: the drop into the catch and the stand-up retrace the
 // same column and turn a whole-rep path into a scribble.
 export function liftPath(rep: Rep): TracePoint[] {

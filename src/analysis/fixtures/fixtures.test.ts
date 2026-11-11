@@ -1,4 +1,4 @@
-import { COMPARE_TARGETS, DEMO_ID, demoBest, demoBestRaw, getAnalysis, horizontalCm, isSample, snatchMock, snatchMockLow, snatchMockMiss } from '.';
+import { DEMO_ID, demoBest, demoBestRaw, getAnalysis, horizontalCm, snatchMock, snatchMockLow, snatchMockMiss } from '.';
 import { frameSource } from '../frames';
 import { pointAt, repByIndex } from '../timeline';
 
@@ -33,13 +33,6 @@ describe('snatch mock fixture', () => {
     expect(snatchMockMiss.reps).toHaveLength(1);
     expect(snatchMockMiss.reps[0].made).toBe(false);
     expect(snatchMockMiss.cue?.evidence.caption).toBe(`turnover · bar ${snatchMockMiss.cue?.evidence.value} cm in front`);
-  });
-
-  it('builds compare targets with the agreed numbers', () => {
-    const best = COMPARE_TARGETS.best.analysis.measurements.find((m) => m.id === 'bar_drift_hip');
-    const last = COMPARE_TARGETS.last.analysis.measurements.find((m) => m.id === 'bar_drift_hip');
-    expect(best?.value).toBe(2);
-    expect(last?.value).toBe(8);
   });
 
   // Prod bug (14-10-2026): an unknown key used to fall back to the demo, so a real
@@ -87,7 +80,5 @@ describe('demo-best fixture (the owner\'s squat snatch, 20 Sep 2026)', () => {
     expect(demoBest.cue?.confidenceText).toBe('Filmed ~37° off side-on, so the numbers are estimates');
     expect(demoBest.cue?.text).toBe(demoBestRaw.cue?.text);
     expect(getAnalysis(DEMO_ID)).toBe(demoBest);
-    expect(isSample(demoBest)).toBe(true);
-    expect(isSample(snatchMock)).toBe(false);
   });
 });

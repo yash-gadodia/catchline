@@ -28,7 +28,7 @@ const online = () => supabase.auth.getSession.mockResolvedValue({ data: { sessio
 
 beforeEach(() => {
   jest.clearAllMocks();
-  useLiftOutbox.setState({ items: [], cues: [] });
+  useLiftOutbox.setState({ items: [] });
   syncLift.mockResolvedValue({ status: 'done', cue_id: 'c1' });
 });
 

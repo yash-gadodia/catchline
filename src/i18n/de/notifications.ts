@@ -5,7 +5,7 @@ export const notifications: Strings<typeof en> = {
   // REVIEW
   'notifications.onboarding.title': "Mitteilungen einschalten.",
   // REVIEW
-  'notifications.onboarding.body': "Catchline nutzt sie nur, um dich vor deiner nächsten Einheit an den erneuten Test deines Hinweises zu erinnern. Keine Werbung, und du kannst sie jederzeit ausschalten.",
+  'notifications.onboarding.body': "Catchline nutzt sie nur, um dir zu sagen, wenn ein Lift fertig erfasst ist. Keine Werbung, und du kannst sie jederzeit ausschalten.",
   // REVIEW
   'notifications.turnOn': "Mitteilungen einschalten",
   // REVIEW
@@ -13,17 +13,17 @@ export const notifications: Strings<typeof en> = {
   // REVIEW
   'notifications.notNow': "Nicht jetzt",
   // REVIEW
-  'notifications.reask.title': "Erinnerung an den erneuten Test deines Hinweises?",
+  'notifications.reask.title': "Bescheid bekommen, wenn dein Lift fertig ist?",
   // REVIEW
-  'notifications.reask.body': "Ein Hinweis sitzt erst, wenn du ihn erneut testest. Schalte Mitteilungen ein, und Catchline erinnert dich vor deiner nächsten Einheit.",
+  'notifications.reask.body': "Die Erfassung läuft weiter, wenn du die App verlässt. Schalte Mitteilungen ein, und Catchline sagt dir, wenn sie fertig ist.",
   // REVIEW
   'notifications.reask.notNow': "Nicht jetzt",
   // REVIEW
-  'notifications.ready.title': "Dein {movement} ist fertig",
+  'notifications.ready.title': "Dein Lift ist fertig",
   // REVIEW
-  'notifications.ready.body': "Tippe, um deinen Hinweis zu sehen.",
+  'notifications.ready.body': "Tippe, um die Hantelbahn in deinem Video zu sehen.",
   // REVIEW
-  'notifications.ready.failedTitle': "Wir konnten deinen {movement} nicht lesen",
+  'notifications.ready.failedTitle': "Wir konnten dein Video nicht erfassen",
   // REVIEW
   'notifications.ready.failedBody': "Tippe, um zu sehen, warum und was du als Nächstes versuchen kannst.",
 };

@@ -7,10 +7,9 @@ export default function YouRoute() {
   return (
     <YouScreen
       nav={{
-        onDemo: () => router.push('/onboarding/demo?from=app' as Href),
         onWhatIsStored: () => router.push('/you/stored' as Href),
         onDeleteAccount: () => router.push('/you/delete' as Href),
-        onPlan: () => router.push('/paywall/plans' as Href),
+        onPlan: () => router.push('/paywall' as Href),
         onReport: () =>
           void openReportInIntercom().then((opened) => {
             if (!opened) router.push('/report' as Href);

@@ -1,13 +1,7 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { act, fireEvent, render } from '@testing-library/react-native';
 import * as Speech from 'expo-speech';
-import PoseCoreML from '../../../modules/pose-coreml';
-import * as analytics from '../../lib/analytics';
 import { checkHint, fixedChecker, stubChecker } from './checks';
 import { demoClip } from './demo';
-import ImportScreen from './ImportScreen';
-import ReviewScreen from './ReviewScreen';
-import { newClip } from './store';
 import TrimScreen from './TrimScreen';
 import ViewfinderScreen from './ViewfinderScreen';
 
@@ -45,8 +39,6 @@ beforeEach(() => jest.clearAllMocks());
 
 function viewfinder(overrides: Partial<Parameters<typeof ViewfinderScreen>[0]> = {}) {
   const props = {
-    movement: 'snatch' as const,
-    onMovement: jest.fn(),
     checker: stubChecker,
     fps: 30,
     freeUsed: 0,
@@ -87,31 +79,12 @@ describe('Viewfinder', () => {
     expect(screen.getByTestId('record-button')).toBeEnabled();
   });
 
-  it.each([
-    ['snatch', 'silhouette-standing'],
-    ['bar_muscle_up', 'silhouette-hanging'],
-    ['kipping_hspu', 'silhouette-inverted'],
-  ] as const)('matches the silhouette to %s', async (movement, id) => {
-    const screen = await render(viewfinder({ movement }).ui);
-    expect(screen.getByTestId(id)).toBeOnTheScreen();
-  });
-
-  it('guides the framing: a plate on the side-on figure and one line, which a failing check replaces', async () => {
-    const guide = await render(viewfinder().ui);
-    expect(guide.getByTestId('silhouette-plate')).toBeOnTheScreen();
-    expect(guide.getByTestId('framing-guide')).toHaveTextContent('Side-on, whole bar in frame, phone level with the bar');
-    const failing = await render(viewfinder({ checker: fixedChecker(['whole_body']) }).ui);
-    expect(failing.queryByTestId('framing-guide')).toBeNull();
-    expect(failing.getByTestId('check-hint')).toBeOnTheScreen();
-  });
-
-  it('changes lift from the selector', async () => {
-    const { props, ui } = viewfinder();
-    const screen = await render(ui);
-    await press(screen.getByTestId('lift-chip'));
-    await press(screen.getByTestId('pick-bar_muscle_up'));
-    expect(props.onMovement).toHaveBeenCalledWith('bar_muscle_up');
-    expect(screen.queryByTestId('lift-sheet')).toBeNull();
+  it('has no movement to pick: no lift selector, no reps mode, no silhouette, just the framing line', async () => {
+    const screen = await render(viewfinder().ui);
+    expect(screen.queryByTestId('lift-chip')).toBeNull();
+    expect(screen.queryByTestId('reps-mode')).toBeNull();
+    expect(screen.queryByTestId('silhouette-standing')).toBeNull();
+    expect(screen.getByTestId('framing-guide')).toHaveTextContent('Whole body and bar in frame, phone still');
   });
 
   it('counts down out loud, records, and hands back the clip with the checks that were failing', async () => {
@@ -124,19 +97,20 @@ describe('Viewfinder', () => {
     for (let i = 0; i < 5; i++) await tick(1000);
     expect(Speech.speak).toHaveBeenCalledTimes(5);
     expect(screen.getByTestId('record-timer')).toHaveTextContent('00:00');
-    expect(screen.getByText('Lift when ready')).toBeOnTheScreen();
+    expect(screen.getByText('Go when ready')).toBeOnTheScreen();
+    expect(screen.getByText('tap stop when you are done')).toBeOnTheScreen();
     await tick(1000);
     await tick(1000);
     expect(screen.getByTestId('record-timer')).toHaveTextContent('00:02');
     await press(screen.getByTestId('record-button'));
-    expect(props.onRecorded).toHaveBeenCalledWith({ uri: null, durationS: 2, overridden: ['whole_body'], mode: 'set' });
+    expect(props.onRecorded).toHaveBeenCalledWith({ uri: null, durationS: 2, overridden: ['whole_body'] });
     jest.useRealTimers();
   });
 
   it('warns once a recording passes 30 seconds', async () => {
     const screen = await render(viewfinder({ initial: { kind: 'recording', elapsed: 31 } }).ui);
     expect(screen.getByTestId('too-long')).toHaveTextContent(
-      "Over 30 secondsWe analyse one set per clip. Stop here and we'll trim to the reps, or keep going and pick the set on the next screen."
+      'Over 30 secondsLong clips take longer to track. Stop here; you can trim it on the next screen.'
     );
     expect(screen.getByTestId('record-timer')).toHaveTextContent('00:31');
   });
@@ -161,155 +135,28 @@ describe('Viewfinder', () => {
   });
 });
 
-describe('Review', () => {
-  const handlers = () => ({
-    onWeight: jest.fn(),
-    onMovement: jest.fn(),
-    onRetake: jest.fn(),
-    onTrim: jest.fn(),
-    onAnalyse: jest.fn(),
-  });
-
-  it('loops the clip with lift, weight and trim, then analyses', async () => {
-    const h = handlers();
-    const screen = await render(<ReviewScreen clip={demoClip('ok')} units="kg" weight="62.5" {...h} />);
-    expect(screen.getByTestId('review-meta')).toHaveTextContent('00:08 · 30 fps · 3 reps found');
-    expect(screen.getByTestId('clip-sample')).toBeOnTheScreen();
-    expect(screen.getByTestId('weight-input')).toHaveDisplayValue('62.5');
-    await act(async () => {
-      fireEvent.changeText(screen.getByTestId('weight-input'), '70kg');
-    });
-    expect(h.onWeight).toHaveBeenCalledWith('70');
-    await press(screen.getByTestId('review-trim'));
-    await press(screen.getByText('Analyse'));
-    await press(screen.getByTestId('review-retake'));
-    expect([h.onTrim, h.onAnalyse, h.onRetake].map((f) => f.mock.calls.length)).toEqual([1, 1, 1]);
-  });
-
-  it('warns when a framing check was overridden but still analyses', async () => {
-    const h = handlers();
-    const screen = await render(<ReviewScreen clip={demoClip('override')} units="kg" weight="" {...h} />);
-    expect(screen.getByTestId('override-note')).toHaveTextContent(
-      'Feet were out of frameWe can still measure the bar. Foot position and catch depth will be missing.'
-    );
-    await press(screen.getByText('Analyse anyway'));
-    expect(h.onAnalyse).toHaveBeenCalledTimes(1);
-  });
-
-  it('blocks Analyse when the clip stops before the catch', async () => {
-    const h = handlers();
-    const screen = await render(<ReviewScreen clip={demoClip('cutoff')} units="kg" weight="" {...h} />);
-    expect(screen.getByTestId('cut-off-marker')).toHaveTextContent('clip ends here · frame 186');
-    expect(screen.getByTestId('review-analyse')).toBeDisabled();
-    await press(screen.getByTestId('review-analyse'));
-    expect(h.onAnalyse).not.toHaveBeenCalled();
-    await press(screen.getByTestId('review-retake-primary'));
-    expect(h.onRetake).toHaveBeenCalledTimes(1);
-  });
-
-  it('lands a shared clip on review with a movement guess and the frame-rate note', async () => {
-    const screen = await render(<ReviewScreen clip={demoClip('share')} units="kg" weight="" {...handlers()} />);
-    expect(screen.getByText('from WhatsApp')).toBeOnTheScreen();
-    expect(screen.getByTestId('review-meta')).toHaveTextContent('00:11 · 30 fps');
-    expect(screen.getByText('Looks like a handstand push-up. Right?')).toBeOnTheScreen();
-    expect(screen.getByText('30 fps clip · timing will be rougher than 60')).toBeOnTheScreen();
-  });
-});
-
-describe('Review framing check', () => {
-  const analyzePose = PoseCoreML!.analyzePose as jest.Mock;
-  // A standing lifter in a 720 x 1280 frame, torso 200 px; shoSep / hipSep in torso lengths.
-  const lifter = (shoSep: number, hipSep: number, anklesY = 1000) => {
-    const kp: ([number, number, number] | null)[] = Array(26).fill(null);
-    for (let j = 5; j < 26; j++) if (j !== 17) kp[j] = [300, 700, 0.8];
-    kp[5] = [300 - shoSep * 100, 400, 0.8];
-    kp[6] = [300 + shoSep * 100, 400, 0.8];
-    kp[11] = [300 - hipSep * 100, 600, 0.8];
-    kp[12] = [300 + hipSep * 100, 600, 0.8];
-    kp[15] = [290, anklesY, 0.8];
-    kp[16] = [320, anklesY, 0.8];
-    const frames = Array.from({ length: 15 }, (_, i) => ({ t: i / 10, people: [{ box: [200, 350, 420, 1050], kp }], lifter: 0 }));
-    return { fps: 10, width: 720, height: 1280, frames };
-  };
-  const filmed = () => newClip({ uri: 'file:///clip.mov', durationS: 8, fps: 60, source: 'camera', movement: 'snatch' });
-  const handlers = () => ({ onWeight: jest.fn(), onMovement: jest.fn(), onRetake: jest.fn(), onTrim: jest.fn(), onAnalyse: jest.fn() });
-
-  beforeEach(async () => {
-    await AsyncStorage.clear();
-    analyzePose.mockClear();
-  });
-  afterEach(() => jest.restoreAllMocks());
-
-  it('filmed front-on: says the angle, Film again retakes, Analyse anyway still analyses, and logs it', async () => {
-    const tracked = jest.spyOn(analytics, 'track');
-    analyzePose.mockResolvedValueOnce(lifter(0.7 * Math.sin(Math.PI / 4), 0.5 * Math.sin(Math.PI / 4)));
-    const h = handlers();
-    const screen = await render(<ReviewScreen clip={filmed()} units="kg" weight="" {...h} />);
-    expect(await screen.findByTestId('framing-note')).toHaveTextContent(
-      "Filmed about 45° from the sideForward and back faults can't be judged from here. Film again from the side, phone at hip height."
-    );
-    await press(screen.getByText('Film again'));
-    expect(h.onRetake).toHaveBeenCalledTimes(1);
-    await press(screen.getByText('Analyse anyway'));
-    expect(h.onAnalyse).toHaveBeenCalledTimes(1);
-    expect(tracked.mock.calls).toEqual([
-      ['framing_checked', { result: 'side_on', off_deg: 45, movement: 'snatch', source: 'camera', ms: expect.any(Number) }],
-    ]);
-  });
-
-  it('feet below the frame: asks for the whole body', async () => {
-    analyzePose.mockResolvedValueOnce(lifter(0, 0, 1400));
-    const screen = await render(<ReviewScreen clip={filmed()} units="kg" weight="" {...handlers()} />);
-    expect(await screen.findByTestId('framing-note')).toHaveTextContent(
-      'Hands or feet out of frameWe need the whole body in the shot to judge the lift. Move the phone back until your hands and feet are both in frame.'
-    );
-    expect(screen.getByTestId('review-film-again')).toBeOnTheScreen();
-  });
-
-  it('side-on and in frame: no card, plain Analyse', async () => {
-    const tracked = jest.spyOn(analytics, 'track');
-    analyzePose.mockResolvedValueOnce(lifter(0, 0));
-    const screen = await render(<ReviewScreen clip={filmed()} units="kg" weight="" {...handlers()} />);
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 0));
-    });
-    expect(analyzePose).toHaveBeenCalledTimes(1);
-    expect(tracked.mock.calls).toEqual([['framing_checked', { result: 'ok', off_deg: 0, movement: 'snatch', source: 'camera', ms: expect.any(Number) }]]);
-    expect(screen.queryByTestId('framing-note')).toBeNull();
-    expect(screen.getByTestId('review-analyse')).toHaveTextContent('Analyse');
-  });
-
-  it('a pose failure fails open: no card, logged as skipped', async () => {
-    const tracked = jest.spyOn(analytics, 'track');
-    analyzePose.mockRejectedValueOnce(new Error('Could not read body pose'));
-    const screen = await render(<ReviewScreen clip={filmed()} units="kg" weight="" {...handlers()} />);
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 0));
-    });
-    expect(tracked.mock.calls).toEqual([['framing_checked', { result: 'skipped', movement: 'snatch', source: 'camera', ms: expect.any(Number) }]]);
-    expect(screen.queryByTestId('framing-note')).toBeNull();
-  });
-
-  it('the bundled sample has no file to check', async () => {
-    await render(<ReviewScreen clip={demoClip('ok')} units="kg" weight="" {...handlers()} />);
-    expect(analyzePose).not.toHaveBeenCalled();
-  });
-});
+const trimProps = () => ({ units: 'kg' as const, weight: '', onWeight: jest.fn(), onCancel: jest.fn(), onTrack: jest.fn() });
 
 describe('Trim', () => {
-  it('shows both handles with times and returns the trim', async () => {
-    const onDone = jest.fn();
-    const screen = await render(<TrimScreen clip={demoClip('ok')} onCancel={jest.fn()} onDone={onDone} />);
+  it('shows both handles with times, takes the load, and Track hands back the trim', async () => {
+    const props = trimProps();
+    const screen = await render(<TrimScreen clip={demoClip('ok')} {...props} />);
     expect(screen.getByTestId('trim-start-time')).toHaveTextContent('00:01.4');
-    expect(screen.getByTestId('trim-length')).toHaveTextContent('6.2 s · 3 reps');
+    expect(screen.getByTestId('trim-length')).toHaveTextContent(/^6\.2 s$/);
     expect(screen.getByTestId('trim-end-time')).toHaveTextContent('00:07.6');
-    await press(screen.getByTestId('trim-done'));
-    expect(onDone).toHaveBeenCalledWith({ start: 1.4, end: 7.6 });
+    expect(screen.queryByTestId('lift-chip')).toBeNull();
+    await act(async () => {
+      fireEvent.changeText(screen.getByTestId('weight-input'), '62,5kg');
+    });
+    expect(props.onWeight).toHaveBeenCalledWith('62,5');
+    expect(screen.getByTestId('trim-track')).toHaveTextContent('Track');
+    await press(screen.getByTestId('trim-track'));
+    expect(props.onTrack).toHaveBeenCalledWith({ start: 1.4, end: 7.6 });
   });
 
   it('steps each handle a tenth of a second with ‹ and ›, and by VoiceOver', async () => {
-    const onDone = jest.fn();
-    const screen = await render(<TrimScreen clip={demoClip('ok')} onCancel={jest.fn()} onDone={onDone} />);
+    const props = trimProps();
+    const screen = await render(<TrimScreen clip={demoClip('ok')} {...props} />);
     await press(screen.getByTestId('trim-start-later'));
     await press(screen.getByTestId('trim-end-earlier'));
     expect(screen.getByTestId('trim-start-time')).toHaveTextContent('00:01.5');
@@ -317,35 +164,20 @@ describe('Trim', () => {
     await act(async () => fireEvent(screen.getByTestId('trim-strip'), 'layout', { nativeEvent: { layout: { width: 300 } } }));
     expect(screen.getByTestId('trim-start')).toHaveProp('accessibilityValue', { text: '00:01.5' });
     await act(async () => fireEvent(screen.getByTestId('trim-start'), 'accessibilityAction', { nativeEvent: { actionName: 'increment' } }));
-    await press(screen.getByTestId('trim-done'));
-    expect(onDone).toHaveBeenCalledWith({ start: 1.6, end: 7.5 });
+    await press(screen.getByTestId('trim-track'));
+    expect(props.onTrack).toHaveBeenCalledWith({ start: 1.6, end: 7.5 });
   });
 
-  it('warns on a long trim and blocks one too long to analyse', async () => {
-    const long = { ...demoClip('ok'), durationS: 120, trim: { start: 0, end: 30 }, repsFound: null };
-    const view = await render(<TrimScreen clip={long} onCancel={jest.fn()} onDone={jest.fn()} />);
-    expect(view.getByTestId('trim-problem')).toHaveTextContent('Long for one lift. Trim to just the lift for a faster, sharper read.');
-    const tooLong = { ...long, trim: { start: 0, end: 100 } };
-    const blocked = await render(<TrimScreen clip={tooLong} onCancel={jest.fn()} onDone={jest.fn()} />);
-    expect(blocked.getByTestId('trim-problem')).toHaveTextContent('Too long to analyse. Trim to 86 s or less.');
-    expect(blocked.queryByTestId('trim-done')).toBeNull();
-  });
-});
-
-describe('Import', () => {
-  it('suggests a set in a long clip and asks which rep', async () => {
-    const h = { onCancel: jest.fn(), onMovement: jest.fn(), onTrim: jest.fn(), onSet: jest.fn(), onRep: jest.fn(), onAnalyse: jest.fn() };
-    const screen = await render(<ImportScreen clip={demoClip('import')} {...h} />);
-    expect(screen.getByTestId('import-meta')).toHaveTextContent('01:42 · 30 fps');
-    expect(screen.getByText('Long clip. We found 4 sets; pick one.')).toBeOnTheScreen();
-    expect(screen.getByTestId('set-2')).toHaveTextContent('set 2 · 5 reps');
-    expect(screen.getByTestId('set-3')).toHaveTextContent('set 3');
-    expect(screen.getAllByTestId(/^rep-/).map((n) => n.props.testID)).toEqual(['rep-1', 'rep-2', 'rep-3', 'rep-4', 'rep-5', 'rep-all']);
-    await press(screen.getByTestId('set-3'));
-    await press(screen.getByTestId('rep-3'));
-    await press(screen.getByText('Analyse set 2'));
-    expect(h.onSet).toHaveBeenCalledWith(2);
-    expect(h.onRep).toHaveBeenCalledWith(3);
-    expect(h.onAnalyse).toHaveBeenCalledTimes(1);
+  it('warns on a long trim and blocks one too long to track', async () => {
+    const long = { ...demoClip('ok'), durationS: 120, trim: { start: 0, end: 30 } };
+    const view = await render(<TrimScreen clip={long} {...trimProps()} />);
+    expect(view.getByTestId('trim-problem')).toHaveTextContent('Long clip. Trim to just the lift and it tracks faster.');
+    expect(view.getByTestId('trim-track')).toBeEnabled();
+    const blockedProps = trimProps();
+    const blocked = await render(<TrimScreen clip={{ ...long, trim: { start: 0, end: 100 } }} {...blockedProps} />);
+    expect(blocked.getByTestId('trim-problem')).toHaveTextContent('Too long to track. Trim to 86 s or less.');
+    expect(blocked.getByTestId('trim-track')).toBeDisabled();
+    await press(blocked.getByTestId('trim-track'));
+    expect(blockedProps.onTrack).not.toHaveBeenCalled();
   });
 });

@@ -6,19 +6,16 @@ export type LiftStatus = 'done' | 'processing' | 'failed' | 'queued';
 
 export type Lift = {
   id: string;
+  // What a 3.x lifter picked. A 4.0 lift (its clip is kept) has no movement of its own and never shows this.
   movement: Movement;
   date: Day;
+  // When it was filmed (ISO); a 4.0 lift is titled by it.
+  at?: string;
   loadKg?: number;
-  reps?: number;
   status: LiftStatus;
-  made?: boolean;
   analysisId?: string;
   thumb?: string;
   failure?: Failure;
-  headline?: string;
-  retestCueId?: string;
-  // 3.1: the server's cue record for a lift whose analysis is not on this phone.
-  cueId?: string;
 };
 
 export type Session = {

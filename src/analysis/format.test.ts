@@ -1,23 +1,16 @@
 import type { Cue, Measurement } from './types';
 import {
-  compareRows,
-  confidenceLine,
-  doneTitle,
-  filmedAtAngle,
   evidenceReadout,
   fmt,
   formatWait,
   heroValue,
   liftTitle,
-  measurementReadout,
   movementNote,
   speedRows,
   phaseLabel,
   processingSteps,
-  signedCm,
   speedText,
   valueText,
-  syncCaption,
 } from './format';
 import { snatchMock } from './fixtures';
 
@@ -81,33 +74,6 @@ describe('evidence', () => {
   });
 });
 
-describe('measurementReadout', () => {
-  it('marks the cue', () => {
-    expect(measurementReadout(m({ value: 0.12, unit: 's', note: 'before bar', status: 'cue' }))).toBe(
-      '0.12 s · before bar · the cue'
-    );
-  });
-
-  it('says not seen without a number', () => {
-    expect(measurementReadout(m({ status: 'not_seen' }))).toBe('not seen');
-  });
-
-  it('shows a best instead of "within normal" when there is one', () => {
-    expect(measurementReadout(m({ value: 0.21, unit: 's', best: 0.19 }))).toBe('0.21 s · best 0.19');
-    expect(measurementReadout(m({ value: 3 }))).toBe('3 cm · within normal');
-  });
-
-  it('explains a follow-on fault', () => {
-    expect(measurementReadout(m({ value: 6, best: 2, status: 'follows' }))).toBe('6 cm · follows from above');
-  });
-
-  it('gives bar speed two decimals', () => {
-    expect(measurementReadout(m({ value: 1.8, unit: 'm/s', note: 'peak upward speed in the pull' }))).toBe(
-      '1.80 m/s · peak upward speed in the pull · within normal'
-    );
-  });
-});
-
 describe('bar speed', () => {
   it('always shows two decimals', () => {
     expect(speedText(1.8)).toBe('1.80 m/s');
@@ -125,34 +91,16 @@ describe('bar speed', () => {
   });
 });
 
-describe('compareRows', () => {
-  const today = [m({ id: 'a', label: 'A', value: 6 }), m({ id: 'b', label: 'B', value: 0.59, unit: 's' }), m({ id: 'c', label: 'C', value: 4 })];
-  const best = [m({ id: 'a', value: 2 }), m({ id: 'b', value: 0.58, unit: 's' }), m({ id: 'c', value: 6 })];
-
-  it('gives a signed delta, or "same" within 5 percent, with no arrows', () => {
-    expect(compareRows(today, best, 'best', ['a', 'b', 'c'])).toEqual([
-      { id: 'a', label: 'A', value: '6 cm', delta: '+4 vs best' },
-      { id: 'b', label: 'B', value: '0.59 s', delta: 'same as best' },
-      { id: 'c', label: 'C', value: '4 cm', delta: '−2 vs best' },
-    ]);
-  });
-
-  it('skips metrics missing on either side', () => {
-    expect(compareRows(today, [best[0]], 'last', ['a', 'b'])).toEqual([
-      { id: 'a', label: 'A', value: '6 cm', delta: '+4 vs last' },
-    ]);
-  });
-});
-
 describe('processing', () => {
   it('ticks steps before the current one and pulses the current one', () => {
-    expect(processingSteps(snatchMock, 2)).toEqual([
-      { label: 'Found the bar', state: 'done' },
-      { label: '3 reps', state: 'done' },
-      { label: 'Finding your phases', state: 'active' },
-      { label: 'Comparing to your best', state: 'todo' },
-      { label: 'Choosing one cue', state: 'todo' },
+    expect(processingSteps(2)).toEqual([
+      { label: 'Preparing your clip', state: 'done' },
+      { label: 'Finding you', state: 'done' },
+      { label: 'Following the bar', state: 'active' },
+      { label: 'Following your body', state: 'todo' },
+      { label: 'Drawing the lines', state: 'todo' },
     ]);
+    expect(processingSteps(0, 'Tracking on your iPhone')[0]).toEqual({ label: 'Tracking on your iPhone', state: 'active' });
   });
 
   it('says the expected wait in minutes once it is one', () => {
@@ -161,45 +109,4 @@ describe('processing', () => {
     expect(formatWait(20)).toBe('about 20 s');
   });
 
-  it('looks for hips on gymnastics', () => {
-    expect(processingSteps({ ...snatchMock, traceKind: 'hip' }, 0)[0].label).toBe('Found your hips');
-  });
-
-  it('summarises when done', () => {
-    expect(doneTitle(snatchMock)).toBe('Done. 3 reps, one cue.');
-    expect(doneTitle({ ...snatchMock, cue: null, reps: snatchMock.reps.slice(0, 1) })).toBe('Done. 1 rep.');
-  });
-});
-
-describe('compare captions', () => {
-  it('names the sync point and frames', () => {
-    expect(syncCaption('transition', 422, 102)).toBe('synced at the hip · frame 422 vs 102');
-  });
-
-  it('signs centimetre deltas', () => {
-    expect(signedCm(3.6)).toBe('+4 cm');
-    expect(signedCm(-2.2)).toBe('-2 cm');
-    expect(signedCm(0)).toBe('0 cm');
-  });
-});
-
-describe('confidenceLine', () => {
-  const cue = (confidence: Cue['confidence'], confidenceText: string): Cue => ({ ...snatchMock.cue!, confidence, confidenceText });
-
-  it('maps the three confidence levels to plain bands, with the reason when not high', () => {
-    expect(confidenceLine(cue('clear', 'Clear on all 3 reps'))).toBe('Confidence: high');
-    expect(confidenceLine(cue('worth_checking', 'Seen on 2 of 3 reps and the hip was behind a plate on rep 1.'))).toBe(
-      'Confidence: medium · bar partly hidden, seen on 2 of 3 reps'
-    );
-    expect(confidenceLine(cue('low', 'Seen on 1 of 2 reps, filmed ~36° off side-on: film from the side to confirm'))).toBe(
-      'Confidence: low · filmed at an angle, seen on 1 of 2 reps'
-    );
-    expect(confidenceLine(cue('worth_checking', 'Seen on 1 of 1 reps'))).toBe('Confidence: medium · one rep only');
-    expect(confidenceLine(cue('low', 'Something new'))).toBe('Confidence: low');
-  });
-
-  it('knows when the camera angle is the reason', () => {
-    expect(filmedAtAngle(cue('low', 'Seen on 1 of 2 reps, filmed ~36° off side-on: film from the side to confirm'))).toBe(true);
-    expect(filmedAtAngle(cue('worth_checking', 'Seen on 2 of 3 reps'))).toBe(false);
-  });
 });

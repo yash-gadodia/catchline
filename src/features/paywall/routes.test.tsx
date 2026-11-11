@@ -33,7 +33,7 @@ const press = async (el: Parameters<typeof fireEvent.press>[0]) => {
   });
 };
 
-const draft = () => newClip({ uri: 'file:///clip.mov', durationS: 8, fps: 30, source: 'camera', movement: 'snatch' });
+const draft = () => newClip({ uri: 'file:///clip.mov', durationS: 8, fps: 30, source: 'camera' });
 const usedUp = () => useUsage.setState({ usage: { lifetime: 3, week: weekKey(new Date()), thisWeek: 3 } });
 
 beforeEach(() => {

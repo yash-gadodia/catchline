@@ -10,13 +10,16 @@ Owner decision 11-11: drop cues; the app tracks any lift or gymnastics clip and 
 - [ ] (Yash) Test on a phone: plate path through the plan loop (follow over the whole clip), overlay lag while playing, 60 fps and variable-frame-rate imports
 - [ ] Path colour per rep / attempts layered; circle in the draw tool
 ## Phase 2: strip back
-- [ ] Remove movement picker, reveal/cue/miss screens, Cues and Trends tabs, cue tracking, drills, fault copy; processing copy ("3 reps, one cue")
+- [x] Remove movement picker, reveal/cue/miss/compare routes, Cues and Trends tabs, cue tracking, retest, drills, review and import screens; processing copy; Lifts is a plain list (branch v40/strip-ui)
+- [ ] Delete what only the old onboarding demo and paywall proof rows still hold up: `RevealScreen`, `CueScreen` (cut down to the sample), `PathReplay`, `ResultNumbers`, `LibraryState.cues/sessions`, `sessionsDone`, the `cue` strings; `PlayerScreen.onCompare` (passed by `SampleScreen`); `routeAfterAnalysis()` has no caller since the cue route went
 - [x] Onboarding (3 steps: welcome, how to film, add a video), paywall (free 3 a week, one plan Catchline Pro) (branch v40/onboard-paywall)
 - [ ] Store listing copy and screenshots
 - [ ] Follow-ups from the onboarding/paywall pass: Lifts chip, capture `freeUsed` and library `freeVideosUsed` still read the lifetime count (use `useVideosLeft()`); `app/(tabs)` still links `/onboarding/demo` and `/paywall/plans` (both gone); drop `captureHref`, `routeAfterAnalysis`, submit's 'paywall'/'trial' branches and devicePipeline's `writeFreeUsed`; nothing asks for notifications before the first result any more
 ## Phase 3: store build
 - [ ] Burned-in share video (path, lines, body), 60 fps camera, faster tracking (detector every Nth frame)
 ## Notes
+- A lift is submitted and synced as movement 'snatch' whatever it shows (`toSubmission`); a 4.0 lift is titled by date, time and load (`liftTitle` in library/derive), never by that movement.
+- The session scratchpad is shared by every agent of a team: keep scripts in a subfolder of your own (another agent's `i18n.py` overwrote one of the same name and was run by mistake).
 - The native pass is always asked for as 'snatch' (standing lifter selection); a hanging clip is told apart in TS (`family(signals)`), so a crowded gymnastics clip may pick the wrong person until the native side changes.
 - A symlinked node_modules runs the other checkout's code in Metro: clone it (`cp -cR`) for simulator checks. Fast Refresh did not pick up edits on the sim; relaunch the app.
 - Simulator check without running pose: `trackTrace` on a phone trace + the clip into `Documents/lifts/<id>/` (analysis.json, body.json, clip.mp4), then `catchline://analysis/player?fixture=<id>`.
