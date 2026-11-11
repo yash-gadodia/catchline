@@ -51,7 +51,7 @@ export const analysis: Strings<typeof en> = {
   'analysis.tracker.prevFrame': "Image précédente",
   'analysis.tracker.nextFrame': "Image suivante",
   'analysis.tracker.scrub': "Parcourir la vidéo",
-  'analysis.tracker.fromHands': "La trajectoire suit tes mains : le disque n'était pas net dans ce clip.",
+  'analysis.tracker.fromHands': "Pas de trajectoire de barre ici : le disque n'était pas net. Filme de profil, avec le disque entier dans le cadre.",
   'analysis.tracker.anglesSideOn': "Les angles des articulations s'affichent quand le clip est filmé de profil.",
   'analysis.processing.ahead': { one: '{count} avant toi', other: '{count} avant toi' },
   'analysis.processing.background': 'Continue en arrière-plan.',

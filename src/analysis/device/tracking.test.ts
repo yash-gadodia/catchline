@@ -39,66 +39,19 @@ function clip(n = 90, seen = true): DeviceInput {
 }
 
 describe('track (4.0: tracking only)', () => {
-  it('gives any clip one path over the whole clip, the start line and the body on every frame, with no cue', () => {
+  it('gives a clip with no readable plate the body on every frame and no bar path, with no cue', () => {
     const { analysis, body } = track(clip(), { analysisId: 'lift-1', assetPrefix: 'lift-1' });
-    const a = analysis as { failure: unknown; cue: unknown; reps: { startFrame: number; endFrame: number; phases: unknown[]; path: { frame: number; x: number; y: number; src?: string }[]; guides?: { startX: number } }[]; noCueReason: unknown; video: { fps: number; frameCount: number } };
-    expect([a.failure, a.cue, a.reps.length]).toEqual([null, null, 1]);
+    const a = analysis as { failure: unknown; cue: unknown; traceKind: string; reps: { phases: unknown[]; path: unknown[]; guides?: unknown; keyFrames: unknown[] }[]; noCueReason: unknown };
+    expect([a.failure, a.cue, a.reps.length, a.traceKind]).toEqual([null, null, 1, 'bar']);
     expect(a.noCueReason).toEqual({ code: 'path_only', gate: 'no_reps', offSideDeg: 0 });
-    const rep = a.reps[0];
-    expect([rep.startFrame, rep.endFrame, rep.phases.length, rep.path.length]).toEqual([0, 89, 0, 90]);
-    expect(rep.path.every((p) => p.src === 'wrist')).toBe(true);
-    expect(rep.path[0].x).toBeCloseTo(400 / 720, 3);
-    expect(rep.guides?.startX).toBe(rep.path[0].x);
-    // the hands peak mid-clip, half a metre of pixels above the hips
-    const top = rep.path.reduce((m, p) => (p.y < m.y ? p : m));
-    expect(top.frame).toBeGreaterThanOrEqual(43);
-    expect(top.frame).toBeLessThanOrEqual(46);
-    expect(top.y).toBeCloseTo(240 / 1280, 2);
+    // the hands alone are not drawn as the bar: they walk up to it and leave it
+    expect([a.reps[0].path, a.reps[0].guides, a.reps[0].phases.length, a.reps[0].keyFrames.length]).toEqual([[], undefined, 0, 2]);
     expect(body?.frames).toHaveLength(90);
     const row = body?.frames[10] ?? [];
     expect(row).toHaveLength(BODY_JOINTS.length * 2);
     // left shoulder, then the left elbow the pose never saw
     expect(row.slice(0, 2)).toEqual([0.5, 0.406]);
     expect(row.slice(4, 6)).toEqual([null, null]);
-  });
-
-  // The finder fitted no outline (plates: []), as on a red plate: the follow is asked for all the same.
-  function followed(rim: number, polarity: number): DeviceInput {
-    const input = clip();
-    input.source.followPlate = (_s, len, _seed, wrists) => ({
-      centres: wrists.map(([x, y]): Pt => [x, y + 60]),
-      src: new Array<number>(len).fill(1),
-      fit: Array.from({ length: len }, (): [number, number, number, number] => [100, rim, polarity, 30]),
-    });
-    return input;
-  }
-  const points = (input: DeviceInput) => (track(input).analysis as { reps: { path: { y: number; src?: string }[] }[] }).reps[0].path;
-
-  it('draws the path from a plate the finder did not fit when its rim is clear, of one polarity, and moves with the hands', () => {
-    const path = points(followed(0.8, 0.9));
-    expect(path).toHaveLength(90);
-    expect(path.every((p) => p.src === 'plate')).toBe(true);
-    expect(path[0].y).toBeCloseTo(800 / 1280, 2);
-  });
-
-  it('joins two plate readings directly when the plate was lost for long, and lets the hands bridge a short loss', () => {
-    const input = followed(0.8, 0.9);
-    const follow = input.source.followPlate;
-    input.source.followPlate = (...args) => {
-      const out = follow!(...args);
-      for (let f = 20; f < 28; f++) out.src[f] = 0;
-      for (let f = 40; f < 70; f++) out.src[f] = 0;
-      return out;
-    };
-    const path = (track(input).analysis as { reps: { path: { frame: number; src?: string }[] }[] }).reps[0].path;
-    expect(path.filter((p) => p.src === 'wrist').map((p) => p.frame)).toEqual([20, 21, 22, 23, 24, 25, 26, 27]);
-    expect(path).toHaveLength(60);
-  });
-
-  it('keeps the hands when such a plate has a rim of mixed polarity (an edge against a bright window)', () => {
-    const path = points(followed(0.6, 0.3));
-    expect(path.every((p) => p.src === 'wrist')).toBe(true);
-    expect(path[0].y).toBeCloseTo(740 / 1280, 2);
   });
 
   it('fails as no person when the pose saw nobody', () => {

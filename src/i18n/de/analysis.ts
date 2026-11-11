@@ -51,7 +51,7 @@ export const analysis: Strings<typeof en> = {
   'analysis.tracker.prevFrame': "Vorheriges Bild",
   'analysis.tracker.nextFrame': "Nächstes Bild",
   'analysis.tracker.scrub': "Durch das Video scrubben",
-  'analysis.tracker.fromHands': "Der Pfad folgt deinen Händen: Die Scheibe war in diesem Clip nicht klar zu sehen.",
+  'analysis.tracker.fromHands': "Kein Hantelweg in diesem Clip: Die Scheibe war nicht klar zu sehen. Filme von der Seite, mit der ganzen Scheibe im Bild.",
   'analysis.tracker.anglesSideOn': "Gelenkwinkel erscheinen, wenn der Clip von der Seite gefilmt ist.",
   'analysis.processing.ahead': { one: '{count} vor dir', other: '{count} vor dir' },
   'analysis.processing.background': 'Läuft im Hintergrund weiter.',

@@ -137,7 +137,11 @@ const PLATE_RIM = 0.3;
 const PLATE_RIM_SURE = 0.5;
 const PLATE_POLARITY = 0.5;
 const PLATE_GREY = 40;
-const PLATE_SIZE: [number, number] = [0.9, 1.3];
+// A phone on the floor a metre or two from the bar sees the plate shrink by a third or more as it goes overhead
+// (the owner's own clips, 11-11): the size may fall that far, as long as it changes smoothly (PLATE_SIZE_STEP against
+// the frames around it), which a jump onto the hub or another disc does not.
+const PLATE_SIZE: [number, number] = [0.55, 1.3];
+const PLATE_SIZE_STEP = 0.15;
 const PLATE_LEASH: [number, number] = [-0.35, 0.5];
 const PLATE_LEASH_YAW = 0.6;
 const PLATE_RUN = 6;
@@ -174,7 +178,7 @@ export function onPlate(src: number[], fit: [number, number, number, number][], 
     const leash = (dist(centres[f], wrists[f]) - home) / M0;
     const rim = med(1, f);
     return rim >= PLATE_RIM && (med(2, f) >= PLATE_POLARITY || rim >= PLATE_RIM_SURE) && Math.abs(med(3, f) - fit[seed][3]) <= PLATE_GREY &&
-      size >= PLATE_SIZE[0] && size <= PLATE_SIZE[1] && leash >= PLATE_LEASH[0] && leash <= leashMax;
+      size >= PLATE_SIZE[0] && size <= PLATE_SIZE[1] && Math.abs(fit[f][0] / med(0, f) - 1) <= PLATE_SIZE_STEP && leash >= PLATE_LEASH[0] && leash <= leashMax;
   });
   const ok = new Array<boolean>(src.length).fill(false);
   // a run: passing frames, flow-carried frames allowed between them (bridged, not drawn)

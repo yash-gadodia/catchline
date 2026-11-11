@@ -51,7 +51,7 @@ export const analysis: Strings<typeof en> = {
   'analysis.tracker.prevFrame': "Quadro anterior",
   'analysis.tracker.nextFrame': "Próximo quadro",
   'analysis.tracker.scrub': "Percorrer o vídeo",
-  'analysis.tracker.fromHands': "A trajetória segue suas mãos: a anilha não estava nítida neste clipe.",
+  'analysis.tracker.fromHands': "Sem trajetória da barra neste clipe: a anilha não estava nítida. Filme de lado, com a anilha inteira no quadro.",
   'analysis.tracker.anglesSideOn': "Os ângulos das articulações aparecem quando o clipe é filmado de lado.",
   'analysis.processing.ahead': { one: '{count} na sua frente', other: '{count} na sua frente' },
   'analysis.processing.background': 'Continua funcionando em segundo plano.',

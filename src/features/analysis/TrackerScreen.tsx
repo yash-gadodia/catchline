@@ -17,7 +17,7 @@ import TrackOverlay from './TrackOverlay';
 import FadeRow from './FadeRow';
 import DrawLayer from './DrawLayer';
 import { isComplete, type Shape } from './drawGeometry';
-import { ANGLE_MAX_OFF_SIDE_DEG, drawnSide, frameAt, jointAngles, joints, mostlyPlate, spread, timeOf } from './tracker';
+import { ANGLE_MAX_OFF_SIDE_DEG, drawnSide, frameAt, jointAngles, joints, spread, timeOf } from './tracker';
 import { t } from '../../i18n';
 
 type Speed = 0.25 | 0.5 | 1;
@@ -229,7 +229,7 @@ export default function TrackerScreen({
       </View>
       <View style={{ flex: 1, paddingHorizontal: space.gutter, paddingTop: space.s3, paddingBottom: Math.max(insets.bottom, space.s4), gap: space.s2, justifyContent: 'space-between' }}>
         <View style={{ gap: space.s1 }}>
-          {path.length && !mostlyPlate(path) && analysis.traceKind === 'bar' ? (
+          {!path.length && analysis.traceKind === 'bar' ? (
             <Text testID="tracker-note-hands" style={{ ...type.caption, color: colors.text2 }}>
               {t('analysis.tracker.fromHands')}
             </Text>
