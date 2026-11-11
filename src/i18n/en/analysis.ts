@@ -42,6 +42,7 @@ export const analysis = {
   'analysis.tracker.overlay.lines': 'lines',
   'analysis.tracker.overlay.body': 'body',
   'analysis.tracker.overlay.angles': 'angles',
+  'analysis.tracker.wholeClip': "whole clip",
   'analysis.tracker.prevFrame': 'Previous frame',
   'analysis.tracker.nextFrame': 'Next frame',
   'analysis.tracker.scrub': 'Scrub through the video',

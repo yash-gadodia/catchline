@@ -15,7 +15,7 @@ for (const dir of process.argv.slice(2)) {
     const plate = path.filter((p) => p.src === 'plate').length;
     writeFileSync(`${dir}/analysis.json`, JSON.stringify(t.analysis));
     writeFileSync(`${dir}/body.json`, JSON.stringify(t.body));
-    console.log(id, 'plate', path.length ? Math.round((100 * plate) / path.length) : 0, 'pts', path.length, 'misses', t.misses.length);
+    console.log(id, 'plate', path.length ? Math.round((100 * plate) / path.length) : 0, 'pts', path.length, 'misses', t.misses.length, 'lift', JSON.stringify((t.analysis as { lift?: unknown }).lift ?? null), 'of', (t.body?.frames.length ?? 0));
   } catch (e) {
     console.log(id, 'error', (e as Error).message.slice(0, 80));
   }

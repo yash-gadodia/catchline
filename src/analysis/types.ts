@@ -171,6 +171,8 @@ export type Analysis = {
   // A clean followed by its jerk: one lift, the cue from one segment, each segment measured on its own.
   liftKind?: 'clean_and_jerk';
   segments?: AnalysisSegment[];
+  // 4.0: the frames that hold the lift itself (pick-up to put-down); absent when the whole clip is the lift.
+  lift?: { startFrame: number; endFrame: number };
 };
 
 export type AnalysisSegment = Pick<Analysis, 'reps' | 'bestRepIndex' | 'cue' | 'noCueReason' | 'notes' | 'measurements' | 'keyNumbers' | 'pxPerCm'> & {
