@@ -18,7 +18,7 @@ if (marksAt >= 0)
     const [frame, x, y, r] = m.split(',').map(Number);
     marks.set(mid, { frame, x, y, r });
   }
-for (const dir of args.filter((_, i) => i !== marksAt && i !== marksAt + 1)) {
+for (const dir of marksAt < 0 ? args : args.filter((_, i) => i !== marksAt && i !== marksAt + 1)) {
   const id = dir.replace(/\/$/, '').split('/').pop() as string;
   try {
     const trace = parseTraceJson(gunzipSync(readFileSync(`${dir}/trace.json.gz`)).toString()) as Trace;
