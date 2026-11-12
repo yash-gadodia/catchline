@@ -6,6 +6,7 @@ The version must already exist with its listing (asc_replace.py); release stays 
 
   scripts/catchline-store/asc_submit.py --version 4.0.0 --build 40            # status only
   scripts/catchline-store/asc_submit.py --version 4.0.0 --build 40 --apply
+  scripts/catchline-store/asc_submit.py --version 4.0.0 --rename 4.0.1 --build 43 --replace --apply   # swap a waiting 4.0.0 for 4.0.1
 """
 import argparse, sys, time
 from asc_replace import ASC, APP_ID, errors
@@ -16,6 +17,7 @@ def main():
     p.add_argument("--version", required=True); p.add_argument("--build", required=True)
     p.add_argument("--apply", action="store_true")
     p.add_argument("--replace", action="store_true", help="first withdraw a submission still waiting for review (to swap its build)")
+    p.add_argument("--rename", help="after withdrawing, rename the version (the build's version string) before attaching")
     a = p.parse_args()
     asc = ASC(a.apply)
     vs = asc.get(f"/v1/apps/{APP_ID}/appStoreVersions?filter[platform]=IOS&filter[versionString]={a.version}")["data"]
@@ -23,7 +25,8 @@ def main():
         sys.exit(f"no version {a.version}")
     v = vs[0]
     print("version", a.version, v["id"], v["attributes"]["appStoreState"], "release:", v["attributes"]["releaseType"])
-    bs = asc.get(f"/v1/builds?filter[app]={APP_ID}&filter[version]={a.build}&filter[preReleaseVersion.version]={a.version}")["data"]
+    build_version = a.rename or a.version
+    bs = asc.get(f"/v1/builds?filter[app]={APP_ID}&filter[version]={a.build}&filter[preReleaseVersion.version]={build_version}")["data"]
     if not bs:
         sys.exit(f"build {a.build} is not in App Store Connect yet (still uploading or processing)")
     b = bs[0]
@@ -31,7 +34,7 @@ def main():
     if b["attributes"]["processingState"] != "VALID":
         sys.exit("build is not processed yet")
     if not a.apply:
-        print("dry run: would attach the build and submit for review")
+        print("dry run: would", "withdraw, rename to " + a.rename + "," if a.rename else "", "attach the build and submit for review")
         return
 
     def must(method, path, body):
@@ -51,6 +54,11 @@ def main():
                 break
             time.sleep(10)
         print("version state:", state)
+    if a.rename:
+        if not a.replace and v["attributes"]["appStoreState"] not in ("PREPARE_FOR_SUBMISSION", "DEVELOPER_REJECTED"):
+            sys.exit("--rename needs an editable version: add --replace to withdraw it first")
+        must("PATCH", f"/v1/appStoreVersions/{v['id']}", {"data": {"type": "appStoreVersions", "id": v["id"], "attributes": {"versionString": a.rename}}})
+        print("renamed to", a.rename)
     if b["attributes"].get("usesNonExemptEncryption") is None:
         must("PATCH", f"/v1/builds/{b['id']}", {"data": {"type": "builds", "id": b["id"], "attributes": {"usesNonExemptEncryption": False}}})
     must("PATCH", f"/v1/appStoreVersions/{v['id']}/relationships/build", {"data": {"type": "builds", "id": b["id"]}})
