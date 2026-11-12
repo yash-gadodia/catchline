@@ -237,16 +237,15 @@ export default function TrackerScreen({
               ))
             : null}
           <DrawLayer box={box} fit={fit} video={src} shapes={shapes} onShapes={setShapes} drawing={drawing} />
-          <View pointerEvents="none" style={{ position: 'absolute', top: space.s3, left: space.s3 }}>
+          {/* time, and under it the bar speed: stacked so they never meet on a narrow (portrait) video */}
+          <View pointerEvents="none" style={{ position: 'absolute', top: space.s3, left: space.s3, alignItems: 'flex-start', gap: space.s1 }}>
             <Readout testID="tracker-readout">{cropped ? `${seconds((frame - first) / fps)} s · ${frame + 1} / ${count}` : `${frame + 1} / ${count} · ${seconds(frame / fps)} s`}</Readout>
-          </View>
-          {barSpeedOf?.peak && overlays.path ? (
-            <View pointerEvents="none" style={{ position: 'absolute', top: space.s3, right: space.s3 }}>
+            {barSpeedOf?.peak && overlays.path ? (
               <Readout testID="tracker-speed">
                 {t('analysis.tracker.barSpeed', { now: speedAt(barSpeedOf.at, frame), peak: barSpeedOf.peak.v.toFixed(2) })}
               </Readout>
-            </View>
-          ) : null}
+            ) : null}
+          </View>
           {lastLift && revealing !== 'playing' && !drawing ? (
             <Pressable
               testID="tracker-compare"
