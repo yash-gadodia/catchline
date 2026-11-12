@@ -86,7 +86,7 @@ function loadLabels(dir: string): Labels {
 }
 
 function packets(clip: string): number {
-  return Number(sh('ffprobe', ['-v', 'error', '-select_streams', 'v:0', '-count_packets', '-show_entries', 'stream=nb_read_packets', '-of', 'csv=p=0', clip]).trim());
+  return parseInt(sh('ffprobe', ['-v', 'error', '-select_streams', 'v:0', '-count_packets', '-show_entries', 'stream=nb_read_packets', '-of', 'csv=p=0', clip]), 10);
 }
 
 function rowOf(tracked: ReturnType<typeof trackTrace>, truth?: Record<number, Plate | null>, srcFrames?: number): Row {
