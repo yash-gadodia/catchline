@@ -19,7 +19,7 @@ Owner decision 11-11: drop cues; the app tracks any lift or gymnastics clip and 
 - [x] Burned-in share video and image (path, lines, body, 0.25/0.5/1x): `modules/clip-transcoder/ios/TrackRenderer.swift`, spec from `src/features/share/trackShare.ts`, screen `TrackShareScreen` (branch v40/native-share)
 - [x] 60 fps camera: `modules/lift-camera` (1080p60 where the back camera has the format, else 30); `expo.version` 4.0.0, so this ships in a store build only
 - [ ] (Yash) On a phone: film at 60 fps (portrait and landscape hold), check the badge, the file's frame rate and that the tracker stays in step to the last frame; share a video and an image from the share sheet
-- [ ] Faster tracking (detector every Nth frame)
+- [ ] Faster tracking (detector every Nth frame): built and measured, off (`detectInterval = 1`); at 4 the pose pass is ~1.7x faster on the Mini but the far arm's p95 misses the bar on 4-6 of 17 clips (12-11, v40/speed). Owner call. Track-the-lift: `docs/catchline/track-the-lift.md` (no gain on the eval clips, not built)
 - [ ] (Claude, next store build) Share loop, native parts (JS is ready, see `docs/catchline/analytics-4.0.md`): add `expo-store-review` (the rating ask in `src/features/share/rating.ts` turns itself on when the module is in the binary); wordmark anchor and separate x/y insets in `TrackRenderer.swift` (today fixed bottom-right, inside the zone Reels and TikTok cover); a `UIActivityItemSource` so the default share text goes to Messages, Mail and X but not to Instagram or WhatsApp
 ## First lift (branch v40/first-wow, JS only)
 - [x] Onboarding is one screen: a bundled tracked lift plays (`assets/sample`, made by `scripts/make-sample.sh <lift folder>`), then "Pick one of your lifts" / "Film a lift now"
