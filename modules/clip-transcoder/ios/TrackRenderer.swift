@@ -180,7 +180,8 @@ func drawTrack(_ ctx: CGContext, spec: TrackSpec, frame: Int, size: CGSize, full
     ctx.saveGState()
     ctx.setShadow(offset: .zero, blur: st.markSize * 0.3, color: cgColor(st.halo, 0.7))
     ctx.textMatrix = CGAffineTransform(scaleX: 1, y: -1)
-    ctx.textPosition = CGPoint(x: size.width - st.markInset - width, y: size.height - st.markInset - descent)
+    // never off the left edge, whatever face it is drawn in (the system fallback is wider than the app's)
+    ctx.textPosition = CGPoint(x: max(size.width * 0.03, size.width - st.markInset - width), y: size.height - st.markInset - descent)
     CTLineDraw(line, ctx)
     ctx.restoreGState()
   }
@@ -274,7 +275,8 @@ struct TrackVideoResult {
 
 // Every frame of the clip, in order, with the overlay: H.264 MP4 at the clip's size, no audio. Each frame keeps its
 // own timestamp and lasts until the next one's, so the frame rate is the clip's (variable rates included). At half or quarter speed every
-// frame is written 2 or 4 times, one frame length apart: slower, at the same frame rate, with nothing dropped.
+// frame is written 2 or 4 times, one frame length apart: slower, at the same frame rate, with nothing dropped. At 2x or 4x
+// only every 2nd or 4th frame is written, its time divided by 2 or 4: faster, at the same frame rate.
 func renderTrackVideo(source: URL, to url: URL, spec: TrackSpec, onProgress: @escaping (Double) -> Void) async throws -> TrackVideoResult {
   let src = try await openTrackSource(source)
   return try await onQueue {
@@ -309,6 +311,7 @@ func renderTrackVideo(source: URL, to url: URL, spec: TrackSpec, onProgress: @es
     let ci = CIContext(options: [.workingColorSpace: NSNull(), .outputColorSpace: NSNull()])
     let scale: CMTimeScale = 60000
     let repeats = max(1, Int((1 / max(spec.speed, 0.01)).rounded()))
+    let step = max(1, Int(spec.speed.rounded()))
     let nominal = CMTime(seconds: 1 / fps, preferredTimescale: scale)
     let tick = CMTime(value: 1, timescale: scale)
     var first: CMTime?
@@ -320,7 +323,7 @@ func renderTrackVideo(source: URL, to url: URL, spec: TrackSpec, onProgress: @es
     var length = nominal
 
     func write(_ buffer: CVPixelBuffer, at pts: CMTime, lasting length: CMTime) throws {
-      let base = CMTimeMultiply(pts - (first ?? pts), multiplier: Int32(repeats))
+      let base = CMTimeMultiplyByRatio(pts - (first ?? pts), multiplier: Int32(repeats), divisor: Int32(step))
       for n in 0..<repeats {
         var t = CMTimeConvertScale(base + CMTimeMultiply(length, multiplier: Int32(n)), timescale: scale, method: .roundHalfAwayFromZero)
         if last.isValid && t <= last { t = last + tick }
@@ -340,13 +343,18 @@ func renderTrackVideo(source: URL, to url: URL, spec: TrackSpec, onProgress: @es
           guard CMSampleBufferGetImageBuffer(sample) != nil else { return }
           let pts = CMSampleBufferGetPresentationTimeStamp(sample)
           if first == nil { first = pts }
+          // fast: the frames between kept ones are read (the overlay counts every frame) but not drawn or written
+          if step > 1 && frame % step != 0 {
+            frame += 1
+            return
+          }
           var out: CVPixelBuffer?
           guard let pool = adaptor.pixelBufferPool, CVPixelBufferPoolCreatePixelBuffer(nil, pool, &out) == kCVReturnSuccess, let out else {
             throw TrackRenderError(message: "pixel buffer")
           }
           try compose(sample, src, into: out, ci: ci, spec: spec, frame: frame, fullPath: false)
           if let h = held {
-            if (pts - h.pts).seconds > 0 { length = pts - h.pts }
+            if (pts - h.pts).seconds > 0 { length = CMTimeMultiplyByRatio(pts - h.pts, multiplier: 1, divisor: Int32(step)) }
             try write(h.buffer, at: h.pts, lasting: length)
           }
           held = (out, pts)

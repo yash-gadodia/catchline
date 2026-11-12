@@ -25,12 +25,14 @@ export type TranscodeResult = { uri: string; size: number; width: number; height
 type Events = { onProgress: (e: { progress: number }) => void };
 
 declare class ClipTranscoderModule extends NativeModule<Events> {
+  // TrackRenderer writes spec.speed 2 / 4 by keeping every 2nd / 4th frame (build 43 on; absent before)
+  supportsFastShare?: boolean;
   probe(uri: string): Promise<SourceInfo>;
   transcode(options: TranscodeOptions): Promise<TranscodeResult>;
   renderShareVideo(uri: string, spec: OverlaySpec): Promise<ShareVideoResult>;
   // 4.0 (binary 4.0.0 on). `spec` is JSON.stringify of a TrackSpec (src/features/share/trackShare.ts).
   // Video: the lift's kept clip with the overlay on every frame, H.264 MP4 at the clip's size and frame rate;
-  // spec.speed 0.5 / 0.25 writes each frame 2 / 4 times. Reports onProgress.
+  // spec.speed 0.5 / 0.25 writes each frame 2 / 4 times, 2 / 4 keeps every 2nd / 4th frame. Reports onProgress.
   renderTrackVideo(uri: string, spec: string): Promise<TrackVideoResult>;
   // Image: frame spec.frame as a JPEG with the whole path drawn.
   renderTrackImage(uri: string, spec: string): Promise<TrackImageResult>;

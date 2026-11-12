@@ -1,4 +1,5 @@
 import Foundation
+import CoreText
 
 func fail(_ message: String) -> Never {
   FileHandle.standardError.write(Data("\(message)\n".utf8))
@@ -11,6 +12,11 @@ func printJSON(_ value: [String: Any]) {
 }
 
 let usage = "usage: track-share probe <clip> | transcode <clip> --opts <json> --out <file> | video|image <clip> --spec <spec.json> --out <file>"
+// The app registers its fonts at launch (expo-font); TRACK_FONTS (colon-separated .ttf paths) does the same here, so
+// the wordmark is drawn in the app's face rather than the system fallback.
+for path in (ProcessInfo.processInfo.environment["TRACK_FONTS"] ?? "").split(separator: ":") {
+  CTFontManagerRegisterFontsForURL(URL(fileURLWithPath: String(path)) as CFURL, .process, nil)
+}
 var args = Array(CommandLine.arguments.dropFirst())
 guard args.count >= 2, ["probe", "transcode", "video", "image"].contains(args[0]) else { fail(usage) }
 let command = args.removeFirst()

@@ -50,6 +50,7 @@ public typealias Module = BaseModule & AnyModule
 
 public func Name(_ name: String) -> Definition { Definition(name: nil, function: nil) }
 public func Events(_ names: String...) -> Definition { Definition(name: nil, function: nil) }
+public func Constants(_ values: [String: Any]) -> Definition { Definition(name: nil, function: nil) }
 public func AsyncFunction<A, R>(_ name: String, _ body: @escaping (A) async throws -> R) -> Definition {
   Definition(name: name, function: body)
 }

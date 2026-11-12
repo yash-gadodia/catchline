@@ -41,6 +41,9 @@ public class ClipTranscoderModule: Module {
   public func definition() -> ModuleDefinition {
     Name("ClipTranscoder")
 
+    // TrackRenderer writes spec.speed 2 and 4 (every 2nd / 4th frame); the share screen offers them only where this is true
+    Constants(["supportsFastShare": true])
+
     Events("onProgress")
 
     AsyncFunction("probe") { (uri: String) async throws -> [String: Any] in
