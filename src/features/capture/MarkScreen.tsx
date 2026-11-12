@@ -8,6 +8,7 @@ import { colors, space, stroke } from '../../design/tokens';
 import { type } from '../../design/typography';
 import { selection } from '../../lib/haptics';
 import { Header, Underlined } from './hud';
+import MarkExample from './MarkExample';
 import { containRect, markFrom, type PlateMark } from './plateMark';
 import type { Clip } from './store';
 import { t } from '../../i18n';
@@ -120,9 +121,12 @@ export default function MarkScreen({ clip, onBack, onTrack }: { clip: Clip & { u
         </View>
       </View>
       <View style={{ flex: 1, paddingHorizontal: space.gutter, paddingTop: space.s4, paddingBottom: Math.max(insets.bottom, space.s4), justifyContent: 'space-between' }}>
-        <Text testID="mark-help" style={{ ...type.callout, color: colors.text2 }}>
-          {mark ? t('capture.mark.redo') : t('capture.mark.help')}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s4 }}>
+          {mark ? null : <MarkExample />}
+          <Text testID="mark-help" style={{ ...type.callout, color: colors.text2, flex: 1 }}>
+            {mark ? t('capture.mark.redo') : t('capture.mark.help')}
+          </Text>
+        </View>
         <View style={{ gap: space.s3 }}>
           <Btn onPress={() => onTrack(mark)} disabled={!mark} testID="mark-track">
             {t('capture.mark.track')}
