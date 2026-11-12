@@ -9,7 +9,7 @@
   { "id": "IMG_1558", "path": "~/catchline-v40/photos/IMG_1558.MOV", "shows": "barbell lift, 15 s", "angle": "phone, portrait, 1080p source", "why": "1080p HDR source, not 4K" },
   { "id": "IMG_1559", "path": "~/catchline-v40/photos/IMG_1559.MOV", "shows": "barbell lift, 11 s", "angle": "phone, portrait, about 24 deg off side-on", "why": "off-angle; no plate path in the first eval" },
   { "id": "IMG_1561", "path": "~/catchline-v40/photos/IMG_1561.MOV", "shows": "barbell lift, 10 s", "angle": "phone, portrait, about 21 deg off side-on", "why": "off-angle clip that does track" },
-  { "id": "IMG_1179", "path": "~/catchline-v40/photos/IMG_1179.MOV", "shows": "pull-ups, 25 s", "angle": "phone, portrait", "why": "a hanging clip must never get a bar path", "expect": "no-path" },
+  { "id": "IMG_1179", "path": "~/catchline-v40/photos/IMG_1179.MOV", "shows": "pull-ups, 25 s", "angle": "phone, portrait", "why": "a hanging clip gets its hip trail over the time on the bar, never a bar path", "expect": "hip-path" },
   { "id": "2026-10-05_21B27BAF", "path": "~/catchline-cv2/clips/2026-10-05_21B27BAF.mov", "shows": "barbell lift, 5 s", "angle": "side-on", "why": "true side-on, the angle the plate rules were first tuned on" },
   { "id": "2026-10-04_100B1719", "path": "~/catchline-cv2/clips/2026-10-04_100B1719.mov", "shows": "barbell lift, 9 s", "angle": "side-on", "why": "true side-on, second session" },
   { "id": "wall-walk-2026-09-19", "path": "~/catchline-cv2/clips/wall-walk-2026-09-19.mov", "shows": "wall walk, 8 s, no barbell", "angle": "phone, portrait", "why": "no barbell in frame: body only, never a bar path", "expect": "no-path" }

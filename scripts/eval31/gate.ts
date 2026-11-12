@@ -30,12 +30,14 @@ const MAX_PASSES = 3;
 export const LIMITS = { plateShare: 10, jointsSeen: 3, onLabels: 10 };
 const LABEL_R = 0.25;
 
-type Clip = { id: string; path: string; shows: string; angle: string; why: string; expect?: 'no-path' };
+type Clip = { id: string; path: string; shows: string; angle: string; why: string; expect?: 'no-path' | 'hip-path' };
 export type Row = {
   tracked: boolean;
   failure: string | null;
   error?: string;
   pathPts: number;
+  // 'hip' for a hanging movement's hip trail (a baseline row from before 12-11 has none: a bar path)
+  traceKind?: 'bar' | 'hip';
   plateShare: number;
   jointsSeen: number;
   lift: [number, number] | null;
@@ -105,6 +107,7 @@ function rowOf(tracked: ReturnType<typeof trackTrace>, truth?: Record<number, Pl
     video: { fps: number; frameCount: number; width: number; height: number };
     lift?: { startFrame: number; endFrame: number };
     reps: { path: { frame: number; x: number; y: number; src?: string }[] }[];
+    traceKind?: 'bar' | 'hip';
   };
   const path = a.reps[0]?.path ?? [];
   const frames = tracked.body?.frames ?? [];
@@ -113,6 +116,7 @@ function rowOf(tracked: ReturnType<typeof trackTrace>, truth?: Record<number, Pl
     tracked: !a.failure,
     failure: a.failure?.code ?? null,
     pathPts: path.length,
+    traceKind: a.traceKind,
     plateShare: path.length ? Math.round((100 * path.filter((p) => p.src === 'plate').length) / path.length) : 0,
     jointsSeen: frames.length ? Math.round((100 * seen) / (frames.length * frames[0].length)) : 0,
     lift: a.lift ? [a.lift.startFrame, a.lift.endFrame] : null,
@@ -214,7 +218,9 @@ export function compare(base: Result, now: Result, clips: Clip[]): { lines: stri
     if (!n) bad.push('not run');
     else {
       if (n.error) bad.push(`crashed: ${n.error}`);
-      if (c.expect === 'no-path' && n.pathPts > 0) bad.push('drew a bar path on a clip with no barbell lift');
+      const barPts = n.traceKind === 'hip' ? 0 : n.pathPts;
+      if ((c.expect === 'no-path' || c.expect === 'hip-path') && barPts > 0) bad.push('drew a bar path on a clip with no barbell lift');
+      if (c.expect === 'hip-path' && (n.traceKind !== 'hip' || n.pathPts === 0)) bad.push('a hanging clip lost its hip trail');
       if (b) {
         if (b.tracked && !n.tracked && !n.error) bad.push(`tracked before, now fails (${n.failure})`);
         if (hasPlatePath(b) && !hasPlatePath(n)) bad.push('lost its plate path');
@@ -225,7 +231,7 @@ export function compare(base: Result, now: Result, clips: Clip[]): { lines: stri
         if (bl != null && nl != null && nl - bl > LIMITS.onLabels) good.push(`on the labelled plate ${bl}% -> ${nl}%`);
         if (now.mode === 'replay' && n.missesLeft > b.missesLeft) bad.push(`the rules now ask for ${n.missesLeft - b.missesLeft} reads the saved trace lacks: run --check`);
         if (!b.tracked && n.tracked) good.push('now tracks');
-        if (!hasPlatePath(b) && hasPlatePath(n) && c.expect !== 'no-path') good.push('gained a plate path');
+        if (!hasPlatePath(b) && hasPlatePath(n) && c.expect === undefined) good.push('gained a plate path');
         if (n.plateShare - b.plateShare > LIMITS.plateShare && hasPlatePath(b)) good.push(`plate share ${b.plateShare} -> ${n.plateShare}`);
         if (n.jointsSeen - b.jointsSeen > LIMITS.jointsSeen) good.push(`joints seen ${b.jointsSeen} -> ${n.jointsSeen}`);
       }
