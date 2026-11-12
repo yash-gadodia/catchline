@@ -33,7 +33,7 @@ export const capture = {
   'capture.mark.help': "Press on the centre of the plate nearest the camera and drag out to its edge. This shows the tracker which plate to follow, so your bar path comes out more accurate.",
   'capture.mark.redo': "Marked. Press and drag again to redo it.",
   'capture.mark.track': "Track",
-  'capture.mark.skip': "Skip, find the plate for me",
+  'capture.mark.skip': "No plate? Skip",
   'capture.mark.stage': "The first frame of your clip. Press on the plate's centre and drag to its edge.",
   'capture.trim.title': "Trim",
   'capture.trim.cancel': "Cancel",

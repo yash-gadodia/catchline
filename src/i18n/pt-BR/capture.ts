@@ -35,7 +35,7 @@ export const capture: Strings<typeof en> = {
   'capture.mark.help': "Pressione no centro da anilha mais próxima da câmera e arraste até a borda. Assim o rastreamento sabe qual anilha seguir e a trajetória sai mais precisa.",
   'capture.mark.redo': "Marcado. Pressione e arraste de novo para refazer.",
   'capture.mark.track': "Rastrear",
-  'capture.mark.skip': "Pular, encontre a anilha para mim",
+  'capture.mark.skip': "Sem anilha? Pular",
   'capture.mark.stage': "O primeiro quadro do seu clipe. Pressione no centro da anilha e arraste até a borda.",
   'capture.trim.title': "Cortar",
   'capture.trim.cancel': "Cancelar",

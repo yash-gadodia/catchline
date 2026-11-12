@@ -35,7 +35,7 @@ export const capture: Strings<typeof en> = {
   'capture.mark.help': "Pulsa en el centro del disco más cercano a la cámara y arrastra hasta su borde. Así el seguimiento sabe qué disco seguir y la trayectoria sale más precisa.",
   'capture.mark.redo': "Marcado. Pulsa y arrastra de nuevo para rehacerlo.",
   'capture.mark.track': "Seguir",
-  'capture.mark.skip': "Omitir, encuentra el disco por mí",
+  'capture.mark.skip': "¿Sin disco? Omitir",
   'capture.mark.stage': "El primer fotograma de tu clip. Pulsa en el centro del disco y arrastra hasta el borde.",
   'capture.trim.title': "Recortar",
   'capture.trim.cancel': "Cancelar",

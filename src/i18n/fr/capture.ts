@@ -35,7 +35,7 @@ export const capture: Strings<typeof en> = {
   'capture.mark.help': "Appuie au centre du disque le plus proche de la caméra et fais glisser jusqu'à son bord. Le suivi sait ainsi quel disque suivre, et la trajectoire est plus précise.",
   'capture.mark.redo': "Marqué. Appuie et fais glisser à nouveau pour refaire.",
   'capture.mark.track': "Suivre",
-  'capture.mark.skip': "Passer, trouve le disque pour moi",
+  'capture.mark.skip': "Pas de disque ? Passer",
   'capture.mark.stage': "La première image de ton clip. Appuie au centre du disque et fais glisser jusqu'au bord.",
   'capture.trim.title': "Couper",
   'capture.trim.cancel': "Annuler",

@@ -18,5 +18,7 @@ describe('marking the plate', () => {
     expect(view.getByTestId('mark-example', { includeHiddenElements: true })).toBeOnTheScreen();
     expect(view.getByTestId('mark-help')).toHaveTextContent('Press on the centre of the plate nearest the camera and drag out to its edge. This shows the tracker which plate to follow, so your bar path comes out more accurate.');
     expect(view.getByTestId('mark-track')).toBeDisabled();
+    // a pull-up or muscle-up has no plate: Skip says so, and tracks the body only
+    expect(view.getByTestId('mark-skip')).toHaveTextContent('No plate? Skip');
   });
 });

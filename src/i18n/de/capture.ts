@@ -35,7 +35,7 @@ export const capture: Strings<typeof en> = {
   'capture.mark.help': "Drücke auf die Mitte der Scheibe, die der Kamera am nächsten ist, und ziehe bis zu ihrem Rand. So weiß das Tracking, welcher Scheibe es folgen soll, und die Hantelbahn wird genauer.",
   'capture.mark.redo': "Markiert. Zum Ändern erneut drücken und ziehen.",
   'capture.mark.track': "Tracken",
-  'capture.mark.skip': "Überspringen, Scheibe selbst finden",
+  'capture.mark.skip': "Keine Scheibe? Überspringen",
   'capture.mark.stage': "Das erste Bild deines Clips. Drücke auf die Mitte der Scheibe und ziehe bis zum Rand.",
   'capture.trim.title': "Schneiden",
   'capture.trim.cancel': "Abbrechen",
