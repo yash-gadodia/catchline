@@ -72,17 +72,21 @@ final class PoseModels {
   init(directory: URL, plateDirectory: URL? = nil, units: MLComputeUnits = .all) throws {
     let cfg = MLModelConfiguration()
     cfg.computeUnits = units
-    func load(_ name: String, in dir: URL) throws -> MLModel {
+    func load(_ name: String, in dir: URL, _ cfg: MLModelConfiguration) throws -> MLModel {
       let compiled = dir.appendingPathComponent("\(name).mlmodelc")
       if FileManager.default.fileExists(atPath: compiled.path) { return try MLModel(contentsOf: compiled, configuration: cfg) }
       let pkg = dir.appendingPathComponent("\(name).mlpackage")
       return try MLModel(contentsOf: try MLModel.compileModel(at: pkg), configuration: cfg)
     }
-    det = try load("YoloxHuman", in: directory)
-    pose = try load("RTMPoseHalpe26", in: directory)
+    det = try load("YoloxHuman", in: directory, cfg)
+    pose = try load("RTMPoseHalpe26", in: directory, cfg)
     let plateDir = plateDirectory ?? directory
     let has = ["mlmodelc", "mlpackage"].contains { FileManager.default.fileExists(atPath: plateDir.appendingPathComponent("PlateNet.\($0)").path) }
-    plate = has ? try? load("PlateNet", in: plateDir) : nil
+    // PlateNet never on the GPU: in the iOS simulator its GPU path returns all-zero maps (every peak at confidence 0.5),
+    // CPU and Neural Engine read it right on the simulator, the Mac and (Neural Engine) the phone
+    let plateCfg = MLModelConfiguration()
+    plateCfg.computeUnits = units == .cpuOnly ? .cpuOnly : .cpuAndNeuralEngine
+    plate = has ? try? load("PlateNet", in: plateDir, plateCfg) : nil
   }
 }
 
