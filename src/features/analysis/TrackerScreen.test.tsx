@@ -150,6 +150,30 @@ describe('TrackerScreen overlays', () => {
   });
 });
 
+describe('TrackerScreen bar speed', () => {
+  // the plate 0.05 of the picture tall in radius (4.5 m to the picture's height) at 60 fps: rising 0.002 of the
+  // height a frame to frame 170 (0.54 m/s), then 0.004 a frame (1.08 m/s)
+  const path = Array.from({ length: 151 }, (_, i) => {
+    const frame = 90 + i;
+    const y = frame <= 170 ? 0.8 - 0.002 * (frame - 90) : 0.64 - 0.004 * (frame - 170);
+    return { frame, x: 0.5, y, src: 'plate' as const, r: 0.05 };
+  });
+  const measured: Analysis = { ...marked, reps: [{ ...marked.reps[0], path }] };
+
+  it('shows the speed at the playhead and the lift’s peak, in m/s', async () => {
+    const { getByTestId } = await show(measured);
+    await at(120);
+    expect(getByTestId('tracker-speed')).toHaveTextContent('0.54 m/s · peak 1.08');
+    await at(200);
+    expect(getByTestId('tracker-speed')).toHaveTextContent('1.08 m/s · peak 1.08');
+  });
+
+  it('shows no speed on a lift whose plate was not measured', async () => {
+    const { queryByTestId } = await show(marked);
+    expect(queryByTestId('tracker-speed')).toBeNull();
+  });
+});
+
 describe('TrackerScreen first look (reveal)', () => {
   // the bar is highest at frame 200 of a lift that runs 90..240
   const path = [90, 150, 200, 240].map((frame, i) => ({ frame, x: 0.5, y: [0.8, 0.5, 0.2, 0.3][i], src: 'plate' as const }));

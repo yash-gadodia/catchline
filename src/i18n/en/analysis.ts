@@ -110,5 +110,6 @@ export const analysis = {
   'analysis.processing.preparing': "Getting your clip ready.",
   'analysis.processing.tracking': "Following the bar and your body, frame by frame.",
   'analysis.tracker.compare': "Compare with your last lift",
+  'analysis.tracker.barSpeed': "{now} m/s · peak {peak}",
   'analysis.tracker.comparing': "Dotted line: {when}",
 } as const;
