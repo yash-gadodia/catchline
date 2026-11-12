@@ -7,9 +7,15 @@
 //   node gate.cjs compare --baseline FILE --result FILE [--report]
 //       the table of what moved; exit 1 on a regression unless --report.
 // One row per clip: tracked, path points, the share of the path read off the plate, joints seen, the lift window,
-// misses left after the last pass, seconds.
+// misses left after the last pass, seconds, and against the hand labels (--labels DIR, default ~/catchline-plate-data:
+// labels_label-*.json, then owner_labels.json, which wins on a frame both labelled) the share of labelled plate frames
+// where the drawn path sits within 0.25 plate radii of the labelled centre.
+// The labels index the ORIGINAL clip's frames (decode order, frames.py). The prepare step keeps every frame and its
+// timestamp from the start of a full-clip trim, so prepared frame i is original frame i; the run checks that with the
+// original's packet count (srcFrames, ffprobe) and only if the counts differ maps a frame by f * frames / srcFrames.
+// cx, cy and r are shares of the shown frame (r of its height); the prepared clip keeps the aspect, so they carry over.
 import { execFileSync } from 'child_process';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
 import { gunzipSync, gzipSync } from 'zlib';
@@ -21,7 +27,8 @@ import { fullTrim } from '../../src/features/capture/trim';
 
 // src/data/devicePipeline.ts MAX_PASSES (not importable off the phone).
 const MAX_PASSES = 3;
-export const LIMITS = { plateShare: 10, jointsSeen: 3 };
+export const LIMITS = { plateShare: 10, jointsSeen: 3, onLabels: 10 };
+const LABEL_R = 0.25;
 
 type Clip = { id: string; path: string; shows: string; angle: string; why: string; expect?: 'no-path' };
 export type Row = {
@@ -35,6 +42,9 @@ export type Row = {
   frames: number;
   fps: number;
   missesLeft: number;
+  srcFrames?: number;
+  labelled?: number;
+  onLabels?: number;
   size?: string;
   prepS?: number;
   poseS?: number;
@@ -60,8 +70,32 @@ function mergeCalls(a: Trace, b: Trace): Trace {
   return { ...b, calls };
 }
 
-function rowOf(tracked: ReturnType<typeof trackTrace>): Row {
-  const a = tracked.analysis as { failure: { code?: string } | null; video: { fps: number; frameCount: number }; lift?: { startFrame: number; endFrame: number }; reps: { path: { src?: string }[] }[] };
+type Plate = { cx: number; cy: number; r: number };
+type Labels = Record<string, Record<number, Plate | null>>;
+
+function loadLabels(dir: string): Labels {
+  const out: Labels = {};
+  if (!existsSync(dir)) return out;
+  const files = readdirSync(dir).filter((f) => /^labels_label-.+\.json$/.test(f)).sort();
+  if (existsSync(join(dir, 'owner_labels.json'))) files.push('owner_labels.json');
+  for (const f of files) {
+    const all = JSON.parse(readFileSync(join(dir, f), 'utf8')) as Record<string, { clip: string; frame: number; none?: boolean } & Plate>;
+    for (const l of Object.values(all)) (out[l.clip] ??= {})[l.frame] = l.none ? null : { cx: l.cx, cy: l.cy, r: l.r };
+  }
+  return out;
+}
+
+function packets(clip: string): number {
+  return Number(sh('ffprobe', ['-v', 'error', '-select_streams', 'v:0', '-count_packets', '-show_entries', 'stream=nb_read_packets', '-of', 'csv=p=0', clip]).trim());
+}
+
+function rowOf(tracked: ReturnType<typeof trackTrace>, truth?: Record<number, Plate | null>, srcFrames?: number): Row {
+  const a = tracked.analysis as {
+    failure: { code?: string } | null;
+    video: { fps: number; frameCount: number; width: number; height: number };
+    lift?: { startFrame: number; endFrame: number };
+    reps: { path: { frame: number; x: number; y: number; src?: string }[] }[];
+  };
   const path = a.reps[0]?.path ?? [];
   const frames = tracked.body?.frames ?? [];
   const seen = frames.reduce((n, r) => n + r.filter((v) => v != null).length, 0);
@@ -75,7 +109,21 @@ function rowOf(tracked: ReturnType<typeof trackTrace>): Row {
     frames: a.video.frameCount,
     fps: Math.round(a.video.fps * 100) / 100,
     missesLeft: tracked.misses.length,
+    srcFrames,
+    ...onLabels(path, a.video, srcFrames, truth),
   };
+}
+
+function onLabels(path: { frame: number; x: number; y: number }[], v: { frameCount: number; width: number; height: number }, srcFrames?: number, truth?: Record<number, Plate | null>) {
+  const plates = Object.entries(truth ?? {}).flatMap(([f, l]) => (l ? [[Number(f), l] as const] : []));
+  if (!plates.length) return {};
+  const scale = srcFrames && srcFrames !== v.frameCount ? v.frameCount / srcFrames : 1;
+  const at = new Map(path.map((p) => [p.frame, p]));
+  const hit = plates.filter(([f, l]) => {
+    const p = at.get(Math.round(f * scale));
+    return p != null && Math.hypot((p.x - l.cx) * v.width, (p.y - l.cy) * v.height) <= LABEL_R * l.r * v.height;
+  }).length;
+  return { labelled: plates.length, onLabels: Math.round((100 * hit) / plates.length) };
 }
 
 const failed = (error: string): Row => ({ tracked: false, failure: null, error, pathPts: 0, plateShare: 0, jointsSeen: 0, lift: null, frames: 0, fps: 0, missesLeft: 0 });
@@ -94,13 +142,14 @@ function prepare(transcoder: string, clip: string, out: string): { size: string 
   }
 }
 
-function runClip(c: Clip, work: string, source: Result['source']): Row {
+function runClip(c: Clip, work: string, source: Result['source'], labels: Labels): Row {
   const dir = join(work, c.id);
   rmSync(dir, { recursive: true, force: true });
   mkdirSync(dir, { recursive: true });
   const original = c.path.replace(/^~/, homedir());
   if (!existsSync(original)) return failed(`clip not found: ${c.path}`);
   const [harness, models] = [need('harness'), need('models')];
+  const srcFrames = labels[c.id] ? packets(original) : undefined;
   const t0 = Date.now();
   let clip = original;
   let size: string | undefined;
@@ -126,30 +175,29 @@ function runClip(c: Clip, work: string, source: Result['source']): Row {
   writeFileSync(join(dir, 'analysis.json'), JSON.stringify(tracked.analysis));
   writeFileSync(join(dir, 'body.json'), JSON.stringify(tracked.body));
   writeFileSync(join(dir, 'trace.json.gz'), gzipSync(JSON.stringify(trace)));
-  return { ...rowOf(tracked), size, prepS, poseS, allS: secs(t0) };
+  return { ...rowOf(tracked, labels[c.id], srcFrames), size, prepS, poseS, allS: secs(t0) };
 }
 
-function replayClip(c: Clip, work: string): Row {
+function replayClip(c: Clip, work: string, labels: Labels): Row {
   const dir = join(work, c.id);
-  if (!existsSync(join(dir, 'trace.json.gz'))) {
-    // A clip the run refused before tracking (too long) or could not track has no trace: its row stands as recorded.
-    const kept = existsSync(join(work, 'result.json')) ? (JSON.parse(readFileSync(join(work, 'result.json'), 'utf8')) as Result).clips[c.id] : undefined;
-    return kept ?? failed('no saved trace');
-  }
+  // A clip the run refused before tracking (too long) or could not track has no trace: its row stands as recorded.
+  const kept = existsSync(join(work, 'result.json')) ? (JSON.parse(readFileSync(join(work, 'result.json'), 'utf8')) as Result).clips[c.id] : undefined;
+  if (!existsSync(join(dir, 'trace.json.gz'))) return kept ?? failed('no saved trace');
   const tracked = trackTrace(parseTraceJson(gz(join(dir, 'trace.json.gz'))), { analysisId: c.id, assetPrefix: c.id });
   writeFileSync(join(dir, 'replay.analysis.json'), JSON.stringify(tracked.analysis));
   writeFileSync(join(dir, 'replay.body.json'), JSON.stringify(tracked.body));
-  return rowOf(tracked);
+  return rowOf(tracked, labels[c.id], kept?.srcFrames);
 }
 
 const hasPlatePath = (r: Row) => r.pathPts > 0 && r.plateShare > 0;
-const cell = (r: Row | undefined) => (!r ? '-' : r.error ? 'CRASH' : r.failure ? r.failure : `${r.pathPts}pt ${r.plateShare}% j${r.jointsSeen}`);
+const cell = (r: Row | undefined) =>
+  !r ? '-' : r.error ? 'CRASH' : r.failure ? r.failure : `${r.pathPts}pt ${r.plateShare}% j${r.jointsSeen}${r.onLabels != null ? ` L${r.onLabels}` : ''}`;
 
 export function compare(base: Result, now: Result, clips: Clip[]): { lines: string[]; regressions: string[] } {
   const lines: string[] = [];
   const regressions: string[] = [];
   const pad = (s: string, n: number) => s.padEnd(n);
-  lines.push(`${pad('clip', 26)}${pad('baseline', 24)}${pad('now', 24)}${pad('lift', 12)}${pad('miss', 5)}${pad('secs', 7)}verdict`);
+  lines.push(`${pad('clip', 26)}${pad('baseline', 28)}${pad('now', 28)}${pad('lift', 12)}${pad('miss', 5)}${pad('secs', 7)}verdict`);
   for (const c of clips) {
     const [b, n] = [base.clips[c.id], now.clips[c.id]];
     const bad: string[] = [];
@@ -163,6 +211,9 @@ export function compare(base: Result, now: Result, clips: Clip[]): { lines: stri
         if (hasPlatePath(b) && !hasPlatePath(n)) bad.push('lost its plate path');
         else if (b.plateShare - n.plateShare > LIMITS.plateShare) bad.push(`plate share ${b.plateShare} -> ${n.plateShare}`);
         if (b.jointsSeen - n.jointsSeen > LIMITS.jointsSeen) bad.push(`joints seen ${b.jointsSeen} -> ${n.jointsSeen}`);
+        const [bl, nl] = [b.onLabels, n.onLabels];
+        if (bl != null && nl != null && bl - nl > LIMITS.onLabels) bad.push(`on the labelled plate ${bl}% -> ${nl}%`);
+        if (bl != null && nl != null && nl - bl > LIMITS.onLabels) good.push(`on the labelled plate ${bl}% -> ${nl}%`);
         if (now.mode === 'replay' && n.missesLeft > b.missesLeft) bad.push(`the rules now ask for ${n.missesLeft - b.missesLeft} reads the saved trace lacks: run --check`);
         if (!b.tracked && n.tracked) good.push('now tracks');
         if (!hasPlatePath(b) && hasPlatePath(n) && c.expect !== 'no-path') good.push('gained a plate path');
@@ -172,7 +223,7 @@ export function compare(base: Result, now: Result, clips: Clip[]): { lines: stri
     }
     const verdict = bad.length ? `REGRESSED: ${bad.join('; ')}` : good.length ? `improved: ${good.join('; ')}` : b ? 'same' : 'new';
     for (const m of bad) regressions.push(`${c.id}: ${m}`);
-    lines.push(`${pad(c.id.slice(0, 24), 26)}${pad(cell(b), 24)}${pad(cell(n), 24)}${pad(n?.lift ? n.lift.join('-') : '-', 12)}${pad(String(n?.missesLeft ?? '-'), 5)}${pad(String(n?.allS ?? '-'), 7)}${verdict}`);
+    lines.push(`${pad(c.id.slice(0, 24), 26)}${pad(cell(b), 28)}${pad(cell(n), 28)}${pad(n?.lift ? n.lift.join('-') : '-', 12)}${pad(String(n?.missesLeft ?? '-'), 5)}${pad(String(n?.allS ?? '-'), 7)}${verdict}`);
   }
   return { lines, regressions };
 }
@@ -193,11 +244,12 @@ function main() {
   const clips = JSON.parse(readFileSync(need('clips'), 'utf8')) as Clip[];
   const work = need('work');
   const source = opt('source') === 'original' ? 'original' : 'prepared';
+  const labels = loadLabels(opt('labels') ?? join(homedir(), 'catchline-plate-data'));
   const result: Result = { mode: command === 'run' ? 'full' : 'replay', source, at: new Date().toISOString(), clips: {} };
   for (const c of clips) {
     let row: Row;
     try {
-      row = command === 'run' ? runClip(c, work, source) : replayClip(c, work);
+      row = command === 'run' ? runClip(c, work, source, labels) : replayClip(c, work, labels);
     } catch (e) {
       row = failed(firstLines(e));
     }

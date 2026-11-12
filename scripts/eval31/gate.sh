@@ -8,7 +8,9 @@
 #   scripts/eval31/gate.sh --sheets     draw the overlays of the last full run and fetch one contact sheet per clip to .gate/sheets/
 #   scripts/eval31/gate.sh --require [--full]   what ota.sh and store-build.sh ask: is there a passing result for this commit?
 # Fails when a clip loses its plate path, plate share falls more than 10 points, a clip that tracked now fails,
-# joints seen falls more than 3 points, a no-barbell clip gets a bar path, or the run crashes.
+# joints seen falls more than 3 points, the share of hand-labelled plate frames with the path within 0.25 plate radii
+# (L in the table; labels on the Mini in ~/catchline-plate-data, see gate.ts) falls more than 10 points, a no-barbell
+# clip gets a bar path, or the run crashes. Re-record the baseline when the trained plate model (v40/plate-path) lands.
 # What a commit needs (--require): files that change the prepared clip or the native passes -> --check; TS tracking
 # rules only -> --replay is enough; neither -> nothing, the baseline stands. --full (store builds) never accepts a replay.
 # Emergency override: GATE_SKIP="<reason>" makes --require pass with a loud warning, logged in .gate/overrides.log.
@@ -181,5 +183,5 @@ case "$MODE" in
     ;;
   --require) require "${2:-}" ;;
   --needed) needed ;;
-  *) sed -n '2,17p' "$0"; exit 2 ;;
+  *) sed -n '2,19p' "$0"; exit 2 ;;
 esac

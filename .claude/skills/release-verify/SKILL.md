@@ -14,7 +14,7 @@ On 11 Nov 2026 a build passed typecheck, 900 unit tests, the design guards and t
 - `scripts/eval31/gate.sh --needed` says what this commit needs: `full`, `replay` or `none`.
 - Native code, the transcoder, the encode plan or the gate itself changed: `--check` (15-25 min; it waits while the Mini's load is above 8, one clip at a time).
 - Only TS rules under `src/analysis/` changed: `--replay` (seconds, on the baseline's saved traces). If it says the rules ask for reads the trace lacks, run `--check`.
-- It fails on: a clip that loses its plate path, plate share down more than 10 points, a clip that tracked and now fails, joints seen down more than 3 points, a bar path on a no-barbell clip, a crash.
+- It fails on: a clip that loses its plate path, plate share down more than 10 points, a clip that tracked and now fails, joints seen down more than 3 points, the share of hand-labelled plate frames with the path within 0.25 plate radii (`L` in the table) down more than 10 points, a bar path on a no-barbell clip, a crash.
 - Then **look**: `scripts/eval31/gate.sh --sheets check` (or `baseline`) and Read every `.gate/sheets/<id>.jpg`. The red path must sit on the plate through the lift, the body lines on the lifter, nothing drawn on the pull-up and wall-walk clips. Numbers passing with a path drawn on the wrong object is a failure; say which clip.
 - A real improvement becomes the baseline with `--record` on the commit, then commit `gate-baseline.json`. Never re-record to make a regression pass. Never commit clips, frames or sheets (public repo; `.gate/` is ignored).
 - `GATE_SKIP="<reason>"` exists for an emergency rollback-forward only. Using it is the owner's decision, not yours; the report must quote the reason.
