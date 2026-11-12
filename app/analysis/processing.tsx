@@ -5,6 +5,7 @@ import { useAnalysis } from '../../src/analysis/useAnalysis';
 import type { Analysis, Failure } from '../../src/analysis/types';
 import ProcessingSheet, { EXPECTED_ANALYSIS_S, type ProcessingState } from '../../src/features/analysis/ProcessingSheet';
 import { etaSeconds, type Sample } from '../../src/features/analysis/eta';
+import { overallProgress } from '../../src/features/analysis/progress';
 import { formatWait } from '../../src/analysis/format';
 import { registerPushToken } from '../../src/features/notifications';
 import { maybeReaskForPush, noteAnalysisFinished } from '../../src/features/notifications/ask';
@@ -156,7 +157,7 @@ function LiveProcessing() {
       clipUri={job?.uri ?? null}
       meta={timeLeft(eta, elapsed)}
       doing={job?.status === 'preparing' ? t('analysis.processing.preparing') : t('analysis.processing.tracking')}
-      progress={job?.status === 'preparing' ? job.prepared : fraction}
+      progress={overallProgress(job)}
       maxS={job?.maxS ?? undefined}
       state={state}
       step={step}
