@@ -32,7 +32,7 @@ export type PlateFollow = {
 };
 
 export type FollowHow = { tap?: Pt; back?: boolean };
-// PlateNet's peaks per window frame: up to three of [confidence, x, y, radius], inference px
+// PlateNet's peaks per window frame: up to six of [confidence, x, y, radius], inference px (NaN rows: no peak)
 export type PlatePeaks = [number, number, number, number][][];
 
 export interface FrameSource {
@@ -56,7 +56,9 @@ export interface FrameSource {
   // over the frames before the seed. One entry per window frame: src 1 detected, 2 carried on optical flow, 0 not held.
   // PlateNet on every window frame, looking at a square `side` px wide centred on centres[frame] (NaN: skip). Absent
   // on a binary without the model; null while the phone has not run it yet (the plan then asks for it).
-  plateNet?(windowStart: number, windowLength: number, side: number, centres: Pt[]): PlatePeaks | null;
+  // mark: the lifter's mark on the plate (window frame, centre x, y and radius), where the second square the phone
+  // reads starts.
+  plateNet?(windowStart: number, windowLength: number, side: number, centres: Pt[], mark?: [number, number, number, number]): PlatePeaks | null;
   followPlate?(windowStart: number, windowLength: number, seed: number, wrists: Pt[], hands: [Pt, Pt], bodyH: number, setupH: number, how?: FollowHow): PlateFollow;
 }
 

@@ -145,6 +145,7 @@ describe('startDeviceLift, the happy path', () => {
     await startDeviceLift({ ...SUB, plateMark: { x: 0.5, y: 0.6, r: 0.1 } });
     expect(track).toHaveBeenCalledWith('track_started', { source: 'camera', mark: 'made' });
     expect(track).toHaveBeenCalledWith('track_completed', { seconds: 0, frames: snatchMock.video.frameCount, has_bar_path: true, mark: 'made' });
+    expect(mockPlan.mock.calls.at(-1)?.[2]).toEqual({ analysisId: expect.any(String), assetPrefix: expect.any(String), plateMark: { frame: 0, x: 0.5, y: 0.6, r: 0.1 } });
   });
 
   it('sends why there was no cue for a partial result', async () => {

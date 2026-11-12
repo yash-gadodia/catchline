@@ -21,7 +21,8 @@ export type Plan = {
   follows: { s0: number; n: number; seed: number; wrists: [N, N][]; wristA: [N, N]; wristB: [N, N]; bodyH: number; setupH: number; tap?: [number, number]; back?: boolean }[];
   keyframes: { name: string; frame: number }[];
   // PlateNet over frames [s0, s0 + n): the square it looks at per frame (centre, null to skip; `side` px wide)
-  plateNet?: { s0: number; n: number; side: number; centres: [N, N][] }[];
+  // mark: the lifter's mark (window frame, x, y, radius) the second square starts on
+  plateNet?: { s0: number; n: number; side: number; centres: [N, N][]; mark?: [number, number, number, number] }[];
 };
 type PlateArgs = { wristA: Pt; wristB: Pt; bodyH: number; setupH: number };
 const nn = (v: number): N => (Number.isFinite(v) ? v : null);
@@ -237,11 +238,11 @@ export class Replayer {
   }
 
   // a follow is recorded by its window and seed frame, a tapped one also by its point (AnalysePlan.FollowRequest.key)
-  plateNet(s0: number, n: number, side: number, centres: Pt[]): PlatePeaks | null {
+  plateNet(s0: number, n: number, side: number, centres: Pt[], mark?: [number, number, number, number]): PlatePeaks | null {
     const out = this.get('plate_net', `${s0}:${n}`) as PlatePeaks | undefined;
     if (out) return out;
     this.miss(`plate_net ${s0}`);
-    if (!(this.plan.plateNet ?? []).some((p) => p.s0 === s0 && p.n === n)) (this.plan.plateNet ??= []).push({ s0, n, side, centres: centres.map((p): [N, N] => [nn(p[0]), nn(p[1])]) });
+    if (!(this.plan.plateNet ?? []).some((p) => p.s0 === s0 && p.n === n)) (this.plan.plateNet ??= []).push({ s0, n, side, centres: centres.map((p): [N, N] => [nn(p[0]), nn(p[1])]), ...(mark ? { mark: mark.map((v) => Math.round(v * 10) / 10) as [number, number, number, number] } : {}) });
     return null;
   }
 
@@ -281,7 +282,7 @@ export function traceInput(trace: Trace, movement: string): DeviceInput & { repl
     followPlate(windowStart, windowLength, seed, wrists, hands, bodyH, setupH, how) {
       return rp.followPlate(windowStart, windowLength, seed, wrists, hands, bodyH, setupH, how);
     },
-    ...(trace.plateNet ? { plateNet: (windowStart: number, windowLength: number, side: number, centres: Pt[]) => rp.plateNet(windowStart, windowLength, side, centres) } : {}),
+    ...(trace.plateNet ? { plateNet: (windowStart: number, windowLength: number, side: number, centres: Pt[], mark?: [number, number, number, number]) => rp.plateNet(windowStart, windowLength, side, centres, mark) } : {}),
     platesSearched(frame) {
       return Boolean(rp.calls.find_plates?.[String(frame)]?.length);
     },

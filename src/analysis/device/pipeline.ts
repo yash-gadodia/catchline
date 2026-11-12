@@ -494,9 +494,12 @@ export function pathOnly(ctx: Ctx, gate: PathOnlyGate): Result | null {
   // On a phone with the plate model the plate is the model's (plateNet.ts): looked for in a square NET_SIDE body
   // heights wide around the hands (the hands' last seen place where they are not), started on the mark. The rule
   // stages below are then not asked for at all.
-  const net = !hanging && input.source.plateNet ? input.source.plateNet(0, L, NET_SIDE * bodyH, handsFilled(kw)) : undefined;
+  const mark = tap ? { frame: tap.frame, centre: [tap.x * W, tap.y * H] as Pt, r: (tap.r ?? NET_MARK_R) * H } : null;
+  const net = !hanging && input.source.plateNet
+    ? input.source.plateNet(0, L, NET_SIDE * bodyH, handsFilled(kw), mark ? [mark.frame, mark.centre[0], mark.centre[1], mark.r] : undefined)
+    : undefined;
   const plateAt = net !== undefined
-    ? [net ? netTrack(net, tap ? { frame: tap.frame, centre: [tap.x * W, tap.y * H], r: (tap.r ?? NET_MARK_R) * H } : null, fps)?.centres ?? null : null]
+    ? [net ? netTrack(net, mark, fps, { a: col(kw, L_WRI), b: col(kw, R_WRI), bodyH })?.centres ?? null : null]
     : tap
     ? [plateHeld(input.source, 0, L, tap.frame, kw, bodyH, setupH, fps, yaw ?? 0, [], { tap: [tap.x * W, tap.y * H], back: true })]
     : seeds.map((seed) => {
