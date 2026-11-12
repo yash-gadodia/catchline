@@ -4,7 +4,10 @@
 #   scripts/ota.sh rollback <update-group-id> [--go]
 #   scripts/ota.sh live                       the update production phones get right now
 # Without --go it runs every check and prints the eas command instead of running it.
-# Publish checks: a clean tracked tree, the native-surface guard, npm run qa. It passes the
+# Publish checks: a clean tracked tree, the native-surface guard, the real-clip gate (a passing
+# scripts/eval31/gate.sh result for this commit when tracking files changed; GATE_SKIP="<reason>"
+# overrides it for an emergency, loudly, and the reason goes into the update message), npm run qa.
+# Before publishing read .claude/skills/release-verify. It passes the
 # eas.json production `env` block on the command line, because `eas update` reads only the EAS
 # environment and silently drops it (EXPO_PUBLIC_ON_DEVICE_POSE=1 lives there, 18-10-2026).
 # Rollback republishes an earlier group to production; find one with
@@ -46,6 +49,8 @@ case "$CMD" in
     MESSAGE="${ARGS[1]:?usage: scripts/ota.sh publish \"<message>\" [--rollout N] [--go]}"
     git diff --quiet HEAD || { echo "ota: tracked changes are not committed; the bundle must equal a commit."; exit 1; }
     npx tsx scripts/check-native-surface.ts
+    scripts/eval31/gate.sh --require
+    [ -n "${GATE_SKIP:-}" ] && MESSAGE="$MESSAGE [gate skipped: $GATE_SKIP]"
     npm run qa
     ENV_ARGS=()
     while IFS= read -r kv; do [ -n "$kv" ] && ENV_ARGS+=("$kv"); done < <(

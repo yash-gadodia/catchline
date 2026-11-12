@@ -48,4 +48,17 @@ describe('nativeChanges', () => {
     const newLock = { packages: { '': { version: '1.0.0' }, 'node_modules/zustand': { version: '4.5.0' } } };
     expect(nativeChanges({ changedPaths: [], oldLock: lock, newLock, isNative, oldApp: app, newApp: app })).toEqual([]);
   });
+
+  it('ignores a macOS harness around a module: it is an eval tool, not part of the binary', () => {
+    expect(
+      nativeChanges({
+        changedPaths: ['modules/clip-transcoder/harness/Sources/track-share/main.swift', 'modules/clip-transcoder/ios/TrackRenderer.swift'],
+        oldLock: lock,
+        newLock: lock,
+        isNative,
+        oldApp: app,
+        newApp: app,
+      }),
+    ).toEqual(['modules/clip-transcoder/ios/TrackRenderer.swift changed']);
+  });
 });
