@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { PanResponder, Pressable, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useReducedMotion } from 'react-native-reanimated';
@@ -20,6 +20,7 @@ import DrawLayer from './DrawLayer';
 import { isComplete, type Shape } from './drawGeometry';
 import { openLiftOverlays, useOverlays } from './overlayPrefs';
 import { peakFrame } from './compare';
+import { barSpeed } from './speed';
 import type { LastLift } from './useLastLift';
 import { ANGLE_MAX_OFF_SIDE_DEG, drawnSide, frameAt, jointAngles, joints, liftRange, spread, timeOf } from './tracker';
 import { t } from '../../i18n';
@@ -62,6 +63,8 @@ export default function TrackerScreen({
   const [duration, setDuration] = useState(0);
   const count = Math.max(analysis.video.frameCount, body?.frames.length ?? 0, 1);
   const fps = duration > 0 ? count / duration : analysis.video.fps;
+  // bar speed where the plate model measured the plate (a 4.0 lift with a bar path); none for a hip trail or an older lift
+  const barSpeedOf = useMemo(() => barSpeed(analysis.reps[0]?.path ?? [], analysis.video.fps, analysis.lift), [analysis]);
   const src = { width: analysis.video.width, height: analysis.video.height };
   const maxH = Math.round(height * 0.6);
   const boxW = Math.min(width, Math.round((maxH * src.width) / src.height));
@@ -237,6 +240,13 @@ export default function TrackerScreen({
           <View pointerEvents="none" style={{ position: 'absolute', top: space.s3, left: space.s3 }}>
             <Readout testID="tracker-readout">{cropped ? `${seconds((frame - first) / fps)} s · ${frame + 1} / ${count}` : `${frame + 1} / ${count} · ${seconds(frame / fps)} s`}</Readout>
           </View>
+          {barSpeedOf?.peak && overlays.path ? (
+            <View pointerEvents="none" style={{ position: 'absolute', top: space.s3, right: space.s3 }}>
+              <Readout testID="tracker-speed">
+                {t('analysis.tracker.barSpeed', { now: speedAt(barSpeedOf.at, frame), peak: barSpeedOf.peak.v.toFixed(2) })}
+              </Readout>
+            </View>
+          ) : null}
           {lastLift && revealing !== 'playing' && !drawing ? (
             <Pressable
               testID="tracker-compare"
@@ -381,4 +391,10 @@ function Chip({ testID, on, toggle, label, onPress, children }: { testID: string
       {typeof children === 'string' ? <Text style={{ ...type.caption, color: on ? colors.text : colors.text3 }}>{children}</Text> : children}
     </Pressable>
   );
+}
+
+// the bar speed at a frame, or a dash where it was not measured (the frames either side of a gap, a jump)
+function speedAt(at: Map<number, number>, frame: number): string {
+  const v = at.get(frame) ?? at.get(frame - 1) ?? at.get(frame + 1);
+  return v === undefined ? '–' : v.toFixed(2);
 }

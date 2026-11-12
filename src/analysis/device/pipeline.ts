@@ -498,8 +498,9 @@ export function pathOnly(ctx: Ctx, gate: PathOnlyGate): Result | null {
   const net = !hanging && input.source.plateNet
     ? input.source.plateNet(0, L, NET_SIDE * bodyH, handsFilled(kw), mark ? [mark.frame, mark.centre[0], mark.centre[1], mark.r] : undefined)
     : undefined;
+  const netHeld = net ? netTrack(net, mark, fps, { a: col(kw, L_WRI), b: col(kw, R_WRI), bodyH, shoulders: kw.map((r) => midPt(r[L_SHO], r[R_SHO])) }) : null;
   const plateAt = net !== undefined
-    ? [net ? netTrack(net, mark, fps, { a: col(kw, L_WRI), b: col(kw, R_WRI), bodyH, shoulders: kw.map((r) => midPt(r[L_SHO], r[R_SHO])) })?.centres ?? null : null]
+    ? [netHeld?.centres ?? null]
     : tap
     ? [plateHeld(input.source, 0, L, tap.frame, kw, bodyH, setupH, fps, yaw ?? 0, [], { tap: [tap.x * W, tap.y * H], back: true })]
     : seeds.map((seed) => {
@@ -515,7 +516,11 @@ export function pathOnly(ctx: Ctx, gate: PathOnlyGate): Result | null {
   const seen = (f: number) => (hanging ? finitePt(kw[f][L_HIP]) && finitePt(kw[f][R_HIP]) : finitePt(kw[f][L_WRI]) || finitePt(kw[f][R_WRI]));
   const path: TracePoint[] = [];
   for (let f = 0; f < L; f++)
-    if (seen(f) && finitePt(bar[f])) path.push({ frame: f, ...normalise(fromRef(bar[f], Ms[f]), W, H), ...(hanging ? {} : { src: fused?.plate[f] ? 'plate' : 'wrist' }) });
+    if (seen(f) && finitePt(bar[f])) {
+      // the plate's radius where the model read it (a fraction of the picture's height): the scale for bar speed
+      const r = !hanging && fused?.plate[f] && netHeld && Number.isFinite(netHeld.radii[f]) && netHeld.radii[f] > 0 ? pyRound(netHeld.radii[f] / H, 4) : undefined;
+      path.push({ frame: f, ...normalise(fromRef(bar[f], Ms[f]), W, H), ...(hanging ? {} : { src: fused?.plate[f] ? 'plate' : 'wrist' }), ...(r !== undefined ? { r } : {}) });
+    }
   if (path.length < 2) return null;
   const first = path[0].frame;
   const last = path[path.length - 1].frame;

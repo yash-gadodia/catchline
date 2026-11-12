@@ -30,6 +30,7 @@ function deps(over: Partial<TrackShareDeps> = {}): TrackShareDeps {
     share: jest.fn(async () => ({ outcome: 'shared' as const, activity: 'com.apple.UIKit.activity.SaveToCameraRoll' })),
     discard: jest.fn(),
     askRating: jest.fn(async () => 'asked' as const),
+    shareCsv: jest.fn(async () => {}),
     ...over,
   };
 }
@@ -237,6 +238,16 @@ describe('TrackShareScreen', () => {
     await press(getByTestId('share-video-btn'));
     await waitFor(() => expect(d.share).toHaveBeenCalledWith(VIDEO));
     expect(specOf(d.renderVideo).speed).toBe(4);
+  });
+
+  it('shares the lift as data, one row a frame, named for the lift', async () => {
+    const d = deps();
+    const { getByTestId } = await render(<TrackShareScreen analysis={analysis} body={body} clipUri={CLIP} watermark onBack={() => {}} deps={d} />);
+    expect(getByTestId('share-csv-btn')).toHaveTextContent('Share data (CSV)');
+    await press(getByTestId('share-csv-btn'));
+    const [csv, name] = (d.shareCsv as jest.Mock).mock.calls[0];
+    expect(name).toBe(`catchline-${analysis.id}.csv`);
+    expect((csv as string).split('\n')[0]).toBe('frame,time_s,x,y,bar_speed_m_s,source');
   });
 
   it('has no body toggle for a lift without joints', async () => {

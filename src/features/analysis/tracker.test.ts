@@ -1,5 +1,6 @@
 import type { Body } from '../../analysis/device/tracking';
-import { bones, drawnSide, floorY, frameAt, jointAngles, joints, liftRange, spread, timeOf } from './tracker';
+import { snatchMock } from '../../analysis/fixtures';
+import { bones, drawnPath, drawnSide, floorY, frameAt, jointAngles, joints, liftRange, spread, timeOf } from './tracker';
 
 // shoulder, elbow, wrist, hip, knee, ankle, heel, toe; left then right. The right side is unseen but for the hip.
 const row = (pts: Record<number, [number, number]>): (number | null)[] => {
@@ -92,5 +93,20 @@ describe('drawnSide and spread', () => {
   it('moves a label that would cover another down, leaving distant ones alone', () => {
     const out = spread([{ id: 'a', x: 100, y: 200 }, { id: 'b', x: 120, y: 210 }, { id: 'c', x: 300, y: 205 }], 56, 28);
     expect(out).toEqual([{ id: 'a', x: 100, y: 200 }, { id: 'c', x: 300, y: 205 }, { id: 'b', x: 120, y: 228 }]);
+  });
+});
+
+describe('drawnPath', () => {
+  const pts = Array.from({ length: 120 }, (_, frame) => ({ frame, x: 0.5, y: 0.5 }));
+  const of = (traceKind: 'bar' | 'hip') => ({ ...snatchMock, traceKind, video: { ...snatchMock.video, fps: 30 }, reps: [{ ...snatchMock.reps[0], path: pts }] });
+
+  it('draws a bar path from its start up to the frame', () => {
+    expect(drawnPath(of('bar'), 100)[0].frame).toBe(0);
+  });
+
+  it('draws only the last second of a hanging movement’s hip trail', () => {
+    const drawn = drawnPath(of('hip'), 100);
+    expect(drawn[0].frame).toBe(70);
+    expect(drawn[drawn.length - 1].frame).toBe(100);
   });
 });

@@ -30,7 +30,8 @@ export type Confidence = 'clear' | 'worth_checking' | 'low';
 export type Point = { x: number; y: number };
 
 export type PathSource = 'plate' | 'wrist';
-export type TracePoint = Point & { frame: number; src?: PathSource };
+// r: the plate's radius on that frame as a fraction of the picture's height, where the plate model read it (4.0, 12-11)
+export type TracePoint = Point & { frame: number; src?: PathSource; r?: number };
 
 export type Phase = {
   name: PhaseName;

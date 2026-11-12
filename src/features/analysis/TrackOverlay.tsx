@@ -2,10 +2,10 @@ import { Circle, G, Line, Path } from 'react-native-svg';
 import type { Analysis, Point } from '../../analysis/types';
 import type { Body } from '../../analysis/device/tracking';
 import { svgPath, toScreen, type Size } from '../../analysis/geometry';
-import { pathUpTo, pointAt } from '../../analysis/timeline';
+import { pointAt } from '../../analysis/timeline';
 import { colors, opacity, stroke } from '../../design/tokens';
 import { CurrentDot, FlarePath, OverlaySvg, RefLine } from './overlays';
-import { bones, drawnSide, floorY, joints, startLineX } from './tracker';
+import { bones, drawnPath, drawnSide, floorY, joints, startLineX } from './tracker';
 
 // What is drawn on the clip at one frame: the start and floor lines, the body, the path so far and its dot.
 // The tracker screen and the share preview show it; modules/clip-transcoder TrackRenderer.swift burns the same in.
@@ -61,7 +61,7 @@ export default function TrackOverlay({
       ) : null}
       {show.path ? (
         <>
-          <FlarePath points={pathUpTo(path, frame).map(s)} testID="path-done" />
+          <FlarePath points={drawnPath(analysis, frame).map(s)} testID="path-done" />
           <CurrentDot point={current ? s(current) : null} />
         </>
       ) : null}

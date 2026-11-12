@@ -172,11 +172,12 @@ describe('LiftsScreen with the backend on', () => {
   const backend = require('../../data/backend');
   const { usePurchases } = require('../purchases/usePurchases');
   const { useUsage } = require('../paywall/usageStore');
-  beforeEach(() => jest.spyOn(backend, 'backendEnabled').mockReturnValue(true));
-  afterEach(() => {
-    jest.restoreAllMocks();
+  // the tier is reset before each test, while nothing is mounted (after one, the screen still is and would re-render)
+  beforeEach(() => {
     usePurchases.setState({ tier: 'free' });
+    jest.spyOn(backend, 'backendEnabled').mockReturnValue(true);
   });
+  afterEach(() => jest.restoreAllMocks());
 
   it('the free-videos chip follows a purchase without a library sync', async () => {
     useUsage.setState({ usage: { lifetime: 2, week: weekKey(new Date()), thisWeek: 2 } });

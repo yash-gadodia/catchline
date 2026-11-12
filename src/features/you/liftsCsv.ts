@@ -37,12 +37,12 @@ export function libraryLifts(): CsvLift[] {
   }));
 }
 
-export async function shareLiftsCsv(csv: string): Promise<void> {
+export async function shareLiftsCsv(csv: string, name = 'catchline-lifts.csv'): Promise<void> {
   if (Platform.OS !== 'ios') {
-    await Share.share({ title: 'catchline-lifts.csv', message: csv });
+    await Share.share({ title: name, message: csv });
     return;
   }
-  const file = new File(Paths.cache, 'catchline-lifts.csv');
+  const file = new File(Paths.cache, name);
   file.create({ overwrite: true });
   file.write(csv);
   await Share.share({ url: file.uri });
