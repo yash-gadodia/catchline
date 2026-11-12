@@ -2,10 +2,9 @@ import type { Strings } from '../types';
 import type { onboarding as en } from '../en/onboarding';
 
 export const onboarding: Strings<typeof en> = {
-  'onboarding.welcome.title': "Veja seu levantamento.",
-  'onboarding.welcome.body': "Trajetória da barra e linhas do corpo em cada quadro.",
+  'onboarding.welcome.title': "Veja seu levantamento assim.",
+  'onboarding.welcome.body': "Escolha um vídeo de um levantamento. Seu celular desenha nele a trajetória da barra e as linhas do corpo.",
   'onboarding.welcome.private': "Tudo roda no seu celular. Seu vídeo nunca sai dele.",
-  'onboarding.welcome.start': "Começar",
   'onboarding.welcome.agree': "Ao continuar, você confirma que tem mais de 16 anos e aceita os termos e a política de privacidade.",
   'onboarding.lifts.sub.barPath': "trajetória da barra",
   'onboarding.lifts.sub.hipPath': "trajetória do quadril",
@@ -26,7 +25,6 @@ export const onboarding: Strings<typeof en> = {
   'onboarding.guide.frame': "Seu corpo inteiro e a anilha no quadro.",
   'onboarding.guide.angle': "De lado, a trajetória da barra fica melhor. Para as linhas do corpo, qualquer ângulo serve.",
   'onboarding.guide.caption': "celular parado, de lado para a barra",
-  'onboarding.guide.next': "Próximo",
   'onboarding.guide.done': "Entendi",
   'onboarding.add.title': "Adicione seu primeiro vídeo",
   'onboarding.add.body': "Escolha um no Fotos ou filme um levantamento agora. A câmera só grava quando você aperta o botão.",
@@ -43,4 +41,6 @@ export const onboarding: Strings<typeof en> = {
   'onboarding.privacy.continue': "Continuar",
   'onboarding.privacy.policy': "política de privacidade",
   'onboarding.privacy.terms': "termos",
+  'onboarding.welcome.pick': "Escolher um dos seus levantamentos",
+  'onboarding.welcome.film': "Filmar um levantamento agora",
 };

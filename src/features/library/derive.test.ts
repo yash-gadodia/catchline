@@ -1,6 +1,6 @@
 import { File } from 'expo-file-system';
 import { setLanguage } from '../../i18n';
-import { freeVideosLabel, isTracked, liftDetail, liftLink, liftTitle, liftWhen, newestFirst, sessionsDone } from './derive';
+import { byDay, freeVideosLabel, isTracked, liftTime, liftDetail, liftLink, liftTitle, liftWhen, newestFirst, sessionsDone } from './derive';
 import { emptyLibrary } from './seed';
 import type { CueRecord, Lift, Session } from './types';
 
@@ -57,6 +57,22 @@ describe('a lift row', () => {
     const afternoon = lift({ id: 'b' });
     const yesterday = lift({ id: 'c', date: '2026-11-10', at: undefined });
     expect(newestFirst([yesterday, morning, afternoon]).map((l) => l.id)).toEqual(['b', 'a', 'c']);
+  });
+
+  it('groups the lifts by day, newest first, headed Today, Yesterday or the date, each titled by its time', () => {
+    const now = new Date(2026, 10, 11, 20, 0);
+    const a = lift({ id: 'a', at: new Date(2026, 10, 11, 9, 5).toISOString(), loadKg: 62.5 });
+    const b = lift({ id: 'b' });
+    const c = lift({ id: 'c', date: '2026-11-10', at: new Date(2026, 10, 10, 23, 59).toISOString() });
+    const d = lift({ id: 'd', date: '2026-11-03', at: undefined, loadKg: 60 });
+    expect(byDay([d, a, c, b], now).map((g) => [g.day, g.label, g.lifts.map((l) => l.id)])).toEqual([
+      ['2026-11-11', 'Today', ['b', 'a']],
+      ['2026-11-10', 'Yesterday', ['c']],
+      ['2026-11-03', '3 Nov', ['d']],
+    ]);
+    expect(liftTime(a)).toBe('09:05 · 62.5 kg');
+    expect(liftTime(b)).toBe('14:32');
+    expect(liftTime(d)).toBe('3 Nov · 60 kg');
   });
 
   it('never names a movement on a 4.0 lift (its clip is kept); a 3.x lift keeps the one the lifter picked', () => {

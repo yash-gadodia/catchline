@@ -1,9 +1,11 @@
-import { act, fireEvent, render } from '@testing-library/react-native';
+import { act, fireEvent, render, within } from '@testing-library/react-native';
+import { useVideoPlayer } from 'expo-video';
 import { Linking } from 'react-native';
 import CameraScreen from './CameraScreen';
 import GuideScreen, { guideLines } from './GuideScreen';
 import PrivacyScreen from './PrivacyScreen';
 import WelcomeScreen from './WelcomeScreen';
+import { SAMPLE_ANALYSIS, SAMPLE_CLIP } from './sample';
 
 const press = async (el: Parameters<typeof fireEvent.press>[0]) => {
   await act(async () => {
@@ -13,23 +15,41 @@ const press = async (el: Parameters<typeof fireEvent.press>[0]) => {
 
 beforeEach(() => jest.clearAllMocks());
 
-describe('1. Welcome', () => {
-  it('makes the promise, says the video stays on the phone, and has one way on', async () => {
-    const onContinue = jest.fn();
-    const screen = await render(<WelcomeScreen onContinue={onContinue} />);
-    expect(screen.getByTestId('welcome-hero')).toHaveProp('source', require('../../../assets/art/welcome-hero.png'));
-    expect(screen.getByText('See your lift.')).toBeOnTheScreen();
-    expect(screen.getByText('Bar path and body lines on every frame.')).toBeOnTheScreen();
+describe('Welcome', () => {
+  it('plays a tracked lift, makes the promise, and offers a lift of the lifter’s own first and filming second', async () => {
+    const onPick = jest.fn();
+    const onFilm = jest.fn();
+    const screen = await render(<WelcomeScreen onPick={onPick} onFilm={onFilm} />);
+    expect(useVideoPlayer).toHaveBeenCalledWith(SAMPLE_CLIP, expect.any(Function));
+    const player = (useVideoPlayer as jest.Mock).mock.results[0].value;
+    expect(player).toMatchObject({ loop: true, muted: true, playbackRate: 0.5 });
+    expect(player.play).toHaveBeenCalledTimes(1);
+    expect(within(screen.getByTestId('sample-lift')).getByTestId('tracker-body')).toBeOnTheScreen();
+    expect(screen.getByText('See your lift like this.')).toBeOnTheScreen();
+    expect(screen.getByText('Pick a video of a lift. Your phone draws the bar path and body lines on it.')).toBeOnTheScreen();
     expect(screen.getByText('Everything runs on your phone. Your video never leaves it.')).toBeOnTheScreen();
     expect(screen.getByText(/By continuing you confirm you are over 16 and accept the terms and privacy policy\./)).toBeOnTheScreen();
     expect(screen.queryByText(/cue|fix|sample|how it works/i)).toBeNull();
-    await press(screen.getByTestId('welcome-start'));
-    expect(onContinue).toHaveBeenCalledTimes(1);
+    await press(screen.getByText('Pick one of your lifts'));
+    expect(onPick).toHaveBeenCalledTimes(1);
+    expect(onFilm).toHaveBeenCalledTimes(0);
+    await press(screen.getByText('Film a lift now'));
+    expect(onFilm).toHaveBeenCalledTimes(1);
+  });
+
+  it('with Reduce Motion shows one still of the sample with its whole bar path', async () => {
+    const screen = await render(<WelcomeScreen onPick={jest.fn()} onFilm={jest.fn()} reduceMotion />);
+    const player = (useVideoPlayer as jest.Mock).mock.results[0].value;
+    expect(player.play).not.toHaveBeenCalled();
+    expect(player.loop).toBe(false);
+    const path = SAMPLE_ANALYSIS.reps[0].path;
+    expect(player.currentTime).toBeCloseTo((path[path.length - 1].frame + 0.5) / SAMPLE_ANALYSIS.video.fps, 6);
+    expect(screen.getByTestId('path-done')).toBeOnTheScreen();
   });
 
   it('opens the published terms and privacy policy', async () => {
     const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
-    const screen = await render(<WelcomeScreen onContinue={jest.fn()} />);
+    const screen = await render(<WelcomeScreen onPick={jest.fn()} onFilm={jest.fn()} />);
     await press(screen.getByTestId('link-terms'));
     expect(open).toHaveBeenLastCalledWith('https://yash-gadodia.github.io/catchline/legal/terms.html');
     await press(screen.getByTestId('link-privacy'));
@@ -38,7 +58,7 @@ describe('1. Welcome', () => {
   });
 });
 
-describe('2. How to film', () => {
+describe('How to film (from the viewfinder)', () => {
   it('says phone still, whole body and plate in frame, side view for the bar path', async () => {
     const onDone = jest.fn();
     const screen = await render(<GuideScreen label="Next" onDone={onDone} />);
@@ -55,7 +75,7 @@ describe('2. How to film', () => {
   });
 });
 
-describe('3. Add your first video', () => {
+describe('Add a video (the camera-off screen)', () => {
   const handlers = () => ({ onChoose: jest.fn(), onFilm: jest.fn(), onSettings: jest.fn() });
 
   it('offers a video from Photos first and filming second', async () => {

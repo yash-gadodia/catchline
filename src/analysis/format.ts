@@ -118,25 +118,6 @@ export function signed(n: number): string {
   return `${v > 0 ? '+' : v < 0 ? '−' : ''}${fmt(Math.abs(v))}`;
 }
 
-export type StepState = 'done' | 'active' | 'todo';
-
-// With no analysis yet (a live lift) the first step is the upload and the rep
-// count is still unknown.
-// The tracking run as the lifter sees it: every clip goes through the same five steps.
-export function processingSteps(step: number, firstLabel = t('analysis.processing.preparingClip')): { label: string; state: StepState }[] {
-  const labels = [
-    firstLabel,
-    t('analysis.processing.step.person'),
-    t('analysis.processing.step.bar'),
-    t('analysis.processing.step.body'),
-    t('analysis.processing.step.lines'),
-  ];
-  return labels.map((label, i) => ({
-    label,
-    state: i < step ? 'done' : i === step ? 'active' : 'todo',
-  }));
-}
-
 export function formatWait(seconds: number): string {
   return seconds >= 60 ? t('format.wait.minutes', { n: Math.floor(seconds / 60) }) : t('format.wait.seconds', { n: seconds });
 }

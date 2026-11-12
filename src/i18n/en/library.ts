@@ -81,4 +81,6 @@ export const library = {
   'library.failure.unknown.primary': 'Try again',
   'library.failure.unknown.link0': 'Retry later',
   'library.date.dayTime': "{date}, {time}",
+  'library.date.today': "Today",
+  'library.date.yesterday': "Yesterday",
 } as const;
