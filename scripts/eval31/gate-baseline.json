@@ -1,14 +1,14 @@
 {
- "commit": "4c188faa8f289a994955db9452321a7edf38e259",
+ "commit": "5751d05e3f80060a372000ced5410b4527f1931a",
  "mode": "full",
  "source": "prepared",
- "at": "2026-11-12T02:44:17.724Z",
+ "at": "2026-11-12T04:30:39.432Z",
  "clips": {
   "IMG_0591": {
    "tracked": true,
    "failure": null,
-   "pathPts": 0,
-   "plateShare": 0,
+   "pathPts": 623,
+   "plateShare": 100,
    "jointsSeen": 89,
    "lift": null,
    "frames": 938,
@@ -16,17 +16,17 @@
    "missesLeft": 0,
    "srcFrames": 938,
    "labelled": 11,
-   "onLabels": 0,
+   "onLabels": 73,
    "size": "608x1080",
-   "prepS": 5.3,
-   "poseS": 61.3,
-   "allS": 116.2
+   "prepS": 3.8,
+   "poseS": 35.9,
+   "allS": 56.9
   },
   "IMG_0596": {
    "tracked": true,
    "failure": null,
-   "pathPts": 0,
-   "plateShare": 0,
+   "pathPts": 322,
+   "plateShare": 98,
    "jointsSeen": 85,
    "lift": null,
    "frames": 377,
@@ -34,17 +34,17 @@
    "missesLeft": 0,
    "srcFrames": 377,
    "labelled": 14,
-   "onLabels": 0,
+   "onLabels": 79,
    "size": "608x1080",
-   "prepS": 2.2,
-   "poseS": 19.8,
-   "allS": 40.2
+   "prepS": 1.6,
+   "poseS": 13.6,
+   "allS": 22.1
   },
   "IMG_0830": {
    "tracked": true,
    "failure": null,
-   "pathPts": 121,
-   "plateShare": 100,
+   "pathPts": 186,
+   "plateShare": 91,
    "jointsSeen": 100,
    "lift": [
     68,
@@ -55,17 +55,17 @@
    "missesLeft": 0,
    "srcFrames": 246,
    "labelled": 8,
-   "onLabels": 88,
+   "onLabels": 100,
    "size": "608x1080",
-   "prepS": 2,
-   "poseS": 18.8,
-   "allS": 49.7
+   "prepS": 1.1,
+   "poseS": 8.3,
+   "allS": 13.8
   },
   "IMG_0975": {
    "tracked": true,
    "failure": null,
-   "pathPts": 0,
-   "plateShare": 0,
+   "pathPts": 387,
+   "plateShare": 100,
    "jointsSeen": 100,
    "lift": [
     73,
@@ -76,17 +76,17 @@
    "missesLeft": 0,
    "srcFrames": 416,
    "labelled": 13,
-   "onLabels": 0,
+   "onLabels": 92,
    "size": "608x1080",
-   "prepS": 3.1,
-   "poseS": 41,
-   "allS": 66.4
+   "prepS": 1.7,
+   "poseS": 17,
+   "allS": 26.5
   },
   "IMG_0976": {
    "tracked": true,
    "failure": null,
-   "pathPts": 0,
-   "plateShare": 0,
+   "pathPts": 444,
+   "plateShare": 96,
    "jointsSeen": 95,
    "lift": [
     194,
@@ -97,17 +97,17 @@
    "missesLeft": 0,
    "srcFrames": 647,
    "labelled": 13,
-   "onLabels": 0,
+   "onLabels": 23,
    "size": "608x1080",
-   "prepS": 3.5,
-   "poseS": 57.2,
-   "allS": 87.7
+   "prepS": 2.6,
+   "poseS": 24.9,
+   "allS": 39.7
   },
   "IMG_1177": {
    "tracked": true,
    "failure": null,
-   "pathPts": 0,
-   "plateShare": 0,
+   "pathPts": 878,
+   "plateShare": 99,
    "jointsSeen": 100,
    "lift": [
     74,
@@ -118,17 +118,17 @@
    "missesLeft": 0,
    "srcFrames": 955,
    "labelled": 14,
-   "onLabels": 0,
+   "onLabels": 86,
    "size": "608x1080",
-   "prepS": 4.7,
-   "poseS": 63.8,
-   "allS": 129
+   "prepS": 3.8,
+   "poseS": 33.2,
+   "allS": 56.8
   },
   "IMG_1178": {
    "tracked": true,
    "failure": null,
-   "pathPts": 336,
-   "plateShare": 99,
+   "pathPts": 511,
+   "plateShare": 100,
    "jointsSeen": 100,
    "lift": [
     52,
@@ -139,17 +139,17 @@
    "missesLeft": 0,
    "srcFrames": 593,
    "labelled": 11,
-   "onLabels": 64,
+   "onLabels": 100,
    "size": "608x1080",
-   "prepS": 5.6,
-   "poseS": 45.2,
-   "allS": 144.3
+   "prepS": 2.4,
+   "poseS": 21.4,
+   "allS": 36.8
   },
   "IMG_1558": {
    "tracked": true,
    "failure": null,
-   "pathPts": 437,
-   "plateShare": 96,
+   "pathPts": 444,
+   "plateShare": 99,
    "jointsSeen": 100,
    "lift": [
     274,
@@ -160,17 +160,17 @@
    "missesLeft": 0,
    "srcFrames": 456,
    "labelled": 14,
-   "onLabels": 86,
+   "onLabels": 100,
    "size": "608x1080",
-   "prepS": 1.5,
-   "poseS": 34.2,
-   "allS": 73.9
+   "prepS": 1.3,
+   "poseS": 16.5,
+   "allS": 27
   },
   "IMG_1559": {
    "tracked": true,
    "failure": null,
-   "pathPts": 0,
-   "plateShare": 0,
+   "pathPts": 308,
+   "plateShare": 98,
    "jointsSeen": 100,
    "lift": [
     127,
@@ -181,17 +181,17 @@
    "missesLeft": 0,
    "srcFrames": 331,
    "labelled": 14,
-   "onLabels": 0,
+   "onLabels": 93,
    "size": "608x1080",
-   "prepS": 0.9,
-   "poseS": 22.6,
-   "allS": 48.1
+   "prepS": 0.8,
+   "poseS": 11.4,
+   "allS": 19.2
   },
   "IMG_1561": {
    "tracked": true,
    "failure": null,
-   "pathPts": 106,
-   "plateShare": 95,
+   "pathPts": 293,
+   "plateShare": 98,
    "jointsSeen": 100,
    "lift": [
     114,
@@ -202,11 +202,11 @@
    "missesLeft": 0,
    "srcFrames": 306,
    "labelled": 14,
-   "onLabels": 0,
+   "onLabels": 93,
    "size": "608x1080",
    "prepS": 0.8,
-   "poseS": 17.2,
-   "allS": 33.8
+   "poseS": 10.4,
+   "allS": 17.2
   },
   "IMG_1179": {
    "tracked": true,
@@ -219,15 +219,15 @@
    "fps": 30,
    "missesLeft": 0,
    "size": "608x1080",
-   "prepS": 3.5,
-   "poseS": 48.4,
-   "allS": 72.4
+   "prepS": 2.9,
+   "poseS": 25.7,
+   "allS": 43.6
   },
   "2026-10-05_21B27BAF": {
    "tracked": true,
    "failure": null,
-   "pathPts": 98,
-   "plateShare": 91,
+   "pathPts": 127,
+   "plateShare": 100,
    "jointsSeen": 100,
    "lift": [
     37,
@@ -237,15 +237,15 @@
    "fps": 30,
    "missesLeft": 0,
    "size": "608x1080",
-   "prepS": 0.9,
-   "poseS": 8.5,
-   "allS": 19.2
+   "prepS": 0.7,
+   "poseS": 6.5,
+   "allS": 10.3
   },
   "2026-10-04_100B1719": {
    "tracked": true,
    "failure": null,
-   "pathPts": 0,
-   "plateShare": 0,
+   "pathPts": 259,
+   "plateShare": 96,
    "jointsSeen": 100,
    "lift": [
     71,
@@ -255,9 +255,9 @@
    "fps": 30,
    "missesLeft": 0,
    "size": "608x1080",
-   "prepS": 1.3,
-   "poseS": 16,
-   "allS": 24.2
+   "prepS": 1.1,
+   "poseS": 12.5,
+   "allS": 18.7
   },
   "wall-walk-2026-09-19": {
    "tracked": true,
@@ -273,9 +273,9 @@
    "fps": 30,
    "missesLeft": 0,
    "size": "608x1080",
-   "prepS": 1.2,
-   "poseS": 10.5,
-   "allS": 18.1
+   "prepS": 1,
+   "poseS": 8.5,
+   "allS": 13.8
   }
  }
 }
