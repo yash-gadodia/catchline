@@ -75,10 +75,18 @@ func plateNetPeaks(_ model: MLModel, _ img: BGRImage, centre: Point, side: Doubl
   guard let maps = out.featureValue(for: "maps")?.multiArrayValue else { throw StageError.invalid("plate_net: no maps") }
   let n = plateNetCells, plane = n * n
   var v = [Float](repeating: 0, count: 4 * plane)
-  if maps.dataType == .float32 {
-    maps.dataPointer.withMemoryRebound(to: Float.self, capacity: 4 * plane) { p in for i in 0 ..< 4 * plane { v[i] = p[i] } }
-  } else {
-    for i in 0 ..< 4 * plane { v[i] = maps[i].floatValue }
+  // (1, 4, 64, 64), FP16 from this model, read through its strides (a Neural Engine output may pad its rows)
+  let st = maps.strides.map(\.intValue)
+  guard maps.shape.map(\.intValue) == [1, 4, n, n], st.count == 4 else { throw StageError.invalid("plate_net: maps shape \(maps.shape)") }
+  func read<T>(_ t: T.Type, _ f: (T) -> Float) {
+    maps.dataPointer.withMemoryRebound(to: T.self, capacity: st[1] * 4) { p in
+      for c in 0 ..< 4 { for y in 0 ..< n { for x in 0 ..< n { v[c * plane + y * n + x] = f(p[c * st[1] + y * st[2] + x * st[3]]) } } }
+    }
+  }
+  switch maps.dataType {
+  case .float16: read(Float16.self) { Float($0) }
+  case .float32: read(Float.self) { $0 }
+  default: for i in 0 ..< 4 * plane { v[i] = maps[i].floatValue }
   }
   var found: [(Float, Int)] = []
   for y in 0 ..< n {
