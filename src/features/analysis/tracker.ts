@@ -1,5 +1,5 @@
 import type { Size } from '../../analysis/geometry';
-import type { Point, Rep } from '../../analysis/types';
+import type { Point, Rep, TracePoint } from '../../analysis/types';
 import type { Body } from '../../analysis/device/tracking';
 import { angleAt } from './drawGeometry';
 
@@ -123,4 +123,28 @@ export function spread<T extends { x: number; y: number }>(labels: T[], w: numbe
     out.push({ ...l, y });
   }
   return out;
+}
+
+// Where the rep on screen began: the last time the plate left a rest low in the clip (on the floor or blocks) at or
+// before this frame, or the path's start. Drawing the path from there keeps a set of several reps from piling up into
+// one tangle: each rep draws on its own, and a finished rep stays drawn until the next lift-off.
+const REST_LOW = 0.12; // the lowest share of the path's height range counts as resting low
+const REST_STILL = 0.015; // and moving less than this share of the frame height within a quarter second either side
+export function repStart(path: TracePoint[], frame: number, fps: number): number {
+  if (path.length < 3) return path[0]?.frame ?? 0;
+  const ys = path.map((p) => p.y);
+  const top = Math.max(...ys);
+  const low = top - REST_LOW * (top - Math.min(...ys));
+  const half = Math.max(1, Math.round(fps / 4));
+  const rest = path.map((p, i) => {
+    if (p.y < low) return false;
+    let lo = p.y;
+    let hi = p.y;
+    for (let k = i - 1; k >= 0 && path[k].frame >= p.frame - half; k--) { lo = Math.min(lo, path[k].y); hi = Math.max(hi, path[k].y); }
+    for (let k = i + 1; k < path.length && path[k].frame <= p.frame + half; k++) { lo = Math.min(lo, path[k].y); hi = Math.max(hi, path[k].y); }
+    return hi - lo < REST_STILL;
+  });
+  let start = path[0].frame;
+  for (let i = 1; i < path.length && path[i].frame <= frame; i++) if (rest[i - 1] && !rest[i]) start = path[i - 1].frame;
+  return start;
 }

@@ -5,7 +5,7 @@ import { svgPath, toScreen, type Size } from '../../analysis/geometry';
 import { pathUpTo, pointAt } from '../../analysis/timeline';
 import { colors, opacity, stroke } from '../../design/tokens';
 import { CurrentDot, FlarePath, OverlaySvg, RefLine } from './overlays';
-import { bones, drawnSide, floorY, joints, startLineX } from './tracker';
+import { bones, drawnSide, floorY, joints, repStart, startLineX } from './tracker';
 
 // What is drawn on the clip at one frame: the start and floor lines, the body, the path so far and its dot.
 // The tracker screen and the share preview show it; modules/clip-transcoder TrackRenderer.swift burns the same in.
@@ -28,6 +28,7 @@ export default function TrackOverlay({
   const s = (p: Point) => toScreen(p, { x: 0, y: 0, width: box.width, height: box.height });
   const rep = analysis.reps[0];
   const path = rep?.path ?? [];
+  const from = repStart(path, frame, analysis.video.fps);
   const current = path.length && frame >= path[0].frame && frame <= path[path.length - 1].frame ? pointAt(path, frame) : null;
   const j = show.body ? joints(body, frame) : [];
   const side = drawnSide(body, analysis.noCueReason?.offSideDeg);
@@ -61,7 +62,7 @@ export default function TrackOverlay({
       ) : null}
       {show.path ? (
         <>
-          <FlarePath points={pathUpTo(path, frame).map(s)} testID="path-done" />
+          <FlarePath points={pathUpTo(path.filter((p) => p.frame >= from), frame).map(s)} testID="path-done" />
           <CurrentDot point={current ? s(current) : null} />
         </>
       ) : null}

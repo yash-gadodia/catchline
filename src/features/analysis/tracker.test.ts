@@ -1,5 +1,5 @@
 import type { Body } from '../../analysis/device/tracking';
-import { bones, drawnSide, floorY, frameAt, jointAngles, joints, liftRange, spread, timeOf } from './tracker';
+import { bones, drawnSide, floorY, frameAt, jointAngles, joints, liftRange, repStart, spread, timeOf } from './tracker';
 
 // shoulder, elbow, wrist, hip, knee, ankle, heel, toe; left then right. The right side is unseen but for the hip.
 const row = (pts: Record<number, [number, number]>): (number | null)[] => {
@@ -92,5 +92,27 @@ describe('drawnSide and spread', () => {
   it('moves a label that would cover another down, leaving distant ones alone', () => {
     const out = spread([{ id: 'a', x: 100, y: 200 }, { id: 'b', x: 120, y: 210 }, { id: 'c', x: 300, y: 205 }], 56, 28);
     expect(out).toEqual([{ id: 'a', x: 100, y: 200 }, { id: 'c', x: 300, y: 205 }, { id: 'b', x: 120, y: 228 }]);
+  });
+});
+
+describe('repStart', () => {
+  // 30 fps; y grows downwards: 0.9 is the plate on the floor, 0.2 overhead
+  const seg = (from: number, ys: number[]) => ys.map((y, i) => ({ frame: from + i, x: 0.5, y }));
+  const rest = (n: number) => new Array<number>(n).fill(0.9);
+  const lift = [0.85, 0.7, 0.5, 0.3, 0.2, 0.2, 0.3, 0.5, 0.7, 0.85];
+  const path = seg(0, [...rest(30), ...lift, ...rest(30), ...lift, ...rest(30)]);
+
+  it('starts each rep a quarter second into its rest before lift-off (frames 30 and 70), and keeps a finished rep until the next', () => {
+    expect(repStart(path, 10, 30)).toBe(0);
+    expect(repStart(path, 35, 30)).toBe(21);
+    expect(repStart(path, 60, 30)).toBe(21);
+    expect(repStart(path, 75, 30)).toBe(61);
+    expect(repStart(path, 108, 30)).toBe(61);
+  });
+
+  it('draws the whole path when there is no rest to split at', () => {
+    const one = seg(5, lift);
+    expect(repStart(one, 14, 30)).toBe(5);
+    expect(repStart([], 3, 30)).toBe(0);
   });
 });
