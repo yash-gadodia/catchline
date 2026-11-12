@@ -28,12 +28,15 @@ struct AnalysePlan {
     var key: String { tap.map { "\(s0):\(n):\(seed):tap:\(Int($0.x.rounded())),\(Int($0.y.rounded()))" } ?? "\(s0):\(n):\(seed)" }
   }
   struct KeyframeRequest { let name: String; let frame: Int }
+  // PlateNet on frames [s0, s0 + n): per frame the centre of the square it looks at (NaN: skip the frame), `side` px wide
+  struct PlateNetRequest { let s0: Int; let n: Int; let side: Double; let centres: [Point] }
 
   var windows: [Window] = []
   var plates: [PlateRequest] = []
   var tracks: [TrackRequest] = []
   var follows: [FollowRequest] = []
   var keyframes: [KeyframeRequest] = []
+  var plateNet: [PlateNetRequest] = []
 
   init() {}
 
@@ -71,6 +74,9 @@ struct AnalysePlan {
                                    wrists: (t["wrists"] as? [Any] ?? []).map(point), wristA: point(t["wristA"]), wristB: point(t["wristB"]),
                                    bodyH: try num(t, "bodyH"), setupH: try num(t, "setupH"),
                                    tap: t["tap"] == nil || t["tap"] is NSNull ? nil : point(t["tap"]), back: (t["back"] as? NSNumber)?.boolValue ?? false))
+    }
+    for t in json["plateNet"] as? [[String: Any]] ?? [] {
+      plateNet.append(PlateNetRequest(s0: try int(t, "s0"), n: try int(t, "n"), side: try num(t, "side"), centres: (t["centres"] as? [Any] ?? []).map(point)))
     }
     for k in json["keyframes"] as? [[String: Any]] ?? [] {
       guard let name = k["name"] as? String else { throw StageError.invalid("plan: keyframe name missing") }
@@ -270,7 +276,7 @@ final class DeviceAnalyser {
     guard let r = run else { return [:] }
     return ["traceVersion": 1, "analysisVersion": NSNull(), "poseSource": "device", "meta": r.meta,
             "pose": [r.poseKey: ["shape": [poseInferHeight, r.outW, 3], "n": r.people.count] as [String: Any]],
-            "scale": NSNull(), "calls": r.calls]
+            "scale": NSNull(), "plateNet": models.plate != nil ? plateNetVersion : NSNull() as Any, "calls": r.calls]
   }
 
   private func posePass(url: URL, poseKey: String, twoPass: Bool, hanging: Bool, cameraPath: Bool,
@@ -430,6 +436,9 @@ final class DeviceAnalyser {
       }
       func wrist(_ i: Int) -> Point { i < req.wrists.count ? req.wrists[i] : Point(.nan, .nan) }
     }
+    // per request, per frame, plateNetPeaks peaks of (confidence, x, y, radius), NaN where there is none
+    var netOut = plan.plateNet.map { [Double](repeating: .nan, count: $0.n * plateNetPeaks * 4) }
+    var netSeconds = 0.0, netFrames = 0
     let windows = plan.windows.map { WindowState($0, total: total, boxes: r.lifter.boxes) }
     let follows = plan.follows.map { FollowState($0) }
     let tracks = plan.tracks.map { TrackState($0) }
@@ -438,7 +447,8 @@ final class DeviceAnalyser {
     var keyframes: [Int: [String]] = [:]
     for k in plan.keyframes { keyframes[min(max(k.frame, 0), total - 1), default: []].append(k.name) }
     let last = max(windows.map { $0.s0 + $0.n }.max() ?? 0, tracks.map { $0.req.s0 + $0.req.n }.max() ?? 0,
-                   (plateFrames.keys.max() ?? -1) + 1, (keyframes.keys.max() ?? -1) + 1, follows.map { $0.req.s0 + $0.req.n }.max() ?? 0)
+                   (plateFrames.keys.max() ?? -1) + 1, (keyframes.keys.max() ?? -1) + 1, follows.map { $0.req.s0 + $0.req.n }.max() ?? 0,
+                   models.plate == nil ? 0 : plan.plateNet.map { $0.s0 + $0.n }.max() ?? 0)
     try FileManager.default.createDirectory(at: stillsDir, withIntermediateDirectories: true)
     var stills: [String: URL] = [:]
     var sent = -1.0
@@ -558,6 +568,17 @@ final class DeviceAnalyser {
           t.fit.replaceSubrange(i * 4 ..< i * 4 + 4, with: [t.follow!.major, fit.rim, fit.polarity, fit.interior])
         }
       }
+      if let net = models.plate {
+        for (q, req) in plan.plateNet.enumerated() where f >= req.s0 && f < req.s0 + req.n && f - req.s0 < req.centres.count {
+          let i = f - req.s0
+          let t0 = Date()
+          for (k, p) in try plateNetPeaks(net, image(), centre: req.centres[i], side: req.side).enumerated() {
+            netOut[q].replaceSubrange((i * plateNetPeaks + k) * 4 ..< (i * plateNetPeaks + k) * 4 + 4, with: [p.confidence, p.centre.x, p.centre.y, p.radius])
+          }
+          netSeconds += Date().timeIntervalSince(t0)
+          netFrames += 1
+        }
+      }
       if let names = keyframes[f] {
         let still = uprightBGR(pb, rotation: clip.rotation, outW: W1080, outH: keyframeHeight)
         let jpeg = try keyframeJPEG(still, blur: [])
@@ -579,6 +600,12 @@ final class DeviceAnalyser {
     for t in follows {
       r.calls["follow_plate", default: [:]][t.req.key, default: []]
         .append(tup([nd([t.req.n, 2], t.centres), nd([t.req.n], t.src), nd([t.req.n, 4], t.fit), t.start.map(plateDict) ?? NSNull()]))
+    }
+    if models.plate != nil {
+      for (q, req) in plan.plateNet.enumerated() {
+        r.calls["plate_net", default: [:]]["\(req.s0):\(req.n)", default: []].append(nd([req.n, plateNetPeaks, 4], netOut[q]))
+      }
+      if netFrames > 0 { NSLog("[PoseCoreML] plate_net %d frames, %.2f ms each", netFrames, 1000 * netSeconds / Double(netFrames)) }
     }
     progress("pixels", 1)
     run = r

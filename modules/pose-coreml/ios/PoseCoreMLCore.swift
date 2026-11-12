@@ -65,18 +65,24 @@ nonisolated(unsafe) var coreTiming = CoreTiming()
 final class PoseModels {
   let det: MLModel
   let pose: MLModel
+  // PlateNet (Stages/PlateNet.swift), from plateDirectory or beside the pose models; nil in a build without it,
+  // and the plates then come from the rule stages
+  let plate: MLModel?
 
-  init(directory: URL, units: MLComputeUnits = .all) throws {
+  init(directory: URL, plateDirectory: URL? = nil, units: MLComputeUnits = .all) throws {
     let cfg = MLModelConfiguration()
     cfg.computeUnits = units
-    func load(_ name: String) throws -> MLModel {
-      let compiled = directory.appendingPathComponent("\(name).mlmodelc")
+    func load(_ name: String, in dir: URL) throws -> MLModel {
+      let compiled = dir.appendingPathComponent("\(name).mlmodelc")
       if FileManager.default.fileExists(atPath: compiled.path) { return try MLModel(contentsOf: compiled, configuration: cfg) }
-      let pkg = directory.appendingPathComponent("\(name).mlpackage")
+      let pkg = dir.appendingPathComponent("\(name).mlpackage")
       return try MLModel(contentsOf: try MLModel.compileModel(at: pkg), configuration: cfg)
     }
-    det = try load("YoloxHuman")
-    pose = try load("RTMPoseHalpe26")
+    det = try load("YoloxHuman", in: directory)
+    pose = try load("RTMPoseHalpe26", in: directory)
+    let plateDir = plateDirectory ?? directory
+    let has = ["mlmodelc", "mlpackage"].contains { FileManager.default.fileExists(atPath: plateDir.appendingPathComponent("PlateNet.\($0)").path) }
+    plate = has ? try? load("PlateNet", in: plateDir) : nil
   }
 }
 

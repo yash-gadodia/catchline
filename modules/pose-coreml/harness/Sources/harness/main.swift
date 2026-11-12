@@ -32,7 +32,7 @@ let movement = opts["--movement"] ?? "snatch"
 func log(_ s: String) { FileHandle.standardError.write(Data((s + "\n").utf8)) }
 
 let t0 = Date()
-let models = try PoseModels(directory: URL(fileURLWithPath: modelsDir))
+let models = try PoseModels(directory: URL(fileURLWithPath: modelsDir), plateDirectory: opts["--plate"].map { URL(fileURLWithPath: $0) })
 log("models loaded in \(String(format: "%.1f", Date().timeIntervalSince(t0))) s")
 
 var plan: AnalysePlan?

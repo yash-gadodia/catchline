@@ -25,6 +25,10 @@ private let bundledModelsDir: URL? = {
   return all ? url : nil
 }()
 
+// PlateNet ships in the binary too (ios/plate, PoseCoreMLPlate.bundle); nil in a build without it.
+private let bundledPlateDir: URL? = Bundle.main.url(forResource: "PoseCoreMLPlate", withExtension: "bundle")
+  ?? Bundle(for: PoseCoreMLModule.self).url(forResource: "PoseCoreMLPlate", withExtension: "bundle")
+
 private let bundledStatus: [String: Any] = ["status": "ready", "fraction": 1.0, "bundled": true]
 
 public class PoseCoreMLModule: Module {
@@ -41,13 +45,16 @@ public class PoseCoreMLModule: Module {
     } else {
       dir = try await PoseModelStore.shared.waitUntilReady { f in progress("models", f) }
     }
-    let m = try PoseModels(directory: dir)
+    let m = try PoseModels(directory: dir, plateDirectory: bundledPlateDir)
     models = m
     return m
   }
 
   public func definition() -> ModuleDefinition {
     Name("PoseCoreML")
+
+    // the tracker starts from the lifter's mark on the plate (the app shows the mark step only where this is true)
+    Constants(["supportsPlateMark": true])
 
     Events("onProgress", "onAnalyseProgress")
 
