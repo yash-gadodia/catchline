@@ -49,6 +49,19 @@ needed() {
   else echo "none no tracking or native file changed since the baseline (${base:0:7})"; fi
 }
 
+# A passing, clean result on an ancestor commit still holds when nothing that changes tracking moved since it.
+covering() {
+  local r c
+  for r in $(ls -t "$LOCAL"/result-*.json 2>/dev/null); do
+    c=$(field "$r" commit)
+    [ "$(field "$r" pass)" = true ] && [ "$(field "$r" dirty)" = false ] && [ "$(field "$r" baselineAt)" = "$(field "$BASELINE" at)" ] || continue
+    git merge-base --is-ancestor "$c" HEAD 2>/dev/null || continue
+    git diff --name-only "$c" HEAD | grep -Ev "$NOT_RE" | grep -qE "$FULL_RE|$TS_RE" && continue
+    echo "$r"; return
+  done
+  echo "$LOCAL/result-$COMMIT.json"
+}
+
 require() {
   local want_full="${1:-}" need reason
   read -r need reason <<<"$(needed)"
@@ -63,13 +76,15 @@ require() {
   if [ "$need" = none ]; then echo "gate: skipped, $reason."; return 0; fi
   [ "$need" = replay ] && [ "$want_full" = "--full" ] && need=full && reason="$reason (a store build needs the full check)"
   local f="$LOCAL/result-$COMMIT.json"
+  [ -f "$f" ] || f=$(covering)
   local how="scripts/eval31/gate.sh --check"; [ "$need" = replay ] && how="scripts/eval31/gate.sh --replay (or --check)"
   [ -f "$f" ] || { echo "gate: no result for ${COMMIT:0:7}. $reason. Run: $how"; return 1; }
   [ "$(field "$f" pass)" = true ] || { echo "gate: the last run on ${COMMIT:0:7} FAILED. Fix it, then: $how"; return 1; }
   [ "$(field "$f" dirty)" = false ] || { echo "gate: the result for ${COMMIT:0:7} was run with uncommitted changes. Run: $how"; return 1; }
   [ "$(field "$f" baselineAt)" = "$(field "$BASELINE" at)" ] || { echo "gate: the baseline changed since the result for ${COMMIT:0:7}. Run: $how"; return 1; }
   if [ "$need" = full ] && [ "$(field "$f" mode)" != full ]; then echo "gate: ${COMMIT:0:7} has a replay result but needs the full check. $reason. Run: scripts/eval31/gate.sh --check"; return 1; fi
-  echo "gate: passed on ${COMMIT:0:7} ($(field "$f" mode), $(field "$f" at))."
+  local on; on=$(field "$f" commit)
+  echo "gate: passed on ${on:0:7} ($(field "$f" mode), $(field "$f" at))$([ "$on" = "$COMMIT" ] || echo "; nothing that changes tracking moved since, up to ${COMMIT:0:7}")."
 }
 
 bundle_and_sync() {
