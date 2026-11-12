@@ -9,6 +9,11 @@ import Foundation
 let plateNetVersion = "v1"
 let plateNetInput = 256, plateNetCells = 64, plateNetStride = 4.0
 let plateNetPeaks = 3
+// slots per frame in the trace: the peaks of the square around the hands, then those of the square on the plate
+let plateNetSlots = 2 * plateNetPeaks
+// the second square follows the plate on peaks at least this sure, and is dropped after this many frames without one
+let plateNetFollowConf = 0.3
+let plateNetCoast = 6
 // peaks under this are not recorded (the tracker's own bar is higher)
 let plateNetFloor = 0.05
 
@@ -80,8 +85,9 @@ func plateNetPeaks(_ model: MLModel, _ img: BGRImage, centre: Point, side: Doubl
     for x in 0 ..< n {
       let h = v[y * n + x]
       var top = true
-      for dy in -1 ... 1 where top {
-        for dx in -1 ... 1 where !(dx == 0 && dy == 0) {
+      // a 5 x 5 neighbourhood, as the evaluation's max_pool2d(5, 1, 2)
+      for dy in -2 ... 2 where top {
+        for dx in -2 ... 2 where !(dx == 0 && dy == 0) {
           let yy = y + dy, xx = x + dx
           if yy >= 0, xx >= 0, yy < n, xx < n, v[yy * n + xx] > h || (v[yy * n + xx] == h && (dy < 0 || (dy == 0 && dx < 0))) { top = false; break }
         }
@@ -97,5 +103,32 @@ func plateNetPeaks(_ model: MLModel, _ img: BGRImage, centre: Point, side: Doubl
     let cy = (Double(i / n) + 0.5 + Double(v[2 * plane + i])) * plateNetStride
     let r = exp(Double(v[3 * plane + i])) * Double(plateNetInput)
     return PlatePeak(confidence: conf, centre: Point(centre.x - side / 2 + cx * scale, centre.y - side / 2 + cy * scale), radius: r * scale)
+  }
+}
+
+// Where the second square goes: the plate last seen, followed here on the nearest sure peak of about its size, from
+// the lifter's mark or else the hands square's surest peak. Only the square's place; which peak is the lifter's
+// plate is decided in TS from every recorded peak.
+struct PlateNetFollow {
+  var at: Point?
+  var r = 0.0
+  var lost = 0
+
+  mutating func start(_ centre: Point, _ radius: Double) { at = centre; r = radius; lost = 0 }
+
+  mutating func step(_ peaks: [PlatePeak]) {
+    let sure = peaks.filter { $0.confidence >= plateNetFollowConf }
+    func d(_ a: Point, _ b: Point) -> Double { ((a - b) * (a - b)).sum().squareRoot() }
+    guard let a = at else {
+      if let p = sure.first(where: { $0.confidence >= 0.5 }) { start(p.centre, p.radius) }
+      return
+    }
+    let reach = (1.5 + 0.5 * Double(lost)) * r
+    if let p = sure.filter({ d($0.centre, a) <= reach && $0.radius >= 0.7 * r && $0.radius <= 1.4 * r }).min(by: { d($0.centre, a) < d($1.centre, a) }) {
+      start(p.centre, p.radius)
+    } else {
+      lost += 1
+      if lost > plateNetCoast { at = nil }
+    }
   }
 }

@@ -28,8 +28,10 @@ struct AnalysePlan {
     var key: String { tap.map { "\(s0):\(n):\(seed):tap:\(Int($0.x.rounded())),\(Int($0.y.rounded()))" } ?? "\(s0):\(n):\(seed)" }
   }
   struct KeyframeRequest { let name: String; let frame: Int }
-  // PlateNet on frames [s0, s0 + n): per frame the centre of the square it looks at (NaN: skip the frame), `side` px wide
-  struct PlateNetRequest { let s0: Int; let n: Int; let side: Double; let centres: [Point] }
+  // PlateNet on frames [s0, s0 + n): per frame the centre of the square it looks at (NaN: skip the frame), `side` px
+  // wide, and a second square on the plate last seen (started on the lifter's mark when given: its frame in the
+  // window, centre and radius)
+  struct PlateNetRequest { let s0: Int; let n: Int; let side: Double; let centres: [Point]; let mark: (frame: Int, centre: Point, r: Double)? }
 
   var windows: [Window] = []
   var plates: [PlateRequest] = []
@@ -76,7 +78,9 @@ struct AnalysePlan {
                                    tap: t["tap"] == nil || t["tap"] is NSNull ? nil : point(t["tap"]), back: (t["back"] as? NSNumber)?.boolValue ?? false))
     }
     for t in json["plateNet"] as? [[String: Any]] ?? [] {
-      plateNet.append(PlateNetRequest(s0: try int(t, "s0"), n: try int(t, "n"), side: try num(t, "side"), centres: (t["centres"] as? [Any] ?? []).map(point)))
+      let m = (t["mark"] as? [NSNumber])?.map(\.doubleValue)
+      plateNet.append(PlateNetRequest(s0: try int(t, "s0"), n: try int(t, "n"), side: try num(t, "side"), centres: (t["centres"] as? [Any] ?? []).map(point),
+                                      mark: m.flatMap { $0.count == 4 ? (Int($0[0]), Point($0[1], $0[2]), $0[3]) : nil }))
     }
     for k in json["keyframes"] as? [[String: Any]] ?? [] {
       guard let name = k["name"] as? String else { throw StageError.invalid("plan: keyframe name missing") }
@@ -436,8 +440,10 @@ final class DeviceAnalyser {
       }
       func wrist(_ i: Int) -> Point { i < req.wrists.count ? req.wrists[i] : Point(.nan, .nan) }
     }
-    // per request, per frame, plateNetPeaks peaks of (confidence, x, y, radius), NaN where there is none
-    var netOut = plan.plateNet.map { [Double](repeating: .nan, count: $0.n * plateNetPeaks * 4) }
+    // per request, per frame, plateNetPeaks peaks of (confidence, x, y, radius) from the square around the hands, then
+    // as many from the square on the plate last seen; NaN where there is none
+    var netOut = plan.plateNet.map { [Double](repeating: .nan, count: $0.n * plateNetSlots * 4) }
+    var netFollow = plan.plateNet.map { _ in PlateNetFollow() }
     var netSeconds = 0.0, netFrames = 0
     let windows = plan.windows.map { WindowState($0, total: total, boxes: r.lifter.boxes) }
     let follows = plan.follows.map { FollowState($0) }
@@ -572,9 +578,13 @@ final class DeviceAnalyser {
         for (q, req) in plan.plateNet.enumerated() where f >= req.s0 && f < req.s0 + req.n && f - req.s0 < req.centres.count {
           let i = f - req.s0
           let t0 = Date()
-          for (k, p) in try plateNetPeaks(net, image(), centre: req.centres[i], side: req.side).enumerated() {
-            netOut[q].replaceSubrange((i * plateNetPeaks + k) * 4 ..< (i * plateNetPeaks + k) * 4 + 4, with: [p.confidence, p.centre.x, p.centre.y, p.radius])
+          if let m = req.mark, m.frame == i { netFollow[q].start(m.centre, m.r) }
+          let hands = try plateNetPeaks(net, image(), centre: req.centres[i], side: req.side)
+          let onPlate = try netFollow[q].at.map { try plateNetPeaks(net, image(), centre: $0, side: req.side) } ?? []
+          for (k, p) in zip(Array(0 ..< hands.count) + Array(plateNetPeaks ..< plateNetPeaks + onPlate.count), hands + onPlate) {
+            netOut[q].replaceSubrange((i * plateNetSlots + k) * 4 ..< (i * plateNetSlots + k) * 4 + 4, with: [p.confidence, p.centre.x, p.centre.y, p.radius])
           }
+          netFollow[q].step(hands + onPlate)
           netSeconds += Date().timeIntervalSince(t0)
           netFrames += 1
         }
@@ -603,7 +613,7 @@ final class DeviceAnalyser {
     }
     if models.plate != nil {
       for (q, req) in plan.plateNet.enumerated() {
-        r.calls["plate_net", default: [:]]["\(req.s0):\(req.n)", default: []].append(nd([req.n, plateNetPeaks, 4], netOut[q]))
+        r.calls["plate_net", default: [:]]["\(req.s0):\(req.n)", default: []].append(nd([req.n, plateNetSlots, 4], netOut[q]))
       }
       if netFrames > 0 { NSLog("[PoseCoreML] plate_net %d frames, %.2f ms each", netFrames, 1000 * netSeconds / Double(netFrames)) }
     }
