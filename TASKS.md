@@ -28,16 +28,20 @@ Owner decision 11-11: drop cues; the app tracks any lift or gymnastics clip and 
 - [ ] (Yash) Name the first 5 coaches; decide Pro free for life for coaches (recommended yes)
 - [ ] (Yash) Add 2 or 3 competition-style clips to the 10 gate clips for going loud
 - [x] Wordmark out of the Reels/TikTok covered zone: 'Catchline · free on the App Store' on every plan, inset a fifth up (JS, 41fc4b7); build 43 clamps it inside the frame (55cffd6)
-- [ ] (Yash) Bar speed (m/s) for parity with WL Analysis: reverses "angles only, no cm" (recommended yes, speed only); then side-by-side any two lifts and CSV export
+- [x] Bar speed (m/s), owner yes 12-11: per-frame plate radius on the path (r), 450 mm plate scale, player shows speed at the playhead and the lift's peak (24fa565); radius matches labels (median 1.01, n 116); owner snatches peak 1.9-2.5 m/s
+- [x] CSV export of a lift on the share page (a138c04)
+- [ ] (Claude) Side-by-side any two lifts, synced at lift start (WL's most praised feature): needs a simulator look before it ships
 ## Tester feedback 12 Nov (OTA on build 42 unless noted)
 - [x] Trim drag no longer swipes the screen away (8bbbeb3); plate-mark example loop + why (6de1c32, 5468a55); "No plate? Skip" (5bc2ade)
 - [x] Trim and mark screens: picture fills the space left, Track stays on screen on iPhone SE (f3f98b5, 5468a55). Not yet seen on a phone
 - [x] Path, lines and body on by default on every lift and share (55dd95c); compare only with the same kind of lift (d10900f)
+- [x] Hip trail draws only its last second on the player (5cd0172); gate baseline re-recorded at 24fa565 with the hip rows
 - [x] Hanging clips (pull-ups, muscle-ups): read as hanging when the hands stay still on the bar for 2 s, hip trail over the time on the bar (d502bf0, gate 17ad21b)
 - [ ] (Yash) AirDrop the originals of the 12 Nov clean & jerk (line hops between near and far plate in the blur of the pull) and bar muscle-up (body lines glitch in the kip)
 - [ ] (Claude, after the originals) Hold the marked plate's size and side through blur; stop drawing at the drop
 ## Build 43 (branch v40/build43, expo.version 4.0.1)
 - [x] 2x/4x share renders (every 2nd/4th frame, supportsFastShare), mark clamped in frame, expo-store-review (55cffd6); checked in the macOS harness: 8.2 s -> 4.1 s -> 2.07 s at 30 fps
+- [x] Share video holds only the lift (TrackRenderer never read startFrame/endFrame: every share was the whole clip) and the hip trail is its last second (1a78752)
 - [ ] Default share text (UIActivityItemSource); optional end card "Made with Catchline · free on the App Store"
 - [ ] (Claude) Store build after 4.0 is approved (needs the full gate on v40/build43)
 - [ ] (Yash, after 4.0 is live) Apple Search Ads, about $5 a day, exact "bar path" / "barbell tracker"
