@@ -18,7 +18,7 @@ import TrackOverlay from './TrackOverlay';
 import FadeRow from './FadeRow';
 import DrawLayer from './DrawLayer';
 import { isComplete, type Shape } from './drawGeometry';
-import { useOverlays } from './overlayPrefs';
+import { openLiftOverlays, useOverlays } from './overlayPrefs';
 import { peakFrame } from './compare';
 import type { LastLift } from './useLastLift';
 import { ANGLE_MAX_OFF_SIDE_DEG, drawnSide, frameAt, jointAngles, joints, liftRange, spread, timeOf } from './tracker';
@@ -91,6 +91,7 @@ export default function TrackerScreen({
   const [speed, setSpeed] = useState<Speed>(reveal ? 0.5 : 0.25);
   const [comparing, setComparing] = useState(false);
   const prefs = useOverlays();
+  useEffect(openLiftOverlays, []);
   const overlays = revealing === 'playing' ? { ...prefs, path: true, body: true } : prefs;
   const [drawing, setDrawing] = useState(false);
   const [shapes, setShapes] = useState<Shape[]>([]);

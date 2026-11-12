@@ -37,13 +37,13 @@ function deps(over: Partial<TrackShareDeps> = {}): TrackShareDeps {
 const specOf = (fn: unknown, call = 0) => (fn as jest.Mock).mock.calls[call][1] as TrackSpec;
 
 describe('TrackShareScreen', () => {
-  it('shows the clip with the lines on, the body off, and the wordmark', async () => {
+  it('opens with the path, the lines and the body on, and the wordmark', async () => {
     const { getByTestId, queryByTestId } = await render(<TrackShareScreen analysis={analysis} body={body} clipUri={CLIP} watermark onBack={() => {}} deps={deps()} />);
     expect(getByTestId('tracker-lines')).toBeTruthy();
-    expect(queryByTestId('tracker-body')).toBeNull();
+    expect(getByTestId('tracker-body')).toBeTruthy();
     expect(getByTestId('share-watermark')).toHaveTextContent('catchline');
     await press(getByTestId('share-toggle-body'));
-    expect(getByTestId('tracker-body')).toBeTruthy();
+    expect(queryByTestId('tracker-body')).toBeNull();
     await press(getByTestId('share-toggle-lines'));
     expect(queryByTestId('tracker-lines')).toBeNull();
   });
@@ -52,7 +52,6 @@ describe('TrackShareScreen', () => {
     const d = deps();
     const { getByTestId, getByText } = await render(<TrackShareScreen analysis={analysis} body={body} clipUri={CLIP} watermark={false} onBack={() => {}} deps={d} />);
     await press(getByTestId('share-toggle-lines'));
-    await press(getByTestId('share-toggle-body'));
     await press(getByText('0.25×'));
     await press(getByTestId('share-video-btn'));
     await waitFor(() => expect(d.share).toHaveBeenCalledWith(VIDEO));
@@ -182,7 +181,6 @@ describe('TrackShareScreen', () => {
     it('one share_exported and one share_completed per share, with the choices made, then asks for a rating', async () => {
       const d = deps();
       const { getByTestId, getByText } = await render(<TrackShareScreen analysis={analysis} body={body} clipUri={CLIP} watermark onBack={() => {}} deps={d} />);
-      await press(getByTestId('share-toggle-body'));
       await press(getByText('0.5×'));
       await press(getByTestId('share-video-btn'));
       await waitFor(() => expect(d.askRating).toHaveBeenCalledTimes(1));
@@ -202,7 +200,7 @@ describe('TrackShareScreen', () => {
       await press(getByTestId('share-image-btn'));
       await waitFor(() => expect(d.askRating).toHaveBeenCalledWith(false));
       expect(jest.mocked(track).mock.calls).toEqual([
-        ['share_exported', { kind: 'image', speed: 1, overlay_path: true, overlay_lines: false, overlay_body: false, whole_clip: false, has_bar_path: false, duration_s: 0, completed: true }],
+        ['share_exported', { kind: 'image', speed: 1, overlay_path: true, overlay_lines: false, overlay_body: true, whole_clip: false, has_bar_path: false, duration_s: 0, completed: true }],
         ['share_completed', { kind: 'image', activity: 'com.apple.UIKit.activity.SaveToCameraRoll' }],
       ]);
     });
@@ -224,6 +222,21 @@ describe('TrackShareScreen', () => {
       expect(track).not.toHaveBeenCalled();
       expect(d.askRating).not.toHaveBeenCalled();
     });
+  });
+
+  it('offers 2x and 4x only on a binary that renders them', async () => {
+    const old = await render(<TrackShareScreen analysis={analysis} body={body} clipUri={CLIP} watermark onBack={() => {}} deps={deps()} />);
+    expect(old.queryByText('2×')).toBeNull();
+    expect(old.queryByText('4×')).toBeNull();
+  });
+
+  it('renders 4x when the binary can', async () => {
+    const d = deps({ fastShare: true });
+    const { getByTestId, getByText } = await render(<TrackShareScreen analysis={analysis} body={body} clipUri={CLIP} watermark onBack={() => {}} deps={d} />);
+    await press(getByText('4×'));
+    await press(getByTestId('share-video-btn'));
+    await waitFor(() => expect(d.share).toHaveBeenCalledWith(VIDEO));
+    expect(specOf(d.renderVideo).speed).toBe(4);
   });
 
   it('has no body toggle for a lift without joints', async () => {

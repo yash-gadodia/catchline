@@ -4,8 +4,12 @@ import type { Size } from '../../analysis/geometry';
 import { bones, drawnSide, floorY, joints, liftRange, startLineX } from '../analysis/tracker';
 import { dark, opacity, stroke } from '../../design/tokens';
 
-export type ShareSpeed = 1 | 0.5 | 0.25;
+export type ShareSpeed = 4 | 2 | 1 | 0.5 | 0.25;
 export const SHARE_SPEEDS: ShareSpeed[] = [1, 0.5, 0.25];
+// 2x and 4x need TrackRenderer to keep every 2nd or 4th frame; a binary before that writes them at 1x, so they
+// show only where ClipTranscoder says so (build 43 on).
+export const FAST_SHARE_SPEEDS: ShareSpeed[] = [4, 2, 1, 0.5, 0.25];
+export const shareSpeeds = (fast: boolean): ShareSpeed[] => (fast ? FAST_SHARE_SPEEDS : SHARE_SPEEDS);
 // `whole` shares every frame of the clip; off, a lift that tracking marked is shared from its first frame to its last.
 export type TrackShareOptions = { path: boolean; lines: boolean; body: boolean; watermark: boolean; speed: ShareSpeed; whole?: boolean };
 

@@ -136,16 +136,17 @@ describe('TrackerScreen overlays', () => {
     expect(queryByTestId('angle-knee')).toBeNull();
   });
 
-  it("remembers the lifter's toggles for the next lift, and on the phone", async () => {
+  it('opens every lift with the path, lines and body on; only angles carry over', async () => {
     const first = await show(whole);
     await press(first.getByTestId('toggle-body'));
+    await press(first.getByTestId('toggle-angles'));
     expect(first.queryByTestId('tracker-body')).toBeNull();
     await first.unmount();
     player = null;
     const next = await show({ ...marked, id: 'another' });
-    expect(next.queryByTestId('tracker-body')).toBeNull();
+    expect(next.getByTestId('tracker-body')).toBeOnTheScreen();
     expect(next.getByTestId('tracker-lines')).toBeOnTheScreen();
-    expect(JSON.parse((await AsyncStorage.getItem('catchline.tracker.overlays')) ?? '{}').state).toEqual({ path: true, lines: true, body: false, angles: false });
+    expect(JSON.parse((await AsyncStorage.getItem('catchline.tracker.overlays')) ?? '{}').state).toEqual({ path: true, lines: true, body: true, angles: true });
   });
 });
 
@@ -154,7 +155,7 @@ describe('TrackerScreen first look (reveal)', () => {
   const path = [90, 150, 200, 240].map((frame, i) => ({ frame, x: 0.5, y: [0.8, 0.5, 0.2, 0.3][i], src: 'plate' as const }));
   const lifted: Analysis = { ...marked, reps: [{ ...marked.reps[0], path }] };
 
-  it('plays the lift by itself at half speed with the path and body on, whatever the lifter last toggled', async () => {
+  it('plays the lift by itself at half speed with the path and body on', async () => {
     useOverlays.setState({ path: false, body: false });
     const { getByTestId, queryByTestId } = await show(lifted, body, { reveal: true, onShare: () => {} });
     expect(player?.play).toHaveBeenCalledTimes(1);
@@ -164,7 +165,7 @@ describe('TrackerScreen first look (reveal)', () => {
     expect(getByTestId('path-done')).toBeOnTheScreen();
     expect(getByTestId('tracker-body')).toBeOnTheScreen();
     expect(queryByTestId('tracker-share')).toBeNull();
-    expect(useOverlays.getState()).toMatchObject({ path: false, body: false });
+    expect(useOverlays.getState()).toMatchObject({ path: true, body: true });
   });
 
   it('ticks once at the top of the lift, stops on the last frame and offers Share', async () => {

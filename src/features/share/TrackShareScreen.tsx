@@ -13,9 +13,9 @@ import { colors, space } from '../../design/tokens';
 import { display, type } from '../../design/typography';
 import TrackOverlay from '../analysis/TrackOverlay';
 import { frameAt, liftRange, timeOf } from '../analysis/tracker';
-import { discardRender, renderTrackImage, renderTrackVideo, shareFile } from './exporter';
+import { discardRender, fastShareSupported, renderTrackImage, renderTrackVideo, shareFile } from './exporter';
 import { askForRatingOnce } from './rating';
-import { SHARE_SPEEDS, buildTrackSpec, frameCountOf, hasBarPath, type ShareSpeed, type TrackShareOptions } from './trackShare';
+import { buildTrackSpec, shareSpeeds, frameCountOf, hasBarPath, type ShareSpeed, type TrackShareOptions } from './trackShare';
 import { Chip } from './ui';
 
 export type TrackShareDeps = {
@@ -24,6 +24,8 @@ export type TrackShareDeps = {
   share: typeof shareFile;
   discard: typeof discardRender;
   askRating: typeof askForRatingOnce;
+  // tests: whether the binary renders 2x / 4x (default: ask ClipTranscoder)
+  fastShare?: boolean;
 };
 
 const DEFAULT_DEPS: TrackShareDeps = { renderVideo: renderTrackVideo, renderImage: renderTrackImage, share: shareFile, discard: discardRender, askRating: askForRatingOnce };
@@ -50,7 +52,8 @@ export default function TrackShareScreen({
   const { width, height } = useWindowDimensions();
   const fps = analysis.video.fps;
   const count = frameCountOf(analysis, body);
-  const [layers, setLayers] = useState({ path: true, lines: true, body: false });
+  const [layers, setLayers] = useState({ path: true, lines: true, body: true });
+  const speeds = shareSpeeds(deps.fastShare ?? fastShareSupported());
   const [speed, setSpeed] = useState<ShareSpeed>(1);
   // Like the player, the share keeps to the lift itself until the lifter asks for the whole clip.
   const hasLift = liftRange(analysis.lift, count, false).cropped;
@@ -208,10 +211,10 @@ export default function TrackShareScreen({
         <Segmented
           testID="share-speed"
           mono
-          options={SHARE_SPEEDS.map((s) => ({ value: String(s), label: `${s}×` }))}
+          options={speeds.map((s) => ({ value: String(s), label: `${s}×` }))}
           value={String(speed)}
           onChange={(v) => {
-            const next = SHARE_SPEEDS.find((s) => String(s) === v) ?? 1;
+            const next = speeds.find((s) => String(s) === v) ?? 1;
             player.playbackRate = next;
             setSpeed(next);
           }}

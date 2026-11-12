@@ -25,6 +25,8 @@ export type TranscodeResult = { uri: string; size: number; width: number; height
 type Events = { onProgress: (e: { progress: number }) => void };
 
 declare class ClipTranscoderModule extends NativeModule<Events> {
+  // TrackRenderer writes spec.speed 2 / 4 by keeping every 2nd / 4th frame (build 43 on; absent before)
+  supportsFastShare?: boolean;
   probe(uri: string): Promise<SourceInfo>;
   transcode(options: TranscodeOptions): Promise<TranscodeResult>;
   renderShareVideo(uri: string, spec: OverlaySpec): Promise<ShareVideoResult>;
