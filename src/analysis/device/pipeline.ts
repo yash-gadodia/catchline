@@ -76,6 +76,7 @@ import {
   segmentSnatch,
 } from './phases';
 import * as rules from './rules';
+import { netTrack } from './plateNet';
 import { DeviceInput, FollowHow, FrameSource, PlateObservation } from './source';
 import type { PathOnlyGate, PathSource, RepGuides, RepTracks, TracePoint, TrackName } from '../types';
 
@@ -241,9 +242,11 @@ export type Ctx = {
   W: number;
   n: number;
   // 4.0: a point the user put on the plate (frame, and x, y as shares of the frame), which seeds the plate follow
-  plateTap?: PlateTap;
+  plateMark?: PlateMark;
 };
-export type PlateTap = { frame: number; x: number; y: number };
+// frame: the clip frame it was made on; x, y: the plate's centre as shares of the frame's width and height; r: its
+// radius as a share of the frame's height (absent: a bare point on the plate)
+export type PlateMark = { frame: number; x: number; y: number; r?: number };
 
 export type Result = { analysis: AnalysisJson; reps: RepInfo[]; repCalls: (RepInfo | null | false)[] };
 
@@ -313,6 +316,10 @@ const PLATE_POLARITY_ALONE = 0.62;
 const PLATE_SAME = 0.1;
 const PLATE_RUN_SHARED = 6;
 const PLATE_FAR = 1.0;
+// the square PlateNet was trained on, in lifter box heights (v40/plate-model extract.py NOM)
+const NET_SIDE = 1.6;
+// a bare point's plate radius, as a share of the frame height
+const NET_MARK_R = 0.08;
 const PLATE_TAP_REACH = 0.35;
 const PLATE_MOVES = 0.5;
 
@@ -325,6 +332,16 @@ export function platePath(source: FrameSource, s0: number, L: number, seed: numb
 function fusePlate(held: Pt[], barRaw: Pt[], Ms: Affine[], fps: number): { drawn: Pt[]; plate: boolean[] } {
   const fused = fusePath(toRef(held, Ms), barRaw);
   return { drawn: lowpassPts(fused.path, fps, 6.0), plate: fused.plate };
+}
+
+// The middle of the hands on every frame, carried over from the last frame they were seen on (the first seen, before
+// it); NaN throughout when they never are.
+function handsFilled(kw: K): Pt[] {
+  const mids = kw.map((r): Pt => (finitePt(r[L_WRI]) && finitePt(r[R_WRI]) ? midPt(r[L_WRI], r[R_WRI]) : finitePt(r[L_WRI]) ? r[L_WRI] : r[R_WRI]));
+  const first = mids.find(finitePt);
+  if (!first) return mids;
+  let last = first;
+  return mids.map((p) => (finitePt(p) ? (last = p) : last));
 }
 
 // Two follows are of one plate when they put it in one place on the frames both hold (the middle distance within
@@ -473,8 +490,14 @@ export function pathOnly(ctx: Ctx, gate: PathOnlyGate): Result | null {
   // start search reads edges), at any camera angle: what is drawn is what plateHeld believes, the lowest-bar seed's
   // first and the earlier seed's on the frames that one does not hold. A point the user put on the plate replaces
   // the search: that plate is followed from its frame, both ways.
-  const tap = ctx.plateTap && !hanging && ctx.plateTap.frame >= 0 && ctx.plateTap.frame < L ? ctx.plateTap : null;
-  const plateAt = tap
+  const tap = ctx.plateMark && !hanging && ctx.plateMark.frame >= 0 && ctx.plateMark.frame < L ? ctx.plateMark : null;
+  // On a phone with the plate model the plate is the model's (plateNet.ts): looked for in a square NET_SIDE body
+  // heights wide around the hands (the hands' last seen place where they are not), started on the mark. The rule
+  // stages below are then not asked for at all.
+  const net = !hanging && input.source.plateNet ? input.source.plateNet(0, L, NET_SIDE * bodyH, handsFilled(kw)) : undefined;
+  const plateAt = net !== undefined
+    ? [net ? netTrack(net, tap ? { frame: tap.frame, centre: [tap.x * W, tap.y * H], r: (tap.r ?? NET_MARK_R) * H } : null, fps)?.centres ?? null : null]
+    : tap
     ? [plateHeld(input.source, 0, L, tap.frame, kw, bodyH, setupH, fps, yaw ?? 0, [], { tap: [tap.x * W, tap.y * H], back: true })]
     : seeds.map((seed) => {
         const found = input.source.plates(seed, kw[seed][L_WRI], kw[seed][R_WRI], bodyH, setupH).map((p): Plate => ({ ...p, diameter_px: Math.max(...p.axes), refined: p.fitInliers !== undefined }));

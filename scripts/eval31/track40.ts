@@ -14,13 +14,15 @@ import { Trace, parseTraceJson } from '../../src/analysis/device/trace';
 
 const MAX_PASSES = 3;
 const args = process.argv.slice(2);
-const flags = new Set(['--harness', '--models', '--out', '--tap']);
+const flags = new Set(['--harness', '--models', '--out', '--tap', '--mark', '--plate']);
 const opt = (k: string) => args[args.indexOf(`--${k}`) + 1];
 const clips = args.filter((a, i) => !flags.has(a) && !flags.has(args[i - 1]));
 const [harness, models, out] = [opt('harness'), opt('models'), opt('out')];
-// --tap frame,x,y: the plate the user would point at (x, y as shares of the frame), for every clip given
-const tapArg = args.includes('--tap') ? opt('tap').split(',').map(Number) : null;
-const plateTap = tapArg ? { frame: tapArg[0], x: tapArg[1], y: tapArg[2] } : undefined;
+// --mark frame,x,y,r: the lifter's mark on the plate (x, y shares of the frame, r a share of its height), for every
+// clip given; --tap frame,x,y: a bare point. --plate DIR: where PlateNet.mlmodelc is (default: with the pose models).
+const markArg = (args.includes('--mark') ? opt('mark') : args.includes('--tap') ? opt('tap') : '').split(',').map(Number);
+const plateMark = markArg.length >= 3 ? { frame: markArg[0], x: markArg[1], y: markArg[2], ...(markArg.length > 3 ? { r: markArg[3] } : {}) } : undefined;
+const plate = args.includes('--plate') ? ['--plate', opt('plate')] : [];
 const gz = (p: string) => gunzipSync(readFileSync(p)).toString();
 const sh = (a: string[]) => execFileSync(harness, a, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 64 << 20 });
 
@@ -37,16 +39,18 @@ for (const clip of clips) {
   const row: Record<string, unknown> = { id };
   try {
     const t0 = Date.now();
-    if (!existsSync(join(dir, 'pose.trace.json.gz')) || !existsSync(join(dir, 'run.json'))) sh(['pose', clip, '--models', models, '--out', join(dir, 'pose.trace.json.gz'), '--run-out', join(dir, 'run.json'), '--movement', 'snatch']);
+    if (!existsSync(join(dir, 'pose.trace.json.gz')) || !existsSync(join(dir, 'run.json'))) sh(['pose', clip, '--models', models, '--out', join(dir, 'pose.trace.json.gz'), '--run-out', join(dir, 'run.json'), '--movement', 'snatch', ...plate]);
     row.poseS = Math.round((Date.now() - t0) / 100) / 10;
     let trace = parseTraceJson(gz(join(dir, 'pose.trace.json.gz'))) as Trace;
-    let tracked = trackTrace(trace, { analysisId: id, assetPrefix: id, plateTap });
+    // a pose pass cached from a harness without the model says nothing of it
+    if (args.includes('--plate')) trace.plateNet ??= 'eval';
+    let tracked = trackTrace(trace, { analysisId: id, assetPrefix: id, plateMark });
     for (let pass = 1; pass < MAX_PASSES && tracked.misses.length; pass++) {
       const planFile = join(dir, `plan${pass}.json`);
       writeFileSync(planFile, JSON.stringify(tracked.plan));
-      sh(['analyse', clip, '--models', models, '--plan', planFile, '--run-in', join(dir, 'run.json'), '--out', join(dir, `pix${pass}.trace.json.gz`), '--stills', join(dir, 'stills'), '--movement', 'snatch']);
+      sh(['analyse', clip, '--models', models, '--plan', planFile, '--run-in', join(dir, 'run.json'), '--out', join(dir, `pix${pass}.trace.json.gz`), '--stills', join(dir, 'stills'), '--movement', 'snatch', ...plate]);
       trace = mergeCalls(trace, parseTraceJson(gz(join(dir, `pix${pass}.trace.json.gz`))) as Trace);
-      tracked = trackTrace(trace, { analysisId: id, assetPrefix: id, plateTap });
+      tracked = trackTrace(trace, { analysisId: id, assetPrefix: id, plateMark });
     }
     row.allS = Math.round((Date.now() - t0) / 100) / 10;
     const a = tracked.analysis as { failure: { code?: string } | null; video: { fps: number; frameCount: number }; traceKind: string; noCueReason?: { offSideDeg?: number }; reps: { path: { src?: string }[] }[] };

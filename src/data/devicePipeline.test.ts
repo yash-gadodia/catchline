@@ -153,6 +153,17 @@ describe('startDeviceLift, the happy path', () => {
 });
 
 describe('analyseLoop', () => {
+  it('hands the lifter\'s mark on the plate to the tracker on every pass, as made on the first frame, and the model\'s request to native', async () => {
+    const net = { s0: 0, n: 2, side: 800, centres: [[10, 20], [null, null]] };
+    const p1 = { windows: [], plates: [], tracks: [], follows: [], keyframes: [], plateNet: [net], misses: ['plate_net 0'] };
+    mockPlan.mockReturnValueOnce(p1).mockReturnValueOnce({ ...p1, misses: [] });
+    mockAnalyse.mockResolvedValueOnce({ tracePath: 'file:///t.gz', stills: {} }).mockResolvedValueOnce({ tracePath: 'file:///t.gz', stills: {} });
+    await analyseLoop('file:///c.mp4', 'snatch', 'lift-9', () => undefined, () => false, { x: 0.4, y: 0.7, r: 0.1 });
+    const opts = { analysisId: 'lift-9', assetPrefix: 'lift-9', plateMark: { frame: 0, x: 0.4, y: 0.7, r: 0.1 } };
+    expect(mockPlan.mock.calls.map((c) => c[2])).toEqual([opts, opts]);
+    expect(mockAnalyse.mock.calls[1][2]).toEqual({ windows: [], plates: [], tracks: [], follows: [], keyframes: [], plateNet: [{ ...net, centres: [[10, 20], null] }] });
+  });
+
   it('runs native again with the plan built from the misses, merging the stills, until nothing is missing', async () => {
     const p1 = { windows: [{ s0: 0, count: 10 }], plates: [], tracks: [], follows: [], keyframes: [], misses: ['find_plates'] };
     const p2 = { ...p1, keyframes: [{ name: 'r1-1-setup.jpg', frame: 12 }], misses: ['export_keyframes'] };

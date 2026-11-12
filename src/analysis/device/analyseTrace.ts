@@ -1,7 +1,7 @@
 // The Analysis JSON for a lift from its trace (cv/catchline_cv/trace.py TRACE_VERSION 1), as Python's pipeline.run
 // gives it under trace.replaying. The phone records the same trace natively; this is the step after pose.
 import { analyse } from './analyse';
-import { AnalysisJson, PlateTap, Result } from './pipeline';
+import { AnalysisJson, PlateMark, Result } from './pipeline';
 import { Plan, Trace, TraceMissing, traceInput } from './trace';
 import { Body, track } from './tracking';
 
@@ -41,10 +41,10 @@ export function planFromMisses(trace: unknown, movement: string, opts: Opts = {}
 }
 
 // 4.0, tracking only: the clip's path and body from its trace, with what the native stages still owe it. The lifter
-// is the one the phone picked for a standing movement, whatever the clip shows. With opts.plateTap (a frame and a
+// is the one the phone picked for a standing movement, whatever the clip shows. With opts.plateMark (a frame and a
 // point on the plate, x and y as shares of the frame) the plan asks for the follow of that plate, both ways from the
-// frame; run it, merge the trace, and call again with the same plateTap.
-export function trackTrace(trace: unknown, opts: Opts & { plateTap?: PlateTap } = {}): { analysis: Analysis; body: Body | null; plan: Plan; misses: string[] } {
+// frame; run it, merge the trace, and call again with the same plateMark.
+export function trackTrace(trace: unknown, opts: Opts & { plateMark?: PlateMark } = {}): { analysis: Analysis; body: Body | null; plan: Plan; misses: string[] } {
   const t = trace as Trace;
   if (!t || typeof t !== 'object' || t.traceVersion !== 1) throw new TraceMissing(`trace version ${(t as Trace | null)?.traceVersion}`);
   const input = traceInput(t, 'snatch');

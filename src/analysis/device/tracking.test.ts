@@ -99,10 +99,37 @@ describe('track (4.0: tracking only)', () => {
       asked.push([seed, how]);
       return follow!(s0, len, seed, wrists, hands, bodyH, setupH, how);
     };
-    const path = (track(input, { plateTap: { frame: 30, x: 0.5, y: 0.25 } }).analysis as { reps: { path: { src?: string }[] }[] }).reps[0].path;
+    const path = (track(input, { plateMark: { frame: 30, x: 0.5, y: 0.25 } }).analysis as { reps: { path: { src?: string }[] }[] }).reps[0].path;
     expect(asked).toEqual([[30, { tap: [360, 320], back: true }]]);
     expect(path).toHaveLength(90);
     expect(path.every((p) => p.src === 'plate')).toBe(true);
+  });
+
+  // A phone with the plate model: three peaks a frame, the lifter's plate 60 px under the hands, a smaller far plate
+  // beside it that the model is surer of, and nothing on frames 40 to 49.
+  function withNet(): DeviceInput & { asked: unknown[] } {
+    const input = clip() as DeviceInput & { asked: unknown[] };
+    input.asked = [];
+    input.source.plateNet = (s0, len, side, centres) => {
+      input.asked.push([s0, len, side, centres[0]]);
+      return centres.map(([x, y], f) => (f >= 40 && f < 50 ? [] : [[0.95, x + 150, y + 40, 30], [0.8, x, y + 60, 50]]));
+    };
+    return input;
+  }
+
+  it('draws the plate the model sees under the lifter\'s mark, not a surer smaller one beside it, and nothing where it is unseen', () => {
+    const input = withNet();
+    const path = (track(input, { plateMark: { frame: 0, x: 400 / 720, y: 800 / 1280, r: 50 / 1280 } }).analysis as { reps: { path: { frame: number; x: number; y: number; src?: string }[] }[] }).reps[0].path;
+    expect(input.asked).toEqual([[0, 90, 1.6 * 760, [400, 740]]]);
+    expect(path.filter((p) => p.src === 'plate')).toHaveLength(80);
+    expect(path.every((p) => Math.abs(p.x - 400 / 720) < 0.002)).toBe(true);
+    expect(path[0].y).toBeCloseTo(800 / 1280, 2);
+  });
+
+  it('with no mark starts on the largest plate the model is sure of', () => {
+    const path = (track(withNet()).analysis as { reps: { path: { x: number }[] }[] }).reps[0].path;
+    expect(path.length).toBeGreaterThan(60);
+    expect(path.every((p) => Math.abs(p.x - 400 / 720) < 0.002)).toBe(true);
   });
 
   it('fails as no person when the pose saw nobody', () => {

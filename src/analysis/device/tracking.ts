@@ -6,7 +6,7 @@ import {
   JOINTS, K, L_ANK, L_BIGTOE, L_ELB, L_HEEL, L_HIP, L_KNEE, L_SHO, L_WRI, R_ANK, R_BIGTOE, R_ELB, R_HEEL, R_HIP, R_KNEE, R_SHO, R_WRI,
   col, family, lowpassK, signals,
 } from './movement';
-import { AnalysisJson, Ctx, PlateTap, fail, pathOnly } from './pipeline';
+import { AnalysisJson, Ctx, PlateMark, fail, pathOnly } from './pipeline';
 import { DeviceInput } from './source';
 import { liftWindow } from './liftWindow';
 import { midPt } from './geometry';
@@ -21,9 +21,9 @@ const BRIDGE_S = 0.6;
 
 export type Tracked = { analysis: AnalysisJson; body: Body | null };
 
-// opts.plateTap: a point the user put on the plate (the frame, and x, y as shares of the frame's width and height);
+// opts.plateMark: a point the user put on the plate (the frame, and x, y as shares of the frame's width and height);
 // the plate under it is followed over the whole clip in place of the one the search would find.
-export function track(input: DeviceInput, opts: { analysisId?: string; assetPrefix?: string; plateTap?: PlateTap } = {}): Tracked {
+export function track(input: DeviceInput, opts: { analysisId?: string; assetPrefix?: string; plateMark?: PlateMark } = {}): Tracked {
   const { meta, lifter } = input;
   const [H, W] = input.shape;
   const n = lifter.k.length;
@@ -43,7 +43,7 @@ export function track(input: DeviceInput, opts: { analysisId?: string; assetPref
     H,
     W,
     n,
-    plateTap: opts.plateTap,
+    plateMark: opts.plateMark,
   };
   if (sig === null) return { analysis: fail(ctx, 'unsupported_movement', 'no_person', 'Could not find a person in this clip.').analysis, body: null };
   const only = pathOnly(ctx, 'no_reps');

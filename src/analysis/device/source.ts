@@ -32,6 +32,8 @@ export type PlateFollow = {
 };
 
 export type FollowHow = { tap?: Pt; back?: boolean };
+// PlateNet's peaks per window frame: up to three of [confidence, x, y, radius], inference px
+export type PlatePeaks = [number, number, number, number][][];
 
 export interface FrameSource {
   // Frames [start, start + count) of the clip (fewer when the clip ends sooner): per frame the 2x3 affine mapping its
@@ -52,6 +54,9 @@ export interface FrameSource {
   // The near plate followed through a window from its seed frame, started by a search around the hands there, or
   // (how.tap) on the plate under a point the user put on it on that frame (inference px); how.back also follows it
   // over the frames before the seed. One entry per window frame: src 1 detected, 2 carried on optical flow, 0 not held.
+  // PlateNet on every window frame, looking at a square `side` px wide centred on centres[frame] (NaN: skip). Absent
+  // on a binary without the model; null while the phone has not run it yet (the plan then asks for it).
+  plateNet?(windowStart: number, windowLength: number, side: number, centres: Pt[]): PlatePeaks | null;
   followPlate?(windowStart: number, windowLength: number, seed: number, wrists: Pt[], hands: [Pt, Pt], bodyH: number, setupH: number, how?: FollowHow): PlateFollow;
 }
 

@@ -8,6 +8,7 @@ import type { Body } from '../analysis/device/tracking';
 import { parseTraceJson, type Plan } from '../analysis/device/trace';
 import { parseAnalysis } from '../analysis/parse';
 import type { Analysis, Failure, Movement } from '../analysis/types';
+import type { PlateMark } from '../features/capture/plateMark';
 import type { ClipSubmission } from '../features/capture/submit';
 import { notifyLiftReady } from '../features/notifications';
 import { rememberClip } from '../features/share/localClips';
@@ -104,6 +105,7 @@ export function toNativePlan(plan: Plan): AnalysePlan {
     tracks: plan.tracks,
     follows: plan.follows.map((f) => ({ ...f, wrists: f.wrists.map(pair), wristA: pair(f.wristA), wristB: pair(f.wristB) })),
     keyframes: plan.keyframes,
+    ...(plan.plateNet ? { plateNet: plan.plateNet.map((p) => ({ ...p, centres: p.centres.map(pair) })) } : {}),
   };
 }
 
@@ -112,7 +114,8 @@ export function toNativePlan(plan: Plan): AnalysePlan {
 export const PASS_WEIGHTS = [0.8, 0.12, 0.08];
 const PASS_STARTS = PASS_WEIGHTS.map((_, i) => PASS_WEIGHTS.slice(0, i).reduce((a, b) => a + b, 0));
 
-export async function analyseLoop(uri: string, movement: Movement, liftId: string, onProgress: Progress, isCancelled: () => boolean = () => false): Promise<LoopResult> {
+// plateMark: the lifter's mark on the plate, made on the first frame of the clip at `uri` (null: skipped).
+export async function analyseLoop(uri: string, movement: Movement, liftId: string, onProgress: Progress, isCancelled: () => boolean = () => false, plateMark: PlateMark | null = null): Promise<LoopResult> {
   const native = PoseCoreML;
   if (!native) throw new Error('no_native');
   const words = { title: t('library.inFlight.title'), subtitle: t('analysis.processing.background') };
@@ -131,7 +134,7 @@ export async function analyseLoop(uri: string, movement: Movement, liftId: strin
       }
       if (isCancelled()) throw new Error('cancelled');
       stills = { ...stills, ...result.stills };
-      tracked = trackTrace(await readTrace(result.tracePath), { analysisId: liftId, assetPrefix: liftId });
+      tracked = trackTrace(await readTrace(result.tracePath), { analysisId: liftId, assetPrefix: liftId, ...(plateMark ? { plateMark: { frame: 0, ...plateMark } } : {}) });
       if (tracked.misses.length === 0) break;
       plan = toNativePlan(tracked.plan);
     }
@@ -213,7 +216,7 @@ export async function startDeviceLift(sub: ClipSubmission & { uri: string }): Pr
     const clip = await prepareClip(sub.uri, sub.trim, (p) => patch({ prepared: p }));
     prepared = clip.uri;
     patch({ status: 'analysing', prepared: 1 });
-    const loop = await analyseLoop(clip.uri, sub.movement, liftId, (stage, fraction) => patch({ stage, fraction }), () => cancelled);
+    const loop = await analyseLoop(clip.uri, sub.movement, liftId, (stage, fraction) => patch({ stage, fraction }), () => cancelled, sub.plateMark ?? null);
     const analysis = finishAnalysis(parseAnalysis(loop.analysis), liftId, sub);
     const local = saveLocalLift(liftId, analysis, loop.tracePath, loop.stills, loop.body);
     // 4.0: the clip stays on the phone with its lift (the player draws on the real video); deleted with the lift.
