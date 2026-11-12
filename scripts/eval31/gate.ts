@@ -18,7 +18,7 @@ import { execFileSync } from 'child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
-import { gunzipSync, gzipSync } from 'zlib';
+import { gunzipSync } from 'zlib';
 
 import { trackTrace } from '../../src/analysis/device/analyseTrace';
 import { Trace, parseTraceJson } from '../../src/analysis/device/trace';
@@ -87,6 +87,16 @@ function loadLabels(dir: string): Labels {
 
 function packets(clip: string): number {
   return parseInt(sh('ffprobe', ['-v', 'error', '-select_streams', 'v:0', '-count_packets', '-show_entries', 'stream=nb_read_packets', '-of', 'csv=p=0', clip]), 10);
+}
+
+// The trace exactly as the run tracked it: the pose pass, then each plate pass merged in order. Never a re-serialised
+// copy: JSON drops what parseTraceJson read from the native output (0591 went from 0 misses to 2 that way).
+function loadTrace(dir: string, passes = Infinity): Trace {
+  let trace = parseTraceJson(gz(join(dir, 'pose.trace.json.gz'))) as Trace;
+  for (let pass = 1; pass <= passes && existsSync(join(dir, `pix${pass}.trace.json.gz`)); pass++) {
+    trace = mergeCalls(trace, parseTraceJson(gz(join(dir, `pix${pass}.trace.json.gz`))) as Trace);
+  }
+  return trace;
 }
 
 function rowOf(tracked: ReturnType<typeof trackTrace>, truth?: Record<number, Plate | null>, srcFrames?: number): Row {
@@ -163,18 +173,15 @@ function runClip(c: Clip, work: string, source: Result['source'], labels: Labels
   const t1 = Date.now();
   sh(harness, ['pose', clip, '--models', models, '--out', join(dir, 'pose.trace.json.gz'), '--run-out', join(dir, 'run.json'), '--movement', 'snatch']);
   const poseS = secs(t1);
-  let trace = parseTraceJson(gz(join(dir, 'pose.trace.json.gz'))) as Trace;
-  let tracked = trackTrace(trace, { analysisId: c.id, assetPrefix: c.id });
+  let tracked = trackTrace(loadTrace(dir), { analysisId: c.id, assetPrefix: c.id });
   for (let pass = 1; pass < MAX_PASSES && tracked.misses.length; pass++) {
     const planFile = join(dir, `plan${pass}.json`);
     writeFileSync(planFile, JSON.stringify(tracked.plan));
     sh(harness, ['analyse', clip, '--models', models, '--plan', planFile, '--run-in', join(dir, 'run.json'), '--out', join(dir, `pix${pass}.trace.json.gz`), '--stills', join(dir, 'stills'), '--movement', 'snatch']);
-    trace = mergeCalls(trace, parseTraceJson(gz(join(dir, `pix${pass}.trace.json.gz`))) as Trace);
-    tracked = trackTrace(trace, { analysisId: c.id, assetPrefix: c.id });
+    tracked = trackTrace(loadTrace(dir, pass), { analysisId: c.id, assetPrefix: c.id });
   }
   writeFileSync(join(dir, 'analysis.json'), JSON.stringify(tracked.analysis));
   writeFileSync(join(dir, 'body.json'), JSON.stringify(tracked.body));
-  writeFileSync(join(dir, 'trace.json.gz'), gzipSync(JSON.stringify(trace)));
   return { ...rowOf(tracked, labels[c.id], srcFrames), size, prepS, poseS, allS: secs(t0) };
 }
 
@@ -182,8 +189,8 @@ function replayClip(c: Clip, work: string, labels: Labels): Row {
   const dir = join(work, c.id);
   // A clip the run refused before tracking (too long) or could not track has no trace: its row stands as recorded.
   const kept = existsSync(join(work, 'result.json')) ? (JSON.parse(readFileSync(join(work, 'result.json'), 'utf8')) as Result).clips[c.id] : undefined;
-  if (!existsSync(join(dir, 'trace.json.gz'))) return kept ?? failed('no saved trace');
-  const tracked = trackTrace(parseTraceJson(gz(join(dir, 'trace.json.gz'))), { analysisId: c.id, assetPrefix: c.id });
+  if (!existsSync(join(dir, 'pose.trace.json.gz'))) return kept ?? failed('no saved trace');
+  const tracked = trackTrace(loadTrace(dir), { analysisId: c.id, assetPrefix: c.id });
   writeFileSync(join(dir, 'replay.analysis.json'), JSON.stringify(tracked.analysis));
   writeFileSync(join(dir, 'replay.body.json'), JSON.stringify(tracked.body));
   return rowOf(tracked, labels[c.id], kept?.srcFrames);
