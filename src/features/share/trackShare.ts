@@ -1,12 +1,13 @@
 import type { Analysis } from '../../analysis/types';
 import type { Body } from '../../analysis/device/tracking';
 import type { Size } from '../../analysis/geometry';
-import { bones, drawnSide, floorY, joints, startLineX } from '../analysis/tracker';
+import { bones, drawnSide, floorY, joints, liftRange, startLineX } from '../analysis/tracker';
 import { dark, opacity, stroke } from '../../design/tokens';
 
 export type ShareSpeed = 1 | 0.5 | 0.25;
 export const SHARE_SPEEDS: ShareSpeed[] = [1, 0.5, 0.25];
-export type TrackShareOptions = { path: boolean; lines: boolean; body: boolean; watermark: boolean; speed: ShareSpeed };
+// `whole` shares every frame of the clip; off, a lift that tracking marked is shared from its first frame to its last.
+export type TrackShareOptions = { path: boolean; lines: boolean; body: boolean; watermark: boolean; speed: ShareSpeed; whole?: boolean };
 
 // What modules/clip-transcoder TrackRenderer.swift draws on the lift's kept clip. Positions are 0..1 of the frame,
 // sizes are output pixels; a layer that is off is empty (or null), so the native side only draws what it is given.
@@ -15,6 +16,10 @@ export type TrackSpec = {
   // the frame of the share image
   frame: number;
   frameCount: number;
+  // The frames the video holds, first and last inclusive, counted over the whole clip (0 and frameCount - 1 for all
+  // of it). Binary 4.0.0 (build 41) does not read them and writes every frame.
+  startFrame: number;
+  endFrame: number;
   fps: number;
   // [frame, x, y] per traced point
   path: [number, number, number][];
@@ -51,23 +56,31 @@ export function pxPerPt(video: Size): number {
   return video.width / Math.min(SCREEN.width, Math.round((Math.round(SCREEN.height * 0.6) * video.width) / video.height));
 }
 
+// A bar path was drawn for this lift (the plate was followed); a hip trail or a body-only result is not one.
+export function hasBarPath(analysis: Analysis): boolean {
+  return analysis.traceKind === 'bar' && (analysis.reps[0]?.path.length ?? 0) > 0;
+}
+
 const px = (pt: number, unit: number) => Number((pt * unit).toFixed(2));
 
 export function frameCountOf(analysis: Analysis, body: Body | null): number {
   return Math.max(analysis.video.frameCount, body?.frames.length ?? 0, 1);
 }
 
-export function buildTrackSpec(analysis: Analysis, body: Body | null, options: TrackShareOptions, frame = 0): TrackSpec {
+export function buildTrackSpec(analysis: Analysis, body: Body | null, options: TrackShareOptions, frame?: number): TrackSpec {
   const rep = analysis.reps[0];
   const count = frameCountOf(analysis, body);
   const unit = pxPerPt(analysis.video);
+  const range = liftRange(analysis.lift, count, options.whole === true);
   const side = drawnSide(body, analysis.noCueReason?.offSideDeg);
   const drawBody = options.body && body !== null;
   const perFrame = <T,>(row: (f: number) => T[]): T[][] => (drawBody ? Array.from({ length: body.frames.length }, (_, f) => row(f)) : []);
   return {
     speed: options.speed,
-    frame: Math.min(Math.max(0, Math.round(frame)), count - 1),
+    frame: Math.min(Math.max(range.first, Math.round(frame ?? range.first)), range.last),
     frameCount: count,
+    startFrame: range.first,
+    endFrame: range.last,
     fps: analysis.video.fps,
     path: options.path ? (rep?.path ?? []).map((p) => [p.frame, p.x, p.y]) : [],
     startX: options.lines ? startLineX(rep) : null,

@@ -30,6 +30,13 @@ export const capture: Strings<typeof en> = {
   'capture.import.record': "Gravar em vez disso",
   'capture.import.failedTitle': "Não foi possível abrir esse vídeo",
   'capture.import.failedBody': "Tente de novo ou escolha um vídeo salvo neste celular.",
+  'capture.mark.title': "Marque a anilha",
+  'capture.mark.back': "Voltar",
+  'capture.mark.help': "Pressione no centro da anilha mais próxima da câmera e arraste até a borda.",
+  'capture.mark.redo': "Marcado. Pressione e arraste de novo para refazer.",
+  'capture.mark.track': "Rastrear",
+  'capture.mark.skip': "Pular, encontre a anilha para mim",
+  'capture.mark.stage': "O primeiro quadro do seu clipe. Pressione no centro da anilha e arraste até a borda.",
   'capture.trim.title': "Cortar",
   'capture.trim.cancel': "Cancelar",
   // REVIEW

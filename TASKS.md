@@ -20,6 +20,14 @@ Owner decision 11-11: drop cues; the app tracks any lift or gymnastics clip and 
 - [x] 60 fps camera: `modules/lift-camera` (1080p60 where the back camera has the format, else 30); `expo.version` 4.0.0, so this ships in a store build only
 - [ ] (Yash) On a phone: film at 60 fps (portrait and landscape hold), check the badge, the file's frame rate and that the tracker stays in step to the last frame; share a video and an image from the share sheet
 - [ ] Faster tracking (detector every Nth frame)
+- [ ] (Claude, next store build) Share loop, native parts (JS is ready, see `docs/catchline/analytics-4.0.md`): add `expo-store-review` (the rating ask in `src/features/share/rating.ts` turns itself on when the module is in the binary); wordmark anchor and separate x/y insets in `TrackRenderer.swift` (today fixed bottom-right, inside the zone Reels and TikTok cover); a `UIActivityItemSource` so the default share text goes to Messages, Mail and X but not to Instagram or WhatsApp
+## First lift (branch v40/first-wow, JS only)
+- [x] Onboarding is one screen: a bundled tracked lift plays (`assets/sample`, made by `scripts/make-sample.sh <lift folder>`), then "Pick one of your lifts" / "Film a lift now"
+- [ ] (Yash) Choose the clip that is bundled: today's is a stand-in from a test lift and shows a real person
+- [x] Tracking shows the real percentage and time left over the lifter's clip, then goes straight to the lift (`reveal=1`): it plays once at 0.5x, a tick at the top, stops on the last frame with Share
+- [x] "Compare with your last lift": the earlier bar path as a dotted bone line (`compare.ts`: anchored at the lowest point before the peak, scaled by shoulder-to-ankle height, mirrored when facing the other way)
+- [x] Lifts list grouped by day (Today, Yesterday, date)
+- [ ] Nothing asks for notifications any more on the way to the first result (the alert would land on the first look); decide where, if anywhere
 ## Notes
 - A lift is submitted and synced as movement 'snatch' whatever it shows (`toSubmission`); a 4.0 lift is titled by date, time and load (`liftTitle` in library/derive), never by that movement.
 - The session scratchpad is shared by every agent of a team: keep scripts in a subfolder of your own (another agent's `i18n.py` overwrote one of the same name and was run by mistake).

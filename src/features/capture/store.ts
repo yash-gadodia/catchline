@@ -1,3 +1,4 @@
+import type { PlateMark } from './plateMark';
 import { useEffect, useState } from 'react';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
@@ -16,6 +17,8 @@ export type Clip = {
   from?: string;
   trim: Trim;
   overridden: CheckId[];
+  // the lifter's mark on the plate, on the first frame of the trimmed clip; null or absent when skipped
+  plateMark?: PlateMark | null;
 };
 
 export function newClip(fields: Pick<Clip, 'uri' | 'durationS' | 'fps' | 'source'> & Partial<Clip>): Clip {

@@ -5,6 +5,7 @@ import { useAnalysis } from '../../src/analysis/useAnalysis';
 import type { Analysis, Failure } from '../../src/analysis/types';
 import ProcessingSheet, { EXPECTED_ANALYSIS_S, type ProcessingState } from '../../src/features/analysis/ProcessingSheet';
 import { etaSeconds, type Sample } from '../../src/features/analysis/eta';
+import { overallProgress } from '../../src/features/analysis/progress';
 import { formatWait } from '../../src/analysis/format';
 import { registerPushToken } from '../../src/features/notifications';
 import { maybeReaskForPush, noteAnalysisFinished } from '../../src/features/notifications/ask';
@@ -21,7 +22,7 @@ const STEP_MS = 1100;
 const LONG_WAIT_MARGIN_S = 30;
 const LONG_WAIT_S = EXPECTED_ANALYSIS_S + LONG_WAIT_MARGIN_S;
 
-type Params = { fixture?: string; state?: ProcessingState; step?: string; elapsed?: string; count?: string; live?: string };
+type Params = { fixture?: string; state?: ProcessingState; step?: string; elapsed?: string; count?: string; live?: string; pct?: string };
 
 export default function ProcessingRoute() {
   const params = useLocalSearchParams<Params>();
@@ -29,14 +30,9 @@ export default function ProcessingRoute() {
   return <Processing key={JSON.stringify(params)} params={params} />;
 }
 
-// The first step's meta, in the lifter's language: with how long is left once the run's own pace says.
-function uploadMeta(job: Job | null, eta: number | null): string | null {
-  if (job?.status === 'preparing') return t('analysis.processing.preparingPct', { pct: Math.round(job.prepared * 100) });
-  if (job?.status === 'analysing') {
-    const pct = Math.round((job.fraction ?? 0) * 100);
-    return eta === null ? t('analysis.processing.analysingPct', { pct }) : t('analysis.processing.analysingEta', { pct, wait: formatWait(eta) });
-  }
-  return null;
+// How long is left once the run's own pace says, else how long it has been going.
+function timeLeft(eta: number | null, elapsed: number): string {
+  return eta === null ? `${elapsed} s` : t('analysis.processing.left', { wait: formatWait(eta) });
 }
 
 function recordUsage() {
@@ -79,6 +75,7 @@ function Processing({ params }: { params: Params }) {
     <ProcessingSheet
       analysis={analysis}
       state={fixed ?? live}
+      progress={params.pct ? Number(params.pct) / 100 : undefined}
       step={step}
       elapsed={elapsed}
       onHide={() => router.back()}
@@ -141,10 +138,12 @@ function LiveProcessing() {
   useEffect(() => {
     if (job?.status !== 'done' || !job.result) return;
     putLiveAnalysis(job.result);
-    if (!job.result.failure) noteAnalysisFinished();
     void syncServerUsage();
     syncLibrary().catch(() => undefined);
-    setAnalysis(job.result);
+    if (job.result.failure) return setAnalysis(job.result);
+    // Straight to the lift: its first look plays itself there.
+    noteAnalysisFinished();
+    router.replace({ pathname: '/analysis/player', params: { fixture: job.result.id, reveal: '1' } });
   }, [job?.status]);
 
   const step = analysis ? 5 : job ? deviceStep(job) : 0;
@@ -156,8 +155,9 @@ function LiveProcessing() {
     <ProcessingSheet
       analysis={analysis}
       clipUri={job?.uri ?? null}
-      meta={uploadMeta(job, eta) ?? `${elapsed} s`}
-      firstStep={job?.status === 'preparing' ? t('analysis.processing.preparingClip') : t('analysis.processing.analysingOnPhone')}
+      meta={timeLeft(eta, elapsed)}
+      doing={job?.status === 'preparing' ? t('analysis.processing.preparing') : t('analysis.processing.tracking')}
+      progress={overallProgress(job)}
       maxS={job?.maxS ?? undefined}
       state={state}
       step={step}

@@ -23,20 +23,32 @@ beforeEach(() => {
 describe('ProcessingSheet', () => {
   const handlers = { onHide: jest.fn(), onNotify: jest.fn(), onKeepWaiting: jest.fn(), onSee: jest.fn() };
 
-  it('lists the pipeline steps with the current one active', async () => {
-    const { getByText, getByTestId, queryByText, getAllByTestId } = await render(
+  it('says what the phone is doing, how far through it is and how long is left', async () => {
+    const { getByText, getByTestId, queryByTestId, rerender } = await render(
+      <ProcessingSheet analysis={null} state="progress" step={2} elapsed={6} progress={0.624} doing="Following the bar and your body, frame by frame." meta="about 20 s left" {...handlers} />
+    );
+    expect(getByText('Tracking your lift')).toBeOnTheScreen();
+    expect(getByTestId('processing-doing')).toHaveTextContent('Following the bar and your body, frame by frame.');
+    expect(getByTestId('processing-pct')).toHaveTextContent('62%');
+    expect(getByTestId('processing-bar')).toHaveProp('accessibilityValue', { min: 0, max: 100, now: 62 });
+    expect(getByText('about 20 s left')).toBeOnTheScreen();
+    await rerender(<ProcessingSheet analysis={null} state="progress" step={2} elapsed={6} progress={1.4} {...handlers} />);
+    expect(getByTestId('processing-pct')).toHaveTextContent('100%');
+    await rerender(<ProcessingSheet analysis={null} state="progress" step={2} elapsed={6} progress={null} {...handlers} />);
+    expect(queryByTestId('processing-pct')).toBeNull();
+    expect(getByTestId('processing-doing')).toHaveTextContent('Following the bar and your body, frame by frame.');
+  });
+
+  it('without a clip shows the silhouette, the usual wait and a way to hide', async () => {
+    const { getByText, getByTestId, queryByText } = await render(
       <ProcessingSheet analysis={snatchMock} state="progress" step={2} elapsed={6} {...handlers} />
     );
     expect(getByText('Tracking your lift')).toBeOnTheScreen();
-    expect(getByText('Following the bar')).toBeOnTheScreen();
     expect(getByTestId('processing-art')).toHaveProp('source', require('../../../assets/art/processing-backdrop.png'));
     expect(getByTestId('processing-art-layer')).toHaveProp('pointerEvents', 'none');
     expect(getByTestId('processing-art')).toHaveProp('resizeMode', 'cover');
     expect(getByText('about 2 min')).toBeOnTheScreen();
     expect(queryByText('usually about 2 min')).toBeNull();
-    expect(getAllByTestId('step-done')).toHaveLength(2);
-    expect(getAllByTestId('step-active')).toHaveLength(1);
-    expect(getAllByTestId('step-todo')).toHaveLength(2);
     await press(getByText('Hide'));
     expect(handlers.onHide).toHaveBeenCalledTimes(1);
   });
@@ -53,7 +65,7 @@ describe('ProcessingSheet', () => {
     expect(getByText('2 ahead of you')).toBeOnTheScreen();
   });
 
-  it('plays the lifter’s own clip, muted and looping, behind the steps', async () => {
+  it('plays the lifter’s own clip, muted and looping, behind the progress', async () => {
     const { getByTestId, queryByTestId } = await render(
       <ProcessingSheet analysis={null} clipUri="file:///clips/power-snatch.mov" state="progress" step={0} elapsed={3} {...handlers} />
     );
@@ -61,8 +73,7 @@ describe('ProcessingSheet', () => {
     const player = (useVideoPlayer as jest.Mock).mock.results[0].value;
     expect(player).toMatchObject({ loop: true, muted: true });
     expect(player.play).toHaveBeenCalled();
-    expect(getByTestId('processing-clip')).toHaveStyle({ opacity: 0.55 });
-    expect(getByTestId('processing-scrim')).toHaveStyle({ backgroundColor: 'rgba(0,0,0,0.35)' });
+    expect(getByTestId('processing-clip')).toHaveStyle({ opacity: 0.8 });
     expect(queryByTestId('processing-art')).toBeNull();
     expect(queryByTestId('processing-path')).toBeNull();
   });
@@ -97,7 +108,7 @@ describe('ProcessingSheet', () => {
     expect(player.loop).toBe(false);
     expect(getByTestId('processing-clip')).toBeOnTheScreen();
     expect(queryByTestId('processing-path')).toBeNull();
-    expect(queryByTestId('step-active')).toBeOnTheScreen();
+    expect(getByTestId('processing-doing')).toBeOnTheScreen();
   });
 
   it('Reduce Motion over the silhouette: the whole path, all four phase dots, no pulse', async () => {

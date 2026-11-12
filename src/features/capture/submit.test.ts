@@ -31,7 +31,7 @@ test('after a purchase the saved clip is tracked (always submitted as a snatch, 
   expect(submitDraft({ replace: true })).toBe(true);
   await flush();
 
-  expect(startLift).toHaveBeenCalledWith({ uri: 'file:///clip.mov', movement: 'snatch', loadKg: 80, trim: { start: 0, end: 8 }, rep: 'all', source: 'library', fps: 30, overridden: [] });
+  expect(startLift).toHaveBeenCalledWith({ uri: 'file:///clip.mov', movement: 'snatch', loadKg: 80, trim: { start: 0, end: 8 }, rep: 'all', source: 'library', fps: 30, overridden: [], plateMark: null });
   expect(mockNav.replace).toHaveBeenCalledWith({ pathname: '/analysis/processing', params: { live: '1' } });
   expect(mockNav.push).not.toHaveBeenCalled();
 });

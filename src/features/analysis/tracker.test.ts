@@ -1,5 +1,5 @@
 import type { Body } from '../../analysis/device/tracking';
-import { bones, drawnSide, floorY, frameAt, jointAngles, joints, mostlyPlate, spread, timeOf } from './tracker';
+import { bones, drawnSide, floorY, frameAt, jointAngles, joints, liftRange, spread, timeOf } from './tracker';
 
 // shoulder, elbow, wrist, hip, knee, ankle, heel, toe; left then right. The right side is unseen but for the hip.
 const row = (pts: Record<number, [number, number]>): (number | null)[] => {
@@ -31,6 +31,21 @@ describe('frames and time', () => {
   });
 });
 
+describe('liftRange', () => {
+  it('is the lift where tracking marked one, the whole clip when asked or when there is none', () => {
+    expect(liftRange({ startFrame: 90, endFrame: 240 }, 300, false)).toEqual({ cropped: true, first: 90, last: 240 });
+    expect(liftRange({ startFrame: 90, endFrame: 240 }, 300, true)).toEqual({ cropped: false, first: 0, last: 299 });
+    expect(liftRange(undefined, 300, false)).toEqual({ cropped: false, first: 0, last: 299 });
+  });
+
+  it('ignores a lift that does not fit the clip', () => {
+    expect(liftRange({ startFrame: 90, endFrame: 300 }, 300, false)).toEqual({ cropped: false, first: 0, last: 299 });
+    expect(liftRange({ startFrame: 240, endFrame: 240 }, 300, false)).toEqual({ cropped: false, first: 0, last: 299 });
+    expect(liftRange({ startFrame: -1, endFrame: 240 }, 300, false)).toEqual({ cropped: false, first: 0, last: 299 });
+    expect(liftRange(undefined, 0, false)).toEqual({ cropped: false, first: 0, last: 0 });
+  });
+});
+
 describe('the body on a frame', () => {
   it('reads the joints, leaving unseen ones null', () => {
     const j = joints(body, 1);
@@ -59,14 +74,6 @@ describe('the body on a frame', () => {
   it('puts the floor under the feet of the first frame that shows them', () => {
     expect(floorY(body)).toBe(0.93);
     expect(floorY(null)).toBeNull();
-  });
-});
-
-describe('mostlyPlate', () => {
-  it('is true when at least half the path came off the plate', () => {
-    expect(mostlyPlate([{ frame: 0, x: 0, y: 0, src: 'plate' }, { frame: 1, x: 0, y: 0, src: 'wrist' }])).toBe(true);
-    expect(mostlyPlate([{ frame: 0, x: 0, y: 0, src: 'wrist' }, { frame: 1, x: 0, y: 0 }])).toBe(false);
-    expect(mostlyPlate([])).toBe(false);
   });
 });
 

@@ -1,8 +1,7 @@
 export const onboarding = {
-  'onboarding.welcome.title': "See your lift.",
-  'onboarding.welcome.body': "Bar path and body lines on every frame.",
+  'onboarding.welcome.title': "See your lift like this.",
+  'onboarding.welcome.body': "Pick a video of a lift. Your phone draws the bar path and body lines on it.",
   'onboarding.welcome.private': "Everything runs on your phone. Your video never leaves it.",
-  'onboarding.welcome.start': "Get started",
   'onboarding.welcome.agree': "By continuing you confirm you are over 16 and accept the terms and privacy policy.",
   'onboarding.lifts.sub.barPath': "bar path",
   'onboarding.lifts.sub.hipPath': "hip path",
@@ -23,7 +22,6 @@ export const onboarding = {
   'onboarding.guide.frame': "Get your whole body and the plate in frame.",
   'onboarding.guide.angle': "A side view gives the best bar path. Any angle works for body lines.",
   'onboarding.guide.caption': "phone still, side on for the bar path",
-  'onboarding.guide.next': "Next",
   'onboarding.guide.done': "Got it",
   'onboarding.add.title': "Add your first video",
   'onboarding.add.body': "Pick one from Photos or film a lift now. The camera only records when you press the button.",
@@ -40,4 +38,6 @@ export const onboarding = {
   'onboarding.privacy.continue': "Continue",
   'onboarding.privacy.policy': "privacy policy",
   'onboarding.privacy.terms': "terms",
+  'onboarding.welcome.pick': "Pick one of your lifts",
+  'onboarding.welcome.film': "Film a lift now",
 } as const;
