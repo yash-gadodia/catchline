@@ -2,7 +2,7 @@
 // change to the TS rules in seconds: node retrack40.cjs DIR [DIR ...] rewrites analysis.json and body.json in place
 // and prints the share of the path read off the plate and how many reads the trace lacked. --marks FILE: lines of
 // "ID frame,x,y,r", the lifter's mark per clip, as track40.ts --mark.
-import { readFileSync, writeFileSync } from 'fs';
+import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { gunzipSync } from 'zlib';
 
 import { trackTrace } from '../../src/analysis/device/analyseTrace';
@@ -21,7 +21,17 @@ if (marksAt >= 0)
 for (const dir of marksAt < 0 ? args : args.filter((_, i) => i !== marksAt && i !== marksAt + 1)) {
   const id = dir.replace(/\/$/, '').split('/').pop() as string;
   try {
-    const trace = parseTraceJson(gunzipSync(readFileSync(`${dir}/trace.json.gz`)).toString()) as Trace;
+    // a run's own passes (pose.trace + pix1..3.trace) when there is no merged trace.json.gz
+    const gz = (f: string) => parseTraceJson(gunzipSync(readFileSync(`${dir}/${f}`)).toString()) as Trace;
+    const passes = ['pix1', 'pix2', 'pix3'].filter((p) => existsSync(`${dir}/${p}.trace.json.gz`));
+    const trace = existsSync(`${dir}/trace.json.gz`)
+      ? gz('trace.json.gz')
+      : passes.reduce((t, p) => {
+          const b = gz(`${p}.trace.json.gz`);
+          const calls = { ...t.calls } as Trace['calls'];
+          for (const [k, v] of Object.entries(b.calls)) calls[k] = { ...(calls[k] ?? {}), ...v };
+          return { ...b, calls };
+        }, gz('pose.trace.json.gz'));
     if (trace.calls.plate_net) trace.plateNet ??= 'eval';
     const t = trackTrace(trace, { analysisId: id, assetPrefix: id, plateMark: marks.get(id) });
     const path = ((t.analysis.reps as { path: { src?: string }[] }[])[0]?.path ?? []) as { src?: string }[];

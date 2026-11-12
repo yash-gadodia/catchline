@@ -499,7 +499,7 @@ export function pathOnly(ctx: Ctx, gate: PathOnlyGate): Result | null {
     ? input.source.plateNet(0, L, NET_SIDE * bodyH, handsFilled(kw), mark ? [mark.frame, mark.centre[0], mark.centre[1], mark.r] : undefined)
     : undefined;
   const plateAt = net !== undefined
-    ? [net ? netTrack(net, mark, fps, { a: col(kw, L_WRI), b: col(kw, R_WRI), bodyH })?.centres ?? null : null]
+    ? [net ? netTrack(net, mark, fps, { a: col(kw, L_WRI), b: col(kw, R_WRI), bodyH, shoulders: kw.map((r) => midPt(r[L_SHO], r[R_SHO])) })?.centres ?? null : null]
     : tap
     ? [plateHeld(input.source, 0, L, tap.frame, kw, bodyH, setupH, fps, yaw ?? 0, [], { tap: [tap.x * W, tap.y * H], back: true })]
     : seeds.map((seed) => {
