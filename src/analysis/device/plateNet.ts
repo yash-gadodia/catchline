@@ -13,7 +13,7 @@ export type Peak = [number, number, number, number];
 // the plate on one frame, inference px
 export type Mark = { frame: number; centre: Pt; r: number };
 // the lifter's wrists per frame and body height, inference px: where the plate is looked for without a mark
-export type Hands = { a: Pt[]; b: Pt[]; bodyH: number };
+export type Hands = { a: Pt[]; b: Pt[]; bodyH: number; shoulders?: Pt[] };
 
 // a peak under this is no plate (the model's evaluation: 0.3 keeps 93% of hand-labelled phone frames)
 export const NET_CONF = 0.3;
@@ -90,7 +90,7 @@ function seedAuto(peaks: Peak[][], hands: Hands, fps: number): Seed | null {
   return null;
 }
 
-type Held = { centre: Pt; r: number };
+export type Held = { centre: Pt; r: number };
 
 // The plate from the seed one way (dir 1 forwards, -1 backwards) up to frame `end` (exclusive going forwards).
 function follow(peaks: Peak[][], seed: Seed, dir: 1 | -1, fps: number, hands: Hands, end = dir > 0 ? peaks.length : -1): Held[] {
@@ -141,13 +141,91 @@ function follow(peaks: Peak[][], seed: Seed, dir: 1 | -1, fps: number, hands: Ha
   return out;
 }
 
-// Per frame the plate's centre (NaN where it is not held) and radius. Null when the plate is never found.
-export function netTrack(peaks: Peak[][], mark: Mark | null, fps: number, hands: Hands): { centres: Pt[]; radii: number[] } | null {
+// A plate is a barbell's only when the lifter's hands show it. Either it rises with them: over some LIFT_S stretch the
+// plate climbs at least LIFT_RISE body heights and the hands climb with it (HANDS_RISE of its climb, at most
+// 1 / HANDS_RISE); a pull-up lifts the body under still hands, a wall walk moves the hips while the hands push the
+// floor. Or it is gripped: for GRIP_S the plate stays put (within GRIP_STILL radii) with a wrist on it (within a radius
+// plus GRIP_NEAR body heights), the wrists below the shoulders and the plate not above the hands; hanging from a
+// pull-up bar the hands are above the shoulders. Without either there is no plate at all. With it, a frame where no
+// wrist is within a radius plus REACH body heights of the plate is drawn only while the plate is at rest (moving under
+// GRIP_STILL radii over REST_S either side, the bar on the floor between lifts): not the bar dropped and falling away,
+// nor whatever the follow finds in the air after it. (Front rack and overhead the wrists sit under the bar, at the
+// floor over it, so the reach is to the nearest wrist, not to a fixed place against the hands.)
+const LIFT_S = 0.5;
+const LIFT_RISE = 0.2;
+const HANDS_RISE = 0.5;
+const GRIP_S = 1.0;
+const GRIP_STILL = 0.3;
+const GRIP_NEAR = 0.15;
+const REACH_HANDS = 0.35;
+const REST_S = 0.25;
+
+function nearestWrist(hands: Hands, f: number, p: Pt): number {
+  const d = [hands.a[f], hands.b[f]].filter(finitePt).map((w) => dist(w, p));
+  return d.length ? Math.min(...d) : NaN;
+}
+
+function rises(held: Held[], hands: Hands, fps: number): boolean {
+  const mid = (f: number): Pt => {
+    const [a, b] = [hands.a[f], hands.b[f]];
+    return finitePt(a) && finitePt(b) ? [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2] : finitePt(a) ? a : b ?? NAN_PT;
+  };
+  const w = Math.max(2, Math.round(LIFT_S * fps));
+  for (let f = 0; f + w < held.length; f++) {
+    const [p0, p1, h0, h1] = [held[f].centre, held[f + w].centre, mid(f), mid(f + w)];
+    if (![p0, p1, h0, h1].every(finitePt)) continue;
+    const rise = p0[1] - p1[1];
+    const handsRise = h0[1] - h1[1];
+    if (rise >= LIFT_RISE * hands.bodyH && handsRise >= HANDS_RISE * rise && handsRise <= rise / HANDS_RISE) return true;
+  }
+  return false;
+}
+
+function gripped(held: Held[], hands: Hands, fps: number): boolean {
+  const g = Math.max(2, Math.round(GRIP_S * fps));
+  const on = (f: number, at: Pt) => {
+    const h = held[f];
+    const wrists = [hands.a[f], hands.b[f]].filter(finitePt);
+    const sh = hands.shoulders?.[f];
+    if (!finitePt(h.centre) || !wrists.length || !sh || !finitePt(sh) || dist(h.centre, at) > GRIP_STILL * h.r) return false;
+    return nearestWrist(hands, f, h.centre) <= h.r + GRIP_NEAR * hands.bodyH && wrists.every((w) => w[1] > sh[1]) && h.centre[1] >= Math.min(...wrists.map((w) => w[1])) - h.r;
+  };
+  for (let f = 0; f + g < held.length; f++) {
+    const at = held[f].centre;
+    if (!finitePt(at)) continue;
+    let all = true;
+    for (let k = f; k <= f + g && all; k++) all = on(k, at);
+    if (all) return true;
+  }
+  return false;
+}
+
+export function inHands(held: Held[], hands: Hands, fps: number): Held[] | null {
+  if (!rises(held, hands, fps) && !gripped(held, hands, fps)) return null;
+  const q = Math.max(1, Math.round(REST_S * fps));
+  const atRest = (f: number) => {
+    for (let k = Math.max(0, f - q); k <= Math.min(held.length - 1, f + q); k++)
+      if (!finitePt(held[k].centre) || dist(held[k].centre, held[f].centre) > GRIP_STILL * held[f].r) return false;
+    return true;
+  };
+  // where no wrist is seen nothing says the plate left the hands
+  return held.map((h, f) => (finitePt(h.centre) && nearestWrist(hands, f, h.centre) > h.r + REACH_HANDS * hands.bodyH && !atRest(f) ? { centre: NAN_PT, r: NaN } : h));
+}
+
+// The plate followed both ways from its seed, before asking whether it is in the lifter's hands.
+export function followed(peaks: Peak[][], mark: Mark | null, fps: number, hands: Hands): Held[] | null {
   const seed = mark ? seedFrom(peaks, mark, fps) : seedAuto(peaks, hands, fps);
   if (!seed) return null;
   const fwd = follow(peaks, seed, 1, fps, hands);
   const back = follow(peaks, seed, -1, fps, hands);
-  const held = fwd.map((h, f) => (f < seed.frame ? back[f] : h));
-  const centres = held.map((h) => h.centre);
-  return centres.some(finitePt) ? { centres, radii: held.map((h) => h.r) } : null;
+  return fwd.map((h, f) => (f < seed.frame ? back[f] : h));
+}
+
+// Per frame the plate's centre (NaN where it is not held, or not in the lifter's hands) and radius. Null when no
+// plate is found that rises with the hands.
+export function netTrack(peaks: Peak[][], mark: Mark | null, fps: number, hands: Hands): { centres: Pt[]; radii: number[] } | null {
+  const all = followed(peaks, mark, fps, hands);
+  const held = all && inHands(all, hands, fps);
+  const centres = held?.map((h) => h.centre);
+  return centres && centres.some(finitePt) ? { centres, radii: held!.map((h) => h.r) } : null;
 }
