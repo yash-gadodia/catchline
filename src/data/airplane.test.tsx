@@ -1,4 +1,4 @@
-import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
+import { render, waitFor } from '@testing-library/react-native';
 import * as SecureStore from 'expo-secure-store';
 import { router } from 'expo-router';
 import mock from '../analysis/fixtures/snatch-mock.json';
@@ -139,16 +139,11 @@ function noServerAnalysis() {
 }
 
 describe('airplane mode, fresh install', () => {
-  it('analyses the first lift on the phone and opens its cue, nothing uploaded', async () => {
+  it('analyses the first lift on the phone and goes straight to its first look, nothing uploaded', async () => {
     const id = await analyse();
     params.current = { live: '1' };
-    const view = await render(<ProcessingRoute />);
-    await waitFor(() => expect(view.getByTestId('processing-done')).toBeOnTheScreen());
-    expect(view.getByText('Done.')).toBeOnTheScreen();
-    await act(async () => {
-      fireEvent.press(view.getByTestId('see-it'));
-    });
-    expect(nav.replace).toHaveBeenCalledWith({ pathname: '/analysis/player', params: { fixture: id } });
+    await render(<ProcessingRoute />);
+    await waitFor(() => expect(nav.replace).toHaveBeenCalledWith({ pathname: '/analysis/player', params: { fixture: id, reveal: '1' } }));
 
     expect(analyseOnDevice).toHaveBeenCalledTimes(1);
     expect(analyseOnDevice.mock.calls[0][0]).toBe('file:///clips/power-snatch.mov.mp4');

@@ -7,9 +7,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, G, Line, Path, Rect, Text as SvgText } from 'react-native-svg';
 import Btn from '../../components/Btn';
 import Row from '../../components/Row';
+import SmallCaps from '../../components/SmallCaps';
 import { colors, space } from '../../design/tokens';
 import { display, fontFamily, type } from '../../design/typography';
-import { freeVideosLabel, liftDetail, liftTitle, newestFirst } from './derive';
+import { byDay, freeVideosLabel, liftDetail, liftTime } from './derive';
 import { t } from '../../i18n';
 import { useLibrary } from './repository';
 import type { Lift } from './types';
@@ -71,11 +72,16 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
       testID="lifts"
     >
       {header}
-      <View>
-        {newestFirst(lib.lifts).map((l) => (
-          <LiftRow key={l.id} lift={l} nav={nav} />
-        ))}
-      </View>
+      {byDay(lib.lifts).map((g) => (
+        <View key={g.day} testID={`day-${g.day}`} style={{ gap: space.s2 }}>
+          <SmallCaps>{g.label}</SmallCaps>
+          <View>
+            {g.lifts.map((l) => (
+              <LiftRow key={l.id} lift={l} nav={nav} />
+            ))}
+          </View>
+        </View>
+      ))}
     </ScrollView>
   );
 }
@@ -100,7 +106,7 @@ function LiftRow({ lift, nav }: { lift: Lift; nav: LiftsNav }) {
       {thumb}
       <View style={{ flex: 1, gap: 2 }}>
         <Text testID={`lift-title-${lift.id}`} style={{ color: muted ? colors.text2 : colors.text, ...type.button }}>
-          {liftTitle(lift)}
+          {liftTime(lift)}
         </Text>
         {detail ? (
           <Text testID={`lift-detail-${lift.id}`} numberOfLines={1} style={{ color: colors.text2, ...type.readout }}>

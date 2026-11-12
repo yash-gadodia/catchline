@@ -5,6 +5,7 @@ import { useVideoPlayer, VideoView } from 'expo-video';
 import type { Analysis } from '../../analysis/types';
 import type { Body } from '../../analysis/device/tracking';
 import { t } from '../../i18n';
+import { EVENTS, track } from '../../lib/analytics';
 import Btn from '../../components/Btn';
 import Segmented from '../../components/Segmented';
 import TopBar from '../../components/TopBar';
@@ -13,7 +14,8 @@ import { display, type } from '../../design/typography';
 import TrackOverlay from '../analysis/TrackOverlay';
 import { frameAt, liftRange, timeOf } from '../analysis/tracker';
 import { discardRender, renderTrackImage, renderTrackVideo, shareFile } from './exporter';
-import { SHARE_SPEEDS, buildTrackSpec, frameCountOf, type ShareSpeed, type TrackShareOptions } from './trackShare';
+import { askForRatingOnce } from './rating';
+import { SHARE_SPEEDS, buildTrackSpec, frameCountOf, hasBarPath, type ShareSpeed, type TrackShareOptions } from './trackShare';
 import { Chip } from './ui';
 
 export type TrackShareDeps = {
@@ -21,9 +23,10 @@ export type TrackShareDeps = {
   renderImage: typeof renderTrackImage;
   share: typeof shareFile;
   discard: typeof discardRender;
+  askRating: typeof askForRatingOnce;
 };
 
-const DEFAULT_DEPS: TrackShareDeps = { renderVideo: renderTrackVideo, renderImage: renderTrackImage, share: shareFile, discard: discardRender };
+const DEFAULT_DEPS: TrackShareDeps = { renderVideo: renderTrackVideo, renderImage: renderTrackImage, share: shareFile, discard: discardRender, askRating: askForRatingOnce };
 const LAYERS = ['path', 'lines', 'body'] as const;
 const SCRUB_H = 44;
 
@@ -148,8 +151,22 @@ export default function TrackShareScreen({
         setMaking(null);
       }
     }
+    const barPath = hasBarPath(analysis);
+    track(EVENTS.SHARE_EXPORTED, {
+      kind,
+      speed: kind === 'video' ? speed : 1,
+      overlay_path: options.path,
+      overlay_lines: options.lines,
+      overlay_body: options.body,
+      whole_clip: whole,
+      has_bar_path: barPath,
+      duration_s: kind === 'video' ? Number(((last - first + 1) / fps / speed).toFixed(1)) : 0,
+      completed: true,
+    });
     try {
-      await deps.share(uri);
+      const res = await deps.share(uri);
+      track(EVENTS.SHARE_COMPLETED, { kind, activity: res.outcome === 'cancelled' ? 'dismissed' : (res.activity ?? 'unknown') });
+      if (res.outcome === 'shared') void deps.askRating(barPath).catch(() => undefined);
     } catch {
       setNotice(t('share.shareFailed'));
     }

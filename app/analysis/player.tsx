@@ -1,10 +1,13 @@
 import { useEffect } from 'react';
 import { useLocalSearchParams, useNavigation, useRouter, type Href } from 'expo-router';
+import { EVENTS, track } from '../../src/lib/analytics';
+import { hasBarPath } from '../../src/features/share/trackShare';
 import { useAnalysis } from '../../src/analysis/useAnalysis';
 import AnalysisPlaceholder from '../../src/features/analysis/AnalysisPlaceholder';
 import PlayerScreen from '../../src/features/analysis/PlayerScreen';
 import TrackerScreen from '../../src/features/analysis/TrackerScreen';
 import { useLocalBody } from '../../src/features/analysis/useLocalBody';
+import { useLastLift } from '../../src/features/analysis/useLastLift';
 import { localClipUri } from '../../src/data/localLifts';
 import { liftTitle } from '../../src/features/library/derive';
 import { useLift } from '../../src/features/library/repository';
@@ -13,7 +16,9 @@ import { openReportInIntercom } from '../../src/data/intercom';
 import { captureHref } from '../../src/features/paywall/hooks';
 
 export default function PlayerRoute() {
-  const { fixture, frame } = useLocalSearchParams<{ fixture?: string; frame?: string }>();
+  // `reveal=1` comes from the tracking screen: the lift's first look plays itself (TrackerScreen).
+  // Dev link: &last=<lift id> compares with that lift whatever the library holds.
+  const { fixture, frame, reveal, last } = useLocalSearchParams<{ fixture?: string; frame?: string; reveal?: string; last?: string }>();
   const router = useRouter();
   const navigation = useNavigation();
   // iOS 26 makes back a full-screen swipe, which would swallow the video's swipe between phases; back stays on the edge.
@@ -25,8 +30,13 @@ export default function PlayerRoute() {
   const load = useAnalysis(fixture);
   const id = Array.isArray(fixture) ? fixture[0] : fixture;
   const clip = id ? localClipUri(id) : null;
+  const opened = load.status === 'ready' ? load.analysis : null;
+  useEffect(() => {
+    if (opened) track(EVENTS.PLAYER_OPENED, { kind: clip ? 'tracker' : 'stills', has_bar_path: hasBarPath(opened) });
+  }, [opened?.id]);
   const lift = useLift(id);
   const body = useLocalBody(id, !!clip);
+  const lastLift = useLastLift(clip && body.ready && load.status === 'ready' ? load.analysis : null, body.body, __DEV__ ? last : undefined);
   // A 4.0 lift (its clip is kept) plays on the tracker and lands here straight from the tracking; a 3.x lift opens on its stills.
   // Leaving a 4.0 lift goes to the Lifts tab, not back to the clip's review.
   const back = () => (clip ? router.dismissTo('/') : router.canGoBack() ? router.back() : router.replace('/'));
@@ -35,7 +45,7 @@ export default function PlayerRoute() {
   const share = () => router.push({ pathname: '/share', params: { fixture: analysis.id } });
   if (clip) {
     if (!body.ready) return <AnalysisPlaceholder status="loading" onBack={back} />;
-    return <TrackerScreen key={analysis.id} analysis={analysis} clipUri={clip} body={body.body} title={lift ? liftTitle(lift) : ''} onBack={back} onShare={share} />;
+    return <TrackerScreen key={analysis.id} analysis={analysis} clipUri={clip} body={body.body} title={lift ? liftTitle(lift) : ''} onBack={back} onShare={share} reveal={reveal === '1'} lastLift={lastLift} />;
   }
   return (
     <PlayerScreen

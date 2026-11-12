@@ -12,6 +12,12 @@ export const EVENTS = {
   FRAMING_CHECKED: 'framing_checked',
   ANALYSIS_COMPLETED: 'analysis_completed',
   ANALYSIS_FAILED: 'analysis_failed',
+  TRACK_STARTED: 'track_started',
+  TRACK_COMPLETED: 'track_completed',
+  PLAYER_OPENED: 'player_opened',
+  SHARE_OPENED: 'share_opened',
+  SHARE_EXPORTED: 'share_exported',
+  SHARE_COMPLETED: 'share_completed',
 } as const;
 
 export type EventName = (typeof EVENTS)[keyof typeof EVENTS];

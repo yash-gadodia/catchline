@@ -5,6 +5,10 @@ import type { Body } from '../../analysis/device/tracking';
 import { snatchMock } from '../../analysis/fixtures';
 import TrackShareScreen, { type TrackShareDeps } from './TrackShareScreen';
 import type { TrackSpec } from './trackShare';
+import { track } from '../../lib/analytics';
+
+jest.mock('../../lib/analytics', () => ({ ...jest.requireActual('../../lib/analytics'), track: jest.fn() }));
+beforeEach(() => jest.mocked(track).mockClear());
 
 const CLIP = 'file:///documents/lifts/a/clip.mp4';
 const VIDEO = 'file:///cache/share-video/catchline-1.mp4';
@@ -23,8 +27,9 @@ function deps(over: Partial<TrackShareDeps> = {}): TrackShareDeps {
   return {
     renderVideo: jest.fn(async () => VIDEO),
     renderImage: jest.fn(async () => IMAGE),
-    share: jest.fn(async () => 'shared' as const),
+    share: jest.fn(async () => ({ outcome: 'shared' as const, activity: 'com.apple.UIKit.activity.SaveToCameraRoll' })),
     discard: jest.fn(),
+    askRating: jest.fn(async () => 'asked' as const),
     ...over,
   };
 }
@@ -170,6 +175,54 @@ describe('TrackShareScreen', () => {
       await press(getByTestId('share-image-btn'));
       await waitFor(() => expect(d.renderImage).toHaveBeenCalledTimes(1));
       expect(specOf(d.renderImage).frame).toBe(90);
+    });
+  });
+
+  describe('what it reports', () => {
+    it('one share_exported and one share_completed per share, with the choices made, then asks for a rating', async () => {
+      const d = deps();
+      const { getByTestId, getByText } = await render(<TrackShareScreen analysis={analysis} body={body} clipUri={CLIP} watermark onBack={() => {}} deps={d} />);
+      await press(getByTestId('share-toggle-body'));
+      await press(getByText('0.5×'));
+      await press(getByTestId('share-video-btn'));
+      await waitFor(() => expect(d.askRating).toHaveBeenCalledTimes(1));
+      expect(jest.mocked(track).mock.calls).toEqual([
+        // 4 frames at 60 fps, at half speed
+        ['share_exported', { kind: 'video', speed: 0.5, overlay_path: true, overlay_lines: true, overlay_body: true, whole_clip: false, has_bar_path: true, duration_s: 0.1, completed: true }],
+        ['share_completed', { kind: 'video', activity: 'com.apple.UIKit.activity.SaveToCameraRoll' }],
+      ]);
+      expect(d.askRating).toHaveBeenCalledWith(true);
+    });
+
+    it('an image has no speed or length, and a lift without a bar path says so', async () => {
+      const d = deps();
+      const noPath: Analysis = { ...analysis, reps: [{ ...analysis.reps[0], path: [] }] };
+      const { getByTestId } = await render(<TrackShareScreen analysis={noPath} body={body} clipUri={CLIP} watermark onBack={() => {}} deps={d} />);
+      await press(getByTestId('share-toggle-lines'));
+      await press(getByTestId('share-image-btn'));
+      await waitFor(() => expect(d.askRating).toHaveBeenCalledWith(false));
+      expect(jest.mocked(track).mock.calls).toEqual([
+        ['share_exported', { kind: 'image', speed: 1, overlay_path: true, overlay_lines: false, overlay_body: false, whole_clip: false, has_bar_path: false, duration_s: 0, completed: true }],
+        ['share_completed', { kind: 'image', activity: 'com.apple.UIKit.activity.SaveToCameraRoll' }],
+      ]);
+    });
+
+    it('a share sheet that was closed is reported as dismissed and never asks for a rating', async () => {
+      const d = deps({ share: jest.fn(async () => ({ outcome: 'cancelled' as const, activity: null })) });
+      const { getByTestId } = await render(<TrackShareScreen analysis={analysis} body={body} clipUri={CLIP} watermark onBack={() => {}} deps={d} />);
+      await press(getByTestId('share-video-btn'));
+      await waitFor(() => expect(track).toHaveBeenCalledTimes(2));
+      expect(jest.mocked(track).mock.calls[1]).toEqual(['share_completed', { kind: 'video', activity: 'dismissed' }]);
+      expect(d.askRating).not.toHaveBeenCalled();
+    });
+
+    it('reports nothing when the render fails', async () => {
+      const d = deps({ renderVideo: jest.fn(async () => Promise.reject(new Error('writer'))) });
+      const { getByTestId, findByTestId } = await render(<TrackShareScreen analysis={analysis} body={body} clipUri={CLIP} watermark onBack={() => {}} deps={d} />);
+      await press(getByTestId('share-video-btn'));
+      await findByTestId('share-notice');
+      expect(track).not.toHaveBeenCalled();
+      expect(d.askRating).not.toHaveBeenCalled();
     });
   });
 

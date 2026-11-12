@@ -6,7 +6,6 @@ import {
   liftTitle,
   speedRows,
   phaseLabel,
-  processingSteps,
   speedText,
   valueText,
 } from './format';
@@ -69,17 +68,6 @@ describe('bar speed', () => {
 });
 
 describe('processing', () => {
-  it('ticks steps before the current one and pulses the current one', () => {
-    expect(processingSteps(2)).toEqual([
-      { label: 'Preparing your clip', state: 'done' },
-      { label: 'Finding you', state: 'done' },
-      { label: 'Following the bar', state: 'active' },
-      { label: 'Following your body', state: 'todo' },
-      { label: 'Drawing the lines', state: 'todo' },
-    ]);
-    expect(processingSteps(0, 'Tracking on your iPhone')[0]).toEqual({ label: 'Tracking on your iPhone', state: 'active' });
-  });
-
   it('says the expected wait in minutes once it is one', () => {
     expect(formatWait(150)).toBe('about 2 min');
     expect(formatWait(90)).toBe('about 1 min');

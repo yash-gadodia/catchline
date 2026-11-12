@@ -135,7 +135,16 @@ describe('startDeviceLift, the happy path', () => {
       no_cue_code: 'none',
       made: snatchMock.reps[snatchMock.bestRepIndex].made,
     });
-    expect(track).toHaveBeenCalledTimes(1);
+    // __DEV__ offers the plate mark, and this clip came without one
+    expect(track).toHaveBeenCalledWith('track_started', { source: 'camera', mark: 'skipped' });
+    expect(track).toHaveBeenCalledWith('track_completed', { seconds: 0, frames: snatchMock.video.frameCount, has_bar_path: true, mark: 'skipped' });
+    expect(track).toHaveBeenCalledTimes(3);
+  });
+
+  it('says the plate was marked when the clip came with a mark', async () => {
+    await startDeviceLift({ ...SUB, plateMark: { x: 0.5, y: 0.6, r: 0.1 } });
+    expect(track).toHaveBeenCalledWith('track_started', { source: 'camera', mark: 'made' });
+    expect(track).toHaveBeenCalledWith('track_completed', { seconds: 0, frames: snatchMock.video.frameCount, has_bar_path: true, mark: 'made' });
   });
 
   it('sends why there was no cue for a partial result', async () => {
@@ -298,6 +307,8 @@ describe('startDeviceLift when the analysis fails', () => {
     expect(job?.error).toBe('analysis_failed');
     expect(job?.result?.failure?.reason).toBe('clip_cut_off');
     expect(track).toHaveBeenCalledWith('analysis_failed', { movement: 'snatch', code: 'no_reps' });
+    expect(track).toHaveBeenCalledWith('track_started', { source: 'camera', mark: 'skipped' });
+    expect(track).not.toHaveBeenCalledWith('track_completed', expect.anything());
     // the trimmed clip is kept for "Send this clip so we can fix it", not discarded
     expect(keepClip).toHaveBeenCalledWith('lift-1', 'file:///clip.mov.mp4');
     expect(discardPrepared).not.toHaveBeenCalled();
