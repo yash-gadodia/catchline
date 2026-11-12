@@ -1,4 +1,4 @@
-import { liftWindow } from './liftWindow';
+import { hangWindow, liftWindow } from './liftWindow';
 
 // hands' height above the feet in standing heights, 30 fps: seconds of each level in turn
 const clip = (...parts: [number, number][]) => parts.flatMap(([v, s]) => new Array<number>(Math.round(s * 30)).fill(v));
@@ -25,5 +25,20 @@ describe('liftWindow', () => {
   it('runs to the end of a clip cut off while the bar is still up, and ignores unseen frames', () => {
     const h = clip([0.45, 4], [0.15, 2], [NaN, 0.2], [0.5, 3]);
     expect(liftWindow(h, 30)).toEqual({ startFrame: 180 - 1 - 36, endFrame: h.length - 1 });
+  });
+});
+
+describe('hangWindow', () => {
+  const fps = 10;
+  const at = (...parts: [number, number][]) => parts.flatMap(([value, frames]) => new Array<number>(frames).fill(value));
+
+  it('runs from just before the hands go above the shoulders to the landing after the last time they do', () => {
+    // 3 s walking up (hands below the shoulders), 4 s on the bar, 1 s at the top of a muscle-up, 1 s on the bar, 3 s walking off
+    const h = at([-0.4, 30], [0.3, 40], [-0.3, 10], [0.3, 10], [-0.4, 30]);
+    expect(hangWindow(h, fps)).toEqual({ startFrame: 25, endFrame: 104 });
+  });
+
+  it('is nothing when the hands never stay up for half a second (chalking up, a reach)', () => {
+    expect(hangWindow(at([-0.4, 30], [0.3, 4], [-0.4, 30]), fps)).toBeNull();
   });
 });

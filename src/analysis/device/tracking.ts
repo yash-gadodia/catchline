@@ -8,7 +8,7 @@ import {
 } from './movement';
 import { AnalysisJson, Ctx, PlateMark, fail, pathOnly } from './pipeline';
 import { DeviceInput } from './source';
-import { liftWindow } from './liftWindow';
+import { hangWindow, liftWindow } from './liftWindow';
 import { midPt } from './geometry';
 import { percentile } from './num';
 
@@ -95,9 +95,17 @@ export function track(input: DeviceInput, opts: { analysisId?: string; assetPref
   // about 0.82 of it)
   const drop = ksm.map((row) => midPt(row[L_ANK], row[R_ANK])[1] - midPt(row[L_SHO], row[R_SHO])[1]).filter(Number.isFinite);
   const stand = drop.length ? percentile(drop, 90) / 0.82 : NaN;
-  const lift = only.analysis.traceKind === 'bar' && stand > 0
-    ? liftWindow(ksm.map((row, f) => (finitePt(kr[f][L_WRI]) || finitePt(kr[f][R_WRI]) ? (midPt(row[L_ANK], row[R_ANK])[1] - Math.max(...[row[L_WRI], row[R_WRI]].filter(finitePt).map((p) => p[1]))) / stand : NaN)), meta.fps)
+  const hands = stand > 0
+    ? ksm.map((row, f) => (finitePt(kr[f][L_WRI]) || finitePt(kr[f][R_WRI]) ? (midPt(row[L_ANK], row[R_ANK])[1] - Math.max(...[row[L_WRI], row[R_WRI]].filter(finitePt).map((p) => p[1]))) / stand : NaN))
     : null;
+  const hip = only.analysis.traceKind === 'hip';
+  // for a hanging movement: the hands' height above the shoulders, in standing heights
+  const overShoulders = hip && stand > 0
+    ? ksm.map((row, f) => (finitePt(kr[f][L_WRI]) || finitePt(kr[f][R_WRI]) ? (midPt(row[L_SHO], row[R_SHO])[1] - Math.min(...[row[L_WRI], row[R_WRI]].filter(finitePt).map((p) => p[1]))) / stand : NaN))
+    : null;
+  const lift = hip ? (overShoulders ? hangWindow(overShoulders, meta.fps) : null) : hands ? liftWindow(hands, meta.fps) : null;
   if (lift) only.analysis.lift = lift;
+  // a hanging movement's hip trail is drawn only while on the bar, not on the walk up to it or away
+  if (lift && hip) rep.path = rep.path.filter((p) => p.frame >= lift.startFrame && p.frame <= lift.endFrame);
   return { analysis: only.analysis, body: { version: 1, frames } };
 }

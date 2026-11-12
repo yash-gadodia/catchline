@@ -48,3 +48,29 @@ export function liftWindow(h: number[], fps: number): LiftWindow | null {
   if (top < start || top > end) return null;
   return { startFrame: start, endFrame: end };
 }
+
+// A hanging movement (pull-ups, muscle-ups, toes-to-bar), from the hands' height above the shoulders in standing
+// heights per frame: from a little before the hands first stay above the shoulders to a little after they last do, so
+// the walk up to the bar and away from it are cut (owner, 12-11). On the bar the hands are above the shoulders even
+// at the top of a pull-up; walking or chalking up they are not. The top of a muscle-up (hands at the hips) falls
+// between and stays in. Null when the hands are never up for BAR_S.
+const ON_BAR = 0.05;
+const BAR_S = 0.5;
+const PAD_S = 0.5;
+// after the last stretch on the bar: the top of a muscle-up (hands at the hips) and the drop to the floor
+const DROP_S = 1.5;
+export function hangWindow(h: number[], fps: number): LiftWindow | null {
+  const need = Math.max(1, Math.round(BAR_S * fps));
+  let first = -1;
+  let last = -1;
+  let run = 0;
+  for (let f = 0; f < h.length; f++) {
+    run = Number.isFinite(h[f]) && h[f] >= ON_BAR ? run + 1 : 0;
+    if (run >= need) {
+      if (first < 0) first = f - run + 1;
+      last = f;
+    }
+  }
+  if (first < 0) return null;
+  return { startFrame: Math.max(0, first - Math.round(PAD_S * fps)), endFrame: Math.min(h.length - 1, last + Math.round(DROP_S * fps)) };
+}
