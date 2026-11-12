@@ -39,13 +39,19 @@ const SIZE_LOST = 0.05;
 const SIZE_MAX = 0.4;
 const SHRINK = 0.55;
 // unseen up to COAST frames, the gap is drawn on a straight line once the plate is found again; unseen for
-// LOST_S seconds, the plate is only taken up again as REGAIN describes: a sure peak on the line of the hands within
-// REGAIN of the last size
+// LOST_S seconds, the plate is only taken up again as REGAIN describes: a sure peak on the line of the hands at
+// REGAIN times the last size (it may have come nearer; smaller is the far plate's way)
 const COAST = 6;
 const LOST_S = 0.5;
-const REGAIN = 0.25;
+const REGAIN: [number, number] = [0.8, 1.6];
+// a peak the model is less sure of (down to FAINT) still carries the plate when it is where the plate should be: within
+// FAINT_REACH radii of where its speed puts it, at a size within FAINT_SIZE of the last
+const FAINT = 0.12;
+const FAINT_REACH = 0.5;
+const FAINT_SIZE = 0.15;
 
-const ok = (p: Peak | undefined): p is Peak => p !== undefined && p[0] >= NET_CONF && Number.isFinite(p[1]) && Number.isFinite(p[2]) && p[3] > 0;
+const seen = (p: Peak | undefined): p is Peak => p !== undefined && p[0] >= FAINT && Number.isFinite(p[1]) && Number.isFinite(p[2]) && p[3] > 0;
+const ok = (p: Peak | undefined): p is Peak => seen(p) && p[0] >= NET_CONF;
 const at = (p: Peak): Pt => [p[1], p[2]];
 const sizeOff = (r: number, ref: number) => Math.abs(Math.log(r / ref));
 
@@ -100,7 +106,7 @@ function follow(peaks: Peak[][], seed: Seed, dir: 1 | -1, fps: number, hands: Ha
     const lost = Math.abs(f - lastF) - 1;
     if (lost >= gone) {
       const again = peaks[f]
-        .filter((p) => ok(p) && p[0] >= SURE && sizeOff(p[3], r) <= Math.log(1 + REGAIN) && p[3] >= SHRINK * r0 && onHandsLine(p, hands.a[f], hands.b[f], hands.bodyH))
+        .filter((p) => ok(p) && p[0] >= SURE && p[3] >= REGAIN[0] * r && p[3] <= REGAIN[1] * r && p[3] >= SHRINK * r0 && onHandsLine(p, hands.a[f], hands.b[f], hands.bodyH))
         .sort((a, b) => sizeOff(a[3], r) - sizeOff(b[3], r))[0];
       if (again) {
         last = at(again);
@@ -116,7 +122,7 @@ function follow(peaks: Peak[][], seed: Seed, dir: 1 | -1, fps: number, hands: Ha
     const sizeTol = Math.log(1 + Math.min(SIZE_STEP + SIZE_LOST * lost, SIZE_MAX));
     const cost = (p: Peak) => dist(at(p), pred) / r + 2 * sizeOff(p[3], r);
     const next = peaks[f]
-      .filter((p) => ok(p) && (lost < COAST || p[0] >= SURE) && dist(at(p), pred) <= reach && sizeOff(p[3], r) <= sizeTol && p[3] >= SHRINK * r0)
+      .filter((p) => (ok(p) || (seen(p) && dist(at(p), pred) <= FAINT_REACH * r && sizeOff(p[3], r) <= Math.log(1 + FAINT_SIZE))) && (lost < COAST || p[0] >= SURE) && dist(at(p), pred) <= reach && sizeOff(p[3], r) <= sizeTol && p[3] >= SHRINK * r0)
       .sort((a, b) => cost(a) - cost(b))[0];
     if (!next) continue;
     const c = at(next);
