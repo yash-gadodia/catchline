@@ -35,6 +35,34 @@ export function liftTitle(l: Pick<Lift, 'date' | 'at' | 'loadKg'>): string {
   return l.loadKg != null ? `${liftWhen(l)} · ${fmt(l.loadKg)} kg` : liftWhen(l);
 }
 
+function localDay(d: Date): Day {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+// Under its day's heading a lift is titled by its time (and load); one with no time on record keeps its full title.
+export function liftTime(l: Pick<Lift, 'date' | 'at' | 'loadKg'>): string {
+  if (!l.at) return liftTitle(l);
+  const d = new Date(l.at);
+  const time = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return l.loadKg != null ? `${time} · ${fmt(l.loadKg)} kg` : time;
+}
+
+export type DayGroup = { day: Day; label: string; lifts: Lift[] };
+
+// The lifts as a history: newest first, one group per day in the phone's own time, headed "Today", "Yesterday" or the date.
+export function byDay(lifts: Lift[], now: Date = new Date()): DayGroup[] {
+  const today = localDay(now);
+  const yesterday = localDay(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
+  const out: DayGroup[] = [];
+  for (const l of newestFirst(lifts)) {
+    const day = l.at ? localDay(new Date(l.at)) : l.date;
+    const last = out[out.length - 1];
+    if (last && last.day === day) last.lifts.push(l);
+    else out.push({ day, label: day === today ? t('library.date.today') : day === yesterday ? t('library.date.yesterday') : shortDate(day), lifts: [l] });
+  }
+  return out;
+}
+
 export function freeVideosLabel(s: Pick<LibraryState, 'plan' | 'freeVideosUsed'>): string | null {
   if (s.plan !== 'free') return null;
   const left = Math.max(0, FREE_VIDEOS - s.freeVideosUsed);
@@ -51,12 +79,14 @@ export function newestFirst(lifts: Lift[]): Lift[] {
   });
 }
 
-// The line under a row's title: what is happening to the lift, or (a 3.x lift) the movement the lifter picked.
+// The line under a row's title: what is happening to the lift, what a tracked lift has, or (a 3.x lift) the movement
+// the lifter picked.
 export function liftDetail(l: Lift): string | null {
   if (l.status === 'processing') return t('library.detail.processing');
   if (l.status === 'queued') return t('library.detail.queued');
   if (l.status === 'failed') return l.failure ? failureMessage(l.failure) : t('library.detail.failed');
-  return isTracked(l) ? null : movementLabel(l.movement);
+  if (!isTracked(l)) return movementLabel(l.movement);
+  return l.shows ? t(l.shows === 'bar' ? 'library.detail.barAndBody' : 'library.detail.bodyOnly') : null;
 }
 
 export type LiftLink =

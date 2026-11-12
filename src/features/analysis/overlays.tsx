@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
-import { Text } from 'react-native';
-import Svg, { Circle, G, Line, Path, Polyline, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, G, Line, Path, Text as SvgText } from 'react-native-svg';
 import type { Point, RepGuides } from '../../analysis/types';
 import { svgPath } from '../../analysis/geometry';
 import { colors, opacity, stroke } from '../../design/tokens';
@@ -55,45 +54,6 @@ export function FlarePath({
   );
 }
 
-// A joint track beside the bar (27-10: tracking first): bone, thinner than the flare path; the hips solid at the
-// ghost weight, the shoulders a hairline dash, so the two read apart on the lifter.
-export function TrackPath({ points, kind, testID }: { points: Point[]; kind: 'hips' | 'shoulders'; testID?: string }) {
-  if (points.length < 2) return null;
-  const hips = kind === 'hips';
-  return (
-    <Path
-      testID={testID}
-      d={svgPath(points)}
-      stroke={colors.text}
-      strokeWidth={hips ? stroke.ghost : stroke.hairline}
-      strokeDasharray={hips ? undefined : '3 3'}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      opacity={opacity.lines}
-      fill="none"
-    />
-  );
-}
-
-// Where the feet stood at the start and where they landed: a bone tick under each mid-ankle, joined when they moved,
-// with the shift in cm over the landing when it was measured.
-export function FeetMarks({ start, end, label, testID }: { start: Point; end: Point; label?: string; testID?: string }) {
-  const moved = Math.abs(end.x - start.x) >= 4;
-  const tick = (p: Point, key: string) => <Line key={key} x1={p.x - 7} y1={p.y} x2={p.x + 7} y2={p.y} />;
-  return (
-    <G testID={testID} stroke={colors.text} strokeWidth={stroke.outline} strokeLinecap="round" opacity={opacity.lines}>
-      {tick(start, 'start')}
-      {moved ? tick(end, 'end') : null}
-      {moved ? <Line x1={start.x} y1={start.y} x2={end.x} y2={end.y} strokeWidth={stroke.hairline} strokeDasharray="2 3" /> : null}
-      {label ? (
-        <SvgText testID="feet-shift" x={end.x} y={end.y + 14} fill={colors.text} stroke="none" fontSize={10} fontFamily={fontFamily.mono} textAnchor="middle">
-          {label}
-        </SvgText>
-      ) : null}
-    </G>
-  );
-}
-
 export function KeyDots({ points }: { points: Point[] }) {
   return (
     <G fill={colors.text} stroke={colors.halo} strokeWidth={1}>
@@ -121,69 +81,6 @@ export function RefLine({ x, top, bottom, alpha = opacity.lines }: { x: number; 
       strokeDasharray="2 5"
       opacity={alpha}
     />
-  );
-}
-
-// Horizontal dimension line: arrowheads, or end caps when the span is too
-// short for arrowheads to read.
-export function DimensionLine({ from, to, testID }: { from: Point; to: Point; testID?: string }) {
-  const y = to.y;
-  const left = Math.min(from.x, to.x);
-  const right = Math.max(from.x, to.x);
-  const short = right - left < 20;
-  return (
-    <G testID={testID} stroke={colors.flare} strokeWidth={stroke.outline} fill="none">
-      <Line x1={left} y1={y} x2={right} y2={y} />
-      {short ? (
-        <>
-          <Line x1={left} y1={y - 6} x2={left} y2={y + 6} />
-          <Line x1={right} y1={y - 6} x2={right} y2={y + 6} />
-        </>
-      ) : (
-        <>
-          <Polyline points={`${left + 6},${y - 5} ${left},${y} ${left + 6},${y + 5}`} />
-          <Polyline points={`${right - 6},${y - 5} ${right},${y} ${right - 6},${y + 5}`} />
-        </>
-      )}
-    </G>
-  );
-}
-
-export function HeroNumber({
-  text,
-  at,
-  size = 48,
-  box,
-  minTop = 8,
-}: {
-  text: string;
-  at: Point;
-  size?: number;
-  box: Size;
-  minTop?: number;
-}) {
-  const width = text.length * size * 0.42;
-  const left = Math.min(Math.max(8, at.x), box.width - width - 8);
-  const top = Math.max(minTop, at.y - size - 6);
-  return (
-    <Text
-      testID="hero-number"
-      style={{
-        position: 'absolute',
-        left,
-        top,
-        color: colors.flare,
-        fontFamily: fontFamily.displayBlack,
-        fontSize: size,
-        lineHeight: size,
-        letterSpacing: size * -0.02,
-        textShadowColor: colors.halo,
-        textShadowRadius: 6,
-        textShadowOffset: { width: 0, height: 0 },
-      }}
-    >
-      {text}
-    </Text>
   );
 }
 

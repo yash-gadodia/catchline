@@ -13,6 +13,8 @@ export const library: Strings<typeof en> = {
   'library.inFlight.title': "Rastreando seu levantamento",
   'library.detail.queued': "Na fila · vídeos grátis usados",
   'library.detail.failed': "Não deu para rastrear",
+  'library.detail.barAndBody': "Trajetória da barra e corpo",
+  'library.detail.bodyOnly': "Só corpo",
   // REVIEW: machine-drafted, needs a native speaker before release.
   // REVIEW: machine-drafted, needs a native speaker before release.
   'library.lifts.emptyTitle': "Adicione seu primeiro levantamento.",
@@ -85,4 +87,6 @@ export const library: Strings<typeof en> = {
   'library.failure.unknown.primary': "Tentar de novo",
   'library.failure.unknown.link0': "Tentar mais tarde",
   'library.date.dayTime': "{date}, {time}",
+  'library.date.today': "Hoje",
+  'library.date.yesterday': "Ontem",
 };

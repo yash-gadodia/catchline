@@ -1,7 +1,7 @@
-import { Circle, G, Line } from 'react-native-svg';
+import { Circle, G, Line, Path } from 'react-native-svg';
 import type { Analysis, Point } from '../../analysis/types';
 import type { Body } from '../../analysis/device/tracking';
-import { toScreen, type Size } from '../../analysis/geometry';
+import { svgPath, toScreen, type Size } from '../../analysis/geometry';
 import { pathUpTo, pointAt } from '../../analysis/timeline';
 import { colors, opacity, stroke } from '../../design/tokens';
 import { CurrentDot, FlarePath, OverlaySvg, RefLine } from './overlays';
@@ -15,12 +15,15 @@ export default function TrackOverlay({
   frame,
   box,
   show,
+  ghost,
 }: {
   analysis: Analysis;
   body: Body | null;
   frame: number;
   box: Size;
   show: { path: boolean; lines: boolean; body: boolean };
+  // An earlier lift's bar path, already in this video's coordinates (compare.ts): a faint bone line under today's.
+  ghost?: Point[] | null;
 }) {
   const s = (p: Point) => toScreen(p, { x: 0, y: 0, width: box.width, height: box.height });
   const rep = analysis.reps[0];
@@ -52,6 +55,9 @@ export default function TrackOverlay({
           ))}
           {shownJoints.map((p, i) => (p ? <Circle key={`j${i}`} cx={s(p).x} cy={s(p).y} r={3} fill={colors.text} stroke={colors.halo} strokeWidth={1} /> : null))}
         </G>
+      ) : null}
+      {ghost && ghost.length > 1 ? (
+        <Path testID="path-ghost" d={svgPath(ghost.map(s))} stroke={colors.text} strokeWidth={stroke.ghost} strokeLinecap="round" strokeLinejoin="round" strokeDasharray="1 5" opacity={opacity.lines} fill="none" />
       ) : null}
       {show.path ? (
         <>

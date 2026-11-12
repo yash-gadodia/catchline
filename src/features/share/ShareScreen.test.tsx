@@ -35,7 +35,7 @@ function deps(over: Partial<ShareDeps> = {}): ShareDeps {
   return {
     renderVideo: jest.fn(async () => VIDEO),
     renderStill: jest.fn(async () => 'file:///cache/card.png'),
-    share: jest.fn(async () => 'shared' as const),
+    share: jest.fn(async () => ({ outcome: 'shared' as const, activity: null })),
     save: jest.fn(async () => 'saved' as const),
     discard: jest.fn(),
     ...over,

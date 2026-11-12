@@ -15,6 +15,8 @@ export type Lift = {
   status: LiftStatus;
   analysisId?: string;
   thumb?: string;
+  // What a tracked lift has to show: the bar's path with the body, or (no plate read, or a hanging movement) the body alone.
+  shows?: 'bar' | 'body';
   failure?: Failure;
 };
 

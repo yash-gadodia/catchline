@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { PanResponder, Pressable, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useReducedMotion } from 'react-native-reanimated';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import Svg, { Path, Rect } from 'react-native-svg';
 import type { Analysis, Point } from '../../analysis/types';
@@ -11,18 +12,20 @@ import Btn from '../../components/Btn';
 import Readout from '../../components/Readout';
 import TopBar from '../../components/TopBar';
 import { impact } from '../../lib/haptics';
-import { colors, control, shape, space, stroke } from '../../design/tokens';
+import { colors, control, shade, shape, space, stroke } from '../../design/tokens';
 import { type } from '../../design/typography';
 import TrackOverlay from './TrackOverlay';
 import FadeRow from './FadeRow';
 import DrawLayer from './DrawLayer';
 import { isComplete, type Shape } from './drawGeometry';
-import { ANGLE_MAX_OFF_SIDE_DEG, drawnSide, frameAt, jointAngles, joints, spread, timeOf } from './tracker';
+import { useOverlays } from './overlayPrefs';
+import { peakFrame } from './compare';
+import type { LastLift } from './useLastLift';
+import { ANGLE_MAX_OFF_SIDE_DEG, drawnSide, frameAt, jointAngles, joints, liftRange, spread, timeOf } from './tracker';
 import { t } from '../../i18n';
 
 type Speed = 0.25 | 0.5 | 1;
 const SPEEDS: Speed[] = [0.25, 0.5, 1];
-type Overlays = { path: boolean; lines: boolean; body: boolean; angles: boolean };
 const SCRUB_H = 44;
 
 // The 4.0 result: the lifter's own clip, every frame, with the tracked path and body drawn on it.
@@ -34,6 +37,9 @@ export default function TrackerScreen({
   onBack,
   onShare,
   onMore,
+  reveal,
+  lastLift,
+  reduceMotion,
 }: {
   analysis: Analysis;
   clipUri: string;
@@ -42,15 +48,20 @@ export default function TrackerScreen({
   onBack: () => void;
   onShare?: () => void;
   onMore?: () => void;
+  // The first look at a lift just tracked: it plays itself once at half speed, the path drawing and the body on,
+  // and stops on the last frame with the next action. With Reduce Motion it opens on that last frame.
+  reveal?: boolean;
+  // The lifter's last lift before this one, to lay its bar path on this video.
+  lastLift?: LastLift | null;
+  reduceMotion?: boolean;
 }) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   // Frames are spread over the clip's real length: the recorded rate is one over the shortest frame gap, which runs
   // fast on a clip with uneven frame timing and would slide the overlay off the picture.
   const [duration, setDuration] = useState(0);
-  const count0 = Math.max(analysis.video.frameCount, body?.frames.length ?? 0, 1);
-  const fps = duration > 0 ? count0 / duration : analysis.video.fps;
   const count = Math.max(analysis.video.frameCount, body?.frames.length ?? 0, 1);
+  const fps = duration > 0 ? count / duration : analysis.video.fps;
   const src = { width: analysis.video.width, height: analysis.video.height };
   const maxH = Math.round(height * 0.6);
   const boxW = Math.min(width, Math.round((maxH * src.width) / src.height));
@@ -59,45 +70,79 @@ export default function TrackerScreen({
   const offSide = analysis.noCueReason?.offSideDeg;
   const anglesOk = body !== null && (offSide == null || offSide <= ANGLE_MAX_OFF_SIDE_DEG);
 
-  const [frame, setFrameState] = useState(0);
+  // The player keeps to the lift itself (tracking marks it) until the lifter asks for the whole clip.
+  const hasLift = liftRange(analysis.lift, count, false).cropped;
+  const [whole, setWhole] = useState(false);
+  const { cropped, first, last } = liftRange(analysis.lift, count, whole);
+  // It opens on the lift's first frame: the readout and the overlay from the first paint, the picture as soon as
+  // the clip can seek.
+  const systemReduce = useReducedMotion();
+  const reduce = reduceMotion ?? systemReduce;
+  const [revealing, setRevealing] = useState<'playing' | 'done' | null>(reveal ? (reduce ? 'done' : 'playing') : null);
+  const revealRef = useRef(revealing);
+  const endReveal = () => {
+    if (revealRef.current !== 'playing') return;
+    revealRef.current = 'done';
+    setRevealing('done');
+  };
+  const opensOn = reveal && reduce ? last : first;
+  const [frame, setFrameState] = useState(opensOn);
   const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState<Speed>(0.25);
-  const [overlays, setOverlays] = useState<Overlays>({ path: true, lines: true, body: false, angles: false });
+  const [speed, setSpeed] = useState<Speed>(reveal ? 0.5 : 0.25);
+  const [comparing, setComparing] = useState(false);
+  const prefs = useOverlays();
+  const overlays = revealing === 'playing' ? { ...prefs, path: true, body: true } : prefs;
   const [drawing, setDrawing] = useState(false);
   const [shapes, setShapes] = useState<Shape[]>([]);
-  const frameRef = useRef(0);
-  // The player keeps to the lift itself (tracking marks it) until the lifter asks for the whole clip.
-  const lift = analysis.lift && analysis.lift.endFrame < count ? analysis.lift : null;
-  const [whole, setWhole] = useState(false);
-  const first = lift && !whole ? lift.startFrame : 0;
-  const last = lift && !whole ? lift.endFrame : count - 1;
+  const frameRef = useRef(opensOn);
+  const path = analysis.reps[0]?.path ?? [];
+  // The top of the lift, felt once as the first look passes it.
+  const peak = useRef(reveal ? peakFrame(path, first, last) : null);
+  // Set on playing again from the end: the times still arriving from the old position are not the end reached again.
+  const restarting = useRef(false);
 
   const player = useVideoPlayer(clipUri, (p) => {
     p.loop = false;
     p.muted = true;
     p.timeUpdateEventInterval = 1 / 60;
     p.seekTolerance = { toleranceBefore: 0, toleranceAfter: 0 };
-    p.playbackRate = 0.25;
+    p.playbackRate = reveal ? 0.5 : 0.25;
+    if (opensOn > 0) p.currentTime = timeOf(opensOn, fps);
+    if (reveal && !reduce) p.play();
   });
 
   useEffect(() => {
     const time = player.addListener('timeUpdate', ({ currentTime }) => {
       if (player.duration > 0 && Math.abs(player.duration - duration) > 0.01) setDuration(player.duration);
-      const f = frameAt(currentTime, fps, count);
-      if (f > last && player.playing) player.pause();
+      const at = frameAt(currentTime, fps, count);
+      if (restarting.current) {
+        if (at >= last) return;
+        restarting.current = false;
+      }
+      if (revealRef.current === 'playing' && peak.current !== null && at >= peak.current) {
+        peak.current = null;
+        impact('light');
+      }
+      // it stops on the last frame, not one past it
+      if (at >= last && player.playing) {
+        player.pause();
+        if (at > last) player.currentTime = timeOf(last, fps);
+        endReveal();
+      }
+      const f = Math.min(Math.max(at, first), last);
       if (f === frameRef.current) return;
       frameRef.current = f;
       setFrameState(f);
     });
     const loaded = player.addListener('sourceLoad', (e) => {
       if (e.duration > 0) setDuration(e.duration);
-      if (first > 0 && frameRef.current < first) {
-        frameRef.current = first;
-        setFrameState(first);
-        player.currentTime = timeOf(first, e.duration > 0 ? count0 / e.duration : fps);
-      }
+      if (frameRef.current > 0 && frameRef.current === opensOn) player.currentTime = timeOf(opensOn, e.duration > 0 ? count / e.duration : fps);
     });
-    const play = player.addListener('playingChange', ({ isPlaying }) => setPlaying(isPlaying));
+    const play = player.addListener('playingChange', ({ isPlaying }) => {
+      setPlaying(isPlaying);
+      // the clip ran out before a time on its last frame arrived
+      if (!isPlaying && frameRef.current >= last - 1) endReveal();
+    });
     return () => {
       time.remove();
       play.remove();
@@ -112,6 +157,8 @@ export default function TrackerScreen({
 
   const seek = (next: number) => {
     const f = Math.min(Math.max(first, Math.round(next)), last);
+    endReveal();
+    restarting.current = false;
     player.pause();
     if (f === frameRef.current) return;
     frameRef.current = f;
@@ -126,10 +173,27 @@ export default function TrackerScreen({
 
   const togglePlay = () => {
     impact('light');
+    endReveal();
     if (playing) return player.pause();
     exitDraw();
-    if (frameRef.current >= last || frameRef.current < first) player.currentTime = timeOf(first, fps);
+    if (frameRef.current >= last || frameRef.current < first) {
+      restarting.current = true;
+      frameRef.current = first;
+      setFrameState(first);
+      player.currentTime = timeOf(first, fps);
+    }
     player.play();
+  };
+
+  // Back to the lift from a frame outside it: the lift's first frame.
+  const toggleWhole = () => {
+    const next = liftRange(analysis.lift, count, !whole);
+    setWhole(!whole);
+    if (frameRef.current >= next.first && frameRef.current <= next.last) return;
+    player.pause();
+    frameRef.current = next.first;
+    setFrameState(next.first);
+    player.currentTime = timeOf(next.first, fps);
   };
 
   const scrub = useRef({ seek, first, last, width });
@@ -144,7 +208,6 @@ export default function TrackerScreen({
   ).current;
 
   const s = (p: Point) => toScreen(p, fit);
-  const path = analysis.reps[0]?.path ?? [];
   const j = overlays.angles ? joints(body, frame) : [];
   const side = drawnSide(body, offSide);
 
@@ -161,7 +224,7 @@ export default function TrackerScreen({
           style={{ width: box.width, height: box.height, overflow: 'hidden' }}
         >
           <VideoView player={player} style={{ width: box.width, height: box.height }} contentFit="fill" nativeControls={false} allowsVideoFrameAnalysis={false} />
-          <TrackOverlay analysis={analysis} body={body} frame={frame} box={box} show={overlays} />
+          <TrackOverlay analysis={analysis} body={body} frame={frame} box={box} show={overlays} ghost={comparing && lastLift ? lastLift.points : null} />
           {overlays.angles && anglesOk
             ? spread(jointAngles(j, src, side).map((a) => ({ ...a, x: s(a.at).x + 10, y: s(a.at).y - 12 })), 56, 28).map((a) => (
                 <View key={a.name} pointerEvents="none" style={{ position: 'absolute', left: Math.min(Math.max(4, a.x), box.width - 56), top: Math.min(Math.max(4, a.y), box.height - 26) }}>
@@ -171,8 +234,34 @@ export default function TrackerScreen({
             : null}
           <DrawLayer box={box} fit={fit} video={src} shapes={shapes} onShapes={setShapes} drawing={drawing} />
           <View pointerEvents="none" style={{ position: 'absolute', top: space.s3, left: space.s3 }}>
-            <Readout testID="tracker-readout">{`${frame + 1} / ${count} · ${seconds(frame / fps)} s`}</Readout>
+            <Readout testID="tracker-readout">{cropped ? `${seconds((frame - first) / fps)} s · ${frame + 1} / ${count}` : `${frame + 1} / ${count} · ${seconds(frame / fps)} s`}</Readout>
           </View>
+          {lastLift && revealing !== 'playing' && !drawing ? (
+            <Pressable
+              testID="tracker-compare"
+              accessibilityRole="switch"
+              accessibilityState={{ checked: comparing }}
+              onPress={() => {
+                impact('light');
+                setComparing((c) => !c);
+              }}
+              hitSlop={4}
+              style={{
+                position: 'absolute',
+                left: space.s3,
+                bottom: space.s3,
+                height: control.chipHeight,
+                paddingHorizontal: space.s3,
+                justifyContent: 'center',
+                backgroundColor: shade(0.6),
+                borderWidth: stroke.hairline,
+                borderColor: comparing ? colors.text : colors.hairline,
+                ...shape.control,
+              }}
+            >
+              <Text style={{ ...type.caption, color: colors.text }}>{comparing ? t('analysis.tracker.comparing', { when: lastLift.title }) : t('analysis.tracker.compare')}</Text>
+            </Pressable>
+          ) : null}
         </Pressable>
       </View>
       <View {...pan.panHandlers} testID="tracker-scrub" accessibilityRole="adjustable" accessibilityLabel={t('analysis.tracker.scrub')} style={{ height: SCRUB_H, justifyContent: 'center' }}>
@@ -216,12 +305,12 @@ export default function TrackerScreen({
           {(['path', 'lines', 'body', 'angles'] as const)
             .filter((k) => (k === 'body' ? body !== null : k === 'angles' ? anglesOk : true))
             .map((k) => (
-              <Chip key={k} testID={`toggle-${k}`} toggle on={overlays[k]} onPress={() => setOverlays((o) => ({ ...o, [k]: !o[k] }))}>
+              <Chip key={k} testID={`toggle-${k}`} toggle on={overlays[k]} onPress={() => useOverlays.setState({ [k]: !overlays[k] })}>
                 {t(`analysis.tracker.overlay.${k}`)}
               </Chip>
             ))}
-          {lift ? (
-            <Chip testID="toggle-whole" toggle on={whole} onPress={() => setWhole((w) => !w)}>
+          {hasLift ? (
+            <Chip testID="toggle-whole" toggle on={whole} onPress={toggleWhole}>
               {t('analysis.tracker.wholeClip')}
             </Chip>
           ) : null}
@@ -258,8 +347,8 @@ export default function TrackerScreen({
             </Text>
           ) : null}
         </View>
-        {onShare ? (
-          <Btn kind="secondary" compact onPress={onShare} testID="tracker-share">
+        {onShare && revealing !== 'playing' ? (
+          <Btn kind={revealing === 'done' ? 'primary' : 'secondary'} compact={revealing !== 'done'} onPress={onShare} testID="tracker-share">
             {t('analysis.player.share')}
           </Btn>
         ) : null}

@@ -1,5 +1,5 @@
 import type { Size } from '../../analysis/geometry';
-import type { Point, Rep, TracePoint } from '../../analysis/types';
+import type { Point, Rep } from '../../analysis/types';
 import type { Body } from '../../analysis/device/tracking';
 import { angleAt } from './drawGeometry';
 
@@ -11,6 +11,15 @@ export function frameAt(time: number, fps: number, count: number): number {
 
 export function timeOf(frame: number, fps: number): number {
   return (frame + 0.5) / fps;
+}
+
+// The frames a screen keeps to: the lift itself where tracking marked one that fits the clip, else (or when the
+// lifter asks for the whole clip) every frame.
+export type FrameRange = { cropped: boolean; first: number; last: number };
+export function liftRange(lift: { startFrame: number; endFrame: number } | undefined, count: number, whole: boolean): FrameRange {
+  const end = Math.max(0, count - 1);
+  const ok = lift !== undefined && lift.startFrame >= 0 && lift.startFrame < lift.endFrame && lift.endFrame < count;
+  return ok && !whole ? { cropped: true, first: lift.startFrame, last: lift.endFrame } : { cropped: false, first: 0, last: end };
 }
 
 // Body.frames order (tracking.ts BODY_JOINTS): shoulder, elbow, wrist, hip, knee, ankle, heel, toe, each left then right.
@@ -100,12 +109,6 @@ export function floorY(body: Body | null): number | null {
     if (ys.length >= 2) return Math.max(...ys);
   }
   return null;
-}
-
-// Whether most of the path was read off the plate (else the hands stand in for the bar).
-export function mostlyPlate(path: TracePoint[]): boolean {
-  if (!path.length) return false;
-  return path.filter((p) => p.src === 'plate').length >= path.length / 2;
 }
 
 // Angles are read in the image plane, so they are only shown when the camera is near side-on.

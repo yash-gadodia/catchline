@@ -57,19 +57,6 @@ export function movementLabel(m: Movement): string {
   return t(`format.movement.${m}`);
 }
 
-function spoken(m: Movement): string {
-  return t(`format.spoken.${m}`);
-}
-
-// One line for when the clip did not look like the lift the lifter chose.
-export function movementNote(a: Analysis): string | null {
-  const d = a.detectedMovement;
-  if (!d || d.movement === 'unknown' || d.movement === a.movement) return null;
-  const looks = t('format.note.looksLike', { detected: spoken(d.movement), chosen: spoken(a.movement) });
-  if ((a.movementUsed ?? a.movement) === d.movement) return t('format.note.analysedAs', { looks, movement: spoken(d.movement) });
-  return t('format.note.keepAs', { looks, movement: t(`format.bare.${a.movement}`) });
-}
-
 // One line for a missed lift (the bar came down in front or behind), so a cue below reads as why it was missed.
 export function missNote(a: Analysis): string | null {
   const label = a.measurements.find((m) => m.id === 'outcome')?.label;
@@ -114,10 +101,6 @@ export function seconds(s: number): string {
   return formatNumber(s, undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-export function plural(n: number, word: string): string {
-  return `${n} ${word}${n === 1 ? '' : 's'}`;
-}
-
 export function liftTitle(a: Analysis, rep?: number | 'miss'): string {
   const parts = [movementLabel(a.movement)];
   if (a.loadKg != null) parts.push(`${fmt(a.loadKg)} kg`);
@@ -130,32 +113,9 @@ export function heroValue(cue: Cue): string {
   return `${fmt(cue.evidence.value)} ${cue.evidence.unit}`;
 }
 
-export function evidenceReadout(cue: Cue): string {
-  return `${t('format.frame', { frame: cue.evidence.frame })} · ${cue.evidence.caption}`;
-}
-
 export function signed(n: number): string {
   const v = Number(n.toFixed(2));
   return `${v > 0 ? '+' : v < 0 ? '−' : ''}${fmt(Math.abs(v))}`;
-}
-
-export type StepState = 'done' | 'active' | 'todo';
-
-// With no analysis yet (a live lift) the first step is the upload and the rep
-// count is still unknown.
-// The tracking run as the lifter sees it: every clip goes through the same five steps.
-export function processingSteps(step: number, firstLabel = t('analysis.processing.preparingClip')): { label: string; state: StepState }[] {
-  const labels = [
-    firstLabel,
-    t('analysis.processing.step.person'),
-    t('analysis.processing.step.bar'),
-    t('analysis.processing.step.body'),
-    t('analysis.processing.step.lines'),
-  ];
-  return labels.map((label, i) => ({
-    label,
-    state: i < step ? 'done' : i === step ? 'active' : 'todo',
-  }));
 }
 
 export function formatWait(seconds: number): string {

@@ -5,15 +5,17 @@ import { useVideoPlayer, VideoView } from 'expo-video';
 import type { Analysis } from '../../analysis/types';
 import type { Body } from '../../analysis/device/tracking';
 import { t } from '../../i18n';
+import { EVENTS, track } from '../../lib/analytics';
 import Btn from '../../components/Btn';
 import Segmented from '../../components/Segmented';
 import TopBar from '../../components/TopBar';
 import { colors, space } from '../../design/tokens';
 import { display, type } from '../../design/typography';
 import TrackOverlay from '../analysis/TrackOverlay';
-import { frameAt, timeOf } from '../analysis/tracker';
+import { frameAt, liftRange, timeOf } from '../analysis/tracker';
 import { discardRender, renderTrackImage, renderTrackVideo, shareFile } from './exporter';
-import { SHARE_SPEEDS, buildTrackSpec, frameCountOf, type ShareSpeed, type TrackShareOptions } from './trackShare';
+import { askForRatingOnce } from './rating';
+import { SHARE_SPEEDS, buildTrackSpec, frameCountOf, hasBarPath, type ShareSpeed, type TrackShareOptions } from './trackShare';
 import { Chip } from './ui';
 
 export type TrackShareDeps = {
@@ -21,9 +23,10 @@ export type TrackShareDeps = {
   renderImage: typeof renderTrackImage;
   share: typeof shareFile;
   discard: typeof discardRender;
+  askRating: typeof askForRatingOnce;
 };
 
-const DEFAULT_DEPS: TrackShareDeps = { renderVideo: renderTrackVideo, renderImage: renderTrackImage, share: shareFile, discard: discardRender };
+const DEFAULT_DEPS: TrackShareDeps = { renderVideo: renderTrackVideo, renderImage: renderTrackImage, share: shareFile, discard: discardRender, askRating: askForRatingOnce };
 const LAYERS = ['path', 'lines', 'body'] as const;
 const SCRUB_H = 44;
 
@@ -49,10 +52,14 @@ export default function TrackShareScreen({
   const count = frameCountOf(analysis, body);
   const [layers, setLayers] = useState({ path: true, lines: true, body: false });
   const [speed, setSpeed] = useState<ShareSpeed>(1);
-  const [frame, setFrameState] = useState(0);
+  // Like the player, the share keeps to the lift itself until the lifter asks for the whole clip.
+  const hasLift = liftRange(analysis.lift, count, false).cropped;
+  const [whole, setWhole] = useState(false);
+  const { first, last } = liftRange(analysis.lift, count, whole);
+  const [frame, setFrameState] = useState(first);
   const [making, setMaking] = useState<{ kind: 'video' | 'image'; progress: number } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const frameRef = useRef(0);
+  const frameRef = useRef(first);
   const made = useRef<Record<string, string>>({});
 
   const player = useVideoPlayer(clipUri, (p) => {
@@ -60,37 +67,49 @@ export default function TrackShareScreen({
     p.muted = true;
     p.timeUpdateEventInterval = 1 / 60;
     p.seekTolerance = { toleranceBefore: 0, toleranceAfter: 0 };
+    if (first > 0) p.currentTime = timeOf(first, fps);
     p.play();
   });
 
   useEffect(() => {
     const sub = player.addListener('timeUpdate', ({ currentTime }) => {
-      const f = frameAt(currentTime, fps, count);
+      let f = frameAt(currentTime, fps, count);
+      // past the lift's last frame (or before its first): round again from its first
+      if (f > last || f < first) {
+        f = first;
+        player.currentTime = timeOf(first, fps);
+      }
       if (f === frameRef.current) return;
       frameRef.current = f;
       setFrameState(f);
     });
-    return () => sub.remove();
-  }, [player, fps, count]);
+    const loaded = player.addListener('sourceLoad', () => {
+      if (first > 0 && frameRef.current === first) player.currentTime = timeOf(first, fps);
+    });
+    return () => {
+      sub.remove();
+      loaded.remove();
+    };
+  }, [player, fps, count, first, last]);
 
   useEffect(() => () => Object.values(made.current).forEach((uri) => deps.discard(uri)), []);
 
   const seek = (next: number) => {
-    const f = Math.min(Math.max(0, Math.round(next)), count - 1);
+    const f = Math.min(Math.max(first, Math.round(next)), last);
     player.pause();
     if (f === frameRef.current) return;
     frameRef.current = f;
     setFrameState(f);
     player.currentTime = timeOf(f, fps);
   };
-  const scrub = useRef({ seek, count, width });
-  scrub.current = { seek, count, width };
+  const scrub = useRef({ seek, first, last, width });
+  scrub.current = { seek, first, last, width };
   const pan = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: (e) => scrub.current.seek((e.nativeEvent.pageX / scrub.current.width) * (scrub.current.count - 1)),
-      onPanResponderMove: (e) => scrub.current.seek((e.nativeEvent.pageX / scrub.current.width) * (scrub.current.count - 1)),
+      onPanResponderGrant: (e) => scrub.current.seek(scrub.current.first + (e.nativeEvent.pageX / scrub.current.width) * (scrub.current.last - scrub.current.first)),
+      onPanResponderMove: (e) => scrub.current.seek(scrub.current.first + (e.nativeEvent.pageX / scrub.current.width) * (scrub.current.last - scrub.current.first)),
     }),
   ).current;
 
@@ -99,7 +118,16 @@ export default function TrackShareScreen({
   const boxW = Math.min(width, Math.round((maxH * src.width) / src.height));
   const box = { width: boxW, height: Math.round((boxW * src.height) / src.width) };
 
-  const options: TrackShareOptions = { ...layers, body: layers.body && body !== null, watermark, speed };
+  const toggleWhole = () => {
+    const next = liftRange(analysis.lift, count, !whole);
+    setWhole(!whole);
+    if (frameRef.current >= next.first && frameRef.current <= next.last) return;
+    frameRef.current = next.first;
+    setFrameState(next.first);
+    player.currentTime = timeOf(next.first, fps);
+  };
+
+  const options: TrackShareOptions = { ...layers, body: layers.body && body !== null, watermark, speed, whole };
 
   // Renders once per set of choices; the same choices share the file already made.
   const send = async (kind: 'video' | 'image') => {
@@ -123,8 +151,22 @@ export default function TrackShareScreen({
         setMaking(null);
       }
     }
+    const barPath = hasBarPath(analysis);
+    track(EVENTS.SHARE_EXPORTED, {
+      kind,
+      speed: kind === 'video' ? speed : 1,
+      overlay_path: options.path,
+      overlay_lines: options.lines,
+      overlay_body: options.body,
+      whole_clip: whole,
+      has_bar_path: barPath,
+      duration_s: kind === 'video' ? Number(((last - first + 1) / fps / speed).toFixed(1)) : 0,
+      completed: true,
+    });
     try {
-      await deps.share(uri);
+      const res = await deps.share(uri);
+      track(EVENTS.SHARE_COMPLETED, { kind, activity: res.outcome === 'cancelled' ? 'dismissed' : (res.activity ?? 'unknown') });
+      if (res.outcome === 'shared') void deps.askRating(barPath).catch(() => undefined);
     } catch {
       setNotice(t('share.shareFailed'));
     }
@@ -153,14 +195,15 @@ export default function TrackShareScreen({
       </View>
       <View {...pan.panHandlers} testID="share-scrub" accessibilityRole="adjustable" accessibilityLabel={t('analysis.tracker.scrub')} style={{ height: SCRUB_H, justifyContent: 'center' }}>
         <View style={{ height: 3, backgroundColor: colors.hairline }}>
-          <View style={{ height: 3, width: `${(frame / Math.max(count - 1, 1)) * 100}%`, backgroundColor: colors.text }} />
+          <View style={{ height: 3, width: `${(Math.min(Math.max(frame - first, 0), last - first) / Math.max(last - first, 1)) * 100}%`, backgroundColor: colors.text }} />
         </View>
       </View>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: space.gutter }}>
-        <View style={{ flexDirection: 'row', gap: space.s2 }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: space.s2, paddingHorizontal: space.gutter }}>
+        <View style={{ flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: space.s2 }}>
           {LAYERS.filter((k) => k !== 'body' || body !== null).map((k) => (
             <Chip key={k} testID={`share-toggle-${k}`} label={t(`analysis.tracker.overlay.${k}`)} on={layers[k]} mono onPress={() => setLayers((l) => ({ ...l, [k]: !l[k] }))} />
           ))}
+          {hasLift ? <Chip testID="share-toggle-whole" label={t('analysis.tracker.wholeClip')} on={whole} mono onPress={toggleWhole} /> : null}
         </View>
         <Segmented
           testID="share-speed"

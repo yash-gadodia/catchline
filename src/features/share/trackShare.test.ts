@@ -111,6 +111,26 @@ describe('buildTrackSpec', () => {
     });
   });
 
+  it('covers the whole clip when tracking marked no lift, or the lift does not fit the clip', () => {
+    const spec = buildTrackSpec(lift(), body, ALL);
+    expect([spec.startFrame, spec.endFrame, spec.frame]).toEqual([0, 2, 0]);
+    const off = buildTrackSpec(lift({ lift: { startFrame: 1, endFrame: 3 } }), body, ALL);
+    expect([off.startFrame, off.endFrame]).toEqual([0, 2]);
+  });
+
+  it('covers the lift only, with the image frame inside it, unless the whole clip is asked for', () => {
+    const long = lift({ video: { uri: '', width: 1080, height: 1920, fps: 60, frameCount: 300 }, lift: { startFrame: 90, endFrame: 240 } });
+    const spec = buildTrackSpec(long, null, ALL);
+    expect([spec.startFrame, spec.endFrame, spec.frame, spec.frameCount]).toEqual([90, 240, 90, 300]);
+    expect(buildTrackSpec(long, null, ALL, 12).frame).toBe(90);
+    expect(buildTrackSpec(long, null, ALL, 150).frame).toBe(150);
+    expect(buildTrackSpec(long, null, ALL, 299).frame).toBe(240);
+    // the path is not cut: the renderer draws it up to the frame it is on, as the player does
+    expect(spec.path).toEqual([[0, 0.4, 0.8], [2, 0.45, 0.3]]);
+    const all = buildTrackSpec(long, null, { ...ALL, whole: true }, 12);
+    expect([all.startFrame, all.endFrame, all.frame]).toEqual([0, 299, 12]);
+  });
+
   it('keeps the image frame inside the clip', () => {
     expect(buildTrackSpec(lift(), body, ALL, 99).frame).toBe(2);
     expect(buildTrackSpec(lift(), body, ALL, -4).frame).toBe(0);
