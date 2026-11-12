@@ -34,6 +34,8 @@ export default function TrimScreen({
   const [drag, setDrag] = useState<number | undefined>(undefined);
   const [head, setHead] = useState(trim.start);
   const [playing, setPlaying] = useState(true);
+  // The preview takes what the trimmer, help and Track leave, so Track is on screen on a small phone (iPhone SE).
+  const [previewH, setPreviewH] = useState(Math.min(Math.round(width * 1.08), 420));
   const thumbs = useClipThumbs(clip.uri, clip.durationS);
   const problem = trimProblem(trim);
 
@@ -53,13 +55,15 @@ export default function TrimScreen({
         accessibilityRole="button"
         accessibilityLabel={playing ? t('capture.trim.pause') : t('capture.trim.play')}
         testID="trim-preview"
+        onLayout={(e) => setPreviewH(Math.round(e.nativeEvent.layout.height))}
+        style={{ flex: 1, overflow: 'hidden' }}
       >
         <ClipPlayer
           uri={clip.uri}
           trim={trim}
           durationS={clip.durationS}
           width={width}
-          height={Math.min(Math.round(width * 1.08), 420)}
+          height={previewH}
           seekTo={drag ?? (playing ? undefined : head)}
           onTime={setHead}
           progress={false}
@@ -88,8 +92,7 @@ export default function TrimScreen({
         ) : null}
       </View>
       <Text style={{ color: colors.text2, ...type.callout, paddingHorizontal: space.gutter }}>{t('capture.trim.help')}</Text>
-      <View style={{ flex: 1 }} />
-      <View style={{ paddingHorizontal: space.gutter, paddingBottom: Math.max(insets.bottom, space.s4) + space.s2 }}>
+      <View style={{ paddingHorizontal: space.gutter, paddingTop: space.s5, paddingBottom: Math.max(insets.bottom, space.s4) + space.s2 }}>
         <Btn onPress={() => onTrack(trim)} disabled={problem === 'too_long'} testID="trim-track">
           {t('capture.trim.track')}
         </Btn>
