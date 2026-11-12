@@ -15,6 +15,7 @@ export const share: Strings<typeof en> = {
   'share.strobeCard': "Card estroboscópico",
   'share.tryAgain': "Tentar de novo",
   'share.shareImage': "Compartilhar imagem",
+  'share.shareData': "Compartilhar dados (CSV)",
   'share.making': "Criando seu vídeo {pct}%",
   'share.shareVideo': "Compartilhar vídeo",
   'share.saveToPhotos': "Salvar em Fotos",

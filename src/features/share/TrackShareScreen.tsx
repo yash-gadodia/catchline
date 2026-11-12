@@ -15,6 +15,8 @@ import TrackOverlay from '../analysis/TrackOverlay';
 import { frameAt, liftRange, timeOf } from '../analysis/tracker';
 import { discardRender, fastShareSupported, renderTrackImage, renderTrackVideo, shareFile } from './exporter';
 import { askForRatingOnce } from './rating';
+import { liftCsv } from './csv';
+import { shareLiftsCsv } from '../you/liftsCsv';
 import { buildTrackSpec, markLayout, shareSpeeds, frameCountOf, hasBarPath, type ShareSpeed, type TrackShareOptions } from './trackShare';
 import { Chip } from './ui';
 
@@ -24,11 +26,12 @@ export type TrackShareDeps = {
   share: typeof shareFile;
   discard: typeof discardRender;
   askRating: typeof askForRatingOnce;
+  shareCsv: typeof shareLiftsCsv;
   // tests: whether the binary renders 2x / 4x (default: ask ClipTranscoder)
   fastShare?: boolean;
 };
 
-const DEFAULT_DEPS: TrackShareDeps = { renderVideo: renderTrackVideo, renderImage: renderTrackImage, share: shareFile, discard: discardRender, askRating: askForRatingOnce };
+const DEFAULT_DEPS: TrackShareDeps = { renderVideo: renderTrackVideo, renderImage: renderTrackImage, share: shareFile, discard: discardRender, askRating: askForRatingOnce, shareCsv: shareLiftsCsv };
 const LAYERS = ['path', 'lines', 'body'] as const;
 const SCRUB_H = 44;
 
@@ -232,6 +235,9 @@ export default function TrackShareScreen({
         </Btn>
         <Btn kind="secondary" onPress={() => void send('image')} testID="share-image-btn">
           {t('share.shareImage')}
+        </Btn>
+        <Btn kind="secondary" compact onPress={() => void deps.shareCsv(liftCsv(analysis), `catchline-${analysis.id}.csv`)} testID="share-csv-btn">
+          {t('share.shareData')}
         </Btn>
       </View>
     </View>

@@ -12,6 +12,7 @@ export const share = {
   'share.strobeCard': "Strobe card",
   'share.tryAgain': "Try again",
   'share.shareImage': "Share image",
+  'share.shareData': "Share data (CSV)",
   'share.making': "Making your video {pct}%",
   'share.shareVideo': "Share video",
   'share.saveToPhotos': "Save to Photos",
