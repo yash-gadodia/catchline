@@ -7,6 +7,7 @@ import ShareRoute from '../../../app/capture/share';
 
 const params: { current: Record<string, string> } = { current: {} };
 const mockNav = { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => false) };
+const mockStack = { setOptions: jest.fn(), getParent: () => undefined };
 
 jest.mock('expo-router', () => {
   const { Text } = require('react-native');
@@ -16,6 +17,7 @@ jest.mock('expo-router', () => {
       return mockNav;
     },
     useRouter: () => mockNav,
+    useNavigation: () => mockStack,
     useLocalSearchParams: () => params.current,
     Redirect: ({ href }: { href: string }) => <Text testID="redirect">{href}</Text>,
   };
@@ -128,6 +130,8 @@ describe('add a video, trim, track', () => {
     const view = await render(<TrimRoute />);
     expect(view.queryByTestId('lift-chip')).toBeNull();
     expect(view.getByTestId('weight-input')).toHaveProp('value', '62.5');
+    // dragging a trim handle must not swipe the screen away
+    expect(mockStack.setOptions).toHaveBeenCalledWith({ gestureEnabled: false, fullScreenGestureEnabled: false });
 
     await act(async () => {
       fireEvent.press(view.getByTestId('trim-track'));

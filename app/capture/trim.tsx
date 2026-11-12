@@ -6,6 +6,7 @@ import { useCapture, useCaptureHydrated } from '../../src/features/capture/store
 import { submitDraft } from '../../src/features/capture/submit';
 import { plateMarkSupported } from '../../src/features/capture/plateMark';
 import TrimScreen from '../../src/features/capture/TrimScreen';
+import { useNoSwipeBack } from '../../src/lib/useNoSwipeBack';
 import { useOnboarding } from '../../src/features/onboarding/store';
 import { colors } from '../../src/design/tokens';
 
@@ -16,6 +17,7 @@ export default function TrimRoute() {
   const { draft, setDraft, updateDraft, lastWeight, setLastWeight } = useCapture();
   const ready = useCaptureHydrated();
   const units = useOnboarding((s) => s.units);
+  useNoSwipeBack();
   useEffect(() => {
     if (draft) return;
     if (__DEV__) setDraft(demoClip('ok'));
