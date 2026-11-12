@@ -7,6 +7,7 @@ export const share = {
   'share.videoFailed': "Couldn't make the video. Try again, or share the still.",
   'share.back': "Back",
   'share.title': "Share",
+  'share.mark': "Catchline · free on the App Store",
   'share.video': "Video",
   'share.strobeCard': "Strobe card",
   'share.tryAgain': "Try again",

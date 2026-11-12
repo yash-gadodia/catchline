@@ -3,6 +3,7 @@ import type { Body } from '../../analysis/device/tracking';
 import type { Size } from '../../analysis/geometry';
 import { bones, drawnSide, floorY, joints, liftRange, startLineX } from '../analysis/tracker';
 import { dark, opacity, stroke } from '../../design/tokens';
+import { t } from '../../i18n';
 
 export type ShareSpeed = 4 | 2 | 1 | 0.5 | 0.25;
 export const SHARE_SPEEDS: ShareSpeed[] = [1, 0.5, 0.25];
@@ -67,6 +68,18 @@ export function hasBarPath(analysis: Analysis): boolean {
 
 const px = (pt: number, unit: number) => Number((pt * unit).toFixed(2));
 
+// The mark says what made the video and where to get it (owner, 12-11): "Catchline · free on the App Store". Reels and
+// TikTok cover the bottom ~20% (caption) and a right-hand column (buttons), so it sits a fifth of the height up and as
+// far in from the right, never off the left edge (MARK_WIDTH: the longest translation at MARK_SIZE, measured).
+const MARK_SIZE = 15;
+const MARK_WIDTH = 180;
+export function markLayout(video: Size): { size: number; inset: number; widthPt: number } {
+  const unit = pxPerPt(video);
+  const widthPt = video.width / unit;
+  const heightPt = video.height / unit;
+  return { size: MARK_SIZE, inset: Math.max(12, Math.min(Math.round(heightPt * 0.2), Math.round(widthPt - MARK_WIDTH - 12))), widthPt };
+}
+
 export function frameCountOf(analysis: Analysis, body: Body | null): number {
   return Math.max(analysis.video.frameCount, body?.frames.length ?? 0, 1);
 }
@@ -75,6 +88,7 @@ export function buildTrackSpec(analysis: Analysis, body: Body | null, options: T
   const rep = analysis.reps[0];
   const count = frameCountOf(analysis, body);
   const unit = pxPerPt(analysis.video);
+  const mark = markLayout(analysis.video);
   const range = liftRange(analysis.lift, count, options.whole === true);
   const side = drawnSide(body, analysis.noCueReason?.offSideDeg);
   const drawBody = options.body && body !== null;
@@ -93,7 +107,7 @@ export function buildTrackSpec(analysis: Analysis, body: Body | null, options: T
     joints: perFrame((f) =>
       joints(body, f).flatMap((p, i) => (p && (side === 'both' || i % 2 === side) ? [p.x, p.y] : [])),
     ),
-    watermark: options.watermark ? 'catchline' : null,
+    watermark: options.watermark ? t('share.mark') : null,
     style: {
       flare: dark.flare,
       halo: dark.halo,
@@ -108,8 +122,8 @@ export function buildTrackSpec(analysis: Analysis, body: Body | null, options: T
       dotStroke: px(1.5, unit),
       jointRadius: px(3, unit),
       jointStroke: px(1, unit),
-      markSize: px(15, unit),
-      markInset: px(12, unit),
+      markSize: px(mark.size, unit),
+      markInset: px(mark.inset, unit),
       markFonts: ['BigShouldersDisplay_700Bold', 'BigShouldersDisplay-Bold'],
     },
   };

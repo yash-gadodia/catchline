@@ -56,7 +56,7 @@ describe('buildTrackSpec', () => {
     ]);
     expect(spec.startX).toBe(0.41);
     expect(spec.floorY).toBe(0.93);
-    expect(spec.watermark).toBe('catchline');
+    expect(spec.watermark).toBe('Catchline · free on the App Store');
   });
 
   it('draws both sides when the angle is unknown, one side when the clip is side-on', () => {
@@ -106,7 +106,7 @@ describe('buildTrackSpec', () => {
       jointRadius: 11.37,
       jointStroke: 3.79,
       markSize: 56.84,
-      markInset: 45.47,
+      markInset: 352.42,
       markFonts: ['BigShouldersDisplay_700Bold', 'BigShouldersDisplay-Bold'],
     });
   });

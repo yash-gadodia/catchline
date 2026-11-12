@@ -15,7 +15,7 @@ import TrackOverlay from '../analysis/TrackOverlay';
 import { frameAt, liftRange, timeOf } from '../analysis/tracker';
 import { discardRender, fastShareSupported, renderTrackImage, renderTrackVideo, shareFile } from './exporter';
 import { askForRatingOnce } from './rating';
-import { buildTrackSpec, shareSpeeds, frameCountOf, hasBarPath, type ShareSpeed, type TrackShareOptions } from './trackShare';
+import { buildTrackSpec, markLayout, shareSpeeds, frameCountOf, hasBarPath, type ShareSpeed, type TrackShareOptions } from './trackShare';
 import { Chip } from './ui';
 
 export type TrackShareDeps = {
@@ -120,6 +120,8 @@ export default function TrackShareScreen({
   const maxH = Math.max(240, height - insets.top - insets.bottom - 380);
   const boxW = Math.min(width, Math.round((maxH * src.width) / src.height));
   const box = { width: boxW, height: Math.round((boxW * src.height) / src.width) };
+  const mark = markLayout(src);
+  const markScale = box.width / mark.widthPt;
 
   const toggleWhole = () => {
     const next = liftRange(analysis.lift, count, !whole);
@@ -189,9 +191,8 @@ export default function TrackShareScreen({
           <VideoView player={player} style={{ width: box.width, height: box.height }} contentFit="fill" nativeControls={false} allowsVideoFrameAnalysis={false} />
           <TrackOverlay analysis={analysis} body={body} frame={frame} box={box} show={options} />
           {watermark ? (
-            <Text testID="share-watermark" style={[display(15), { position: 'absolute', right: space.s3, bottom: space.s3, color: colors.text }]}>
-              {/* i18n-ok: the brand wordmark, as burned into the file */}
-              catchline
+            <Text testID="share-watermark" style={[display(mark.size * markScale), { position: 'absolute', right: mark.inset * markScale, bottom: mark.inset * markScale, color: colors.text }]}>
+              {t('share.mark')}
             </Text>
           ) : null}
         </Pressable>

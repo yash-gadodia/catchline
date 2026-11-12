@@ -10,6 +10,7 @@ export const share: Strings<typeof en> = {
   'share.videoFailed': "Das Video ließ sich nicht erstellen. Versuch es noch mal oder teile das Standbild.",
   'share.back': "Zurück",
   'share.title': "Teilen",
+  'share.mark': "Catchline · kostenlos im App Store",
   'share.video': "Video",
   'share.strobeCard': "Stroboskop-Karte",
   'share.tryAgain': "Erneut versuchen",

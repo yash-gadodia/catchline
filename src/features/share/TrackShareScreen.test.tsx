@@ -41,7 +41,7 @@ describe('TrackShareScreen', () => {
     const { getByTestId, queryByTestId } = await render(<TrackShareScreen analysis={analysis} body={body} clipUri={CLIP} watermark onBack={() => {}} deps={deps()} />);
     expect(getByTestId('tracker-lines')).toBeTruthy();
     expect(getByTestId('tracker-body')).toBeTruthy();
-    expect(getByTestId('share-watermark')).toHaveTextContent('catchline');
+    expect(getByTestId('share-watermark')).toHaveTextContent('Catchline · free on the App Store');
     await press(getByTestId('share-toggle-body'));
     expect(queryByTestId('tracker-body')).toBeNull();
     await press(getByTestId('share-toggle-lines'));
@@ -81,7 +81,7 @@ describe('TrackShareScreen', () => {
     await waitFor(() => expect(d.share).toHaveBeenCalledWith(IMAGE));
     const spec = specOf(d.renderImage);
     expect(spec.frame).toBe(0);
-    expect(spec.watermark).toBe('catchline');
+    expect(spec.watermark).toBe('Catchline · free on the App Store');
     expect(d.renderVideo).not.toHaveBeenCalled();
   });
 

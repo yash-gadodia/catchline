@@ -34,7 +34,7 @@ export default function ShareRoute() {
   const analysis = load.analysis;
   if (kept) {
     if (!body.ready) return <AnalysisPlaceholder status="loading" onBack={back} />;
-    return <TrackShareScreen key={analysis.id} analysis={analysis} body={body.body} clipUri={kept} watermark={p.tier ? p.tier !== 'pro' : !isPro} onBack={back} />;
+    return <TrackShareScreen key={analysis.id} analysis={analysis} body={body.body} clipUri={kept} watermark onBack={back} />;
   }
   const clip = __DEV__ && p.clip ? { uri: p.clip, startS: Number(p.start ?? 0) } : localClipFor(analysis.id);
   return (
