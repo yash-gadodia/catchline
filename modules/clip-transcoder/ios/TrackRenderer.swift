@@ -33,9 +33,14 @@ struct TrackSpec: Decodable {
   // the frame of the share image
   var frame: Int
   var frameCount: Int
+  // the frames the video holds, first and last inclusive (the lift, unless the lifter asked for the whole clip)
+  var startFrame: Int?
+  var endFrame: Int?
   var fps: Double
   // [frame, x, y] per traced point
   var path: [[Double]]
+  // a hanging movement's hip trail: only this many frames back are drawn (nil: the path from its start)
+  var trailFrames: Int?
   var startX: Double?
   var floorY: Double?
   // per frame: x1, y1, x2, y2 for every bone, and x, y for every joint
@@ -147,7 +152,8 @@ func drawTrack(_ ctx: CGContext, spec: TrackSpec, frame: Int, size: CGSize, full
     if fullPath {
       pts = spec.path.map { pt($0[1], $0[2]) }
     } else if f >= first[0] {
-      pts = spec.path.filter { $0[0] < f }.map { pt($0[1], $0[2]) }
+      let from = spec.trailFrames.map { f - Double($0) } ?? -Double.infinity
+      pts = spec.path.filter { $0[0] < f && $0[0] >= from }.map { pt($0[1], $0[2]) }
       if let end = pointAt(spec.path, f) { pts.append(pt(end.x, end.y)) }
     }
     if pts.count > 1 {
@@ -342,12 +348,15 @@ func renderTrackVideo(source: URL, to url: URL, spec: TrackSpec, onProgress: @es
         try autoreleasepool {
           guard CMSampleBufferGetImageBuffer(sample) != nil else { return }
           let pts = CMSampleBufferGetPresentationTimeStamp(sample)
-          if first == nil { first = pts }
-          // fast: the frames between kept ones are read (the overlay counts every frame) but not drawn or written
-          if step > 1 && frame % step != 0 {
+          // outside the lift, and at 2x / 4x the frames between kept ones, are read (the overlay counts every frame)
+          // but not drawn or written
+          let lo = spec.startFrame ?? 0
+          let hi = spec.endFrame ?? Int.max
+          if frame < lo || frame > hi || (step > 1 && (frame - lo) % step != 0) {
             frame += 1
             return
           }
+          if first == nil { first = pts }
           var out: CVPixelBuffer?
           guard let pool = adaptor.pixelBufferPool, CVPixelBufferPoolCreatePixelBuffer(nil, pool, &out) == kCVReturnSuccess, let out else {
             throw TrackRenderError(message: "pixel buffer")

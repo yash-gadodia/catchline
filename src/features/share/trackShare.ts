@@ -1,7 +1,7 @@
 import type { Analysis } from '../../analysis/types';
 import type { Body } from '../../analysis/device/tracking';
 import type { Size } from '../../analysis/geometry';
-import { bones, drawnSide, floorY, joints, liftRange, startLineX } from '../analysis/tracker';
+import { HIP_TRAIL_S, bones, drawnSide, floorY, joints, liftRange, startLineX } from '../analysis/tracker';
 import { dark, opacity, stroke } from '../../design/tokens';
 import { t } from '../../i18n';
 
@@ -28,6 +28,8 @@ export type TrackSpec = {
   fps: number;
   // [frame, x, y] per traced point
   path: [number, number, number][];
+  // a hanging movement's hip trail: only this many frames back are drawn (build 43 on; older binaries draw it all)
+  trailFrames?: number;
   startX: number | null;
   floorY: number | null;
   // per frame: x1, y1, x2, y2 for every bone, and x, y for every joint
@@ -101,6 +103,7 @@ export function buildTrackSpec(analysis: Analysis, body: Body | null, options: T
     endFrame: range.last,
     fps: analysis.video.fps,
     path: options.path ? (rep?.path ?? []).map((p) => [p.frame, p.x, p.y]) : [],
+    ...(analysis.traceKind === 'hip' ? { trailFrames: Math.round(HIP_TRAIL_S * analysis.video.fps) } : {}),
     startX: options.lines ? startLineX(rep) : null,
     floorY: options.lines ? floorY(body) : null,
     bones: perFrame((f) => bones(joints(body, f), side).flatMap(([a, b]) => [a.x, a.y, b.x, b.y])),

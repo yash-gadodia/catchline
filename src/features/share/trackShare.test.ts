@@ -44,6 +44,12 @@ describe('pxPerPt', () => {
 });
 
 describe('buildTrackSpec', () => {
+  it('draws only the last second of a hanging movement’s hip trail, and all of a bar path', () => {
+    const hip = { ...lift(), traceKind: 'hip' as const, video: { ...lift().video, fps: 30 } };
+    expect(buildTrackSpec(hip, body, ALL).trailFrames).toBe(30);
+    expect(buildTrackSpec(lift(), body, ALL).trailFrames).toBeUndefined();
+  });
+
   it('carries the path, the lines, the speed and the clip timing', () => {
     const spec = buildTrackSpec(lift(), body, ALL, 1);
     expect(spec.speed).toBe(0.5);
