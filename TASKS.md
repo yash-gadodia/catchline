@@ -24,6 +24,11 @@ Owner decision 11-11: drop cues; the app tracks any lift or gymnastics clip and 
 - [ ] (Yash) On a phone: time the plate pass (8 ms a frame on the Mini under load) and check a marked lift; IMG_0976 sits 0.5 r off the hub (the model reads the sleeve end), IMG_0591 overhead is jagged
 - [ ] Faster tracking (detector every Nth frame): built and measured, off (`detectInterval = 1`); at 4 the pose pass is ~1.7x faster on the Mini but the far arm's p95 misses the bar on 4-6 of 17 clips (12-11, v40/speed). Owner call. Track-the-lift: `docs/catchline/track-the-lift.md` (no gain on the eval clips, not built)
 - [ ] (Claude, next store build) Share loop, native parts (JS is ready, see `docs/catchline/analytics-4.0.md`): add `expo-store-review` (the rating ask in `src/features/share/rating.ts` turns itself on when the module is in the binary); wordmark anchor and separate x/y insets in `TrackRenderer.swift` (today fixed bottom-right, inside the zone Reels and TikTok cover); a `UIActivityItemSource` so the default share text goes to Messages, Mail and X but not to Instagram or WhatsApp
+## Go-to-market (`docs/catchline/gtm-4.0.md`, channel decision 12 Nov)
+- [ ] (Yash) Name the first 5 coaches; decide Pro free for life for coaches (recommended yes)
+- [ ] (Yash) Add 2 or 3 competition-style clips to the 10 gate clips for going loud
+- [ ] (Claude, build 43) Wordmark out of the Reels/TikTok covered zone (same item as the share loop native parts above)
+- [ ] (Yash, after 4.0 is live) Apple Search Ads, about $5 a day, exact "bar path" / "barbell tracker"
 ## First lift (branch v40/first-wow, JS only)
 - [x] Onboarding is one screen: a bundled tracked lift plays (`assets/sample`, made by `scripts/make-sample.sh <lift folder>`), then "Pick one of your lifts" / "Film a lift now"
 - [ ] (Yash) Choose the clip that is bundled: today's is a stand-in from a test lift and shows a real person
