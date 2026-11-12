@@ -3,8 +3,8 @@
 // Which peak is the lifter's is decided here, frame after frame, from where the plate was, where it was heading and
 // how big it is: started on the lifter's own mark, or without one on the first sure plate on the line of the hands.
 // A short run of frames with no peak that fits is bridged once the plate is found again; a longer one is left empty,
-// and the follow stops rather than drift. It never moves to a peak much smaller than the plate it holds (the far end
-// of the bar reads smaller).
+// and the plate is then taken up again only where it plainly is (sure, its size, on the line of the hands), never
+// drifted to. It never moves to a peak much smaller than the plate it holds (the far end of the bar reads smaller).
 import { NAN_PT, dist, finitePt } from './geometry';
 import { Pt } from './num';
 
@@ -29,18 +29,21 @@ const NEAR = 0.5;
 const AUTO_RUN = 5;
 // frame to frame the plate lands within REACH radii of where its speed puts it (REACH_LOST more for every frame it
 // was not seen, to at most REACH_MAX), at a size within SIZE_STEP of the last (SIZE_LOST more per unseen frame, to
-// SIZE_MAX), and within SIZE of its first: filmed close, a plate overhead reads up to 45% smaller than on the floor
-const REACH = 0.8;
-const REACH_LOST = 0.4;
-const REACH_MAX = 3.0;
-const SIZE_STEP = 0.15;
+// SIZE_MAX), and no smaller than SHRINK of its first: filmed close, a plate overhead reads up to 45% smaller than on
+// the floor (and filmed bar-end-on, it grows as the bar comes towards the phone)
+const REACH = 1.5;
+const REACH_LOST = 0.5;
+const REACH_MAX = 4.0;
+const SIZE_STEP = 0.2;
 const SIZE_LOST = 0.05;
-const SIZE_MAX = 0.35;
-const SIZE: [number, number] = [0.55, 1.6];
+const SIZE_MAX = 0.4;
+const SHRINK = 0.55;
 // unseen up to COAST frames, the gap is drawn on a straight line once the plate is found again; unseen for
-// STOP_S seconds, the follow ends
+// LOST_S seconds, the plate is only taken up again as REGAIN describes: a sure peak on the line of the hands within
+// REGAIN of the last size
 const COAST = 6;
-const STOP_S = 0.5;
+const LOST_S = 0.5;
+const REGAIN = 0.25;
 
 const ok = (p: Peak | undefined): p is Peak => p !== undefined && p[0] >= NET_CONF && Number.isFinite(p[1]) && Number.isFinite(p[2]) && p[3] > 0;
 const at = (p: Peak): Pt => [p[1], p[2]];
@@ -74,7 +77,7 @@ function seedAuto(peaks: Peak[][], hands: Hands, fps: number): Seed | null {
   for (let f = 0; f + AUTO_RUN <= peaks.length; f++) {
     const sure = peaks[f].filter((p) => ok(p) && p[0] >= SURE && onHandsLine(p, hands.a[f], hands.b[f], hands.bodyH)).sort((a, b) => b[3] - a[3]);
     for (const p of sure) {
-      const run = follow(peaks, { frame: f, peak: p }, 1, fps, f + AUTO_RUN);
+      const run = follow(peaks, { frame: f, peak: p }, 1, fps, hands, f + AUTO_RUN);
       if (run.every((c, g) => g < f || g >= f + AUTO_RUN || finitePt(c.centre))) return { frame: f, peak: p };
     }
   }
@@ -84,7 +87,7 @@ function seedAuto(peaks: Peak[][], hands: Hands, fps: number): Seed | null {
 type Held = { centre: Pt; r: number };
 
 // The plate from the seed one way (dir 1 forwards, -1 backwards) up to frame `end` (exclusive going forwards).
-function follow(peaks: Peak[][], seed: Seed, dir: 1 | -1, fps: number, end = dir > 0 ? peaks.length : -1): Held[] {
+function follow(peaks: Peak[][], seed: Seed, dir: 1 | -1, fps: number, hands: Hands, end = dir > 0 ? peaks.length : -1): Held[] {
   const out: Held[] = Array.from({ length: peaks.length }, () => ({ centre: NAN_PT, r: NaN }));
   const r0 = seed.peak[3];
   let last = at(seed.peak);
@@ -92,16 +95,28 @@ function follow(peaks: Peak[][], seed: Seed, dir: 1 | -1, fps: number, end = dir
   let r = r0;
   let v: Pt = [0, 0];
   out[seed.frame] = { centre: last, r };
-  const stop = Math.max(COAST + 1, Math.round(STOP_S * fps));
+  const gone = Math.max(COAST + 1, Math.round(LOST_S * fps));
   for (let f = seed.frame + dir; f !== end && f >= 0 && f < peaks.length; f += dir) {
     const lost = Math.abs(f - lastF) - 1;
-    if (lost >= stop) break;
+    if (lost >= gone) {
+      const again = peaks[f]
+        .filter((p) => ok(p) && p[0] >= SURE && sizeOff(p[3], r) <= Math.log(1 + REGAIN) && p[3] >= SHRINK * r0 && onHandsLine(p, hands.a[f], hands.b[f], hands.bodyH))
+        .sort((a, b) => sizeOff(a[3], r) - sizeOff(b[3], r))[0];
+      if (again) {
+        last = at(again);
+        lastF = f;
+        r = again[3];
+        v = [0, 0];
+        out[f] = { centre: last, r };
+      }
+      continue;
+    }
     const pred: Pt = [last[0] + v[0] * (lost + 1), last[1] + v[1] * (lost + 1)];
     const reach = Math.min(REACH + REACH_LOST * lost, REACH_MAX) * r;
     const sizeTol = Math.log(1 + Math.min(SIZE_STEP + SIZE_LOST * lost, SIZE_MAX));
     const cost = (p: Peak) => dist(at(p), pred) / r + 2 * sizeOff(p[3], r);
     const next = peaks[f]
-      .filter((p) => ok(p) && (lost < COAST || p[0] >= SURE) && dist(at(p), pred) <= reach && sizeOff(p[3], r) <= sizeTol && p[3] >= SIZE[0] * r0 && p[3] <= SIZE[1] * r0)
+      .filter((p) => ok(p) && (lost < COAST || p[0] >= SURE) && dist(at(p), pred) <= reach && sizeOff(p[3], r) <= sizeTol && p[3] >= SHRINK * r0)
       .sort((a, b) => cost(a) - cost(b))[0];
     if (!next) continue;
     const c = at(next);
@@ -124,8 +139,8 @@ function follow(peaks: Peak[][], seed: Seed, dir: 1 | -1, fps: number, end = dir
 export function netTrack(peaks: Peak[][], mark: Mark | null, fps: number, hands: Hands): { centres: Pt[]; radii: number[] } | null {
   const seed = mark ? seedFrom(peaks, mark, fps) : seedAuto(peaks, hands, fps);
   if (!seed) return null;
-  const fwd = follow(peaks, seed, 1, fps);
-  const back = follow(peaks, seed, -1, fps);
+  const fwd = follow(peaks, seed, 1, fps, hands);
+  const back = follow(peaks, seed, -1, fps, hands);
   const held = fwd.map((h, f) => (f < seed.frame ? back[f] : h));
   const centres = held.map((h) => h.centre);
   return centres.some(finitePt) ? { centres, radii: held.map((h) => h.r) } : null;

@@ -1,16 +1,29 @@
 // Re-runs the 4.0 tracking on traces track40.ts saved (no harness, so only what the trace already holds), to try a
 // change to the TS rules in seconds: node retrack40.cjs DIR [DIR ...] rewrites analysis.json and body.json in place
-// and prints the share of the path read off the plate and how many reads the trace lacked.
+// and prints the share of the path read off the plate and how many reads the trace lacked. --marks FILE: lines of
+// "ID frame,x,y,r", the lifter's mark per clip, as track40.ts --mark.
 import { readFileSync, writeFileSync } from 'fs';
 import { gunzipSync } from 'zlib';
 
 import { trackTrace } from '../../src/analysis/device/analyseTrace';
-import { parseTraceJson } from '../../src/analysis/device/trace';
+import { PlateMark } from '../../src/analysis/device/pipeline';
+import { Trace, parseTraceJson } from '../../src/analysis/device/trace';
 
-for (const dir of process.argv.slice(2)) {
+const args = process.argv.slice(2);
+const marksAt = args.indexOf('--marks');
+const marks = new Map<string, PlateMark>();
+if (marksAt >= 0)
+  for (const line of readFileSync(args[marksAt + 1], 'utf8').split('\n').filter(Boolean)) {
+    const [mid, m] = line.split(/\s+/);
+    const [frame, x, y, r] = m.split(',').map(Number);
+    marks.set(mid, { frame, x, y, r });
+  }
+for (const dir of args.filter((_, i) => i !== marksAt && i !== marksAt + 1)) {
   const id = dir.replace(/\/$/, '').split('/').pop() as string;
   try {
-    const t = trackTrace(parseTraceJson(gunzipSync(readFileSync(`${dir}/trace.json.gz`)).toString()), { analysisId: id, assetPrefix: id });
+    const trace = parseTraceJson(gunzipSync(readFileSync(`${dir}/trace.json.gz`)).toString()) as Trace;
+    if (trace.calls.plate_net) trace.plateNet ??= 'eval';
+    const t = trackTrace(trace, { analysisId: id, assetPrefix: id, plateMark: marks.get(id) });
     const path = ((t.analysis.reps as { path: { src?: string }[] }[])[0]?.path ?? []) as { src?: string }[];
     const plate = path.filter((p) => p.src === 'plate').length;
     writeFileSync(`${dir}/analysis.json`, JSON.stringify(t.analysis));
