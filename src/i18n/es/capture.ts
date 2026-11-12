@@ -32,7 +32,7 @@ export const capture: Strings<typeof en> = {
   'capture.import.failedBody': "Inténtalo de nuevo o elige un vídeo guardado en este teléfono.",
   'capture.mark.title': "Marca el disco",
   'capture.mark.back': "Atrás",
-  'capture.mark.help': "Pulsa en el centro del disco más cercano a la cámara y arrastra hasta su borde.",
+  'capture.mark.help': "Pulsa en el centro del disco más cercano a la cámara y arrastra hasta su borde. Así el seguimiento sabe qué disco seguir y la trayectoria sale más precisa.",
   'capture.mark.redo': "Marcado. Pulsa y arrastra de nuevo para rehacerlo.",
   'capture.mark.track': "Seguir",
   'capture.mark.skip': "Omitir, encuentra el disco por mí",

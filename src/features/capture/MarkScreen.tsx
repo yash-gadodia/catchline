@@ -18,7 +18,9 @@ import { t } from '../../i18n';
 export default function MarkScreen({ clip, onBack, onTrack }: { clip: Clip & { uri: string }; onBack: () => void; onTrack: (mark: PlateMark | null) => void }) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const box = { width, height: Math.round(height * 0.58) };
+  // The picture takes what the instruction and buttons leave, so a long line (German) never pushes Track off screen.
+  const [stageH, setStageH] = useState(Math.round(height * 0.58));
+  const box = { width, height: stageH };
   const [frame, setFrame] = useState<{ width: number; height: number } | null>(null);
   const [mark, setMark] = useState<PlateMark | null>(null);
   const [drag, setDrag] = useState<{ cx: number; cy: number; r: number } | null>(null);
@@ -107,7 +109,8 @@ export default function MarkScreen({ clip, onBack, onTrack }: { clip: Clip & { u
         {...pan.panHandlers}
         testID="mark-stage"
         accessibilityLabel={t('capture.mark.stage')}
-        style={{ width: box.width, height: box.height, backgroundColor: colors.surface }}
+        onLayout={(e) => setStageH(Math.round(e.nativeEvent.layout.height))}
+        style={{ flex: 1, width: box.width, backgroundColor: colors.surface, overflow: 'hidden' }}
       >
         <View pointerEvents="none" style={{ position: 'absolute', left: 0, top: 0, width: box.width, height: box.height }}>
           <VideoView player={player} style={{ width: box.width, height: box.height }} contentFit="contain" nativeControls={false} allowsVideoFrameAnalysis={false} />
@@ -120,7 +123,7 @@ export default function MarkScreen({ clip, onBack, onTrack }: { clip: Clip & { u
           ) : null}
         </View>
       </View>
-      <View style={{ flex: 1, paddingHorizontal: space.gutter, paddingTop: space.s4, paddingBottom: Math.max(insets.bottom, space.s4), justifyContent: 'space-between' }}>
+      <View style={{ paddingHorizontal: space.gutter, paddingTop: space.s4, paddingBottom: Math.max(insets.bottom, space.s4), gap: space.s5 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s4 }}>
           {mark ? null : <MarkExample />}
           <Text testID="mark-help" style={{ ...type.callout, color: colors.text2, flex: 1 }}>

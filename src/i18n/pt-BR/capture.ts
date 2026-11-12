@@ -32,7 +32,7 @@ export const capture: Strings<typeof en> = {
   'capture.import.failedBody': "Tente de novo ou escolha um vídeo salvo neste celular.",
   'capture.mark.title': "Marque a anilha",
   'capture.mark.back': "Voltar",
-  'capture.mark.help': "Pressione no centro da anilha mais próxima da câmera e arraste até a borda.",
+  'capture.mark.help': "Pressione no centro da anilha mais próxima da câmera e arraste até a borda. Assim o rastreamento sabe qual anilha seguir e a trajetória sai mais precisa.",
   'capture.mark.redo': "Marcado. Pressione e arraste de novo para refazer.",
   'capture.mark.track': "Rastrear",
   'capture.mark.skip': "Pular, encontre a anilha para mim",

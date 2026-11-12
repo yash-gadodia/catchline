@@ -30,7 +30,7 @@ export const capture = {
   'capture.import.failedBody': "Try again, or pick a clip saved on this phone.",
   'capture.mark.title': "Mark the plate",
   'capture.mark.back': "Back",
-  'capture.mark.help': "Press on the centre of the plate nearest the camera and drag out to its edge.",
+  'capture.mark.help': "Press on the centre of the plate nearest the camera and drag out to its edge. This shows the tracker which plate to follow, so your bar path comes out more accurate.",
   'capture.mark.redo': "Marked. Press and drag again to redo it.",
   'capture.mark.track': "Track",
   'capture.mark.skip': "Skip, find the plate for me",
