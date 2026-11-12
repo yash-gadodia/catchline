@@ -2,7 +2,7 @@ import type { Analysis, TracePoint } from '../../analysis/types';
 import type { Body } from '../../analysis/device/tracking';
 import { snatchMock } from '../../analysis/fixtures';
 import type { Lift } from '../library/types';
-import { anchor, facing, ghostPath, lastLiftBefore, liftPath, peakFrame, standingHeightPx } from './compare';
+import { anchor, facing, ghostPath, liftPath, liftShape, liftsBefore, peakFrame, standingHeightPx } from './compare';
 
 // One body row: both shoulders at shoulderY, both ankles at ankleY, heels at heelX and toes at toeX.
 function row(shoulderY: number, ankleY: number, heelX = 0.4, toeX = 0.5): (number | null)[] {
@@ -107,7 +107,7 @@ describe('ghostPath', () => {
   });
 });
 
-describe('lastLiftBefore', () => {
+describe('liftsBefore', () => {
   const l = (id: string, at: string, more: Partial<Lift> = {}): Lift => ({ id, analysisId: id, movement: 'snatch', date: at.slice(0, 10), at, status: 'done', ...more });
   const lifts = [
     l('today', '2026-11-11T10:00:00.000Z'),
@@ -118,14 +118,42 @@ describe('lastLiftBefore', () => {
     l('failed', '2026-11-10T19:00:00.000Z', { status: 'failed' }),
   ];
 
-  it('is the newest finished lift with a bar path filmed before this one', () => {
-    expect(lastLiftBefore(lifts, 'today')?.id).toBe('yesterday');
-    expect(lastLiftBefore(lifts, 'later')?.id).toBe('today');
+  it('is the finished lifts with a bar path filmed before this one, newest first', () => {
+    expect(liftsBefore(lifts, 'today').map((x) => x.id)).toEqual(['yesterday', 'older']);
+    expect(liftsBefore(lifts, 'later').map((x) => x.id)).toEqual(['today', 'yesterday', 'older']);
   });
 
   it('is nothing for the first lift, or a lift not in the library', () => {
-    expect(lastLiftBefore(lifts, 'older')).toBeNull();
-    expect(lastLiftBefore(lifts, 'missing')).toBeNull();
+    expect(liftsBefore(lifts, 'older')).toEqual([]);
+    expect(liftsBefore(lifts, 'missing')).toEqual([]);
+  });
+});
+
+describe('liftShape', () => {
+  // shoulders at 0.3, ankles at 0.8: one shoulder-to-ankle height is half the picture
+  const standing = bodyOf(Array.from({ length: 100 }, () => row(0.3, 0.8)));
+  const video = { width: 1000, height: 1000, fps: 30 };
+  // a path through these heights above the ankles (in shoulder-to-ankle heights), one point a frame
+  const through = (heights: number[]) => heights.map((h, f) => pt(f, 0.5, 0.8 - h * 0.5));
+  const shape = (heights: number[]) => liftShape({ analysis: lift(through(heights), video), body: standing });
+  const ramp = (from: number, to: number, n: number) => Array.from({ length: n }, (_, i) => from + ((to - from) * i) / (n - 1));
+
+  it('tells a snatch, a clean, a deadlift, a squat and a clean and jerk apart', () => {
+    expect(shape(ramp(0.1, 1.4, 20))).toBe('floor-overhead');
+    expect(shape(ramp(0.1, 0.9, 20))).toBe('floor-shoulders');
+    expect(shape(ramp(0.1, 0.5, 20))).toBe('floor-hips');
+    expect(shape([...ramp(0.95, 0.5, 10), ...ramp(0.5, 0.95, 10)])).toBe('rack-shoulders');
+    // a snatch caught in a deep squat: the bar is low against the ankles for a long time, but an arm above the shoulders
+    const deep = bodyOf(Array.from({ length: 100 }, (_, f) => (f >= 10 && f < 40 ? row(0.55, 0.8) : row(0.3, 0.8))));
+    const squatCatch = [...ramp(0.1, 1.1, 10), ...new Array(30).fill(0.9), ...ramp(0.9, 1.4, 10)];
+    expect(liftShape({ analysis: lift(through(squatCatch), video), body: deep })).toBe('floor-overhead');
+    // a clean, the bar resting at the shoulders for half a second, then the jerk
+    expect(shape([...ramp(0.1, 0.9, 10), ...new Array(15).fill(0.9), ...ramp(0.9, 1.4, 8)])).toBe('floor-overhead-jerk');
+  });
+
+  it('is unknown without a body, or for a body-only result', () => {
+    expect(liftShape({ analysis: lift(through(ramp(0.1, 1.3, 20)), video), body: null })).toBeNull();
+    expect(liftShape({ analysis: { ...lift(through(ramp(0.1, 1.3, 20)), video), traceKind: 'hip' }, body: standing })).toBeNull();
   });
 });
 
