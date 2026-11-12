@@ -98,7 +98,7 @@ bundle_and_sync() {
 preflight() {
   local waited=0 load free
   free=$(mini "df -g /System/Volumes/Data | awk 'NR==2 {print \$4}'")
-  [ "$free" -ge 5 ] || { echo "gate: the Mini has ${free} GB free; needs 5."; exit 3; }
+  [ "$free" -ge "${GATE_MIN_FREE_GB:-5}" ] || { echo "gate: the Mini has ${free} GB free; needs ${GATE_MIN_FREE_GB:-5} (GATE_MIN_FREE_GB)."; exit 3; }
   while :; do
     load=$(mini "sysctl -n vm.loadavg | awk '{print int(\$2)}'")
     [ "$load" -lt 8 ] && break
