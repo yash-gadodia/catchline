@@ -159,6 +159,8 @@ function runClip(c: Clip, work: string, source: Result['source'], labels: Labels
   const original = c.path.replace(/^~/, homedir());
   if (!existsSync(original)) return failed(`clip not found: ${c.path}`);
   const [harness, models] = [need('harness'), need('models')];
+  // the trained plate model (PlateNet.mlmodelc), as the app bundles it; without it the native side uses the rule stages
+  const plate = opt('plate') ? ['--plate', need('plate')] : [];
   const srcFrames = labels[c.id] ? packets(original) : undefined;
   const t0 = Date.now();
   let clip = original;
@@ -171,13 +173,13 @@ function runClip(c: Clip, work: string, source: Result['source'], labels: Labels
   }
   const prepS = secs(t0);
   const t1 = Date.now();
-  sh(harness, ['pose', clip, '--models', models, '--out', join(dir, 'pose.trace.json.gz'), '--run-out', join(dir, 'run.json'), '--movement', 'snatch']);
+  sh(harness, ['pose', clip, '--models', models, '--out', join(dir, 'pose.trace.json.gz'), '--run-out', join(dir, 'run.json'), '--movement', 'snatch', ...plate]);
   const poseS = secs(t1);
   let tracked = trackTrace(loadTrace(dir), { analysisId: c.id, assetPrefix: c.id });
   for (let pass = 1; pass < MAX_PASSES && tracked.misses.length; pass++) {
     const planFile = join(dir, `plan${pass}.json`);
     writeFileSync(planFile, JSON.stringify(tracked.plan));
-    sh(harness, ['analyse', clip, '--models', models, '--plan', planFile, '--run-in', join(dir, 'run.json'), '--out', join(dir, `pix${pass}.trace.json.gz`), '--stills', join(dir, 'stills'), '--movement', 'snatch']);
+    sh(harness, ['analyse', clip, '--models', models, '--plan', planFile, '--run-in', join(dir, 'run.json'), '--out', join(dir, `pix${pass}.trace.json.gz`), '--stills', join(dir, 'stills'), '--movement', 'snatch', ...plate]);
     tracked = trackTrace(loadTrace(dir, pass), { analysisId: c.id, assetPrefix: c.id });
   }
   writeFileSync(join(dir, 'analysis.json'), JSON.stringify(tracked.analysis));

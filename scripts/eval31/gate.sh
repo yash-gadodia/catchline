@@ -132,7 +132,7 @@ full_run() {
   local work="$1" source="$2" started=$SECONDS seen=0 n
   bundle_and_sync; preflight; build
   mini "rm -rf $work && mkdir -p $work && rm -f run.log
-    nohup sh -c 'node gate.cjs run --clips gate-clips.json --harness src/modules/pose-coreml/harness/.build/release/harness --transcoder src/modules/clip-transcoder/harness/.build/release/track-share --models models --work $work --out $work/result.json --source $source; echo exit=\$?' > run.log 2>&1 &
+    nohup sh -c 'node gate.cjs run --clips gate-clips.json --harness src/modules/pose-coreml/harness/.build/release/harness --transcoder src/modules/clip-transcoder/harness/.build/release/track-share --models models --work $work --out $work/result.json --source $source \$([ -d src/modules/pose-coreml/ios/plate/PlateNet.mlmodelc ] && echo --plate src/modules/pose-coreml/ios/plate); echo exit=\$?' > run.log 2>&1 &
     echo \$! > run.pid"
   while :; do
     sleep 20
