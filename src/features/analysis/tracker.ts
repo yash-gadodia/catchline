@@ -1,5 +1,6 @@
 import type { Size } from '../../analysis/geometry';
-import type { Point, Rep } from '../../analysis/types';
+import type { Analysis, Point, Rep, TracePoint } from '../../analysis/types';
+import { pathUpTo } from '../../analysis/timeline';
 import type { Body } from '../../analysis/device/tracking';
 import { angleAt } from './drawGeometry';
 
@@ -123,4 +124,14 @@ export function spread<T extends { x: number; y: number }>(labels: T[], w: numbe
     out.push({ ...l, y });
   }
   return out;
+}
+
+// The path drawn at a frame: a bar path from its start up to the frame. A hanging movement's hips swing back and forth
+// every rep, so only its last HIP_TRAIL_S is drawn and the trail follows the swing instead of piling into a tangle
+// (owner's pull-ups, 12-11).
+export const HIP_TRAIL_S = 1;
+export function drawnPath(analysis: Analysis, frame: number): TracePoint[] {
+  const path: TracePoint[] = analysis.reps[0]?.path ?? [];
+  const from = analysis.traceKind === 'hip' ? frame - Math.round(HIP_TRAIL_S * (analysis.video.fps || 30)) : -Infinity;
+  return pathUpTo(from === -Infinity ? path : path.filter((p) => p.frame >= from), frame);
 }

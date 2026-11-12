@@ -1,13 +1,14 @@
 {
- "commit": "5751d05e3f80060a372000ced5410b4527f1931a",
+ "commit": "24fa565b9f18758649b0fb6aa77bd7ad8dc106cc",
  "mode": "full",
  "source": "prepared",
- "at": "2026-11-12T04:30:39.432Z",
+ "at": "2026-11-12T08:53:34.020Z",
  "clips": {
   "IMG_0591": {
    "tracked": true,
    "failure": null,
    "pathPts": 623,
+   "traceKind": "bar",
    "plateShare": 100,
    "jointsSeen": 89,
    "lift": null,
@@ -18,14 +19,15 @@
    "labelled": 11,
    "onLabels": 73,
    "size": "608x1080",
-   "prepS": 3.8,
+   "prepS": 3.9,
    "poseS": 35.9,
-   "allS": 56.9
+   "allS": 57.4
   },
   "IMG_0596": {
    "tracked": true,
    "failure": null,
    "pathPts": 322,
+   "traceKind": "bar",
    "plateShare": 98,
    "jointsSeen": 85,
    "lift": null,
@@ -37,13 +39,14 @@
    "onLabels": 79,
    "size": "608x1080",
    "prepS": 1.6,
-   "poseS": 13.6,
-   "allS": 22.1
+   "poseS": 14.1,
+   "allS": 22.6
   },
   "IMG_0830": {
    "tracked": true,
    "failure": null,
    "pathPts": 186,
+   "traceKind": "bar",
    "plateShare": 91,
    "jointsSeen": 100,
    "lift": [
@@ -57,14 +60,15 @@
    "labelled": 8,
    "onLabels": 100,
    "size": "608x1080",
-   "prepS": 1.1,
-   "poseS": 8.3,
-   "allS": 13.8
+   "prepS": 1.2,
+   "poseS": 8.5,
+   "allS": 14.6
   },
   "IMG_0975": {
    "tracked": true,
    "failure": null,
    "pathPts": 387,
+   "traceKind": "bar",
    "plateShare": 100,
    "jointsSeen": 100,
    "lift": [
@@ -78,14 +82,15 @@
    "labelled": 13,
    "onLabels": 92,
    "size": "608x1080",
-   "prepS": 1.7,
-   "poseS": 17,
-   "allS": 26.5
+   "prepS": 1.8,
+   "poseS": 17.6,
+   "allS": 28
   },
   "IMG_0976": {
    "tracked": true,
    "failure": null,
    "pathPts": 444,
+   "traceKind": "bar",
    "plateShare": 96,
    "jointsSeen": 95,
    "lift": [
@@ -100,13 +105,14 @@
    "onLabels": 23,
    "size": "608x1080",
    "prepS": 2.6,
-   "poseS": 24.9,
-   "allS": 39.7
+   "poseS": 25.5,
+   "allS": 40.5
   },
   "IMG_1177": {
    "tracked": true,
    "failure": null,
    "pathPts": 878,
+   "traceKind": "bar",
    "plateShare": 99,
    "jointsSeen": 100,
    "lift": [
@@ -120,14 +126,15 @@
    "labelled": 14,
    "onLabels": 86,
    "size": "608x1080",
-   "prepS": 3.8,
-   "poseS": 33.2,
-   "allS": 56.8
+   "prepS": 3.7,
+   "poseS": 33.6,
+   "allS": 56.5
   },
   "IMG_1178": {
    "tracked": true,
    "failure": null,
    "pathPts": 511,
+   "traceKind": "bar",
    "plateShare": 100,
    "jointsSeen": 100,
    "lift": [
@@ -141,14 +148,15 @@
    "labelled": 11,
    "onLabels": 100,
    "size": "608x1080",
-   "prepS": 2.4,
-   "poseS": 21.4,
-   "allS": 36.8
+   "prepS": 2.3,
+   "poseS": 20.4,
+   "allS": 34.7
   },
   "IMG_1558": {
    "tracked": true,
    "failure": null,
    "pathPts": 444,
+   "traceKind": "bar",
    "plateShare": 99,
    "jointsSeen": 100,
    "lift": [
@@ -162,14 +170,15 @@
    "labelled": 14,
    "onLabels": 100,
    "size": "608x1080",
-   "prepS": 1.3,
-   "poseS": 16.5,
-   "allS": 27
+   "prepS": 1,
+   "poseS": 15.6,
+   "allS": 26.9
   },
   "IMG_1559": {
    "tracked": true,
    "failure": null,
    "pathPts": 308,
+   "traceKind": "bar",
    "plateShare": 98,
    "jointsSeen": 100,
    "lift": [
@@ -183,14 +192,15 @@
    "labelled": 14,
    "onLabels": 93,
    "size": "608x1080",
-   "prepS": 0.8,
-   "poseS": 11.4,
-   "allS": 19.2
+   "prepS": 0.9,
+   "poseS": 11.9,
+   "allS": 19.6
   },
   "IMG_1561": {
    "tracked": true,
    "failure": null,
    "pathPts": 293,
+   "traceKind": "bar",
    "plateShare": 98,
    "jointsSeen": 100,
    "lift": [
@@ -204,29 +214,34 @@
    "labelled": 14,
    "onLabels": 93,
    "size": "608x1080",
-   "prepS": 0.8,
+   "prepS": 0.7,
    "poseS": 10.4,
    "allS": 17.2
   },
   "IMG_1179": {
    "tracked": true,
    "failure": null,
-   "pathPts": 0,
+   "pathPts": 578,
+   "traceKind": "hip",
    "plateShare": 0,
    "jointsSeen": 99,
-   "lift": null,
+   "lift": [
+    137,
+    718
+   ],
    "frames": 748,
    "fps": 30,
    "missesLeft": 0,
    "size": "608x1080",
-   "prepS": 2.9,
-   "poseS": 25.7,
-   "allS": 43.6
+   "prepS": 3,
+   "poseS": 25.4,
+   "allS": 42.9
   },
   "2026-10-05_21B27BAF": {
    "tracked": true,
    "failure": null,
    "pathPts": 127,
+   "traceKind": "bar",
    "plateShare": 100,
    "jointsSeen": 100,
    "lift": [
@@ -238,13 +253,14 @@
    "missesLeft": 0,
    "size": "608x1080",
    "prepS": 0.7,
-   "poseS": 6.5,
-   "allS": 10.3
+   "poseS": 6.6,
+   "allS": 10.4
   },
   "2026-10-04_100B1719": {
    "tracked": true,
    "failure": null,
    "pathPts": 259,
+   "traceKind": "bar",
    "plateShare": 96,
    "jointsSeen": 100,
    "lift": [
@@ -256,13 +272,14 @@
    "missesLeft": 0,
    "size": "608x1080",
    "prepS": 1.1,
-   "poseS": 12.5,
-   "allS": 18.7
+   "poseS": 12.7,
+   "allS": 19.2
   },
   "wall-walk-2026-09-19": {
    "tracked": true,
    "failure": null,
    "pathPts": 0,
+   "traceKind": "bar",
    "plateShare": 0,
    "jointsSeen": 100,
    "lift": [
@@ -273,9 +290,9 @@
    "fps": 30,
    "missesLeft": 0,
    "size": "608x1080",
-   "prepS": 1,
-   "poseS": 8.5,
-   "allS": 13.8
+   "prepS": 1.1,
+   "poseS": 8,
+   "allS": 13.6
   }
  }
 }
