@@ -129,7 +129,7 @@ export default function MarkScreen({ clip, onBack, onTrack }: { clip: Clip & { u
           <View
             testID="mark-hint"
             pointerEvents="none"
-            style={{ position: 'absolute', left: 0, top: 0, width: box.width, height: box.height, alignItems: 'center', justifyContent: 'center', gap: space.s4, backgroundColor: shade(0.55) }}
+            style={{ position: 'absolute', left: 0, top: 0, width: box.width, height: box.height, alignItems: 'center', justifyContent: 'center', gap: space.s4, backgroundColor: shade(0.72) }}
           >
             <MarkExample size={Math.min(160, Math.round(box.height * 0.32))} />
             <View style={{ gap: space.s2 }}>
