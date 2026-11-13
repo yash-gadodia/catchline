@@ -36,7 +36,6 @@ export const capture: Strings<typeof en> = {
   'capture.mark.step1': "Drücke auf die Mitte der Scheibe",
   'capture.mark.step2': "Zieh bis zu ihrem Rand",
   'capture.mark.coachDrag': "Zieh bis zum Rand der Scheibe",
-  'capture.mark.coachRelease': "Am Rand loslassen",
   'capture.mark.coachTap': "Ziehen, nicht tippen",
   'capture.mark.redo': "Markiert. Zum Ändern erneut drücken und ziehen.",
   'capture.mark.track': "Tracken",

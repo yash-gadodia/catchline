@@ -36,7 +36,6 @@ export const capture: Strings<typeof en> = {
   'capture.mark.step1': "Pulsa en el centro del disco",
   'capture.mark.step2': "Arrastra hasta su borde",
   'capture.mark.coachDrag': "Arrastra hasta el borde del disco",
-  'capture.mark.coachRelease': "Suelta en el borde",
   'capture.mark.coachTap': "Arrastra, no toques",
   'capture.mark.redo': "Marcado. Pulsa y arrastra de nuevo para rehacerlo.",
   'capture.mark.track': "Seguir",

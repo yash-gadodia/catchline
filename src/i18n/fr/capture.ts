@@ -36,7 +36,6 @@ export const capture: Strings<typeof en> = {
   'capture.mark.step1': "Appuie au centre du disque",
   'capture.mark.step2': "Glisse jusqu'à son bord",
   'capture.mark.coachDrag': "Glisse jusqu'au bord du disque",
-  'capture.mark.coachRelease': "Lâche au bord",
   'capture.mark.coachTap': "Glisse, ne tape pas",
   'capture.mark.redo': "Marqué. Appuie et fais glisser à nouveau pour refaire.",
   'capture.mark.track': "Suivre",

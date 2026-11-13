@@ -9,7 +9,7 @@ import { type } from '../../design/typography';
 import { selection } from '../../lib/haptics';
 import { Header, Underlined } from './hud';
 import MarkExample from './MarkExample';
-import { containRect, markFrom, MIN_R, type PlateMark } from './plateMark';
+import { containRect, markFrom, type PlateMark } from './plateMark';
 import type { Clip } from './store';
 import { t } from '../../i18n';
 
@@ -27,8 +27,9 @@ export default function MarkScreen({ clip, onBack, onTrack }: { clip: Clip & { u
   // the hint sits on the picture until the first press (owner, 13-11: the instruction under the picture was unclear)
   const [touched, setTouched] = useState(false);
   // What the finger is doing now, so the instruction follows it (owner, 13-11: a plain tap did nothing and hid the hint):
-  // 'drag' pressed but not yet out to a plate's size, 'release' big enough to let go, 'tap' let go too early.
-  const [coach, setCoach] = useState<'drag' | 'release' | 'tap' | null>(null);
+  // 'drag' while the finger is down (the app cannot tell when it reaches the rim, so it never says "let go"),
+  // 'tap' after letting go too early to be a circle.
+  const [coach, setCoach] = useState<'drag' | 'tap' | null>(null);
   const rect = frame ? containRect(frame, box) : null;
 
   const player = useVideoPlayer(clip.uri, (p) => {
@@ -82,11 +83,7 @@ export default function MarkScreen({ clip, onBack, onTrack }: { clip: Clip & { u
       },
       onPanResponderMove: (_, g) => {
         const s = live.current.start;
-        if (!s) return;
-        const r = Math.hypot(g.dx, g.dy);
-        setDrag({ cx: s.x, cy: s.y, r });
-        const h = live.current.rect?.height;
-        setCoach(h && r / h >= MIN_R ? 'release' : 'drag');
+        if (s) setDrag({ cx: s.x, cy: s.y, r: Math.hypot(g.dx, g.dy) });
       },
       onPanResponderRelease: (_, g) => {
         const s = live.current.start;
@@ -139,10 +136,10 @@ export default function MarkScreen({ clip, onBack, onTrack }: { clip: Clip & { u
             </Svg>
           ) : null}
         </View>
-        {drag && coach && coach !== 'tap' ? (
+        {drag && coach === 'drag' ? (
           <View testID="mark-coach" pointerEvents="none" style={{ position: 'absolute', top: space.s4, left: 0, right: 0, alignItems: 'center' }}>
             <Text style={{ ...type.button, color: colors.text, backgroundColor: shade(0.72), paddingHorizontal: space.s4, paddingVertical: space.s2, borderRadius: space.s2, overflow: 'hidden' }}>
-              {t(coach === 'release' ? 'capture.mark.coachRelease' : 'capture.mark.coachDrag')}
+              {t('capture.mark.coachDrag')}
             </Text>
           </View>
         ) : null}

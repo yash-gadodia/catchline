@@ -36,7 +36,6 @@ export const capture: Strings<typeof en> = {
   'capture.mark.step1': "Pressione no centro da anilha",
   'capture.mark.step2': "Arraste até a borda",
   'capture.mark.coachDrag': "Arraste até a borda da anilha",
-  'capture.mark.coachRelease': "Solte na borda",
   'capture.mark.coachTap': "Arraste, não toque",
   'capture.mark.redo': "Marcado. Pressione e arraste de novo para refazer.",
   'capture.mark.track': "Rastrear",
