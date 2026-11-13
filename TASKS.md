@@ -45,7 +45,10 @@ Owner decision 11-11: drop cues; the app tracks any lift or gymnastics clip and 
 - [ ] Default share text (UIActivityItemSource); optional end card "Made with Catchline · free on the App Store"
 - [x] 13 Nov: 4.0.0 (build 42) released to the App Store (READY_FOR_SALE); 4.0 privacy page published on the catchline branch (Pages)
 - [x] Build 44 (4.0.1, e07e319; 43 failed: expo-store-review 56.0.4 needs SceneGeometry, pinned 56.0.3) gated (full, 14 clips), Release sim walk on iPhone SE, submitted for review 13 Nov (WAITING_FOR_REVIEW)
-- [ ] (Yash) Release 4.0.1 when Apple approves it
+- [x] 13 Nov: 4.0.1 withdrawn before review; 4.0.2 (build 47: share logo lockup + end card, plate hint on the picture, share page fits an SE) submitted, WAITING_FOR_REVIEW
+- [ ] (Yash) Release 4.0.2 when Apple approves it; then publish v40/build43's JS to runtime 4.0.2 (it holds per-rep lines and the You page too)
+- [x] Per-rep bar path: current rep in flare, earlier reps faint and dotted, speed peak per rep (2c623fc); You page down to Settings, Privacy, Help (b0f1322); both live on 4.0.0
+- [ ] (Claude, next build) Per-rep in the share video (native: pass rep starts in the spec)
 - [ ] (Claude) After 4.0.1 is out: OTAs for its users go from v40/build43 (runtime 4.0.1); keep publishing JS fixes to 4.0.0 from v40/tracker until most users have updated, then merge build43 into tracker
 - [ ] (Yash, after 4.0 is live) Apple Search Ads, about $5 a day, exact "bar path" / "barbell tracker"
 ## First lift (branch v40/first-wow, JS only)
