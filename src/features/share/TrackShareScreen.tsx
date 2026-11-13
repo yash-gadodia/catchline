@@ -123,7 +123,9 @@ export default function TrackShareScreen({
   ).current;
 
   const src = { width: analysis.video.width, height: analysis.video.height };
-  const maxH = Math.max(240, height - insets.top - insets.bottom - 380);
+  // the preview takes what the controls and buttons leave (they have grown: speeds, CSV), so nothing overlaps on an SE
+  const [room, setRoom] = useState<number | null>(null);
+  const maxH = room ?? Math.max(240, height - insets.top - insets.bottom - 380);
   const boxW = Math.min(width, Math.round((maxH * src.width) / src.height));
   const box = { width: boxW, height: Math.round((boxW * src.height) / src.width) };
   const mark = markLayout(src);
@@ -186,7 +188,7 @@ export default function TrackShareScreen({
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }} testID="track-share-screen">
       <TopBar back={t('share.back')} onBack={onBack} more={false} center={<Text style={[type.button, { color: colors.text }]}>{t('share.title')}</Text>} />
-      <View style={{ alignItems: 'center', backgroundColor: colors.surface }}>
+      <View onLayout={(e) => setRoom(Math.round(e.nativeEvent.layout.height))} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface, overflow: 'hidden' }}>
         <Pressable
           testID="share-preview"
           accessibilityRole="button"
@@ -222,8 +224,8 @@ export default function TrackShareScreen({
           <View style={{ height: 3, width: `${(Math.min(Math.max(frame - first, 0), last - first) / Math.max(last - first, 1)) * 100}%`, backgroundColor: colors.text }} />
         </View>
       </View>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: space.s2, paddingHorizontal: space.gutter }}>
-        <View style={{ flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: space.s2 }}>
+      <View style={{ gap: space.s3, paddingHorizontal: space.gutter }}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.s2 }}>
           {LAYERS.filter((k) => k !== 'body' || body !== null).map((k) => (
             <Chip key={k} testID={`share-toggle-${k}`} label={t(`analysis.tracker.overlay.${k}`)} on={layers[k]} mono onPress={() => setLayers((l) => ({ ...l, [k]: !l[k] }))} />
           ))}
@@ -241,7 +243,7 @@ export default function TrackShareScreen({
           }}
         />
       </View>
-      <View style={{ flex: 1, justifyContent: 'flex-end', paddingHorizontal: space.gutter, paddingBottom: insets.bottom + space.s5, gap: space.s3 }}>
+      <View style={{ paddingHorizontal: space.gutter, paddingTop: space.s4, paddingBottom: insets.bottom + space.s5, gap: space.s3 }}>
         {notice ? (
           <Text testID="share-notice" style={[type.callout, { color: colors.text2, textAlign: 'center' }]}>
             {notice}
