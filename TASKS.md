@@ -43,7 +43,10 @@ Owner decision 11-11: drop cues; the app tracks any lift or gymnastics clip and 
 - [x] 2x/4x share renders (every 2nd/4th frame, supportsFastShare), mark clamped in frame, expo-store-review (55cffd6); checked in the macOS harness: 8.2 s -> 4.1 s -> 2.07 s at 30 fps
 - [x] Share video holds only the lift (TrackRenderer never read startFrame/endFrame: every share was the whole clip) and the hip trail is its last second (1a78752)
 - [ ] Default share text (UIActivityItemSource); optional end card "Made with Catchline · free on the App Store"
-- [ ] (Claude) Store build after 4.0 is approved (needs the full gate on v40/build43)
+- [x] 13 Nov: 4.0.0 (build 42) released to the App Store (READY_FOR_SALE); 4.0 privacy page published on the catchline branch (Pages)
+- [x] Build 44 (4.0.1, e07e319; 43 failed: expo-store-review 56.0.4 needs SceneGeometry, pinned 56.0.3) gated (full, 14 clips), Release sim walk on iPhone SE, submitted for review 13 Nov (WAITING_FOR_REVIEW)
+- [ ] (Yash) Release 4.0.1 when Apple approves it
+- [ ] (Claude) After 4.0.1 is out: OTAs for its users go from v40/build43 (runtime 4.0.1); keep publishing JS fixes to 4.0.0 from v40/tracker until most users have updated, then merge build43 into tracker
 - [ ] (Yash, after 4.0 is live) Apple Search Ads, about $5 a day, exact "bar path" / "barbell tracker"
 ## First lift (branch v40/first-wow, JS only)
 - [x] Onboarding is one screen: a bundled tracked lift plays (`assets/sample`, made by `scripts/make-sample.sh <lift folder>`), then "Pick one of your lifts" / "Film a lift now"
