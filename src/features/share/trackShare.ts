@@ -36,6 +36,8 @@ export type TrackSpec = {
   bones: number[][];
   joints: number[][];
   watermark: string | null;
+  // the logo lockup and the end card; a binary before 4.0.2 ignores it and draws `watermark`
+  brand?: { wordmark: string; line: string; endLine: string; endS: number; top: number };
   style: {
     flare: string;
     halo: string;
@@ -111,6 +113,7 @@ export function buildTrackSpec(analysis: Analysis, body: Body | null, options: T
       joints(body, f).flatMap((p, i) => (p && (side === 'both' || i % 2 === side) ? [p.x, p.y] : [])),
     ),
     watermark: options.watermark ? t('share.mark') : null,
+    ...(options.watermark ? { brand: { wordmark: 'Catchline', line: t('share.brandLine'), endLine: t('share.endLine'), endS: 1.5, top: 0.12 } } : {}),
     style: {
       flare: dark.flare,
       halo: dark.halo,

@@ -250,6 +250,18 @@ describe('TrackShareScreen', () => {
     expect((csv as string).split('\n')[0]).toBe('frame,time_s,x,y,bar_speed_m_s,source');
   });
 
+  it('previews the logo lockup on a binary that draws it, and the plain line on one that does not', async () => {
+    const branded = await render(<TrackShareScreen analysis={analysis} body={body} clipUri={CLIP} watermark onBack={() => {}} deps={deps({ shareBrand: true })} />);
+    expect(branded.getByTestId('share-lockup')).toHaveTextContent('CatchlineFree on the App Store');
+    expect(branded.queryByTestId('share-watermark')).toBeNull();
+  });
+
+  it('previews the plain line on a binary without the lockup', async () => {
+    const plain = await render(<TrackShareScreen analysis={analysis} body={body} clipUri={CLIP} watermark onBack={() => {}} deps={deps({ shareBrand: false })} />);
+    expect(plain.queryByTestId('share-lockup')).toBeNull();
+    expect(plain.getByTestId('share-watermark')).toHaveTextContent('Catchline · free on the App Store');
+  });
+
   it('has no body toggle for a lift without joints', async () => {
     const { queryByTestId } = await render(<TrackShareScreen analysis={analysis} body={null} clipUri={CLIP} watermark onBack={() => {}} deps={deps()} />);
     expect(queryByTestId('share-toggle-body')).toBeNull();

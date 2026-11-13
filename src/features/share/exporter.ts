@@ -26,6 +26,8 @@ export async function renderVideo(uri: string, spec: OverlaySpec, onProgress: (p
 
 // 2x and 4x shares: only a binary whose TrackRenderer keeps every 2nd / 4th frame (build 43 on).
 export const fastShareSupported = () => (Transcoder as { supportsFastShare?: boolean } | null)?.supportsFastShare === true;
+// the logo lockup and end card: only a binary whose TrackRenderer draws spec.brand (4.0.2 on)
+export const shareBrandSupported = () => (Transcoder as { supportsShareBrand?: boolean } | null)?.supportsShareBrand === true;
 
 // 4.0: the lift's kept clip with the tracker's overlay burned in, and one frame of it as an image.
 export async function renderTrackVideo(clipUri: string, spec: TrackSpec, onProgress: (p: number) => void): Promise<string> {

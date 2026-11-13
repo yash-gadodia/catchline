@@ -8,6 +8,8 @@ export const share = {
   'share.back': "Back",
   'share.title': "Share",
   'share.mark': "Catchline · free on the App Store",
+  'share.brandLine': "Free on the App Store",
+  'share.endLine': "Track your lift. Free on the App Store.",
   'share.video': "Video",
   'share.strobeCard': "Strobe card",
   'share.tryAgain': "Try again",

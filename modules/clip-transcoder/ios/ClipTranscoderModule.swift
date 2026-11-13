@@ -42,7 +42,8 @@ public class ClipTranscoderModule: Module {
     Name("ClipTranscoder")
 
     // TrackRenderer writes spec.speed 2 and 4 (every 2nd / 4th frame); the share screen offers them only where this is true
-    Constants(["supportsFastShare": true])
+    // supportsShareBrand: spec.brand draws the logo lockup and the end card (4.0.2 on)
+    Constants(["supportsFastShare": true, "supportsShareBrand": true])
 
     Events("onProgress")
 

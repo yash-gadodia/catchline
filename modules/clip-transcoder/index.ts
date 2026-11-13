@@ -27,6 +27,8 @@ type Events = { onProgress: (e: { progress: number }) => void };
 declare class ClipTranscoderModule extends NativeModule<Events> {
   // TrackRenderer writes spec.speed 2 / 4 by keeping every 2nd / 4th frame (build 43 on; absent before)
   supportsFastShare?: boolean;
+  // spec.brand draws the logo lockup and the end card (4.0.2 on)
+  supportsShareBrand?: boolean;
   probe(uri: string): Promise<SourceInfo>;
   transcode(options: TranscodeOptions): Promise<TranscodeResult>;
   renderShareVideo(uri: string, spec: OverlaySpec): Promise<ShareVideoResult>;

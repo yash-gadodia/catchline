@@ -47,7 +47,20 @@ struct TrackSpec: Decodable {
   var bones: [[Double]]
   var joints: [[Double]]
   var watermark: String?
+  // the brand lockup (monogram, wordmark, a line under it) in place of the plain watermark, and an end card after the
+  // last frame (4.0.2 on; older binaries draw the watermark text)
+  var brand: TrackBrand?
   var style: TrackStyle
+}
+
+struct TrackBrand: Decodable {
+  var wordmark: String
+  var line: String?
+  // the end card: its line and how long it holds
+  var endLine: String?
+  var endS: Double?
+  // the lockup's top edge, as a fraction of the picture's height (clear of the Reels/Stories header)
+  var top: Double?
 }
 
 struct TrackRenderError: LocalizedError {
@@ -175,7 +188,12 @@ func drawTrack(_ ctx: CGContext, spec: TrackSpec, frame: Int, size: CGSize, full
     }
   }
 
-  if let text = spec.watermark, !text.isEmpty {
+  if let brand = spec.brand {
+    let u = st.markSize
+    let x = size.width * 0.045
+    let y = size.height * (brand.top ?? 0.12)
+    drawLockup(ctx, st, brand, at: CGPoint(x: x, y: y), unit: u, plate: true)
+  } else if let text = spec.watermark, !text.isEmpty {
     let line = CTLineCreateWithAttributedString(NSAttributedString(string: text, attributes: [
       NSAttributedString.Key(kCTFontAttributeName as String): markFont(st),
       NSAttributedString.Key(kCTForegroundColorAttributeName as String): cgColor(st.bone),
@@ -326,6 +344,8 @@ func renderTrackVideo(source: URL, to url: URL, spec: TrackSpec, onProgress: @es
     var frame = 0
     // A decoded frame does not say how long it lasts: each one is held until the next arrives, and lasts until then.
     var held: (buffer: CVPixelBuffer, pts: CMTime)?
+    // the last frame written, raw, for the end card
+    var lastKept: (sample: CMSampleBuffer, frame: Int)?
     var length = nominal
 
     func write(_ buffer: CVPixelBuffer, at pts: CMTime, lasting length: CMTime) throws {
@@ -362,6 +382,7 @@ func renderTrackVideo(source: URL, to url: URL, spec: TrackSpec, onProgress: @es
             throw TrackRenderError(message: "pixel buffer")
           }
           try compose(sample, src, into: out, ci: ci, spec: spec, frame: frame, fullPath: false)
+          lastKept = (sample, frame)
           if let h = held {
             if (pts - h.pts).seconds > 0 { length = CMTimeMultiplyByRatio(pts - h.pts, multiplier: 1, divisor: Int32(step)) }
             try write(h.buffer, at: h.pts, lasting: length)
@@ -374,6 +395,49 @@ func renderTrackVideo(source: URL, to url: URL, spec: TrackSpec, onProgress: @es
       if src.reader.status == .failed { throw TrackRenderError(message: src.reader.error?.localizedDescription ?? "read") }
       guard let h = held else { throw TrackRenderError(message: "no frames") }
       try write(h.buffer, at: h.pts, lasting: length)
+      // the end card: the last frame dimmed with the lockup, held endS
+      if let brand = spec.brand, (brand.endS ?? 0) > 0 {
+        var card: CVPixelBuffer?
+        guard let pool = adaptor.pixelBufferPool, CVPixelBufferPoolCreatePixelBuffer(nil, pool, &card) == kCVReturnSuccess, let card else {
+          throw TrackRenderError(message: "pixel buffer")
+        }
+        let size = CGSize(width: src.width, height: src.height)
+        // the last frame again with the whole path but no lockup (the card's own lockup is the only one)
+        var plain = spec
+        plain.brand = nil
+        plain.watermark = nil
+        // the card is a summary: the whole bar path, no body or guide lines behind the logo
+        plain.bones = []
+        plain.joints = []
+        plain.startX = nil
+        plain.floorY = nil
+        // a hanging movement's hip trail is only meaningful as its last second: the card leaves it out
+        if spec.trailFrames != nil { plain.path = [] }
+        if let k = lastKept {
+          try compose(k.sample, src, into: card, ci: ci, spec: plain, frame: k.frame, fullPath: true)
+        } else {
+          ci.render(CIImage(cvPixelBuffer: h.buffer, options: [.colorSpace: NSNull()]), to: card, bounds: CGRect(origin: .zero, size: size), colorSpace: nil)
+        }
+        CVPixelBufferLockBaseAddress(card, [])
+        if let ctx = bitmap(card) {
+          ctx.translateBy(x: 0, y: size.height)
+          ctx.scaleBy(x: 1, y: -1)
+          drawEndCard(ctx, spec.style, brand, size: size)
+        }
+        CVPixelBufferUnlockBaseAddress(card, [])
+        let frames = max(1, Int(((brand.endS ?? 0) * fps).rounded()))
+        for _ in 0..<frames {
+          var t = end
+          if last.isValid && t <= last { t = last + tick }
+          while !input.isReadyForMoreMediaData {
+            if writer.status != .writing { throw TrackRenderError(message: writer.error?.localizedDescription ?? "writer stopped") }
+            usleep(2000)
+          }
+          if !adaptor.append(card, withPresentationTime: t) { throw TrackRenderError(message: writer.error?.localizedDescription ?? "append") }
+          last = t
+          end = t + CMTimeConvertScale(nominal, timescale: scale, method: .roundHalfAwayFromZero)
+        }
+      }
     } catch {
       src.reader.cancelReading()
       writer.cancelWriting()
@@ -420,3 +484,92 @@ func renderTrackImage(source: URL, to url: URL, spec: TrackSpec) async throws ->
     return (src.width, src.height)
   }
 }
+
+// The Catchline monogram (brand/mark.svg, viewBox 160): a bone C with the flare dot on its top tip, `size` across,
+// its top-left at o. ctx has its origin top-left.
+private func drawMonogram(_ ctx: CGContext, _ st: TrackStyle, size: Double, at o: CGPoint) {
+  let k = size / 160
+  let a = atan2(32.0, 38.0)
+  ctx.saveGState()
+  ctx.setStrokeColor(cgColor(st.bone))
+  ctx.setLineWidth(26 * k)
+  ctx.setLineCap(.round)
+  ctx.addArc(center: CGPoint(x: o.x + 80 * k, y: o.y + 80 * k), radius: hypot(38.0, 32.0) * k, startAngle: -a, endAngle: a, clockwise: true)
+  ctx.strokePath()
+  ctx.setFillColor(cgColor(st.flare))
+  ctx.fillEllipse(in: CGRect(x: o.x + (118 - 17) * k, y: o.y + (48 - 17) * k, width: 34 * k, height: 34 * k))
+  ctx.restoreGState()
+}
+
+private func markLine(_ text: String, _ st: TrackStyle, size: Double, kern: Double, alpha: CGFloat) -> (line: CTLine, width: Double, ascent: Double, descent: Double) {
+  var font = markFont(st)
+  font = CTFontCreateCopyWithAttributes(font, size, nil, nil)
+  let line = CTLineCreateWithAttributedString(NSAttributedString(string: text, attributes: [
+    NSAttributedString.Key(kCTFontAttributeName as String): font,
+    NSAttributedString.Key(kCTForegroundColorAttributeName as String): cgColor(st.bone, alpha),
+    NSAttributedString.Key(kCTKernAttributeName as String): size * kern,
+  ]))
+  var ascent: CGFloat = 0
+  var descent: CGFloat = 0
+  let width = CTLineGetTypographicBounds(line, &ascent, &descent, nil)
+  return (line, width, Double(ascent), Double(descent))
+}
+
+private func drawText(_ ctx: CGContext, _ l: (line: CTLine, width: Double, ascent: Double, descent: Double), baseline: CGPoint) {
+  ctx.saveGState()
+  ctx.textMatrix = CGAffineTransform(scaleX: 1, y: -1)
+  ctx.textPosition = baseline
+  CTLineDraw(l.line, ctx)
+  ctx.restoreGState()
+}
+
+// Monogram, wordmark and the line under it, on a dark plate (4 px radius, never a pill): the share's signature.
+// unit is the mark size the style was built with; returns the lockup's size.
+@discardableResult
+func drawLockup(_ ctx: CGContext, _ st: TrackStyle, _ brand: TrackBrand, at o: CGPoint, unit u: Double, plate: Bool) -> CGSize {
+  let m = u * 2.0
+  let word = markLine(brand.wordmark, st, size: u * 1.45, kern: 0.08, alpha: 1)
+  let line = brand.line.map { markLine($0, st, size: u * 0.82, kern: 0.02, alpha: 0.78) }
+  let pad = u * 0.55
+  let gap = u * 0.5
+  let textH = word.ascent + word.descent + (line.map { u * 0.15 + $0.ascent + $0.descent } ?? 0)
+  let inner = CGSize(width: m + gap + max(word.width, line?.width ?? 0), height: max(m, textH))
+  let box = CGRect(x: o.x, y: o.y, width: inner.width + pad * 2, height: inner.height + pad * 2)
+  if plate {
+    ctx.saveGState()
+    ctx.setFillColor(CGColor(gray: 0, alpha: 0.55))
+    ctx.addPath(CGPath(roundedRect: box, cornerWidth: u * 0.27, cornerHeight: u * 0.27, transform: nil))
+    ctx.fillPath()
+    ctx.restoreGState()
+  }
+  drawMonogram(ctx, st, size: m, at: CGPoint(x: box.minX + pad, y: box.midY - m / 2))
+  let tx = box.minX + pad + m + gap
+  let top = box.midY - textH / 2
+  drawText(ctx, word, baseline: CGPoint(x: tx, y: top + word.ascent))
+  if let line {
+    drawText(ctx, line, baseline: CGPoint(x: tx, y: top + word.ascent + word.descent + u * 0.15 + line.ascent))
+  }
+  return box.size
+}
+
+// The end card: the last frame dimmed, the lockup large and centred, and the end line under it.
+func drawEndCard(_ ctx: CGContext, _ st: TrackStyle, _ brand: TrackBrand, size: CGSize) {
+  ctx.saveGState()
+  ctx.setFillColor(CGColor(gray: 0, alpha: 0.8))
+  ctx.fill(CGRect(origin: .zero, size: size))
+  ctx.restoreGState()
+  let u = min(size.width, size.height) * 0.055
+  let mark = TrackBrand(wordmark: brand.wordmark, line: nil, endLine: nil, endS: nil, top: nil)
+  // measured off-screen first so the pair can be centred
+  let probe = CGContext(data: nil, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4, space: CGColorSpaceCreateDeviceRGB(),
+                        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+  let s = drawLockup(probe, st, mark, at: .zero, unit: u, plate: false)
+  let end = brand.endLine.map { markLine($0, st, size: u * 0.72, kern: 0.02, alpha: 0.9) }
+  let total = s.height + (end.map { u * 0.5 + $0.ascent + $0.descent } ?? 0)
+  let y0 = (size.height - total) / 2
+  drawLockup(ctx, st, mark, at: CGPoint(x: (size.width - s.width) / 2, y: y0), unit: u, plate: false)
+  if let end {
+    drawText(ctx, end, baseline: CGPoint(x: (size.width - end.width) / 2, y: y0 + s.height + u * 0.5 + end.ascent))
+  }
+}
+

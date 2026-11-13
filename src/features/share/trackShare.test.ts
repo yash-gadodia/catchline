@@ -50,6 +50,11 @@ describe('buildTrackSpec', () => {
     expect(buildTrackSpec(lift(), body, ALL).trailFrames).toBeUndefined();
   });
 
+  it('signs the video with the logo lockup and an end card, and leaves both off without the watermark', () => {
+    expect(buildTrackSpec(lift(), body, ALL).brand).toEqual({ wordmark: 'Catchline', line: 'Free on the App Store', endLine: 'Track your lift. Free on the App Store.', endS: 1.5, top: 0.12 });
+    expect(buildTrackSpec(lift(), body, { ...ALL, watermark: false }).brand).toBeUndefined();
+  });
+
   it('carries the path, the lines, the speed and the clip timing', () => {
     const spec = buildTrackSpec(lift(), body, ALL, 1);
     expect(spec.speed).toBe(0.5);

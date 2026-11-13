@@ -11,6 +11,8 @@ export const share: Strings<typeof en> = {
   'share.back': "Voltar",
   'share.title': "Compartilhar",
   'share.mark': "Catchline · grátis na App Store",
+  'share.brandLine': "Grátis na App Store",
+  'share.endLine': "Acompanhe seu levantamento. Grátis na App Store.",
   'share.video': "Vídeo",
   'share.strobeCard': "Card estroboscópico",
   'share.tryAgain': "Tentar de novo",

@@ -9,11 +9,12 @@ import { EVENTS, track } from '../../lib/analytics';
 import Btn from '../../components/Btn';
 import Segmented from '../../components/Segmented';
 import TopBar from '../../components/TopBar';
-import { colors, space } from '../../design/tokens';
+import { colors, shade, shape, space } from '../../design/tokens';
+import Mark from '../../components/Mark';
 import { display, type } from '../../design/typography';
 import TrackOverlay from '../analysis/TrackOverlay';
 import { frameAt, liftRange, timeOf } from '../analysis/tracker';
-import { discardRender, fastShareSupported, renderTrackImage, renderTrackVideo, shareFile } from './exporter';
+import { discardRender, fastShareSupported, renderTrackImage, shareBrandSupported, renderTrackVideo, shareFile } from './exporter';
 import { askForRatingOnce } from './rating';
 import { liftCsv } from './csv';
 import { shareLiftsCsv } from '../you/liftsCsv';
@@ -27,6 +28,8 @@ export type TrackShareDeps = {
   discard: typeof discardRender;
   askRating: typeof askForRatingOnce;
   shareCsv: typeof shareLiftsCsv;
+  // tests: whether the binary draws the logo lockup (default: ask ClipTranscoder)
+  shareBrand?: boolean;
   // tests: whether the binary renders 2x / 4x (default: ask ClipTranscoder)
   fastShare?: boolean;
 };
@@ -193,7 +196,21 @@ export default function TrackShareScreen({
         >
           <VideoView player={player} style={{ width: box.width, height: box.height }} contentFit="fill" nativeControls={false} allowsVideoFrameAnalysis={false} />
           <TrackOverlay analysis={analysis} body={body} frame={frame} box={box} show={options} />
-          {watermark ? (
+          {watermark && (deps.shareBrand ?? shareBrandSupported()) ? (
+            // the lockup the video carries (TrackRenderer drawLockup): monogram, wordmark and the App Store line on a dark plate
+            <View
+              testID="share-lockup"
+              pointerEvents="none"
+              style={{ position: 'absolute', left: box.width * 0.045, top: box.height * 0.12, flexDirection: 'row', alignItems: 'center', gap: space.s2, paddingHorizontal: space.s2, paddingVertical: space.s2, backgroundColor: shade(0.55), ...shape.control }}
+            >
+              <Mark size={mark.size * markScale * 2} />
+              <View>
+                {/* i18n-ok: the brand wordmark, as drawn on the video */}
+                <Text style={[display(mark.size * markScale * 1.45), { color: colors.text }]}>Catchline</Text>
+                <Text style={[type.caption, { color: colors.text2 }]}>{t('share.brandLine')}</Text>
+              </View>
+            </View>
+          ) : watermark ? (
             <Text testID="share-watermark" style={[display(mark.size * markScale), { position: 'absolute', right: mark.inset * markScale, bottom: mark.inset * markScale, color: colors.text }]}>
               {t('share.mark')}
             </Text>
