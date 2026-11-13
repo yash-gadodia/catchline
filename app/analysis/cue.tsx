@@ -1,4 +1,3 @@
-import { Share } from 'react-native';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useAnalysis } from '../../src/analysis/useAnalysis';
 import AnalysisPlaceholder from '../../src/features/analysis/AnalysisPlaceholder';
@@ -21,6 +20,7 @@ export default function CueRoute() {
   };
   if (load.status !== 'ready') return <AnalysisPlaceholder status={load.status} onBack={back} />;
   const analysis = load.analysis;
+  const share = () => router.push({ pathname: '/share', params: { fixture: analysis.id } });
   const filmAgain = () => {
     back();
     if (!routeAfterAnalysis()) router.push(captureHref('/capture') as Href);
@@ -41,14 +41,8 @@ export default function CueRoute() {
         onNotForMe: back,
         onBack: back,
         onFilmAgain: filmAgain,
-        onShare: () => router.push({ pathname: '/share', params: { fixture: analysis.id } }),
-        onMore: () =>
-          openLiftActions(analysis, {
-            onShare: () => {
-              if (analysis.cue) Share.share({ message: analysis.cue.text });
-            },
-            onFilmAnother: filmAgain,
-          }),
+        onShare: share,
+        onMore: () => openLiftActions(analysis, { onShare: share, onFilmAnother: filmAgain }),
       }}
     />
   );
