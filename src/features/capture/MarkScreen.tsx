@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import Svg, { Circle } from 'react-native-svg';
 import Btn from '../../components/Btn';
-import { colors, space, stroke } from '../../design/tokens';
+import { colors, shade, space, stroke } from '../../design/tokens';
 import { type } from '../../design/typography';
 import { selection } from '../../lib/haptics';
 import { Header, Underlined } from './hud';
@@ -24,6 +24,8 @@ export default function MarkScreen({ clip, onBack, onTrack }: { clip: Clip & { u
   const [frame, setFrame] = useState<{ width: number; height: number } | null>(null);
   const [mark, setMark] = useState<PlateMark | null>(null);
   const [drag, setDrag] = useState<{ cx: number; cy: number; r: number } | null>(null);
+  // the hint sits on the picture until the first press (owner, 13-11: the instruction under the picture was unclear)
+  const [touched, setTouched] = useState(false);
   const rect = frame ? containRect(frame, box) : null;
 
   const player = useVideoPlayer(clip.uri, (p) => {
@@ -71,6 +73,7 @@ export default function MarkScreen({ clip, onBack, onTrack }: { clip: Clip & { u
       onPanResponderGrant: (e) => {
         const p = { x: e.nativeEvent.locationX, y: e.nativeEvent.locationY };
         live.current.start = p;
+        setTouched(true);
         setDrag({ cx: p.x, cy: p.y, r: 0 });
       },
       onPanResponderMove: (_, g) => {
@@ -122,10 +125,26 @@ export default function MarkScreen({ clip, onBack, onTrack }: { clip: Clip & { u
             </Svg>
           ) : null}
         </View>
+        {!touched && !mark ? (
+          <View
+            testID="mark-hint"
+            pointerEvents="none"
+            style={{ position: 'absolute', left: 0, top: 0, width: box.width, height: box.height, alignItems: 'center', justifyContent: 'center', gap: space.s4, backgroundColor: shade(0.55) }}
+          >
+            <MarkExample size={Math.min(160, Math.round(box.height * 0.32))} />
+            <View style={{ gap: space.s2 }}>
+              {[t('capture.mark.step1'), t('capture.mark.step2')].map((s, i) => (
+                <View key={s} style={{ flexDirection: 'row', alignItems: 'center', gap: space.s3 }}>
+                  <Text style={{ ...type.button, color: colors.flare, width: space.s4 }}>{i + 1}</Text>
+                  <Text style={{ ...type.button, color: colors.text }}>{s}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        ) : null}
       </View>
       <View style={{ paddingHorizontal: space.gutter, paddingTop: space.s4, paddingBottom: Math.max(insets.bottom, space.s4), gap: space.s5 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s4 }}>
-          {mark ? null : <MarkExample />}
           <Text testID="mark-help" style={{ ...type.callout, color: colors.text2, flex: 1 }}>
             {mark ? t('capture.mark.redo') : t('capture.mark.help')}
           </Text>
