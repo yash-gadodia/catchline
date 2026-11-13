@@ -13,6 +13,13 @@ const MAX_MS = 3.5;
 
 export type BarSpeed = { at: Map<number, number>; peak: { frame: number; v: number } | null };
 
+// The fastest upward speed between two frames (a rep of a set), or null where nothing was measured.
+export function peakIn(at: Map<number, number>, from: number, to: number): number | null {
+  let best: number | null = null;
+  for (const [frame, v] of at) if (frame >= from && frame < to && (best === null || v > best)) best = v;
+  return best;
+}
+
 export function barSpeed(path: TracePoint[], fps: number, window?: { startFrame: number; endFrame: number }): BarSpeed | null {
   const read = path.filter((p) => p.r !== undefined && p.r > 0);
   if (read.length < 2 || !(fps > 0)) return null;

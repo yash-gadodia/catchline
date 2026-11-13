@@ -1,6 +1,6 @@
 import type { Body } from '../../analysis/device/tracking';
 import { snatchMock } from '../../analysis/fixtures';
-import { bones, drawnPath, drawnSide, floorY, frameAt, jointAngles, joints, liftRange, spread, timeOf } from './tracker';
+import { bones, drawnPath, drawnPaths, drawnSide, floorY, frameAt, jointAngles, joints, liftRange, repAt, repStarts, spread, timeOf } from './tracker';
 
 // shoulder, elbow, wrist, hip, knee, ankle, heel, toe; left then right. The right side is unseen but for the hip.
 const row = (pts: Record<number, [number, number]>): (number | null)[] => {
@@ -108,5 +108,35 @@ describe('drawnPath', () => {
     const drawn = drawnPath(of('hip'), 100);
     expect(drawn[0].frame).toBe(70);
     expect(drawn[drawn.length - 1].frame).toBe(100);
+  });
+});
+
+describe('reps of a set', () => {
+  // 30 fps; y grows downwards: 0.9 is the plate on the floor, 0.2 overhead
+  const seg = (from: number, ys: number[]) => ys.map((y, i) => ({ frame: from + i, x: 0.5, y, src: 'plate' as const }));
+  const rest = (n: number) => new Array<number>(n).fill(0.9);
+  const lift = [0.85, 0.7, 0.5, 0.3, 0.2, 0.2, 0.3, 0.5, 0.7, 0.85];
+  const path = seg(0, [...rest(30), ...lift, ...rest(30), ...lift, ...rest(30)]);
+  const set = { ...snatchMock, traceKind: 'bar' as const, video: { ...snatchMock.video, fps: 30 }, reps: [{ ...snatchMock.reps[0], path }] };
+
+  it('starts each rep a quarter second into its rest before lift-off (frames 30 and 70)', () => {
+    expect(repStarts(path, 30)).toEqual([0, 21, 61]);
+    expect(repAt([0, 21, 61], 60)).toEqual({ start: 21, end: 61 });
+    expect(repAt([0, 21, 61], 108)).toEqual({ start: 61, end: Infinity });
+  });
+
+  it('draws the rep on screen from its start, and the earlier rep whole underneath, never the setup', () => {
+    const at75 = drawnPaths(set, 75);
+    expect(at75.current[0].frame).toBe(61);
+    expect(at75.current[at75.current.length - 1].frame).toBe(75);
+    // the first rep (21 to 61) is drawn faint; 0 to 21, the bar sitting on the floor, is not a rep
+    expect(at75.earlier.map((r) => [r[0].frame, r[r.length - 1].frame])).toEqual([[21, 61]]);
+    expect(drawnPaths(set, 35).earlier).toEqual([]);
+    expect(drawnPath(set, 35)[0].frame).toBe(21);
+  });
+
+  it('is one rep when there is no rest to split at (touch and go)', () => {
+    expect(repStarts(seg(5, lift), 30)).toEqual([5]);
+    expect(repStarts([], 30)).toEqual([]);
   });
 });

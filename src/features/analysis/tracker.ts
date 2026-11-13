@@ -126,12 +126,65 @@ export function spread<T extends { x: number; y: number }>(labels: T[], w: numbe
   return out;
 }
 
-// The path drawn at a frame: a bar path from its start up to the frame. A hanging movement's hips swing back and forth
-// every rep, so only its last HIP_TRAIL_S is drawn and the trail follows the swing instead of piling into a tangle
-// (owner's pull-ups, 12-11).
+// Where each rep of a set begins: the frames where the plate leaves a rest low in the clip (on the floor or blocks),
+// with the path's first frame always the first. A rest is a point in the lowest REST_LOW of the path's height range
+// that moves less than REST_STILL of the frame height within a quarter second either side. A touch-and-go set has no
+// rest between reps and reads as one rep.
+const REST_LOW = 0.12;
+const REST_STILL = 0.015;
+export function repStarts(path: TracePoint[], fps: number): number[] {
+  if (path.length < 3) return path.length ? [path[0].frame] : [];
+  const ys = path.map((p) => p.y);
+  const top = Math.max(...ys);
+  const low = top - REST_LOW * (top - Math.min(...ys));
+  const half = Math.max(1, Math.round(fps / 4));
+  const rest = path.map((p, i) => {
+    if (p.y < low) return false;
+    let lo = p.y;
+    let hi = p.y;
+    for (let k = i - 1; k >= 0 && path[k].frame >= p.frame - half; k--) { lo = Math.min(lo, path[k].y); hi = Math.max(hi, path[k].y); }
+    for (let k = i + 1; k < path.length && path[k].frame <= p.frame + half; k++) { lo = Math.min(lo, path[k].y); hi = Math.max(hi, path[k].y); }
+    return hi - lo < REST_STILL;
+  });
+  const starts = [path[0].frame];
+  for (let i = 1; i < path.length; i++) if (rest[i - 1] && !rest[i]) starts.push(path[i - 1].frame);
+  return starts;
+}
+
+// The rep a frame falls in: [start, end) of the set's rep starts.
+export function repAt(starts: number[], frame: number): { start: number; end: number } {
+  let i = 0;
+  while (i + 1 < starts.length && starts[i + 1] <= frame) i++;
+  return { start: starts[i] ?? -Infinity, end: starts[i + 1] ?? Infinity };
+}
+
+// A segment counts as a rep only when the bar travels: the setup (the bar on the floor while the lifter gets set)
+// is not drawn as one.
+const REP_TRAVEL = 0.3;
+
+// The path drawn at a frame. A bar path: the current rep from its start up to the frame, and every earlier rep of the
+// set whole, to be drawn faint underneath (owner, 13-11: one line on top of another read as a tangle). A hanging
+// movement's hips swing back and forth every rep, so only its last HIP_TRAIL_S is drawn and the trail follows the
+// swing (owner's pull-ups, 12-11).
 export const HIP_TRAIL_S = 1;
-export function drawnPath(analysis: Analysis, frame: number): TracePoint[] {
+export function drawnPath(analysis: Analysis, frame: number, starts?: number[]): TracePoint[] {
+  return drawnPaths(analysis, frame, starts).current;
+}
+export function drawnPaths(analysis: Analysis, frame: number, starts?: number[]): { current: TracePoint[]; earlier: TracePoint[][] } {
   const path: TracePoint[] = analysis.reps[0]?.path ?? [];
-  const from = analysis.traceKind === 'hip' ? frame - Math.round(HIP_TRAIL_S * (analysis.video.fps || 30)) : -Infinity;
-  return pathUpTo(from === -Infinity ? path : path.filter((p) => p.frame >= from), frame);
+  if (analysis.traceKind === 'hip') {
+    const from = frame - Math.round(HIP_TRAIL_S * (analysis.video.fps || 30));
+    return { current: pathUpTo(path.filter((p) => p.frame >= from), frame), earlier: [] };
+  }
+  const s = starts ?? repStarts(path, analysis.video.fps || 30);
+  const rep = repAt(s, frame);
+  const ys = path.map((p) => p.y);
+  const range = ys.length ? Math.max(...ys) - Math.min(...ys) : 0;
+  const earlier: TracePoint[][] = [];
+  for (let i = 0; i + 1 < s.length && s[i + 1] <= rep.start; i++) {
+    const seg = path.filter((p) => p.frame >= s[i] && p.frame <= s[i + 1]);
+    const sy = seg.map((p) => p.y);
+    if (seg.length > 1 && Math.max(...sy) - Math.min(...sy) >= REP_TRAVEL * range) earlier.push(seg);
+  }
+  return { current: pathUpTo(path.filter((p) => p.frame >= rep.start), frame), earlier };
 }

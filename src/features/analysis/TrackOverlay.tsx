@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Circle, G, Line, Path } from 'react-native-svg';
 import type { Analysis, Point } from '../../analysis/types';
 import type { Body } from '../../analysis/device/tracking';
@@ -5,7 +6,7 @@ import { svgPath, toScreen, type Size } from '../../analysis/geometry';
 import { pointAt } from '../../analysis/timeline';
 import { colors, opacity, stroke } from '../../design/tokens';
 import { CurrentDot, FlarePath, OverlaySvg, RefLine } from './overlays';
-import { bones, drawnPath, drawnSide, floorY, joints, startLineX } from './tracker';
+import { bones, drawnPaths, drawnSide, floorY, joints, repStarts, startLineX } from './tracker';
 
 // What is drawn on the clip at one frame: the start and floor lines, the body, the path so far and its dot.
 // The tracker screen and the share preview show it; modules/clip-transcoder TrackRenderer.swift burns the same in.
@@ -26,6 +27,9 @@ export default function TrackOverlay({
   ghost?: Point[] | null;
 }) {
   const s = (p: Point) => toScreen(p, { x: 0, y: 0, width: box.width, height: box.height });
+  // where each rep of the set starts, read once per lift (the path does not change while it plays)
+  const starts = useMemo(() => repStarts(analysis.reps[0]?.path ?? [], analysis.video.fps || 30), [analysis]);
+  const drawn = drawnPaths(analysis, frame, starts);
   const rep = analysis.reps[0];
   const path = rep?.path ?? [];
   const current = path.length && frame >= path[0].frame && frame <= path[path.length - 1].frame ? pointAt(path, frame) : null;
@@ -61,7 +65,11 @@ export default function TrackOverlay({
       ) : null}
       {show.path ? (
         <>
-          <FlarePath points={drawnPath(analysis, frame).map(s)} testID="path-done" />
+          {/* earlier reps of the set, faint and dotted like a compared lift; the rep on screen in flare */}
+          {drawn.earlier.map((seg, i) => (
+            <Path key={i} testID="path-earlier" d={svgPath(seg.map(s))} stroke={colors.text} strokeWidth={stroke.ghost} strokeLinecap="round" strokeLinejoin="round" strokeDasharray="1 5" opacity={opacity.lines} fill="none" />
+          ))}
+          <FlarePath points={drawn.current.map(s)} testID="path-done" />
           <CurrentDot point={current ? s(current) : null} />
         </>
       ) : null}
