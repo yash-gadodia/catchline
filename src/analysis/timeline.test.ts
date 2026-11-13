@@ -171,4 +171,12 @@ describe('measurementsByPhase', () => {
     expect(grouped.setup?.map((x) => x.id)).toEqual(['c']);
     expect(Object.keys(grouped).sort()).toEqual(['first_pull', 'setup']);
   });
+
+  // #88: a measure that could not be taken carries the rep's start frame, which put the catch's "not seen" under SETUP.
+  it('leaves out a measure that was never taken, and keeps a measured one marked not judged', () => {
+    const notSeen = (id: string, frame: number) => ({ ...m(id, frame), value: 0, status: 'not_seen' as const });
+    const grouped = measurementsByPhase(rep, [notSeen('bar_crash', 100), notSeen('bar_forward_off_hips', 105), m('c', 110)]);
+    expect(grouped.setup?.map((x) => x.id)).toEqual(['bar_forward_off_hips', 'c']);
+    expect(Object.keys(grouped)).toEqual(['setup']);
+  });
 });
