@@ -11,6 +11,8 @@ export const you: Strings<typeof en> = {
   'you.plan': 'Plano',
   'you.section.lifting': 'Levantamentos',
   'you.section.privacy': 'Privacidade',
+  'you.section.settings': 'Ajustes',
+  'you.section.help': 'Ajuda',
   'you.units': 'Unidades',
   'you.defaultLift': 'Levantamento padrão',
   'you.frameRate': 'Taxa de quadros',
