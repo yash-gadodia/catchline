@@ -201,7 +201,7 @@ export default function TrackShareScreen({
             <View
               testID="share-lockup"
               pointerEvents="none"
-              style={{ position: 'absolute', left: box.width * 0.045, top: box.height * 0.12, flexDirection: 'row', alignItems: 'center', gap: space.s2, paddingHorizontal: space.s2, paddingVertical: space.s2, backgroundColor: shade(0.55), ...shape.control }}
+              style={{ position: 'absolute', left: box.width * 0.045, top: box.height * 0.12, flexDirection: 'row', alignItems: 'center', gap: space.s2, paddingHorizontal: space.s2, paddingVertical: space.s2, backgroundColor: shade(0.82), ...shape.control }}
             >
               <Mark size={mark.size * markScale * 2} />
               <View>

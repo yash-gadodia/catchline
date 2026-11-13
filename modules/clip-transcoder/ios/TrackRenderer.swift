@@ -537,7 +537,8 @@ func drawLockup(_ ctx: CGContext, _ st: TrackStyle, _ brand: TrackBrand, at o: C
   let box = CGRect(x: o.x, y: o.y, width: inner.width + pad * 2, height: inner.height + pad * 2)
   if plate {
     ctx.saveGState()
-    ctx.setFillColor(CGColor(gray: 0, alpha: 0.55))
+    // near-solid, so the lines drawn under it never seem to run through the wordmark
+    ctx.setFillColor(CGColor(gray: 0.04, alpha: 0.82))
     ctx.addPath(CGPath(roundedRect: box, cornerWidth: u * 0.27, cornerHeight: u * 0.27, transform: nil))
     ctx.fillPath()
     ctx.restoreGState()
