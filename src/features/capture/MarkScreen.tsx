@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import Svg, { Circle } from 'react-native-svg';
 import Btn from '../../components/Btn';
-import { colors, shade, space, stroke } from '../../design/tokens';
+import { colors, shape, shade, space, stroke } from '../../design/tokens';
 import { type } from '../../design/typography';
 import { selection } from '../../lib/haptics';
 import { Header, Underlined } from './hud';
@@ -138,7 +138,7 @@ export default function MarkScreen({ clip, onBack, onTrack }: { clip: Clip & { u
         </View>
         {drag && coach === 'drag' ? (
           <View testID="mark-coach" pointerEvents="none" style={{ position: 'absolute', top: space.s4, left: 0, right: 0, alignItems: 'center' }}>
-            <Text style={{ ...type.button, color: colors.text, backgroundColor: shade(0.72), paddingHorizontal: space.s4, paddingVertical: space.s2, borderRadius: space.s2, overflow: 'hidden' }}>
+            <Text style={{ ...type.button, color: colors.text, backgroundColor: shade(0.72), paddingHorizontal: space.s4, paddingVertical: space.s2, ...shape.control, overflow: 'hidden' }}>
               {t('capture.mark.coachDrag')}
             </Text>
           </View>
