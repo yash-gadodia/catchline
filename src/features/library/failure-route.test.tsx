@@ -46,7 +46,7 @@ describe('release build: a failed lift never falls back to the demo', () => {
   });
 
   it('Try again re-sends the saved clip', async () => {
-    useCapture.setState({ draft: newClip({ uri: 'file:///clip.mov', durationS: 8, fps: 30, source: 'camera', movement: 'snatch' }) });
+    useCapture.setState({ draft: newClip({ uri: 'file:///clip.mov', durationS: 8, fps: 30, source: 'camera' }) });
     params.current = { id: 'lift-7', reason: 'unknown' };
     const view = await render(<FailureRoute />);
     await press(view.getByTestId('failure-primary'));
@@ -68,7 +68,7 @@ describe('release build: a failed lift never falls back to the demo', () => {
   it('a partial analysis with nothing to show just goes back', async () => {
     params.current = { id: 'lift-7', reason: 'clip_cut_off' };
     const view = await render(<FailureRoute />);
-    await press(view.getByText('Analyse the pull only'));
+    await press(view.getByText('Track the pull only'));
 
     expect(mockNav.back).toHaveBeenCalledTimes(1);
     expect(mockNav.replace).not.toHaveBeenCalled();
@@ -82,13 +82,15 @@ describe('release build: a failed lift never falls back to the demo', () => {
   });
 });
 
-describe('dev build', () => {
-  it('still previews a failure with the design header', async () => {
-    params.current = { id: 'demo', reason: 'too_dark' };
-    const view = await render(<FailureRoute />);
-
-    expect(view.getByText('Snatch · 62.5 kg')).toBeOnTheScreen();
+it('heads the failure with the lift\'s date, time and load, never a movement', async () => {
+  useLibraryStore.setState({
+    lifts: [{ id: 'lift-8', movement: 'snatch', date: '2026-11-11', at: new Date(2026, 10, 11, 14, 32).toISOString(), loadKg: 62.5, status: 'failed', failure: { reason: 'too_dark', message: 'Too dark' } }],
   });
+  params.current = { id: 'lift-8' };
+  const view = await render(<FailureRoute />);
+
+  expect(view.getByText('11 Nov, 14:32 · 62.5 kg')).toBeOnTheScreen();
+  expect(view.queryByText(/Snatch/)).toBeNull();
 });
 
 // #23: a refused snatch read "looks like: wall walk" with a wall-walk stage, canned for every refusal.

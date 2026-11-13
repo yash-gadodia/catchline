@@ -1,3 +1,74 @@
+# 4.0: tracking only (branch v40/tracker, from 11 Nov)
+
+Owner decision 11-11: drop cues; the app tracks any lift or gymnastics clip and shows it on the real video, every frame. Keep it small.
+
+## Phase 1: the viewer (JS only, runs on the 3.1 binary)
+- [x] Any clip tracked the same way, no movement check: `src/analysis/device/tracking.ts` (`track`, `trackTrace`), the path over the whole clip plus the joints on every frame (`body.json`)
+- [x] The trimmed clip is kept with its lift (`clip.mp4`), deleted with the lift
+- [x] `TrackerScreen`: real video (expo-video), scrubber, frame step, 0.25/0.5/1x, path + start line + floor line + body + angles toggles, draw
+- [x] A lift with a kept clip opens on the tracker from processing, the library and a notification (reveal/cue redirect)
+- [ ] (Yash) Test on a phone: plate path through the plan loop (follow over the whole clip), overlay lag while playing, 60 fps and variable-frame-rate imports
+- [ ] Path colour per rep / attempts layered; circle in the draw tool
+## Phase 2: strip back
+- [x] Remove movement picker, reveal/cue/miss/compare routes, Cues and Trends tabs, cue tracking, retest, drills, review and import screens; processing copy; Lifts is a plain list (branch v40/strip-ui)
+- [ ] Delete what only the old onboarding demo and paywall proof rows still hold up: `RevealScreen`, `CueScreen` (cut down to the sample), `PathReplay`, `ResultNumbers`, `LibraryState.cues/sessions`, `sessionsDone`, the `cue` strings; `PlayerScreen.onCompare` (passed by `SampleScreen`); `routeAfterAnalysis()` has no caller since the cue route went
+- [x] Onboarding (3 steps: welcome, how to film, add a video), paywall (free 3 a week, one plan Catchline Pro) (branch v40/onboard-paywall)
+- [ ] Store listing copy and screenshots
+- [ ] Follow-ups from the onboarding/paywall pass: Lifts chip, capture `freeUsed` and library `freeVideosUsed` still read the lifetime count (use `useVideosLeft()`); `app/(tabs)` still links `/onboarding/demo` and `/paywall/plans` (both gone); drop `captureHref`, `routeAfterAnalysis`, submit's 'paywall'/'trial' branches and devicePipeline's `writeFreeUsed`; nothing asks for notifications before the first result any more
+## Phase 3: store build
+- [x] Burned-in share video and image (path, lines, body, 0.25/0.5/1x): `modules/clip-transcoder/ios/TrackRenderer.swift`, spec from `src/features/share/trackShare.ts`, screen `TrackShareScreen` (branch v40/native-share)
+- [x] 60 fps camera: `modules/lift-camera` (1080p60 where the back camera has the format, else 30); `expo.version` 4.0.0, so this ships in a store build only
+- [ ] (Yash) On a phone: film at 60 fps (portrait and landscape hold), check the badge, the file's frame rate and that the tracker stays in step to the last frame; share a video and an image from the share sheet
+- [ ] Faster tracking (detector every Nth frame)
+- [x] Plate from the trained model (branch v40/plate-path): native `Stages/PlateNet.swift` reads PlateNet (`ios/plate/PlateNet.mlmodelc`) on a square around the hands and one on the plate last seen, trace call `plate_net` (6 peaks a frame); `src/analysis/device/plateNet.ts` picks the lifter's plate from the mark. Owner phone clips: 80% of hand-labelled frames within 0.25 plate radii (rules 19%). Old traces keep the rules.
+- [ ] (Yash) On a phone: time the plate pass (8 ms a frame on the Mini under load) and check a marked lift; IMG_0976 sits 0.5 r off the hub (the model reads the sleeve end), IMG_0591 overhead is jagged
+- [ ] Faster tracking (detector every Nth frame): built and measured, off (`detectInterval = 1`); at 4 the pose pass is ~1.7x faster on the Mini but the far arm's p95 misses the bar on 4-6 of 17 clips (12-11, v40/speed). Owner call. Track-the-lift: `docs/catchline/track-the-lift.md` (no gain on the eval clips, not built)
+- [ ] (Claude, next store build) Share loop, native parts (JS is ready, see `docs/catchline/analytics-4.0.md`): add `expo-store-review` (the rating ask in `src/features/share/rating.ts` turns itself on when the module is in the binary); wordmark anchor and separate x/y insets in `TrackRenderer.swift` (today fixed bottom-right, inside the zone Reels and TikTok cover); a `UIActivityItemSource` so the default share text goes to Messages, Mail and X but not to Instagram or WhatsApp
+## Go-to-market (`docs/catchline/gtm-4.0.md`, channel decision 12 Nov)
+- [ ] (Yash) Name the first 5 coaches; decide Pro free for life for coaches (recommended yes)
+- [ ] (Yash) Add 2 or 3 competition-style clips to the 10 gate clips for going loud
+- [x] Wordmark out of the Reels/TikTok covered zone: 'Catchline · free on the App Store' on every plan, inset a fifth up (JS, 41fc4b7); build 43 clamps it inside the frame (55cffd6)
+- [x] Bar speed (m/s), owner yes 12-11: per-frame plate radius on the path (r), 450 mm plate scale, player shows speed at the playhead and the lift's peak (24fa565); radius matches labels (median 1.01, n 116); owner snatches peak 1.9-2.5 m/s
+- [x] CSV export of a lift on the share page (a138c04)
+- [ ] (Claude) Side-by-side any two lifts, synced at lift start (WL's most praised feature): needs a simulator look before it ships
+## Tester feedback 12 Nov (OTA on build 42 unless noted)
+- [x] Trim drag no longer swipes the screen away (8bbbeb3); plate-mark example loop + why (6de1c32, 5468a55); "No plate? Skip" (5bc2ade)
+- [x] Trim and mark screens: picture fills the space left, Track stays on screen on iPhone SE (f3f98b5, 5468a55). Not yet seen on a phone
+- [x] Path, lines and body on by default on every lift and share (55dd95c); compare only with the same kind of lift (d10900f)
+- [x] Hip trail draws only its last second on the player (5cd0172); gate baseline re-recorded at 24fa565 with the hip rows
+- [x] Hanging clips (pull-ups, muscle-ups): read as hanging when the hands stay still on the bar for 2 s, hip trail over the time on the bar (d502bf0, gate 17ad21b)
+- [ ] (Yash) AirDrop the originals of the 12 Nov clean & jerk (line hops between near and far plate in the blur of the pull) and bar muscle-up (body lines glitch in the kip)
+- [ ] (Claude, after the originals) Hold the marked plate's size and side through blur; stop drawing at the drop
+## Build 43 (branch v40/build43, expo.version 4.0.1)
+- [x] 2x/4x share renders (every 2nd/4th frame, supportsFastShare), mark clamped in frame, expo-store-review (55cffd6); checked in the macOS harness: 8.2 s -> 4.1 s -> 2.07 s at 30 fps
+- [x] Share video holds only the lift (TrackRenderer never read startFrame/endFrame: every share was the whole clip) and the hip trail is its last second (1a78752)
+- [ ] Default share text (UIActivityItemSource); optional end card "Made with Catchline · free on the App Store"
+- [x] 13 Nov: 4.0.0 (build 42) released to the App Store (READY_FOR_SALE); 4.0 privacy page published on the catchline branch (Pages)
+- [x] Build 44 (4.0.1, e07e319; 43 failed: expo-store-review 56.0.4 needs SceneGeometry, pinned 56.0.3) gated (full, 14 clips), Release sim walk on iPhone SE, submitted for review 13 Nov (WAITING_FOR_REVIEW)
+- [x] 13 Nov: 4.0.1 withdrawn before review; 4.0.2 (build 47: share logo lockup + end card, plate hint on the picture, share page fits an SE) submitted, WAITING_FOR_REVIEW
+- [ ] (Yash) Release 4.0.2 when Apple approves it; then publish v40/build43's JS to runtime 4.0.2 (it holds per-rep lines and the You page too)
+- [x] Per-rep bar path: current rep in flare, earlier reps faint and dotted, speed peak per rep (2c623fc); You page down to Settings, Privacy, Help (b0f1322); both live on 4.0.0
+- [ ] (Claude, next build) Per-rep in the share video (native: pass rep starts in the spec)
+- [ ] (Claude) After 4.0.1 is out: OTAs for its users go from v40/build43 (runtime 4.0.1); keep publishing JS fixes to 4.0.0 from v40/tracker until most users have updated, then merge build43 into tracker
+- [ ] (Yash, after 4.0 is live) Apple Search Ads, about $5 a day, exact "bar path" / "barbell tracker"
+## First lift (branch v40/first-wow, JS only)
+- [x] Onboarding is one screen: a bundled tracked lift plays (`assets/sample`, made by `scripts/make-sample.sh <lift folder>`), then "Pick one of your lifts" / "Film a lift now"
+- [ ] (Yash) Choose the clip that is bundled: today's is a stand-in from a test lift and shows a real person
+- [x] Tracking shows the real percentage and time left over the lifter's clip, then goes straight to the lift (`reveal=1`): it plays once at 0.5x, a tick at the top, stops on the last frame with Share
+- [x] "Compare with your last lift": the earlier bar path as a dotted bone line (`compare.ts`: anchored at the lowest point before the peak, scaled by shoulder-to-ankle height, mirrored when facing the other way)
+- [x] Lifts list grouped by day (Today, Yesterday, date)
+- [ ] Nothing asks for notifications any more on the way to the first result (the alert would land on the first look); decide where, if anywhere
+## Notes
+- Release gate (11-11): `scripts/eval31/gate.sh` (`--check`, `--replay`, `--record`, `--sheets`, `--original`) runs the 14 clips of `gate-clips.json` on the Mini in `~/catchline-gate`, prepared by the app's own transcoder code (`modules/clip-transcoder/harness` `probe` / `transcode`, behind a stand-in ExpoModulesCore) and tracked like the phone. `ota.sh publish` and `store-build.sh` need a passing result for the commit; read `.claude/skills/release-verify` before any release. The gate also scores the path against the hand plate labels on the Mini (`L` = share of labelled plate frames within 0.25 r; label frame i = prepared frame i, checked by packet count). Gotchas (12-11): a parsed trace does not survive `JSON.stringify` (replay must re-merge the raw `pose`/`pixN` files); never edit `gate.sh` while a run is going (bash reads the script by offset); IMG_0976 got a 350-point plate path in one run and none in the next on the same code, so a single run can flip a clip.
+- [ ] (Claude) Re-record the gate baseline when the trained plate model (`v40/plate-path`, build 42) lands; the `L` column is the number to move.
+- A lift is submitted and synced as movement 'snatch' whatever it shows (`toSubmission`); a 4.0 lift is titled by date, time and load (`liftTitle` in library/derive), never by that movement.
+- The session scratchpad is shared by every agent of a team: keep scripts in a subfolder of your own (another agent's `i18n.py` overwrote one of the same name and was run by mistake).
+- The native pass is always asked for as 'snatch' (standing lifter selection); a hanging clip is told apart in TS (`family(signals)`), so a crowded gymnastics clip may pick the wrong person until the native side changes.
+- A symlinked node_modules runs the other checkout's code in Metro: clone it (`cp -cR`) for simulator checks. Fast Refresh did not pick up edits on the sim; relaunch the app.
+- Share renderer off-device: `modules/clip-transcoder/harness` (`swift build -c release`, then `track-share video|image <clip> --spec spec.json --out file`); the spec is `JSON.stringify(buildTrackSpec(...))`. A decoded frame from AVAssetReader has no duration (CMSampleBufferGetDuration is invalid), so frame lengths come from the next frame's timestamp.
+- Variable-frame-rate clips: the transcoder keeps every frame's own timestamp (not constant rate) and `analysis.video.fps` is 1 / the shortest frame, so `frameAt(time)` in the player can drift on such a clip; the share render goes by frame order and is not affected.
+- Simulator check without running pose: `trackTrace` on a phone trace + the clip into `Documents/lifts/<id>/` (analysis.json, body.json, clip.mp4), then `catchline://analysis/player?fixture=<id>`.
+
 - [ ] (Claude, build 29, Yash 15-10) Compare with a past lift: pick any earlier lift of the same movement, ghost its bar path aligned at lift-off, side by side (compare is dev-only today, fixtures)
 - [ ] (Claude, build 29) Movement picker defaults to "Auto": worker already detects snatch/clean/jerk (cv/detect.py); add gymnastics detection, keep manual override
 - [ ] (Claude, build 30) Long video (10 min, 5 sets): find sets on the phone (Apple Vision body pose at low fps or bar motion), upload each set as its own lift; `detectSets` in src/features/capture/sets.ts is a stub today; Supabase Free caps uploads at 50 MB

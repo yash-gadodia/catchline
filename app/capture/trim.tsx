@@ -1,33 +1,41 @@
 import { useEffect } from 'react';
 import { View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { demoClip } from '../../src/features/capture/demo';
-import { useCapture, withTrim } from '../../src/features/capture/store';
+import { useCapture, useCaptureHydrated } from '../../src/features/capture/store';
 import { submitDraft } from '../../src/features/capture/submit';
+import { plateMarkSupported } from '../../src/features/capture/plateMark';
 import TrimScreen from '../../src/features/capture/TrimScreen';
+import { useNoSwipeBack } from '../../src/lib/useNoSwipeBack';
+import { useOnboarding } from '../../src/features/onboarding/store';
 import { colors } from '../../src/design/tokens';
 
-// ?then=analyse: Analyse sent a clip too long for one lift here; Done analyses it as trimmed.
+// The one screen between picking a clip and tracking it: trim to the lift, add the load if wanted, Track.
+// With no clip a dev build shows the sample; a release build goes back to capture.
 export default function TrimRoute() {
   const router = useRouter();
-  const { then } = useLocalSearchParams<{ then?: string }>();
-  const { draft, setDraft } = useCapture();
+  const { draft, setDraft, updateDraft, lastWeight, setLastWeight } = useCapture();
+  const ready = useCaptureHydrated();
+  const units = useOnboarding((s) => s.units);
+  useNoSwipeBack();
   useEffect(() => {
     if (draft) return;
     if (__DEV__) setDraft(demoClip('ok'));
     else router.replace('/capture');
   }, []);
-  if (!draft) return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
-  const close = () => (router.canGoBack() ? router.back() : router.replace('/capture/review'));
+  if (!draft || !ready) return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
   return (
     <TrimScreen
       clip={draft}
-      nudge={then === 'analyse'}
-      onCancel={close}
-      onDone={(trim) => {
-        setDraft(withTrim(draft, trim));
-        if (then === 'analyse') submitDraft({ replace: true, trimmed: true });
-        else close();
+      units={units}
+      weight={lastWeight}
+      onWeight={setLastWeight}
+      onCancel={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+      onTrack={(trim) => {
+        updateDraft({ trim, plateMark: null });
+        // a real clip goes on to the mark; the dev sample has no picture to mark
+        if (draft.uri && plateMarkSupported()) router.push('/capture/mark');
+        else submitDraft();
       }}
     />
   );

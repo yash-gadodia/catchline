@@ -10,12 +10,12 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import type { Analysis } from '../../analysis/types';
-import { doneTitle, formatWait, processingSteps } from '../../analysis/format';
+import { formatWait } from '../../analysis/format';
 import { keyFrameForPhase, repByIndex } from '../../analysis/timeline';
 import Btn from '../../components/Btn';
 import Sheet from '../../components/Sheet';
-import { colors, shade, space } from '../../design/tokens';
-import { fontFamily, type } from '../../design/typography';
+import { colors, space } from '../../design/tokens';
+import { display, fontFamily, type } from '../../design/typography';
 import { impact, success } from '../../lib/haptics';
 import Stage from './Stage';
 import ProcessingPath from './ProcessingPath';
@@ -33,7 +33,9 @@ type Props = {
   clipUri?: string | number | null;
   reduceMotion?: boolean;
   meta?: string;
-  firstStep?: string;
+  // What the phone is doing right now, in plain words, and how far through it is (0..1) when that is known.
+  doing?: string;
+  progress?: number | null;
   maxS?: number;
   state: ProcessingState;
   step: number;
@@ -52,7 +54,7 @@ type Props = {
   onRetry?: () => void;
 };
 
-export default function ProcessingSheet({ analysis, clipUri, reduceMotion, meta, firstStep, maxS, state, step, elapsed, etaSeconds = EXPECTED_ANALYSIS_S, onServer, ahead, ...on }: Props) {
+export default function ProcessingSheet({ analysis, clipUri, reduceMotion, meta, doing, progress, maxS, state, step, elapsed, etaSeconds = EXPECTED_ANALYSIS_S, onServer, ahead, ...on }: Props) {
   const { width, height } = useWindowDimensions();
   const box = { width, height };
   const systemReduce = useReducedMotion();
@@ -71,9 +73,8 @@ export default function ProcessingSheet({ analysis, clipUri, reduceMotion, meta,
       )}
       {state === 'progress' ? (
         <InProgress
-          analysis={analysis}
-          step={step}
-          firstStep={firstStep}
+          doing={doing}
+          progress={progress}
           meta={meta ?? formatWait(etaSeconds)}
           note={onServer ? <Queue etaSeconds={etaSeconds} ahead={ahead} /> : null}
           onHide={on.onHide}
@@ -126,7 +127,7 @@ export default function ProcessingSheet({ analysis, clipUri, reduceMotion, meta,
       {state === 'done' && analysis ? (
         <Sheet testID="sheet-done">
           <Text style={{ color: colors.text, ...type.title }}>
-            {doneTitle(analysis)}
+            {t('analysis.processing.done')}
           </Text>
           <Btn
             onPress={() => {
@@ -143,7 +144,7 @@ export default function ProcessingSheet({ analysis, clipUri, reduceMotion, meta,
   );
 }
 
-// Behind the step list: the lifter's own clip, dimmed, when it is still on the phone
+// Behind the progress: the lifter's own clip, playing, when it is still on the phone
 // (no drawn path: it could not match their bar), else the silhouette with its bar
 // path drawing in phase by phase.
 function ProgressBackdrop({
@@ -163,7 +164,6 @@ function ProgressBackdrop({
       {clipUri ? (
         <>
           <ClipLayer uri={clipUri} reduce={reduce} box={box} />
-          <View testID="processing-scrim" style={[layer, { backgroundColor: shade(0.35) }]} />
         </>
       ) : (
         <>
@@ -182,8 +182,8 @@ function ClipLayer({ uri, reduce, box }: { uri: string | number; reduce: boolean
     if (!reduce) p.play();
   });
   return (
-    <View testID="processing-clip" style={{ position: 'absolute', left: 0, top: 0, width: box.width, height: box.height, opacity: 0.55 }}>
-      <VideoView player={player} style={{ width: box.width, height: box.height }} contentFit="cover" nativeControls={false} />
+    <View testID="processing-clip" style={{ position: 'absolute', left: 0, top: 0, width: box.width, height: box.height, opacity: 0.8 }}>
+      <VideoView player={player} style={{ width: box.width, height: box.height }} contentFit="cover" nativeControls={false} allowsVideoFrameAnalysis={false} />
     </View>
   );
 }
@@ -233,46 +233,38 @@ function Queue({ etaSeconds, ahead }: { etaSeconds: number; ahead?: number }) {
 }
 
 function InProgress({
-  analysis,
-  step,
-  firstStep,
+  doing,
+  progress,
   meta,
   note,
   onHide,
   onCancel,
 }: {
-  analysis: Analysis | null;
-  step: number;
-  firstStep?: string;
+  doing?: string;
+  progress?: number | null;
   meta: string;
   note: ReactNode;
   onHide: () => void;
   onCancel?: () => void;
 }) {
+  const pct = progress == null ? null : Math.round(Math.min(Math.max(progress, 0), 1) * 100);
   return (
     <Sheet testID="sheet-progress">
       <Header title={t('analysis.processing.watching')} meta={meta} />
       {note ? <View style={{ marginTop: -space.s2 }}>{note}</View> : null}
-      <View style={{ gap: space.s3 }}>
-        {processingSteps(analysis, step, firstStep).map((s) => (
-          <View key={s.label} style={{ flexDirection: 'row', alignItems: 'center', gap: space.s3 }} testID={`step-${s.state}`}>
-            <View style={{ width: 20 }}>
-              {s.state === 'active' ? (
-                <Pulse />
-              ) : (
-                <View
-                  style={[
-                    { width: 9, height: 9, borderRadius: 4.5, marginLeft: 2 },
-                    s.state === 'done' ? { backgroundColor: colors.text } : { borderWidth: 1.5, borderColor: colors.text3 },
-                  ]}
-                />
-              )}
-            </View>
-            <Text style={{ color: s.state === 'todo' ? colors.text3 : colors.text, ...type.body }}>
-              {s.label}
-            </Text>
+      {pct === null ? null : (
+        <View style={{ gap: space.s2 }}>
+          <Text testID="processing-pct" style={[display(56), { color: colors.text }]}>{`${pct}%`}</Text>
+          <View testID="processing-bar" accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: pct }} style={{ height: 3, backgroundColor: colors.hairline }}>
+            <View style={{ height: 3, width: `${pct}%`, backgroundColor: colors.text }} />
           </View>
-        ))}
+        </View>
+      )}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s3 }}>
+        <Pulse />
+        <Text testID="processing-doing" style={{ flex: 1, color: colors.text, ...type.body }}>
+          {doing ?? t('analysis.processing.tracking')}
+        </Text>
       </View>
       <View style={{ alignItems: 'center', gap: 2 }}>
         <TextLink onPress={onCancel ?? onHide} testID={onCancel ? 'cancel' : 'hide'}>
@@ -292,7 +284,7 @@ function Pulse() {
     o.value = withRepeat(withSequence(withTiming(0.35, { duration: 500 }), withTiming(1, { duration: 500 })), -1);
   }, [o]);
   const style = useAnimatedStyle(() => ({ opacity: o.value }));
-  return <Animated.View style={[{ width: 9, height: 9, borderRadius: 4.5, backgroundColor: colors.flare, marginLeft: 2 }, style]} />;
+  return <Animated.View style={[{ width: 9, height: 9, borderRadius: 4.5, backgroundColor: colors.flare }, style]} />;
 }
 
 function TextLink({ children, onPress, testID }: { children: string; onPress: () => void; testID?: string }) {

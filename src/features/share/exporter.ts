@@ -6,6 +6,7 @@ import { Asset, requestPermissionsAsync } from 'expo-media-library';
 import Transcoder from '../../../modules/clip-transcoder';
 import type { OverlaySpec, ShareAspect } from './overlay';
 import { OUTPUT } from './overlay';
+import type { TrackSpec } from './trackShare';
 
 // The still card renders on-device: the card view is captured at export size.
 export async function renderStill(ref: RefObject<View | null>, aspect: ShareAspect): Promise<string> {
@@ -23,11 +24,34 @@ export async function renderVideo(uri: string, spec: OverlaySpec, onProgress: (p
   }
 }
 
+// 2x and 4x shares: only a binary whose TrackRenderer keeps every 2nd / 4th frame (build 43 on).
+export const fastShareSupported = () => (Transcoder as { supportsFastShare?: boolean } | null)?.supportsFastShare === true;
+
+// 4.0: the lift's kept clip with the tracker's overlay burned in, and one frame of it as an image.
+export async function renderTrackVideo(clipUri: string, spec: TrackSpec, onProgress: (p: number) => void): Promise<string> {
+  const sub = Transcoder.addListener('onProgress', (e) => onProgress(e.progress));
+  try {
+    return (await Transcoder.renderTrackVideo(clipUri, JSON.stringify(spec))).uri;
+  } finally {
+    sub.remove();
+  }
+}
+
+export async function renderTrackImage(clipUri: string, spec: TrackSpec): Promise<string> {
+  return (await Transcoder.renderTrackImage(clipUri, JSON.stringify(spec))).uri;
+}
+
+export type ShareResult = { outcome: 'shared' | 'cancelled'; activity: string | null };
+
 // The iOS share sheet with the file: Instagram (Stories, Reels, Feed), WhatsApp,
-// Messages, Save, AirDrop.
-export async function shareFile(uri: string): Promise<'shared' | 'cancelled'> {
+// Messages, Save, AirDrop. iOS says which activity took the file (an identifier such as
+// com.apple.UIKit.activity.SaveToCameraRoll), never what happened inside that app.
+// The file goes alone: a text item beside a video takes Instagram off the sheet and makes WhatsApp send the text
+// without the video, and React Native's Share cannot give a text to some activities only (docs/catchline/analytics-4.0.md).
+export async function shareFile(uri: string): Promise<ShareResult> {
   const res = await Share.share({ url: uri });
-  return res.action === Share.dismissedAction ? 'cancelled' : 'shared';
+  if (res.action === Share.dismissedAction) return { outcome: 'cancelled', activity: null };
+  return { outcome: 'shared', activity: res.activityType ?? null };
 }
 
 export async function saveToPhotos(uri: string): Promise<'saved' | 'denied'> {

@@ -1,6 +1,6 @@
 import type { Lift as LiftRow } from '../types/db';
 import { FAILURE_COPY } from '../features/library/failures';
-import { dayOf, toCue, toLift, toSession } from './library';
+import { dayOf, toLift } from './library';
 
 const row = (over: Partial<LiftRow>): LiftRow =>
   ({
@@ -29,12 +29,6 @@ describe('toLift for a lift analysed on the phone (3.1)', () => {
     expect(lift.failure?.reason).toBe('unknown');
   });
 
-  it('carries the server cue record for a done lift whose analysis is on another phone', () => {
-    const lift = toLift(row({ status: 'done', error: null, cue_id: 'cue-7' }), undefined, now);
-    expect(lift.status).toBe('done');
-    expect(lift.cueId).toBe('cue-7');
-    expect(lift.reps).toBeUndefined();
-  });
 });
 
 describe('toLift for a lift the worker failed (no analysis row)', () => {
@@ -118,64 +112,57 @@ describe('toLift thumbnail for a lift moved over by an account transfer', () => 
   });
 });
 
-describe('toCue for a real cues row', () => {
-  const cueRow = {
-    id: '6c1d2e3f-0000-4000-8000-000000000001',
-    user_id: 'u1',
-    movement: 'snatch',
-    fault_id: 'jump_forward',
-    text: 'Land on the line you started on.',
-    why: 'Your feet landed 9 cm in front of where they started.',
-    status: 'trying',
-    sessions: 3,
-    first_lift_id: 'lift-1',
-    last_lift_id: 'lift-3',
-    created_at: '2026-10-10T02:00:00Z',
-    updated_at: '2026-10-13T02:00:00Z',
-  };
-
-  it('keeps the fault id as the metric, the why, the server session count and the lift span', () => {
-    const cue = toCue(cueRow, new Map());
-    expect(cue).toMatchObject({
-      id: cueRow.id,
+describe('toLift for a lift tracked on this phone (4.0)', () => {
+  const tracked = row({ id: 't1', status: 'done', error: null });
+  const still = (name: string) => `file:///docs/lifts/t1/stills/${name}.jpg`;
+  const analysis = (over: { path?: object[]; traceKind?: 'bar' | 'hip'; peak?: string | undefined }) =>
+    ({
+      version: 1,
+      id: 't1',
       movement: 'snatch',
-      metricId: 'jump_forward',
-      text: 'Land on the line you started on.',
-      why: 'Your feet landed 9 cm in front of where they started.',
-      status: 'trying',
-      sessionsDone: 3,
-      sessionsTarget: 6,
-      firstLiftId: 'lift-1',
-      lastLiftId: 'lift-3',
-      endedAt: undefined,
-    });
-    expect(cue.givenAt).toBe(dayOf('2026-10-10T02:00:00Z'));
-  });
-
-  it('dates the end of a cue that is no longer being tried and survives deleted lifts', () => {
-    const cue = toCue({ ...cueRow, status: 'stuck', first_lift_id: null, last_lift_id: null }, new Map());
-    expect(cue.status).toBe('stuck');
-    expect(cue.endedAt).toBe(dayOf('2026-10-13T02:00:00Z'));
-    expect(cue.before.image).toBe('');
-    expect(cue.after.image).toBe('');
-  });
-});
-
-describe('toSession', () => {
-  it('leaves out what the clip could not measure, so a trend never plots a 0', () => {
-    const a = {
-      reps: [],
-      measurements: [
-        { id: 'bar_speed', label: 'Peak bar speed', value: 0, unit: 'm/s', frame: 1, status: 'not_seen', note: '' },
-        { id: 'jump_forward', label: 'Jumped forward', value: 6, unit: 'cm', frame: 1, status: 'cue', note: '' },
+      video: { uri: '', width: 1080, height: 1920, fps: 60, frameCount: 300 },
+      traceKind: over.traceKind ?? 'bar',
+      reps: [
+        {
+          index: 1,
+          startFrame: 0,
+          endFrame: 299,
+          made: false,
+          phases: [],
+          keyFrames: [
+            { phase: 'setup', frame: 4, image: still('r1-1-setup') },
+            { phase: 'peak', frame: 180, image: 'peak' in over ? over.peak : still('r1-2-peak') },
+          ],
+          path: over.path ?? [{ frame: 4, x: 0.5, y: 0.8, src: 'plate' }, { frame: 180, x: 0.5, y: 0.2, src: 'plate' }],
+        },
       ],
-    } as unknown as Parameters<typeof toSession>[1];
-    expect(toSession(row({ status: 'done' }), a).values).toEqual({ jump_forward: 6 });
+      bestRepIndex: 1,
+      cue: null,
+      measurements: [],
+      failure: null,
+    }) as unknown as Parameters<typeof toLift>[1];
+
+  it('has the bar path and the body, and the still from the top of the lift', () => {
+    const lift = toLift(tracked, analysis({}));
+    expect(lift.shows).toBe('bar');
+    expect(lift.thumb).toBe(still('r1-2-peak'));
   });
 
-  it('carries the analysis version, absent on lifts measured before it was stamped', () => {
-    const a = { reps: [], measurements: [] } as unknown as Parameters<typeof toSession>[1];
-    expect(toSession(row({ status: 'done' }), { ...a, analysisVersion: 'cv-2026.10.16' }).analysisVersion).toBe('cv-2026.10.16');
-    expect(toSession(row({ status: 'done' }), a).analysisVersion).toBeUndefined();
+  it('with no bar path drawn is body only and keeps its still', () => {
+    const lift = toLift(tracked, analysis({ path: [] }));
+    expect(lift.shows).toBe('body');
+    expect(lift.thumb).toBe(still('r1-2-peak'));
+  });
+
+  it('is body only for a hanging movement, whose path is the hips', () => {
+    expect(toLift(tracked, analysis({ traceKind: 'hip' })).shows).toBe('body');
+  });
+
+  it('falls back to the still it has when the last one is missing', () => {
+    expect(toLift(tracked, analysis({ path: [], peak: undefined })).thumb).toBe(still('r1-1-setup'));
+  });
+
+  it('says nothing about what it shows while there is no analysis', () => {
+    expect(toLift(row({ id: 't1', status: 'analysing', error: null }), undefined, Date.parse(tracked.created_at)).shows).toBeUndefined();
   });
 });

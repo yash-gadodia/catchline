@@ -2,7 +2,7 @@
   "expo": {
     "name": "Catchline",
     "slug": "parallax",
-    "version": "3.1.1",
+    "version": "4.0.0",
     "orientation": "portrait",
     "scheme": "catchline",
     "icon": "./assets/icon.png",
@@ -35,7 +35,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Catchline opens the lift videos you pick so it can measure them. Nothing else in your library is read."
+          "photosPermission": "Catchline opens the videos you pick so it can track them, including ones stored in iCloud. Nothing else in your library is read."
         }
       ],
       [
@@ -51,7 +51,7 @@
       [
         "expo-media-library",
         {
-          "photosPermission": "Catchline opens the lift videos you pick so it can measure them. Nothing else in your library is read.",
+          "photosPermission": "Catchline opens the videos you pick so it can track them, including ones stored in iCloud. Nothing else in your library is read.",
           "savePhotosPermission": "Catchline saves the lift videos and cards you make to Photos.",
           "isAccessMediaLocationEnabled": false
         }

@@ -4,13 +4,8 @@ import { parseAnalysis } from '../../analysis/parse';
 import { putLiveAnalysis } from '../../analysis/live';
 import { supabase } from '../../lib/supabase';
 import { router as nav } from 'expo-router';
-import CueRoute from '../../../app/analysis/cue';
-import RevealRoute from '../../../app/analysis/reveal';
 import PlayerRoute from '../../../app/analysis/player';
-import MissRoute from '../../../app/analysis/miss';
 import ProcessingRoute from '../../../app/analysis/processing';
-import CompareRoute from '../../../app/analysis/compare';
-import { snatchMockMiss } from '../../analysis/fixtures';
 
 const params: { current: Record<string, string> } = { current: {} };
 
@@ -42,8 +37,7 @@ const db = supabase as unknown as { from: jest.Mock; storage: { from: jest.Mock 
 // Real lift ids (the worker writes Analysis.id = lift id); one per test, since a
 // fetched analysis stays in the session's live map.
 const liftId = (n: number) => `0f4b6c2e-6f47-4c0a-9d3e-2a5b8c1d7e9${n}`;
-const SERVER_CUE = 'Hips rose early off the floor';
-const serverAnalysis = (id: string) => ({ ...mock, id, cue: { ...mock.cue, text: SERVER_CUE } });
+const serverAnalysis = (id: string) => ({ ...mock, id, loadKg: 71 });
 
 let analysisRow: unknown = null;
 let resolveRow: (() => void) | null = null;
@@ -70,33 +64,6 @@ beforeEach(() => {
 // Prod bug (14-10-2026): a result route opened with a lift id the app had not seen this
 // session rendered the bundled demo snatch instead of that lift's own analysis.
 describe('result routes opened with a live lift id', () => {
-  it('cue: loads that lift from the server, never the demo', async () => {
-    analysisRow = { analysis: serverAnalysis(liftId(1)) };
-    params.current = { fixture: liftId(1) };
-    const view = await render(<CueRoute />);
-
-    expect(view.getByTestId('analysis-loading')).toBeOnTheScreen();
-    expect(view.queryByText(mock.cue.text)).toBeNull();
-    expect(db.from).toHaveBeenCalledWith('analyses');
-
-    resolveRow?.();
-    await waitFor(() => expect(view.getByTestId('cue-screen')).toBeOnTheScreen());
-    expect(view.getByText(SERVER_CUE)).toBeOnTheScreen();
-    expect(view.queryByText(mock.cue.text)).toBeNull();
-  });
-
-  it('reveal: shows a loading state until the server answers', async () => {
-    analysisRow = { analysis: serverAnalysis(liftId(2)) };
-    params.current = { fixture: liftId(2) };
-    const view = await render(<RevealRoute />);
-
-    expect(view.getByTestId('analysis-loading')).toBeOnTheScreen();
-    expect(view.queryByTestId('reveal-screen')).toBeNull();
-
-    resolveRow?.();
-    await waitFor(() => expect(view.getByTestId('reveal-screen')).toBeOnTheScreen());
-  });
-
   it('shows a missing state when the server has no analysis for that lift', async () => {
     analysisRow = null;
     params.current = { fixture: liftId(3) };
@@ -105,16 +72,16 @@ describe('result routes opened with a live lift id', () => {
 
     await waitFor(() => expect(view.getByTestId('analysis-missing')).toBeOnTheScreen());
     expect(view.getByText("Couldn't find this lift.")).toBeOnTheScreen();
-    expect(view.queryByText(mock.cue.text)).toBeNull();
+    expect(view.queryByTestId('phase-name')).toBeNull();
   });
 
   it('a lift already seen this session renders at once without a fetch', async () => {
     putLiveAnalysis(parseAnalysis(serverAnalysis(liftId(4))));
     params.current = { fixture: liftId(4) };
-    const view = await render(<CueRoute />);
+    const view = await render(<PlayerRoute />);
 
-    expect(view.getByTestId('cue-screen')).toBeOnTheScreen();
-    expect(view.getByText(SERVER_CUE)).toBeOnTheScreen();
+    expect(view.getByText('Snatch · 71 kg · rep 2')).toBeOnTheScreen();
+    expect(view.getByTestId('phase-name')).toHaveTextContent('Setup');
     expect(db.from).not.toHaveBeenCalled();
   });
 });
@@ -122,30 +89,20 @@ describe('result routes opened with a live lift id', () => {
 describe('bundled fixtures still open directly', () => {
   it('a bundled fixture id never hits the server', async () => {
     params.current = { fixture: 'snatch-mock-low' };
-    const view = await render(<CueRoute />);
+    const view = await render(<PlayerRoute />);
 
-    expect(view.getByTestId('low-confidence')).toBeOnTheScreen();
+    expect(view.getByTestId('phase-name')).toHaveTextContent('Setup');
     expect(db.from).not.toHaveBeenCalled();
   });
 
   it('no id at all is the dev entry and opens the demo', async () => {
     params.current = {};
-    const view = await render(<CueRoute />);
+    const view = await render(<PlayerRoute />);
 
-    expect(view.getByText(mock.cue.text)).toBeOnTheScreen();
+    expect(view.getByText('Snatch · 62.5 kg · rep 2')).toBeOnTheScreen();
     expect(db.from).not.toHaveBeenCalled();
   });
 
-  it('compare and its buttons stay available in a dev build', async () => {
-    params.current = { fixture: 'snatch-mock', mode: 'ghost' };
-    const compare = await render(<CompareRoute />);
-    expect(compare.queryByTestId('redirect')).toBeNull();
-    expect(compare.getByText('vs Your best · 65 kg · 18 Sep')).toBeOnTheScreen();
-
-    params.current = { fixture: 'snatch-mock' };
-    const player = await render(<PlayerRoute />);
-    expect(player.getByTestId('player-compare')).toBeOnTheScreen();
-  });
 });
 
 // Prod bug (14-10-2026, TestFlight): every result route reached without an id resolved to
@@ -158,18 +115,13 @@ describe('release build: a result route with no id never plays the demo', () => 
     (global as unknown as { __DEV__: boolean }).__DEV__ = true;
   });
 
-  it.each([
-    ['cue', CueRoute],
-    ['reveal', RevealRoute],
-    ['player', PlayerRoute],
-    ['miss', MissRoute],
-  ])('%s: shows the missing state, not the bundled snatch', async (_name, Route) => {
+  it('player: shows the missing state, not the bundled snatch', async () => {
     params.current = {};
-    const view = await render(<Route />);
+    const view = await render(<PlayerRoute />);
 
     expect(view.getByTestId('analysis-missing')).toBeOnTheScreen();
     expect(view.getByText("Couldn't find this lift.")).toBeOnTheScreen();
-    expect(view.queryByText(mock.cue.text)).toBeNull();
+    expect(view.queryByTestId('phase-name')).toBeNull();
     expect(db.from).not.toHaveBeenCalled();
   });
 
@@ -178,64 +130,6 @@ describe('release build: a result route with no id never plays the demo', () => 
     const view = await render(<ProcessingRoute />);
 
     expect(nav.replace).toHaveBeenCalledWith('/');
-    expect(view.queryByText(mock.cue.text)).toBeNull();
-  });
-
-  // Compare's "Your best" / "Last session" are fixture variants of the demo snatch, not the
-  // lifter's history. Until it has real targets it is a dev preview only.
-  it('compare: redirects home even for a real lift', async () => {
-    putLiveAnalysis(parseAnalysis(serverAnalysis(liftId(5))));
-    params.current = { fixture: liftId(5), mode: 'ghost' };
-    const view = await render(<CompareRoute />);
-
-    expect(view.getByTestId('redirect')).toHaveTextContent('/');
-    expect(view.queryByText('vs Your best · 65 kg · 18 Sep')).toBeNull();
-  });
-
-  it('player and miss hide their Compare buttons', async () => {
-    putLiveAnalysis(parseAnalysis(serverAnalysis(liftId(6))));
-    params.current = { fixture: liftId(6) };
-    const player = await render(<PlayerRoute />);
-    expect(player.getByTestId('player-share')).toBeOnTheScreen();
-    expect(player.queryByTestId('player-compare')).toBeNull();
-
-    putLiveAnalysis({ ...snatchMockMiss, id: liftId(7) });
-    params.current = { fixture: liftId(7) };
-    const miss = await render(<MissRoute />);
-    expect(miss.getByTestId('miss-screen')).toBeOnTheScreen();
-    expect(miss.queryByTestId('miss-compare')).toBeNull();
-  });
-
-  it('player: "vs your best" opens today\'s path on the lifter\'s best made lift in one tap', async () => {
-    const { useLibraryStore } = require('../library/store');
-    const { useMadeLog } = require('../library/madeLog');
-    useMadeLog.setState({ made: {} });
-    putLiveAnalysis(parseAnalysis(serverAnalysis(liftId(8))));
-    putLiveAnalysis(parseAnalysis(serverAnalysis(liftId(9))));
-    const lib = useLibraryStore.getState();
-    const row = (id: string, loadKg: number, made: boolean) => ({ id, movement: 'snatch', date: '2026-10-20', loadKg, status: 'done', analysisId: id, made });
-    lib.load({ ...lib, lifts: [row(liftId(9), 70, true), row('other', 80, false)] });
-    params.current = { fixture: liftId(8) };
-    const player = await render(<PlayerRoute />);
-    expect(player.getByTestId('player-compare')).toHaveTextContent('vs your best');
-    const { act, fireEvent } = require('@testing-library/react-native');
-    await act(async () => fireEvent.press(player.getByTestId('player-compare')));
-    expect(nav.push).toHaveBeenCalledWith({ pathname: '/analysis/compare', params: { fixture: liftId(8), best: liftId(9) } });
-
-    params.current = { fixture: liftId(8), best: liftId(9) };
-    const compare = await render(<CompareRoute />);
-    expect(compare.queryByTestId('redirect')).toBeNull();
-    expect(compare.getByTestId('compare-ghost')).toBeOnTheScreen();
-    expect(compare.getByTestId('ghost-path')).toBeOnTheScreen();
-    expect(compare.getByText('vs Your best · 70 kg · 20 Oct')).toBeOnTheScreen();
-    lib.load({ ...lib, lifts: [] });
-  });
-
-  it('the sample lift still opens, labelled as the sample', async () => {
-    params.current = { fixture: 'snatch-sample' };
-    const view = await render(<CueRoute />);
-
-    expect(view.getByText('SAMPLE LIFT · AI ESTIMATE')).toBeOnTheScreen();
-    expect(db.from).not.toHaveBeenCalled();
+    expect(view.queryByTestId('phase-name')).toBeNull();
   });
 });

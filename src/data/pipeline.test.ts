@@ -25,17 +25,9 @@ beforeEach(() => {
 });
 
 describe('startLift (3.1: the phone only)', () => {
-  it('hands every movement the phone analyses to the device pipeline, never create_lift', async () => {
-    for (const movement of ['snatch', 'clean', 'jerk', 'kipping_pull_up', 'bar_muscle_up'] as const) await startLift({ ...SUB, movement });
-    expect((startDeviceLift as jest.Mock).mock.calls.map(([s]) => s.movement)).toEqual(['snatch', 'clean', 'jerk', 'kipping_pull_up', 'bar_muscle_up']);
-    expect(createLift).not.toHaveBeenCalled();
-  });
-
-  it('fails kipping HSPU as unsupported on the phone, with no upload and nothing prepared', async () => {
-    await startLift({ ...SUB, movement: 'kipping_hspu', retestCueId: 'cue-9' });
-    const job = usePipeline.getState().job;
-    expect(job).toMatchObject({ movement: 'kipping_hspu', status: 'failed', error: 'analysis_failed', failureReason: 'unsupported_movement', device: true, liftId: null, uri: 'file:///clip.mov', retestCueId: 'cue-9' });
-    expect(startDeviceLift).not.toHaveBeenCalled();
+  it('hands every clip to the device pipeline whatever it shows, never create_lift', async () => {
+    for (const movement of ['snatch', 'clean', 'jerk', 'kipping_pull_up', 'bar_muscle_up', 'kipping_hspu'] as const) await startLift({ ...SUB, movement });
+    expect((startDeviceLift as jest.Mock).mock.calls.map(([s]) => s.movement)).toEqual(['snatch', 'clean', 'jerk', 'kipping_pull_up', 'bar_muscle_up', 'kipping_hspu']);
     expect(createLift).not.toHaveBeenCalled();
   });
 

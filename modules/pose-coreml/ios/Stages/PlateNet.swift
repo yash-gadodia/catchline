@@ -1,0 +1,142 @@
+import CoreML
+import CoreVideo
+import Foundation
+
+// PlateNet (v40/plate-model: MobileNetV3-small with a CenterNet-style head at stride 4): where the plates are in a
+// square of the frame. Input a 256 x 256 RGB crop, output four 64 x 64 maps: centre heat (logit), dx, dy (cells) and
+// log(radius / 256). This stage only cuts the crop, runs the model and reads the peaks; which peak is the lifter's
+// plate, frame after frame, is decided in TS (src/analysis/device/plateNet.ts), so that part ships by OTA.
+let plateNetVersion = "v1"
+let plateNetInput = 256, plateNetCells = 64, plateNetStride = 4.0
+let plateNetPeaks = 3
+// slots per frame in the trace: the peaks of the square around the hands, then those of the square on the plate
+let plateNetSlots = 2 * plateNetPeaks
+// the second square follows the plate on peaks at least this sure, and is dropped after this many frames without one
+let plateNetFollowConf = 0.3
+let plateNetCoast = 6
+// peaks under this are not recorded (the tracker's own bar is higher)
+let plateNetFloor = 0.05
+
+struct PlatePeak {
+  let confidence: Double
+  let centre: Point  // frame px
+  let radius: Double
+}
+
+// The square of the frame centred on `centre`, `side` px wide, as the model's input: each output pixel the mean of
+// the frame pixels under it (cv2.warpAffine INTER_AREA, as the training crops were cut), black outside the frame.
+func plateNetCrop(_ img: BGRImage, centre: Point, side: Double) -> CVPixelBuffer? {
+  var pb: CVPixelBuffer?
+  let attrs = [kCVPixelBufferIOSurfacePropertiesKey as String: [:] as [String: Any]] as CFDictionary
+  guard CVPixelBufferCreate(nil, plateNetInput, plateNetInput, kCVPixelFormatType_32BGRA, attrs, &pb) == kCVReturnSuccess, let out = pb else { return nil }
+  CVPixelBufferLockBaseAddress(out, [])
+  defer { CVPixelBufferUnlockBaseAddress(out, []) }
+  guard let base = CVPixelBufferGetBaseAddress(out) else { return nil }
+  let stride = CVPixelBufferGetBytesPerRow(out)
+  let dst = base.assumingMemoryBound(to: UInt8.self)
+  let step = side / Double(plateNetInput)
+  let x0 = centre.x - side / 2, y0 = centre.y - side / 2
+  // the frame columns and rows under each output column and row
+  func spans(_ o: Double, _ limit: Int) -> [(Int, Int)] {
+    (0 ..< plateNetInput).map { i in
+      let a = Int((o + Double(i) * step).rounded(.down)), b = max(a + 1, Int((o + Double(i + 1) * step).rounded(.up)))
+      return (max(a, 0), min(b, limit))
+    }
+  }
+  let cols = spans(x0, img.width), rows = spans(y0, img.height)
+  let full = max(1, Int(step.rounded(.up)))
+  img.data.withUnsafeBufferPointer { s in
+    parallelRows(plateNetInput) { y in
+      let (ya, yb) = rows[y]
+      for x in 0 ..< plateNetInput {
+        let (xa, xb) = cols[x]
+        var b = 0, g = 0, r = 0
+        if ya < yb, xa < xb {
+          for yy in ya ..< yb {
+            var i = (yy * img.width + xa) * 3
+            for _ in xa ..< xb { b += Int(s[i]); g += Int(s[i + 1]); r += Int(s[i + 2]); i += 3 }
+          }
+        }
+        // out-of-frame pixels count as black, so the sum is over the whole footprint
+        let n = max((yb - ya) * (xb - xa), full * full)
+        let o = y * stride + x * 4
+        dst[o] = UInt8(b / n); dst[o + 1] = UInt8(g / n); dst[o + 2] = UInt8(r / n); dst[o + 3] = 255
+      }
+    }
+  }
+  return out
+}
+
+// The model's strongest centres in the crop, best first: local maxima of the heat over their 8 neighbours, each
+// with its refined centre and radius, in frame px.
+func plateNetPeaks(_ model: MLModel, _ img: BGRImage, centre: Point, side: Double) throws -> [PlatePeak] {
+  guard centre.x.isFinite, centre.y.isFinite, side.isFinite, side > 8, let crop = plateNetCrop(img, centre: centre, side: side) else { return [] }
+  let out = try model.prediction(from: MLDictionaryFeatureProvider(dictionary: ["crop": MLFeatureValue(pixelBuffer: crop)]))
+  guard let maps = out.featureValue(for: "maps")?.multiArrayValue else { throw StageError.invalid("plate_net: no maps") }
+  let n = plateNetCells, plane = n * n
+  var v = [Float](repeating: 0, count: 4 * plane)
+  // (1, 4, 64, 64), FP16 from this model, read through its strides (a Neural Engine output may pad its rows)
+  let st = maps.strides.map(\.intValue)
+  guard maps.shape.map(\.intValue) == [1, 4, n, n], st.count == 4 else { throw StageError.invalid("plate_net: maps shape \(maps.shape)") }
+  func read<T>(_ t: T.Type, _ f: (T) -> Float) {
+    maps.dataPointer.withMemoryRebound(to: T.self, capacity: st[1] * 4) { p in
+      for c in 0 ..< 4 { for y in 0 ..< n { for x in 0 ..< n { v[c * plane + y * n + x] = f(p[c * st[1] + y * st[2] + x * st[3]]) } } }
+    }
+  }
+  switch maps.dataType {
+  case .float16: read(Float16.self) { Float($0) }
+  case .float32: read(Float.self) { $0 }
+  default: for i in 0 ..< 4 * plane { v[i] = maps[i].floatValue }
+  }
+  var found: [(Float, Int)] = []
+  for y in 0 ..< n {
+    for x in 0 ..< n {
+      let h = v[y * n + x]
+      var top = true
+      // a 5 x 5 neighbourhood, as the evaluation's max_pool2d(5, 1, 2)
+      for dy in -2 ... 2 where top {
+        for dx in -2 ... 2 where !(dx == 0 && dy == 0) {
+          let yy = y + dy, xx = x + dx
+          if yy >= 0, xx >= 0, yy < n, xx < n, v[yy * n + xx] > h || (v[yy * n + xx] == h && (dy < 0 || (dy == 0 && dx < 0))) { top = false; break }
+        }
+      }
+      if top { found.append((h, y * n + x)) }
+    }
+  }
+  let scale = side / Double(plateNetInput)
+  return found.sorted { $0.0 > $1.0 }.prefix(plateNetPeaks).compactMap { h, i in
+    let conf = 1 / (1 + exp(-Double(h)))
+    guard conf >= plateNetFloor else { return nil }
+    let cx = (Double(i % n) + 0.5 + Double(v[plane + i])) * plateNetStride
+    let cy = (Double(i / n) + 0.5 + Double(v[2 * plane + i])) * plateNetStride
+    let r = exp(Double(v[3 * plane + i])) * Double(plateNetInput)
+    return PlatePeak(confidence: conf, centre: Point(centre.x - side / 2 + cx * scale, centre.y - side / 2 + cy * scale), radius: r * scale)
+  }
+}
+
+// Where the second square goes: the plate last seen, followed here on the nearest sure peak of about its size, from
+// the lifter's mark or else the hands square's surest peak. Only the square's place; which peak is the lifter's
+// plate is decided in TS from every recorded peak.
+struct PlateNetFollow {
+  var at: Point?
+  var r = 0.0
+  var lost = 0
+
+  mutating func start(_ centre: Point, _ radius: Double) { at = centre; r = radius; lost = 0 }
+
+  mutating func step(_ peaks: [PlatePeak]) {
+    let sure = peaks.filter { $0.confidence >= plateNetFollowConf }
+    func d(_ a: Point, _ b: Point) -> Double { ((a - b) * (a - b)).sum().squareRoot() }
+    guard let a = at else {
+      if let p = sure.first(where: { $0.confidence >= 0.5 }) { start(p.centre, p.radius) }
+      return
+    }
+    let reach = (1.5 + 0.5 * Double(lost)) * r
+    if let p = sure.filter({ d($0.centre, a) <= reach && $0.radius >= 0.7 * r && $0.radius <= 1.4 * r }).min(by: { d($0.centre, a) < d($1.centre, a) }) {
+      start(p.centre, p.radius)
+    } else {
+      lost += 1
+      if lost > plateNetCoast { at = nil }
+    }
+  }
+}

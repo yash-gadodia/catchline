@@ -1,4 +1,4 @@
-import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
+import { render, waitFor } from '@testing-library/react-native';
 import * as SecureStore from 'expo-secure-store';
 import { router } from 'expo-router';
 import mock from '../analysis/fixtures/snatch-mock.json';
@@ -10,13 +10,12 @@ import { tusUpload } from '../lib/api/tus';
 import { submitClip, type ClipSubmission } from '../features/capture/submit';
 import { usePurchases } from '../features/purchases/usePurchases';
 import { useUsage } from '../features/paywall/usageStore';
-import { EMPTY_USAGE } from '../features/paywall/entitlements';
+import { EMPTY_USAGE, weekKey } from '../features/paywall/entitlements';
 import { useOnboarding } from '../features/onboarding/store';
-import { FREE_USED_KEY } from './freeLifts';
+import { FREE_USED_KEY, FREE_WEEK_KEY } from './freeLifts';
 import { useLiftOutbox } from './liftOutbox';
 import { usePipeline } from './pipeline';
 import ProcessingRoute from '../../app/analysis/processing';
-import CueRoute from '../../app/analysis/cue';
 
 // 3.1 in airplane mode: every network call fails, and a fresh install still analyses
 // three free lifts on the phone, paywalls the fourth, keeps a paid plan from the
@@ -48,13 +47,23 @@ jest.mock('./prepare', () => ({
 }));
 jest.mock('./localLifts', () => ({
   saveLocalLift: jest.fn((_id: string, a: unknown) => a),
+  keepClip: jest.fn(),
+  localClipUri: jest.fn(() => null),
   readLocalAnalysis: jest.fn(async () => null),
   listLocalAnalyses: jest.fn(async () => []),
 }));
-jest.mock('../analysis/device/analyseTrace', () => ({
-  planFromMisses: jest.fn(() => ({ windows: [], plates: [], tracks: [], keyframes: [], misses: [] })),
-  analyseTrace: jest.fn(),
-}));
+jest.mock('../analysis/device/analyseTrace', () => {
+  const mocks = {
+    planFromMisses: jest.fn((..._args: unknown[]) => ({ windows: [], plates: [], tracks: [], keyframes: [], misses: [] })),
+    analyseTrace: jest.fn(),
+  };
+  // 4.0: the app calls trackTrace; it answers from the two mocks the tests already drive.
+  const trackTrace = jest.fn((trace: unknown, opts: unknown) => {
+    const { misses, ...plan } = mocks.planFromMisses(trace, 'snatch', opts);
+    return { analysis: mocks.analyseTrace(trace, 'snatch', opts), body: null, plan, misses };
+  });
+  return { ...mocks, trackTrace };
+});
 
 // No network: the session is cached on the phone, every request rejects.
 jest.mock('../lib/supabase', () => {
@@ -107,9 +116,9 @@ beforeEach(() => {
   (SecureStore as unknown as { __reset: () => void }).__reset();
   params.current = {};
   usePipeline.getState().clear();
-  useLiftOutbox.setState({ items: [], cues: [] });
+  useLiftOutbox.setState({ items: [] });
   usePurchases.setState({ tier: 'free', period: null });
-  useUsage.setState({ usage: EMPTY_USAGE, variant: 'organic', queue: [] });
+  useUsage.setState({ usage: EMPTY_USAGE });
   useOnboarding.setState({ consent: { version: 1, acceptedAt: '2026-10-11T07:00:00Z' } });
   (analyseTrace as jest.Mock).mockImplementation((_t: unknown, _m: string, o: { analysisId: string }): Analysis => ({ ...(mock as unknown as Analysis), id: o.analysisId }));
 });
@@ -130,64 +139,47 @@ function noServerAnalysis() {
 }
 
 describe('airplane mode, fresh install', () => {
-  it('analyses the first lift on the phone and opens its cue, nothing uploaded', async () => {
+  it('analyses the first lift on the phone and goes straight to its first look, nothing uploaded', async () => {
     const id = await analyse();
     params.current = { live: '1' };
-    const view = await render(<ProcessingRoute />);
-    await waitFor(() => expect(view.getByTestId('processing-done')).toBeOnTheScreen());
-    expect(view.getByText('Done. 3 reps, one cue.')).toBeOnTheScreen();
-    await act(async () => {
-      fireEvent.press(view.getByTestId('see-it'));
-    });
-    expect(nav.replace).toHaveBeenCalledWith({ pathname: '/analysis/reveal', params: { fixture: id } });
+    await render(<ProcessingRoute />);
+    await waitFor(() => expect(nav.replace).toHaveBeenCalledWith({ pathname: '/analysis/player', params: { fixture: id, reveal: '1' } }));
 
-    params.current = { fixture: id };
-    const cue = await render(<CueRoute />);
-    expect(cue.getByText(mock.cue.text)).toBeOnTheScreen();
     expect(analyseOnDevice).toHaveBeenCalledTimes(1);
     expect(analyseOnDevice.mock.calls[0][0]).toBe('file:///clips/power-snatch.mov.mp4');
     noServerAnalysis();
   });
 
-  it('three free lifts, counted in the Keychain and queued for sync_lift; the fourth goes to the paywall', async () => {
+  it('three free lifts in a week, counted in the Keychain and queued for sync_lift; the fourth goes to the weekly cap', async () => {
     const ids = [await analyse(), await analyse(), await analyse()];
     expect(new Set(ids).size).toBe(3);
     expect(useUsage.getState().usage.lifetime).toBe(3);
     expect(await SecureStore.getItemAsync(FREE_USED_KEY)).toBe('3');
+    expect(await SecureStore.getItemAsync(FREE_WEEK_KEY)).toBe(`${weekKey(new Date())}:3`);
     expect(useLiftOutbox.getState().items.map((i) => [i.id, i.synced ?? false])).toEqual(ids.map((id) => [id, false]));
     expect(useLiftOutbox.getState().items[0].lift).toMatchObject({ movement: 'snatch', loadKg: 62.5, made: true });
 
     await submitClip(CLIP);
     const [{ pathname, params: p }] = nav.push.mock.calls[nav.push.mock.calls.length - 1];
-    expect(pathname).toBe('/paywall');
+    expect(pathname).toBe('/paywall/cap');
     expect(p.movement).toBe('snatch');
     expect(analyseOnDevice).toHaveBeenCalledTimes(3);
     expect(usePipeline.getState().job?.liftId).toBe(ids[2]);
     noServerAnalysis();
   });
 
-  it('a reinstall reads the Keychain count, so the free lifts are not handed back', async () => {
-    await SecureStore.setItemAsync(FREE_USED_KEY, '3');
+  it('a reinstall reads this week’s Keychain count, so the free lifts are not handed back', async () => {
+    await SecureStore.setItemAsync(FREE_WEEK_KEY, `${weekKey(new Date())}:3`);
     await submitClip(CLIP);
-    expect(nav.push).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/paywall' }));
+    expect(nav.push).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/paywall/cap' }));
     expect(analyseOnDevice).not.toHaveBeenCalled();
   });
 
   it('a paid plan from the cached entitlement keeps analysing past the free three', async () => {
     usePurchases.setState({ tier: 'pull', period: 'monthly' });
-    useUsage.setState({ usage: { lifetime: 3, month: '2026-10', thisMonth: 3 } });
+    useUsage.setState({ usage: { lifetime: 3, week: weekKey(new Date()), thisWeek: 3 } });
     await analyse();
     expect(analyseOnDevice).toHaveBeenCalledTimes(1);
-    noServerAnalysis();
-  });
-
-  it('kipping HSPU goes to the could-not-analyse screen, counting nothing', async () => {
-    await submitClip({ ...CLIP, movement: 'kipping_hspu' });
-    params.current = { live: '1' };
-    await render(<ProcessingRoute />);
-    await waitFor(() => expect(nav.replace).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/failure/[id]', params: expect.objectContaining({ reason: 'unsupported_movement' }) })));
-    expect(useUsage.getState().usage.lifetime).toBe(0);
-    expect(analyseOnDevice).not.toHaveBeenCalled();
     noServerAnalysis();
   });
 });

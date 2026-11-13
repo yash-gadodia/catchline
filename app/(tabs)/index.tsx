@@ -17,12 +17,9 @@ export default function LiftsRoute() {
           if (link) router.push(link);
           else unlock();
         },
-        onRetake: () => router.push(captureHref('/capture') as Href),
         onUnlock: unlock,
         onRecord: () => router.push(captureHref('/capture') as Href),
         onImport: () => router.push(captureHref('/capture/import') as Href),
-        onDemo: () => router.push('/onboarding/demo?from=app' as Href),
-        onCue: (id) => router.push({ pathname: '/cue/[id]', params: { id } }),
         onDelete: (lift) =>
           Alert.alert(t('library.lifts.deleteTitle'), t('library.lifts.deleteBody'), [
             { text: t('library.lifts.deleteCancel'), style: 'cancel' },

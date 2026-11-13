@@ -72,8 +72,15 @@ struct PlateTrack {
   }
 }
 
+// A followed plate is re-sized a little every frame towards the best of three sizes. Unbounded, that walked it up
+// without end once the plate had left the frame (IMG_0830). The lower bound is the size gate's (onPlate PLATE_SIZE):
+// filmed close, a plate overhead is a third smaller than on the floor, and a tighter bound (0.85, 0.7) cut those
+// frames on IMG_0830, 1558 and 1561.
+let followSize = (0.55, 1.5)
+
 struct PlateFollow {
   var major: Double
+  let major0: Double  // the start plate's size: the followed size stays within followSize of it
   let ratio: Double
   var centre: Point
   var velocity = Point(0, 0)
@@ -87,6 +94,7 @@ struct PlateFollow {
 
   init(seed: Plate, wrist: Point, gray: GrayImage) {
     major = seed.axes.0
+    major0 = seed.axes.0
     ratio = min(seed.axes.1 / seed.axes.0, 1.0)
     centre = seed.centre
     offset = wrist.x.isFinite && wrist.y.isFinite ? seed.centre - wrist : Point(0, 0)

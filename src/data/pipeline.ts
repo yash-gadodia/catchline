@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { Analysis, Failure, Movement } from '../analysis/types';
 import type { ApiErrorCode } from '../lib/api';
 import type { ClipSubmission } from '../features/capture/submit';
-import { DEVICE_MOVEMENTS, startDeviceLift } from './devicePipeline';
+import { startDeviceLift } from './devicePipeline';
 import { onDeviceAnalysisEnabled } from './onDeviceAnalysis';
 
 export type JobStatus = 'preparing' | 'uploading' | 'analysing' | 'queued' | 'processing' | 'done' | 'failed';
@@ -20,7 +20,6 @@ export type Job = {
   error: JobError | null;
   maxS: number | null;
   uri: string | null;
-  retestCueId?: string;
   // On-device analysis (3.1): the native stage under way, its share of the whole run,
   // and the result once the phone has it (the server holds no analysis to fetch).
   device?: boolean;
@@ -38,7 +37,7 @@ type PipelineState = {
   clear: () => void;
 };
 
-// The one lift in flight from Review to the cue. Processing reads it to show
+// The one lift in flight from Track to the player. Processing reads it to show
 // the phone's progress and, once the phone has it, the result.
 export const usePipeline = create<PipelineState>((set) => ({
   job: null,
@@ -52,7 +51,7 @@ export const usePipeline = create<PipelineState>((set) => ({
 // phone cannot analyse yet (kipping HSPU: no TS replay of the rotated pass) fails as
 // unsupported, counting nothing. Never throws: the outcome lands on the job.
 export async function startLift(sub: ClipSubmission & { uri: string }): Promise<void> {
-  if (onDeviceAnalysisEnabled() && DEVICE_MOVEMENTS.includes(sub.movement)) return startDeviceLift(sub);
+  if (onDeviceAnalysisEnabled()) return startDeviceLift(sub);
   usePipeline.getState().start({
     id: `job-${Date.now()}`,
     movement: sub.movement,
@@ -65,7 +64,6 @@ export async function startLift(sub: ClipSubmission & { uri: string }): Promise<
     error: 'analysis_failed',
     maxS: null,
     uri: sub.uri,
-    retestCueId: sub.retestCueId,
     device: true,
     failureReason: 'unsupported_movement',
   });

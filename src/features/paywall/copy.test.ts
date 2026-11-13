@@ -5,20 +5,19 @@ import {
   failedBody,
   failedTitle,
   longDate,
-  pullSummary,
   purchasingLine,
   purchasingTitle,
   renewalDate,
+  sheetBody,
   sheetTitle,
   shortDate,
   successBody,
-  trialNote,
-  trialOptionLine,
 } from './copy';
 
 const OCT11 = new Date(2026, 9, 11);
-const PULL_ANNUAL = { kind: 'sub', tier: 'pull', period: 'annual' } as const;
-const PULL_MONTHLY = { kind: 'sub', tier: 'pull', period: 'monthly' } as const;
+const WED = new Date(2026, 10, 11, 9, 0);
+const PRO_ANNUAL = { kind: 'pro', period: 'annual' } as const;
+const PRO_MONTHLY = { kind: 'pro', period: 'monthly' } as const;
 const FOUNDING = { kind: 'founding' } as const;
 
 describe('dates', () => {
@@ -38,41 +37,36 @@ describe('dates', () => {
   });
 });
 
+describe('the sheet', () => {
+  it('sells unlimited videos while free videos are in hand', () => {
+    expect(sheetTitle(3)).toBe('Unlimited videos.');
+    expect(sheetTitle(1)).toBe('Unlimited videos.');
+    expect(sheetBody(2, WED)).toBe('Free gives you 3 videos a week. Catchline Pro has no limit.');
+  });
+
+  it('with none left, says so and names the Monday they come back', () => {
+    expect(sheetTitle(0)).toBe("You've used this week's 3 free videos.");
+    expect(sheetBody(0, WED)).toBe('They come back on Monday, 16 Nov. Catchline Pro has no limit.');
+    expect(sheetBody(0, new Date(2026, 10, 15, 23, 0))).toBe('They come back on Monday, 16 Nov. Catchline Pro has no limit.');
+    expect(sheetBody(0, new Date(2026, 10, 30))).toBe('They come back on Monday, 7 Dec. Catchline Pro has no limit.');
+  });
+});
+
 describe('charge copy', () => {
   it('Continue states the exact price and period', () => {
-    expect(continueLabel(PULL_ANNUAL)).toBe('Continue · $19.99 a year');
-    expect(continueLabel(PULL_MONTHLY)).toBe('Continue · $2.99 a month');
-    expect(continueLabel({ kind: 'sub', tier: 'hook', period: 'annual' })).toBe('Continue · $29.99 a year');
+    expect(continueLabel(PRO_ANNUAL)).toBe('Continue · $19.99 a year');
+    expect(continueLabel(PRO_MONTHLY)).toBe('Continue · $2.99 a month');
     expect(continueLabel(FOUNDING)).toBe('Take a seat · $29.99');
   });
 
   it('uses the store price string when given', () => {
-    expect(continueLabel(PULL_ANNUAL, 'S$78.98')).toBe('Continue · S$78.98 a year');
+    expect(continueLabel(PRO_ANNUAL, 'S$78.98')).toBe('Continue · S$78.98 a year');
   });
 
-  it('says how it renews and that the lift goes first', () => {
-    expect(chargeNote(PULL_ANNUAL, true)).toBe(
-      'Charged today, renews yearly, cancel any time. This lift is saved and goes first.'
-    );
-    expect(chargeNote(PULL_MONTHLY, false)).toBe('Charged today, renews monthly, cancel any time.');
-    expect(chargeNote(FOUNDING, true)).toBe(
-      'Charged once today. No renewal, Pull for life. This lift is saved and goes first.'
-    );
-  });
-
-  it('trial copy names the first charge date', () => {
-    expect(trialNote('annual', OCT11)).toBe(
-      "Today: nothing. 18 Oct: $19.99 unless you cancel. We'll remind you two days before."
-    );
-    expect(trialNote('monthly', OCT11)).toBe(
-      "Today: nothing. 18 Oct: $2.99 unless you cancel. We'll remind you two days before."
-    );
-    expect(trialOptionLine('annual')).toBe('$1.67 a month, billed $19.99');
-    expect(trialOptionLine('monthly')).toBe('$2.99 a month');
-  });
-
-  it('the Pull summary', () => {
-    expect(pullSummary()).toBe('Unlimited videos · ghost of best · did it stick · no watermark');
+  it('says how it renews and that the saved video goes first', () => {
+    expect(chargeNote(PRO_ANNUAL, true)).toBe('Charged today, renews yearly, cancel any time. Your video is saved and goes first.');
+    expect(chargeNote(PRO_MONTHLY, false)).toBe('Charged today, renews monthly, cancel any time.');
+    expect(chargeNote(FOUNDING, true)).toBe('Charged once today. No renewal, Pro for life. Your video is saved and goes first.');
   });
 });
 
@@ -85,28 +79,18 @@ describe('purchase states', () => {
   });
 
   it('purchasing line', () => {
-    expect(purchasingLine(PULL_ANNUAL)).toBe('Pull · $19.99 a year');
+    expect(purchasingLine(PRO_ANNUAL)).toBe('Catchline Pro · $19.99 a year');
     expect(purchasingLine(FOUNDING)).toBe('Founding member · $29.99 once');
   });
 
-  it('failed body keeps the queue promise only when there is a clip', () => {
-    expect(failedBody(true)).toBe('Nothing was charged. Your lift is still queued.');
+  it('failed body mentions the saved video only when there is one', () => {
+    expect(failedBody(true)).toBe('Nothing was charged. Your video is still saved.');
     expect(failedBody(false)).toBe('Nothing was charged.');
   });
 
   it('success body', () => {
-    expect(successBody(PULL_ANNUAL, OCT11, 'snatch')).toBe(
-      'Pull, renews 11 Oct 2027. Your queued snatch is first in line.'
-    );
-    expect(successBody(PULL_MONTHLY, OCT11)).toBe('Pull, renews 11 Nov 2026.');
-    expect(successBody(FOUNDING, OCT11, 'clean')).toBe('Pull, for life. No renewal. Your queued clean is first in line.');
-    expect(successBody({ ...PULL_ANNUAL, trial: true }, OCT11)).toBe('Pull trial, first charge 18 Oct.');
-  });
-
-  // #13: the sheet is also reached from Plans with every free video still in hand.
-  it('only says the free videos are done when they are', () => {
-    expect(sheetTitle(0)).toBe('Your 3 free videos are done. Keep the cues coming.');
-    expect(sheetTitle(3)).toBe('Keep the cues coming.');
-    expect(sheetTitle(1)).toBe('Keep the cues coming.');
+    expect(successBody(PRO_ANNUAL, OCT11)).toBe('Unlimited videos. Renews 11 Oct 2027.');
+    expect(successBody(PRO_MONTHLY, OCT11)).toBe('Unlimited videos. Renews 11 Nov 2026.');
+    expect(successBody(FOUNDING, OCT11)).toBe('Unlimited videos, for life. No renewal.');
   });
 });

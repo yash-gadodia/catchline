@@ -1,9 +1,8 @@
 import { act, fireEvent, render } from '@testing-library/react-native';
 import { ActionSheetIOS, Share } from 'react-native';
-import { snatchMock, snatchMockLow } from '../../analysis/fixtures';
+import { snatchMock } from '../../analysis/fixtures';
 import { loadLibrary } from '../library/repository';
 import PlayerRoute from '../../../app/analysis/player';
-import CueRoute from '../../../app/analysis/cue';
 import { openLiftActions, reportContext, reportHref } from './liftActions';
 
 const mockRouter = { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true), dismissTo: jest.fn() };
@@ -78,19 +77,4 @@ describe('the ··· button on the result screens', () => {
     expect(mockRouter.push).toHaveBeenCalledWith(reportHref(snatchMock));
   });
 
-  it('low-confidence cue: Film another set leaves the result for capture', async () => {
-    mockParams.current = { fixture: 'snatch-mock-low' };
-    const view = await render(<CueRoute />);
-    pick = 1;
-    await act(async () => {
-      fireEvent.press(view.getByTestId('topbar-more'));
-    });
-    expect(mockRouter.dismissTo).toHaveBeenCalledWith('/');
-    expect(mockRouter.push).toHaveBeenCalledWith('/capture');
-    pick = 2;
-    await act(async () => {
-      fireEvent.press(view.getByTestId('topbar-more'));
-    });
-    expect(mockRouter.push).toHaveBeenCalledWith(reportHref(snatchMockLow));
-  });
 });

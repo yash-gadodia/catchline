@@ -3,14 +3,17 @@ import { File } from 'expo-file-system';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { gunzipSync, strFromU8 } from 'fflate';
 import PoseCoreML, { type AnalyseBanner, type AnalysePlan, type AnalyseResult } from '../../modules/pose-coreml';
-import { analyseTrace, planFromMisses } from '../analysis/device/analyseTrace';
+import { trackTrace } from '../analysis/device/analyseTrace';
+import type { Body } from '../analysis/device/tracking';
 import { parseTraceJson, type Plan } from '../analysis/device/trace';
-import { movementLabel } from '../analysis/format';
 import { parseAnalysis } from '../analysis/parse';
 import type { Analysis, Failure, Movement } from '../analysis/types';
+import type { PlateMark } from '../features/capture/plateMark';
 import type { ClipSubmission } from '../features/capture/submit';
 import { notifyLiftReady } from '../features/notifications';
 import { rememberClip } from '../features/share/localClips';
+import { hasBarPath } from '../features/share/trackShare';
+import { plateMarkSupported } from '../features/capture/plateMark';
 import { usePurchases } from '../features/purchases/usePurchases';
 import { randomUUID } from 'expo-crypto';
 import type { SyncLiftInput } from '../lib/api';
@@ -19,7 +22,7 @@ import { useUsage } from '../features/paywall/usageStore';
 import { writeFreeUsed } from './freeLifts';
 import { queueLiftSync } from './liftOutbox';
 import { syncConsent } from './backend';
-import { keepFailedClip, saveLocalLift } from './localLifts';
+import { keepClip, saveLocalLift } from './localLifts';
 import { usePipeline } from './pipeline';
 import { detectedMade } from '../features/library/madeLog';
 import { ClipTooLongError, discardPrepared, prepareClip } from './prepare';
@@ -58,13 +61,13 @@ export async function readTrace(tracePath: string): Promise<unknown> {
 
 type Progress = (stage: string, fraction: number) => void;
 
-export type LoopResult = { trace: unknown; tracePath: string; stills: Record<string, string> };
+export type LoopResult = { analysis: unknown; body: Body | null; tracePath: string; stills: Record<string, string> };
 
 // One native pass, with the app's time in the background allowed for. On iOS 26 the run
 // goes on after the lifter leaves (the banner's continued processing task) until the system
 // or the lifter ends it there: interrupted. Older iOS may end the model while the app is
 // away. Either way a pass that fails after that is run once more when the lifter comes back.
-async function pass(uri: string, movement: string, plan: AnalysePlan | undefined, banner: AnalyseBanner): Promise<AnalyseResult> {
+async function pass(uri: string, plan: AnalysePlan | undefined, banner: AnalyseBanner): Promise<AnalyseResult> {
   const native = PoseCoreML;
   if (!native) throw new Error('no_native');
   let away = false;
@@ -73,7 +76,7 @@ async function pass(uri: string, movement: string, plan: AnalysePlan | undefined
   });
   try {
     try {
-      return await native.analyseOnDevice(uri, movement, plan, banner);
+      return await native.analyseOnDevice(uri, NATIVE_MOVEMENT, plan, banner);
     } catch (e) {
       if (!away && nativeCode(e) !== INTERRUPTED) throw e;
       await new Promise<void>((resolve) => {
@@ -84,15 +87,15 @@ async function pass(uri: string, movement: string, plan: AnalysePlan | undefined
           resolve();
         });
       });
-      return await native.analyseOnDevice(uri, movement, plan, banner);
+      return await native.analyseOnDevice(uri, NATIVE_MOVEMENT, plan, banner);
     }
   } finally {
     sub.remove();
   }
 }
 
-// The TS port does not replay kipping HSPU yet (the rotated second pass): that movement keeps the server path.
-export const DEVICE_MOVEMENTS = ['snatch', 'clean', 'jerk', 'kipping_pull_up', 'bar_muscle_up'];
+// 4.0 tracks any clip the same way: the native pass always picks the lifter as for a standing movement.
+const NATIVE_MOVEMENT = 'snatch';
 
 // od-logic's plan keeps a wrist as [x | null, y | null]; the native side wants the pair or null.
 const pair = (p: [number | null, number | null]): [number, number] | null => (p[0] == null || p[1] == null ? null : [p[0], p[1]]);
@@ -104,6 +107,7 @@ export function toNativePlan(plan: Plan): AnalysePlan {
     tracks: plan.tracks,
     follows: plan.follows.map((f) => ({ ...f, wrists: f.wrists.map(pair), wristA: pair(f.wristA), wristB: pair(f.wristB) })),
     keyframes: plan.keyframes,
+    ...(plan.plateNet ? { plateNet: plan.plateNet.map((p) => ({ ...p, centres: p.centres.map(pair) })) } : {}),
   };
 }
 
@@ -112,36 +116,36 @@ export function toNativePlan(plan: Plan): AnalysePlan {
 export const PASS_WEIGHTS = [0.8, 0.12, 0.08];
 const PASS_STARTS = PASS_WEIGHTS.map((_, i) => PASS_WEIGHTS.slice(0, i).reduce((a, b) => a + b, 0));
 
-export async function analyseLoop(uri: string, movement: Movement, liftId: string, onProgress: Progress, isCancelled: () => boolean = () => false): Promise<LoopResult> {
+// plateMark: the lifter's mark on the plate, made on the first frame of the clip at `uri` (null: skipped).
+export async function analyseLoop(uri: string, movement: Movement, liftId: string, onProgress: Progress, isCancelled: () => boolean = () => false, plateMark: PlateMark | null = null): Promise<LoopResult> {
   const native = PoseCoreML;
   if (!native) throw new Error('no_native');
-  const words = { title: t('library.inFlight.title', { movement: movementLabel(movement) }), subtitle: t('analysis.processing.background') };
+  const words = { title: t('library.inFlight.title'), subtitle: t('analysis.processing.background') };
   let plan: AnalysePlan | undefined;
   let result: AnalyseResult | null = null;
-  let trace: unknown = null;
+  let tracked: ReturnType<typeof trackTrace> | null = null;
   let stills: Record<string, string> = {};
   let finished = false;
   try {
     for (let i = 0; i < MAX_PASSES; i++) {
       const sub = native.addListener('onAnalyseProgress', (e) => onProgress(e.stage, PASS_STARTS[i] + e.fraction * PASS_WEIGHTS[i]));
       try {
-        result = await pass(uri, movement, plan, { ...words, from: PASS_STARTS[i], to: PASS_STARTS[i] + PASS_WEIGHTS[i] });
+        result = await pass(uri, plan, { ...words, from: PASS_STARTS[i], to: PASS_STARTS[i] + PASS_WEIGHTS[i] });
       } finally {
         sub.remove();
       }
       if (isCancelled()) throw new Error('cancelled');
       stills = { ...stills, ...result.stills };
-      trace = await readTrace(result.tracePath);
-      const { misses, ...next } = planFromMisses(trace, movement, { analysisId: liftId, assetPrefix: liftId });
-      if (misses.length === 0) break;
-      plan = toNativePlan(next);
+      tracked = trackTrace(await readTrace(result.tracePath), { analysisId: liftId, assetPrefix: liftId, ...(plateMark ? { plateMark: { frame: 0, ...plateMark } } : {}) });
+      if (tracked.misses.length === 0) break;
+      plan = toNativePlan(tracked.plan);
     }
     finished = true;
   } finally {
     native.endBackgroundRun(finished).catch(() => undefined);
   }
   onProgress('cue', 1);
-  return { trace, tracePath: (result as AnalyseResult).tracePath, stills };
+  return { analysis: tracked?.analysis, body: tracked?.body ?? null, tracePath: (result as AnalyseResult).tracePath, stills };
 }
 
 // The fields the worker's _finish sets on a server analysis.
@@ -175,7 +179,7 @@ export function syncRecord(a: Analysis, sub: ClipSubmission, analysedAt: Date): 
     startClass: extras.startClass ?? null,
     yawBucket: extras.yawBucket ?? null,
     analysisVersion: a.analysisVersion ?? null,
-    retestCueId: sub.retestCueId ?? null,
+    retestCueId: null,
     failureCode: a.failure ? (a.failure.code ?? a.failure.reason) : null,
     analysedAt: analysedAt.toISOString(),
   };
@@ -202,11 +206,14 @@ export async function startDeviceLift(sub: ClipSubmission & { uri: string }): Pr
     error: null,
     maxS: null,
     uri: sub.uri,
-    retestCueId: sub.retestCueId,
     device: true,
     stage: null,
     fraction: 0,
   });
+  const startedAt = Date.now();
+  // the lifter's mark on the plate: made, skipped, or never asked for (the binary cannot start from one)
+  const mark = sub.plateMark ? 'made' : plateMarkSupported() ? 'skipped' : 'not_asked';
+  track(EVENTS.TRACK_STARTED, { source: sub.source, mark });
   let prepared: string | null = null;
   activateKeepAwakeAsync(KEEP_AWAKE_TAG).catch(() => undefined);
   try {
@@ -215,24 +222,25 @@ export async function startDeviceLift(sub: ClipSubmission & { uri: string }): Pr
     const clip = await prepareClip(sub.uri, sub.trim, (p) => patch({ prepared: p }));
     prepared = clip.uri;
     patch({ status: 'analysing', prepared: 1 });
-    const { trace, tracePath, stills } = await analyseLoop(clip.uri, sub.movement, liftId, (stage, fraction) => patch({ stage, fraction }), () => cancelled);
-    const analysis = finishAnalysis(parseAnalysis(analyseTrace(trace, sub.movement, { analysisId: liftId, assetPrefix: liftId })), liftId, sub);
-    const local = saveLocalLift(liftId, analysis, tracePath, stills);
+    const loop = await analyseLoop(clip.uri, sub.movement, liftId, (stage, fraction) => patch({ stage, fraction }), () => cancelled, sub.plateMark ?? null);
+    const analysis = finishAnalysis(parseAnalysis(loop.analysis), liftId, sub);
+    const local = saveLocalLift(liftId, analysis, loop.tracePath, loop.stills, loop.body);
+    // 4.0: the clip stays on the phone with its lift (the player draws on the real video); deleted with the lift.
+    keepClip(liftId, clip.uri);
+    prepared = null;
     const now = new Date();
     if (!local.failure) await countLift(now);
     const record = syncRecord(local, sub, now);
     void queueLiftSync({ id: liftId, lift: record });
     if (local.failure) {
-      // Kept so the lifter can choose to send it (the failure screen); a cue's clip is not.
-      keepFailedClip(liftId, clip.uri);
-      prepared = null;
       track(EVENTS.ANALYSIS_FAILED, { movement: sub.movement, code: record.failureCode ?? 'unknown' });
       patch({ status: 'failed', error: 'analysis_failed', result: local });
     } else {
+      track(EVENTS.TRACK_COMPLETED, { seconds: Math.round((Date.now() - startedAt) / 1000), frames: local.video.frameCount, has_bar_path: hasBarPath(local), mark });
       track(EVENTS.ANALYSIS_COMPLETED, { movement: sub.movement, cue_confidence: local.cue?.confidence ?? 'none', no_cue_code: record.noCueCode ?? 'none', made: record.made ?? 'unknown' });
       patch({ status: 'done', result: local });
     }
-    void notifyLiftReady(liftId, sub.movement, !!local.failure);
+    void notifyLiftReady(liftId, !!local.failure);
   } catch (e) {
     const code = e instanceof ClipTooLongError ? 'clip_too_long' : nativeCode(e);
     track(EVENTS.ANALYSIS_FAILED, { movement: sub.movement, code });

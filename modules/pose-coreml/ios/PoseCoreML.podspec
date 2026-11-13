@@ -14,7 +14,8 @@ Pod::Spec.new do |s|
 
   s.source_files = "*.swift", "Stages/*.swift"
   # Compiled Core ML models from cv/scripts/export_coreml.py (gitignored, ~60 MB)
-  s.resource_bundles = { 'PoseCoreMLModels' => ['models/*.mlmodelc'] }
+  # plate/PlateNet.mlmodelc (2 MB, committed) from v40/plate-model's export_coreml.py
+  s.resource_bundles = { 'PoseCoreMLModels' => ['models/*.mlmodelc'], 'PoseCoreMLPlate' => ['plate/*.mlmodelc'] }
   s.pod_target_xcconfig = {
     'DEFINES_MODULE' => 'YES',
     'SWIFT_COMPILATION_MODE' => 'wholemodule'

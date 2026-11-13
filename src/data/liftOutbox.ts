@@ -3,7 +3,6 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 import { syncLift, type SyncLiftInput } from '../lib/api';
-import type { CueRow } from '../types/db';
 import { backendEnabled } from './backend';
 
 // Every lift analysed on this phone, with the slim record the server gets: the
@@ -17,9 +16,6 @@ type OutboxState = {
   add: (item: OutboxItem) => void;
   markSynced: (id: string) => void;
   forget: (id: string) => void;
-  // The last cue memory the server sent, so the cue tab and retests work offline.
-  cues: CueRow[];
-  setCues: (cues: CueRow[]) => void;
 };
 
 export const useLiftOutbox = create<OutboxState>()(
@@ -32,8 +28,6 @@ export const useLiftOutbox = create<OutboxState>()(
       },
       markSynced: (id) => set({ items: get().items.map((i) => (i.id === id ? { ...i, synced: true } : i)) }),
       forget: (id) => set({ items: get().items.filter((i) => i.id !== id) }),
-      cues: [],
-      setCues: (cues) => set({ cues }),
     }),
     { name: 'catchline-lift-outbox', storage: createJSONStorage(() => AsyncStorage) }
   )

@@ -36,7 +36,7 @@ const LIFT: SyncLiftInput = {
 
 beforeEach(() => {
   jest.clearAllMocks();
-  useLiftOutbox.setState({ items: [{ id: 'l1', lift: LIFT }], cues: [] });
+  useLiftOutbox.setState({ items: [{ id: 'l1', lift: LIFT }] });
   local.listLocalAnalyses.mockResolvedValue([{ liftId: 'l1', analysis: { ...snatchMock, id: 'l1' } }]);
 });
 
@@ -44,9 +44,9 @@ describe('the library in airplane mode (3.1)', () => {
   it('lists the lifts analysed on this phone with no server at all', async () => {
     api.ensureSession.mockRejectedValue(new Error('Network request failed'));
     await syncLibrary(new Date('2026-10-20T10:00:00Z'));
-    const { lifts, sessions } = useLibraryStore.getState();
+    const { lifts, sessions, cues } = useLibraryStore.getState();
     expect(lifts.map((l) => [l.id, l.status, l.loadKg, l.date])).toEqual([['l1', 'done', 70, '2026-10-20']]);
-    expect(sessions.map((s) => s.liftId)).toEqual(['l1']);
+    expect([sessions, cues]).toEqual([[], []]);
   });
 
   it('online, lists a synced lift once, from the server row', async () => {

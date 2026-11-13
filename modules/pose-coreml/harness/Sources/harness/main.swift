@@ -32,7 +32,7 @@ let movement = opts["--movement"] ?? "snatch"
 func log(_ s: String) { FileHandle.standardError.write(Data((s + "\n").utf8)) }
 
 let t0 = Date()
-let models = try PoseModels(directory: URL(fileURLWithPath: modelsDir))
+let models = try PoseModels(directory: URL(fileURLWithPath: modelsDir), plateDirectory: opts["--plate"].map { URL(fileURLWithPath: $0) })
 log("models loaded in \(String(format: "%.1f", Date().timeIntervalSince(t0))) s")
 
 var plan: AnalysePlan?
@@ -46,6 +46,7 @@ let stillsDir = URL(fileURLWithPath: opts["--stills"] ?? FileManager.default.tem
 let analyser = DeviceAnalyser(models: models)
 analyser.poseEveryone = flags.contains("--all-people")
 if let n = opts["--detect-every"].flatMap(Int.init) { analyser.detectEvery = n }
+if let v = opts["--arm-shift"].flatMap(Float.init) { analyser.armShift = v }
 let sem = DispatchSemaphore(value: 0)
 var failure: Error?
 var lastStage = ""
@@ -63,7 +64,7 @@ Task {
       let ms = { (s: Double) in String(format: "%.0f", s * 1000 / Double(tm.frames)) }
       let c = coreTiming
       log("  detect: pre \(ms(c.detectPre)) infer \(ms(c.detectInfer)) post \(ms(c.detectPost));  pose (posed people): pre \(ms(c.posePre)) infer \(ms(c.poseInfer)) post \(ms(c.posePost))")
-      log("pose pass ms/frame: decode \(ms(tm.decode))  upright \(ms(tm.upright))  detect \(ms(tm.detect))  pose \(ms(tm.pose)) (\(String(format: "%.1f", Double(tm.posed) / Double(tm.frames))) posed of \(String(format: "%.1f", Double(tm.people) / Double(tm.frames))) people/frame)  camera \(ms(tm.camera))")
+      log("pose pass ms/frame: wall \(ms(tm.wall))  upright+decode (own thread) \(ms(tm.upright))  wait \(ms(tm.wait))  detect \(ms(tm.detect))  pose \(ms(tm.pose)) (\(String(format: "%.1f", Double(tm.posed) / Double(tm.frames))) posed of \(String(format: "%.1f", Double(tm.people) / Double(tm.frames))) people/frame)  camera \(ms(tm.camera));  detector on \(tm.detections) of \(tm.frames) frames (\(tm.redetected) re-read) \(tm.why.sorted { $0.key < $1.key }.map { "\($0.key) \($0.value)" }.joined(separator: ", "))")
     }
     try writeTrace(trace, to: URL(fileURLWithPath: out))
     let n = (trace["meta"] as? [String: Any])?["frameCount"] ?? 0

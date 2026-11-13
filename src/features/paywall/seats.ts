@@ -42,8 +42,3 @@ export function foundingState(seats: FoundingSeats): FoundingState {
 export function seatsLeftLabel(seats: FoundingSeats): string {
   return t('paywall.seatsLeft', { remaining: seats.remaining, total: seats.total });
 }
-
-export function seatsFraction(seats: FoundingSeats): number {
-  if (seats.total <= 0) return 0;
-  return Math.min(1, Math.max(0, seats.remaining / seats.total));
-}

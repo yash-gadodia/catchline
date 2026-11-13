@@ -1,16 +1,20 @@
 import { Directory, File, Paths } from 'expo-file-system';
 import { parseAnalysis } from '../analysis/parse';
 import type { Analysis } from '../analysis/types';
+import type { Body } from '../analysis/device/tracking';
 
 // 3.1: the analysis, the trace and the stills of every lift live on the phone, in
 // Documents/lifts/<lift id>/ (backed up with the device; nothing goes to the server).
 //   analysis.json   the Analysis, keyframe images as file URIs into stills/
 //   trace.json.gz   the gzipped trace (re-analysis after an app update, later)
+//   body.json       the joints on every frame (4.0), read by the player only
+//   clip.mp4        the trimmed clip (4.0: every lift; before, a failed lift's only)
 //   stills/<name>   the keyframes the analysis names
 export const LIFTS_DIR = 'lifts';
 const ANALYSIS_FILE = 'analysis.json';
 const TRACE_FILE = 'trace.json.gz';
 const STILLS_DIR = 'stills';
+const BODY_FILE = 'body.json';
 
 export function liftDir(liftId: string): Directory {
   return new Directory(Paths.document, LIFTS_DIR, liftId);
@@ -33,7 +37,7 @@ export function withLocalStills(analysis: Analysis, stills: Directory): Analysis
 
 // Moves the trace and the stills (name -> file written by the native side or a
 // download) into the lift folder and writes the analysis. Returns what was written.
-export function saveLocalLift(liftId: string, analysis: Analysis, tracePath: string | null, stills: Record<string, string>): Analysis {
+export function saveLocalLift(liftId: string, analysis: Analysis, tracePath: string | null, stills: Record<string, string>, body: Body | null = null): Analysis {
   const dir = liftDir(liftId);
   dir.create({ intermediates: true, idempotent: true });
   const stillsDir = new Directory(dir, STILLS_DIR);
@@ -47,6 +51,11 @@ export function saveLocalLift(liftId: string, analysis: Analysis, tracePath: str
     const dest = new File(dir, TRACE_FILE);
     if (dest.exists) dest.delete();
     new File(tracePath).move(dest);
+  }
+  if (body) {
+    const dest = new File(dir, BODY_FILE);
+    dest.create({ overwrite: true });
+    dest.write(JSON.stringify(body));
   }
   const local = withLocalStills(analysis, stillsDir);
   const file = new File(dir, ANALYSIS_FILE);
@@ -82,10 +91,17 @@ export async function listLocalAnalyses(): Promise<{ liftId: string; analysis: A
   return out;
 }
 
-// The trimmed clip of a failed lift, kept so the lifter can choose to send it. It goes with the lift folder.
+export async function readLocalBody(liftId: string): Promise<Body | null> {
+  const file = new File(liftDir(liftId), BODY_FILE);
+  if (!file.exists) return null;
+  const body = JSON.parse(await file.text()) as Body;
+  return body.version === 1 && Array.isArray(body.frames) ? body : null;
+}
+
+// The trimmed clip the lift was tracked on, frame for frame. It goes with the lift folder.
 const CLIP_FILE = 'clip.mp4';
 
-export function keepFailedClip(liftId: string, uri: string): void {
+export function keepClip(liftId: string, uri: string): void {
   const dir = liftDir(liftId);
   dir.create({ intermediates: true, idempotent: true });
   const dest = new File(dir, CLIP_FILE);

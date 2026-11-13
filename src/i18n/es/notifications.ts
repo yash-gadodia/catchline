@@ -5,7 +5,7 @@ export const notifications: Strings<typeof en> = {
   // REVIEW
   'notifications.onboarding.title': "Activa las notificaciones.",
   // REVIEW
-  'notifications.onboarding.body': "Catchline solo las usa para recordarte que vuelvas a probar tu indicación antes de tu próxima sesión. Sin publicidad, y puedes desactivarlas cuando quieras.",
+  'notifications.onboarding.body': "Catchline solo las usa para avisarte cuando termina el seguimiento de un levantamiento. Sin publicidad, y puedes desactivarlas cuando quieras.",
   // REVIEW
   'notifications.turnOn': "Activar notificaciones",
   // REVIEW
@@ -13,17 +13,17 @@ export const notifications: Strings<typeof en> = {
   // REVIEW
   'notifications.notNow': "Ahora no",
   // REVIEW
-  'notifications.reask.title': "¿Un recordatorio para volver a probar tu indicación?",
+  'notifications.reask.title': "¿Te avisamos cuando tu levantamiento esté listo?",
   // REVIEW
-  'notifications.reask.body': "Una indicación solo se queda si la vuelves a probar. Activa las notificaciones y Catchline te lo recordará antes de tu próxima sesión.",
+  'notifications.reask.body': "El seguimiento continúa cuando sales de la app. Activa las notificaciones y Catchline te avisa cuando termine.",
   // REVIEW
   'notifications.reask.notNow': "Ahora no",
   // REVIEW
-  'notifications.ready.title': "Tu {movement} está listo",
+  'notifications.ready.title': "Tu levantamiento está listo",
   // REVIEW
-  'notifications.ready.body': "Toca para ver tu indicación.",
+  'notifications.ready.body': "Toca para ver la trayectoria de la barra en tu vídeo.",
   // REVIEW
-  'notifications.ready.failedTitle': "No pudimos leer tu {movement}",
+  'notifications.ready.failedTitle': "No pudimos seguir tu vídeo",
   // REVIEW
   'notifications.ready.failedBody': "Toca para ver por qué y qué probar después.",
 };

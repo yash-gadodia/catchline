@@ -5,16 +5,10 @@ import { colors } from '../../design/tokens';
 import { fontFamily, type } from '../../design/typography';
 import { t } from '../../i18n';
 
-export type TabName = 'index' | 'cues' | 'trends' | 'me';
+export type TabName = 'index' | 'me';
 
-const LEFT: { name: TabName; label: () => string }[] = [
-  { name: 'index', label: () => t('library.tabs.lifts') },
-  { name: 'cues', label: () => t('library.tabs.cues') },
-];
-const RIGHT: { name: TabName; label: () => string }[] = [
-  { name: 'trends', label: () => t('library.tabs.trends') },
-  { name: 'me', label: () => t('library.tabs.you') },
-];
+const LIFTS = { name: 'index' as const, label: () => t('library.tabs.lifts') };
+const YOU = { name: 'me' as const, label: () => t('library.tabs.you') };
 
 export default function TabBar({
   active,
@@ -56,7 +50,7 @@ export default function TabBar({
         paddingHorizontal: 8,
       }}
     >
-      {LEFT.map(tab)}
+      {tab(LIFTS)}
       <View style={{ flex: 1, alignItems: 'center' }}>
         <Btn square onPress={onImport} accessibilityLabel={t('library.lifts.import')} testID="tab-import">
           <View style={{ width: 22, height: 22, alignItems: 'center', justifyContent: 'center' }}>
@@ -65,7 +59,7 @@ export default function TabBar({
           </View>
         </Btn>
       </View>
-      {RIGHT.map(tab)}
+      {tab(YOU)}
     </View>
   );
 }

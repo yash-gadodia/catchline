@@ -52,3 +52,6 @@ worker/REVISION
 
 # macOS harness build products (modules/pose-coreml/harness)
 modules/pose-coreml/harness/.build/
+
+# Release gate: local results, bundles and private contact sheets (scripts/eval31/gate.sh)
+.gate/

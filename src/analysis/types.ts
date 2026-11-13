@@ -30,7 +30,8 @@ export type Confidence = 'clear' | 'worth_checking' | 'low';
 export type Point = { x: number; y: number };
 
 export type PathSource = 'plate' | 'wrist';
-export type TracePoint = Point & { frame: number; src?: PathSource };
+// r: the plate's radius on that frame as a fraction of the picture's height, where the plate model read it (4.0, 12-11)
+export type TracePoint = Point & { frame: number; src?: PathSource; r?: number };
 
 export type Phase = {
   name: PhaseName;
@@ -171,6 +172,8 @@ export type Analysis = {
   // A clean followed by its jerk: one lift, the cue from one segment, each segment measured on its own.
   liftKind?: 'clean_and_jerk';
   segments?: AnalysisSegment[];
+  // 4.0: the frames that hold the lift itself (pick-up to put-down); absent when the whole clip is the lift.
+  lift?: { startFrame: number; endFrame: number };
 };
 
 export type AnalysisSegment = Pick<Analysis, 'reps' | 'bestRepIndex' | 'cue' | 'noCueReason' | 'notes' | 'measurements' | 'keyNumbers' | 'pxPerCm'> & {

@@ -10,7 +10,7 @@ import DeleteAccountSheet, { confirmed } from './DeleteAccountSheet';
 import { LowStorageSheet, OfflineBanner, PermissionDenied, UpdateRequired, formatBytes } from './GlobalStates';
 import { NOTIFICATION_COPY, NOTIFICATION_TITLE } from './notificationCopy';
 import { DEFAULT_SETTINGS, reminderLabel, settingLabels, useSettings } from './settings';
-import { accountLine, createLocalAccountRepository, livePlanLabel, planLabel, useAccountStore, type DataExport } from './account';
+import { accountLine, createLocalAccountRepository, planLabel, useAccountStore, type DataExport } from './account';
 import { ANALYSES } from '../../analysis/fixtures';
 import { useLibraryStore } from '../library/store';
 import { backendEnabled } from '../../data/backend';
@@ -55,16 +55,16 @@ beforeEach(() => {
 });
 
 describe('plan and settings labels', () => {
-  it('shows founding as Pull for life with no renewal date', () => {
-    expect(planLabel({ tier: 'pull', founding: true })).toBe('Pull · Founding member · for life');
-    expect(planLabel({ tier: 'pull', founding: false, billing: 'annual', renewsOn: '2027-10-02T00:00:00.000Z' })).toBe(
-      'Pull · $19.99/yr · renews 2 Oct'
-    );
-    expect(planLabel({ tier: 'hook', founding: false, billing: 'monthly', renewsOn: '2026-11-11T00:00:00.000Z' })).toBe(
-      'Hook · $4.99/mo · renews 11 Nov'
-    );
-    expect(planLabel({ tier: 'free', videosUsed: 1 })).toBe('Free · 2 of 3 videos left');
-    expect(planLabel({ tier: 'free', videosUsed: 4 })).toBe('Free · 0 of 3 videos left');
+  it('free shows this week\'s videos; every paid tier, old or new, is Catchline Pro', () => {
+    const wed = new Date(2026, 10, 11, 9, 0);
+    const one = { lifetime: 9, week: '2026-11-09', thisWeek: 1 };
+    expect(planLabel('free', one, wed)).toBe('Free · 2 of 3 videos left this week');
+    expect(planLabel('free', { lifetime: 9, week: '2026-11-09', thisWeek: 3 }, wed)).toBe('Free · 0 of 3 videos left this week');
+    expect(planLabel('free', one, new Date(2026, 10, 16))).toBe('Free · 3 of 3 videos left this week');
+    expect(planLabel('hook', one, wed)).toBe('Catchline Pro · unlimited videos');
+    expect(planLabel('pull', one, wed)).toBe('Catchline Pro · unlimited videos');
+    expect(planLabel('platform', one, wed)).toBe('Catchline Pro · unlimited videos');
+    expect(planLabel('founding', one, wed)).toBe('Catchline Pro · Founding member');
   });
 
   it('labels the defaults like the design', () => {
@@ -97,23 +97,24 @@ describe('plan and settings labels', () => {
 });
 
 describe('YouScreen', () => {
-  it('lists the profile, founding plan and every setting', async () => {
+  it('lists the profile, the founding plan, three sections, and none of the 3.x settings', async () => {
     const screen = await render(<YouScreen nav={nav} version="1.0.3" />);
     expect(within(screen.getByTestId('row-profile')).getByText('Alex')).toBeOnTheScreen();
     expect(screen.getByText('Signed in with Apple · synced')).toBeOnTheScreen();
-    expect(screen.getByText('Pull · Founding member · for life')).toBeOnTheScreen();
+    expect(screen.getByText('Catchline Pro · Founding member')).toBeOnTheScreen();
     expect(screen.getByTestId('founding-badge')).toBeOnTheScreen();
     expect(screen.queryByText(/renews/)).toBeNull();
-    expect(within(screen.getByTestId('row-frame-rate')).getByText('60 fps, 240 for snatch')).toBeOnTheScreen();
-    expect(within(screen.getByTestId('row-reminder')).getByText('Tue, Thu · 17:30')).toBeOnTheScreen();
-    expect(within(screen.getByTestId('row-auto-delete')).getByText('24 h')).toBeOnTheScreen();
+    expect(screen.getByText('SETTINGS')).toBeOnTheScreen();
+    expect(screen.getByText('PRIVACY')).toBeOnTheScreen();
+    expect(screen.getByText('HELP')).toBeOnTheScreen();
+    // 4.0 has no movement picker, cues or frame-rate choice, and nothing read these
+    for (const id of ['row-movement', 'row-frame-rate', 'toggle-voice', 'row-reminder', 'row-auto-delete', 'row-export-lifts']) expect(screen.queryByTestId(id)).toBeNull();
     expect(screen.getByText('About · 1.0.3')).toBeOnTheScreen();
     await press(screen.getByTestId('row-stored'));
     await press(screen.getByTestId('row-delete'));
     await press(screen.getByTestId('row-report'));
     await press(screen.getByTestId('row-whats-new'));
-    await press(screen.getByText('See how it works'));
-    expect(nav.onDemo).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText('See how it works')).toBeNull();
     expect(nav.onWhatIsStored).toHaveBeenCalledTimes(1);
     expect(nav.onDeleteAccount).toHaveBeenCalledTimes(1);
     expect(nav.onReport).toHaveBeenCalledTimes(1);
@@ -139,52 +140,26 @@ describe('YouScreen', () => {
     expect(screen.getByTestId('you-build')).toHaveTextContent('Catchline 3.1 · update ota-42 · iPhone19,7 iOS 27.0.1');
   });
 
-  it('picks units and default lift from a sheet', async () => {
+  it('picks units from a sheet', async () => {
     const screen = await render(<YouScreen nav={nav} version="1.0.3" />);
     await press(screen.getByTestId('row-units'));
     await press(screen.getByTestId('pick-lb'));
     expect(useSettings.getState().units).toBe('lb');
     expect(within(screen.getByTestId('row-units')).getByText('lb')).toBeOnTheScreen();
     expect(screen.queryByTestId('option-sheet')).toBeNull();
-    await press(screen.getByTestId('row-movement'));
-    await press(screen.getByTestId('pick-bar_muscle_up'));
-    expect(within(screen.getByTestId('row-movement')).getByText('Bar muscle-up')).toBeOnTheScreen();
   });
 
-  it('toggles voice countdown and haptics, and haptics reaches the haptics module', async () => {
+  it('toggles haptics, and it reaches the haptics module', async () => {
     const screen = await render(<YouScreen nav={nav} version="1.0.3" />);
     await act(async () => {
       fireEvent(screen.getByTestId('toggle-haptics'), 'valueChange', false);
     });
-    await act(async () => {
-      fireEvent(screen.getByTestId('toggle-voice'), 'valueChange', false);
-    });
     expect(useSettings.getState().haptics).toBe(false);
-    expect(useSettings.getState().voiceCountdown).toBe(false);
     expect(isHapticsEnabled()).toBe(false);
     await act(async () => {
       fireEvent(screen.getByTestId('toggle-haptics'), 'valueChange', true);
     });
     expect(isHapticsEnabled()).toBe(true);
-  });
-
-  it('edits the cue reminder days and time', async () => {
-    const screen = await render(<YouScreen nav={nav} version="1.0.3" />);
-    await press(screen.getByTestId('row-reminder'));
-    await press(screen.getByTestId('day-Thu'));
-    await press(screen.getByTestId('day-Sat'));
-    await press(screen.getByTestId('time-07:30'));
-    await press(screen.getByText('Done'));
-    expect(within(screen.getByTestId('row-reminder')).getByText('Tue, Sat · 07:30')).toBeOnTheScreen();
-  });
-
-  it('keeps the cue reminder label on one line with the days and time under it, every day collapsed', async () => {
-    useSettings.getState().set('cueReminder', { days: [0, 1, 2, 3, 4, 5, 6], time: '07:30' });
-    const screen = await render(<YouScreen nav={nav} version="1.0.3" />);
-    const row = screen.getByTestId('row-reminder');
-    expect(row).toHaveTextContent('Cue reminderEvery day · 07:30One nudge before your usual session›');
-    expect(within(row).getByText('Cue reminder')).toHaveProp('numberOfLines', 1);
-    expect(within(row).getByText('Every day · 07:30')).toBeOnTheScreen();
   });
 
   it('renames the profile', async () => {
@@ -202,34 +177,23 @@ describe('YouScreen', () => {
     const screen = await render(<YouScreen nav={nav} version="1.0.3" exportData={send} />);
     await press(screen.getByTestId('row-export'));
     const bundle = (send.mock.calls[0] as unknown as [DataExport])[0];
-    expect(bundle).toMatchObject({ account: { name: 'Alex', plan: 'Pull · Founding member · for life' }, settings: DEFAULT_SETTINGS });
+    expect(bundle).toMatchObject({ account: { name: 'Alex', plan: 'Catchline Pro · Founding member' }, settings: DEFAULT_SETTINGS });
     expect(bundle.lifts.map((l) => l.id)).toEqual(useLibraryStore.getState().lifts.map((l) => l.id));
   });
 });
 
 describe('YouScreen with the backend on', () => {
-  const now = new Date('2026-10-14T09:00:00.000Z');
 
   beforeEach(() => mockBackendEnabled.mockReturnValue(true));
 
-  it('labels the live plan from the tier and the usage store', () => {
-    const used = { lifetime: 1, month: '', thisMonth: 0 };
-    expect(livePlanLabel('free', used, 'organic', now)).toBe('Free · 2 of 3 videos left');
-    expect(livePlanLabel('free', used, 'ad', now)).toBe('Free · 0 of 1 videos left');
-    expect(livePlanLabel('pull', { lifetime: 5, month: '2026-10', thisMonth: 2 }, 'organic', now)).toBe('Pull · unlimited videos');
-    expect(livePlanLabel('founding', { lifetime: 5, month: '2026-09', thisMonth: 2 }, 'organic', now)).toBe(
-      'Founding member · unlimited videos'
-    );
-  });
-
   it('shows the anonymous account and the real free allowance, never the fixture', async () => {
-    useUsage.getState().record('free', now);
+    useUsage.getState().record('free', new Date());
     const screen = await render(<YouScreen nav={nav} version="1.0.3" />);
     expect(within(screen.getByTestId('row-profile')).getByText('Anonymous on this phone')).toBeOnTheScreen();
     expect(within(screen.getByTestId('row-profile')).queryByText('Edit')).toBeNull();
     expect(screen.queryByText('Alex')).toBeNull();
     expect(screen.queryByText(/Signed in with/)).toBeNull();
-    expect(within(screen.getByTestId('row-plan')).getByText('Free · 2 of 3 videos left')).toBeOnTheScreen();
+    expect(within(screen.getByTestId('row-plan')).getByText('Free · 2 of 3 videos left this week')).toBeOnTheScreen();
     expect(screen.queryByTestId('founding-badge')).toBeNull();
     await press(screen.getByTestId('row-plan'));
     expect(nav.onPlan).toHaveBeenCalledTimes(1);
@@ -280,15 +244,15 @@ describe('YouScreen with the backend on', () => {
     const send = jest.fn(() => Promise.resolve());
     const screen = await render(<YouScreen nav={nav} version="1.0.3" exportData={send} />);
     await press(screen.getByTestId('row-export'));
-    expect(send).toHaveBeenCalledWith(expect.objectContaining({ account: { name: 'Alex Tan', plan: 'Free · 3 of 3 videos left' } }));
+    expect(send).toHaveBeenCalledWith(expect.objectContaining({ account: { name: 'Alex Tan', plan: 'Free · 3 of 3 videos left this week' } }));
   });
 
-  it('shows the live paid tier with its monthly cap and the founding badge', async () => {
+  it('shows a live founding member as Catchline Pro with the founding badge', async () => {
     usePurchases.getState().setDemoPlan('founding');
     useUsage.getState().record('founding', new Date());
     useUsage.getState().record('founding', new Date());
     const screen = await render(<YouScreen nav={nav} version="1.0.3" />);
-    expect(within(screen.getByTestId('row-plan')).getByText('Founding member · unlimited videos')).toBeOnTheScreen();
+    expect(within(screen.getByTestId('row-plan')).getByText('Catchline Pro · Founding member')).toBeOnTheScreen();
     expect(screen.getByTestId('founding-badge')).toBeOnTheScreen();
   });
 
@@ -308,18 +272,9 @@ describe('YouScreen with the backend on', () => {
     const screen = await render(<YouScreen nav={nav} version="1.0.3" exportData={send} />);
     await press(screen.getByTestId('row-export'));
     const bundle = (send.mock.calls[0] as unknown as [DataExport])[0];
-    expect(bundle).toMatchObject({ account: { name: '', plan: 'Free · 3 of 3 videos left' }, settings: DEFAULT_SETTINGS });
+    expect(bundle).toMatchObject({ account: { name: '', plan: 'Free · 3 of 3 videos left this week' }, settings: DEFAULT_SETTINGS });
     expect(bundle.lifts.map((l) => l.id)).toEqual(['l-snatch-today', 'l-clean', 'l-mu', 'l-jerk', 'l-snatch-queued', 'l-snatch-miss', 'l-snatch-real', 'l-snatch-low']);
     expect(bundle.lifts.every((l) => l.date && l.movement)).toBe(true);
-  });
-
-  it('exports my lifts as a CSV for everyone, free plan included', async () => {
-    const send = jest.fn<Promise<void>, [string]>(() => Promise.resolve());
-    const screen = await render(<YouScreen nav={nav} version="1.0.3" exportLifts={send} />);
-    expect(screen.getByText('A spreadsheet of every lift and measurement')).toBeOnTheScreen();
-    await press(screen.getByTestId('row-export-lifts'));
-    expect(send).toHaveBeenCalledTimes(1);
-    expect(send.mock.calls[0][0].split('\n')[0]).toBe('date,lift_id,movement,load_kg,status,cue,measurement_id,measurement,value,unit,analysis_version');
   });
 
 });
@@ -416,7 +371,7 @@ describe('global states', () => {
   it('offers to delete originals when storage is low', async () => {
     const onDelete = jest.fn();
     const screen = await render(<LowStorageSheet clips={38} bytes={4.1e9} onDelete={onDelete} onNotNow={jest.fn()} />);
-    expect(screen.getByText('38 original clips take 4.1 GB. Analyses, cues and stills stay either way.')).toBeOnTheScreen();
+    expect(screen.getByText('38 original clips take 4.1 GB. Your tracked lifts stay either way.')).toBeOnTheScreen();
     await press(screen.getByText('Delete originals'));
     expect(onDelete).toHaveBeenCalledTimes(1);
   });

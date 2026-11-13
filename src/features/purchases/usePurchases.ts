@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { Platform } from 'react-native';
-import type { CustomerInfo, PurchasesOfferings, StoreProductChangeInfo } from 'react-native-purchases';
+import type { CustomerInfo, PurchasesOfferings } from 'react-native-purchases';
 import { loadPurchases, RC_IOS_KEY, RC_ANDROID_KEY } from './client';
 import { supabase } from '../../lib/supabase';
 import { ensureSession, getAllowance, syncPlan } from '../../lib/api';
@@ -12,13 +12,7 @@ import {
   type Period,
   type Tier,
 } from '../paywall/entitlements';
-import {
-  offeringFor,
-  packageIdFor,
-  periodFromProductId,
-  playSubscriptionId,
-  type Plan,
-} from '../paywall/products';
+import { OFFERING, packageIdFor, periodFromProductId, type Plan } from '../paywall/products';
 
 export type PurchaseStatus = 'success' | 'cancelled' | 'failed' | 'offline';
 
@@ -179,7 +173,7 @@ export const usePurchases = create<PurchasesState>((set, get) => ({
       const outcome = get().demoOutcome;
       if (outcome === 'success') {
         set({
-          tier: plan.kind === 'founding' ? 'founding' : plan.tier,
+          tier: plan.kind === 'founding' ? 'founding' : 'pull',
           period: plan.kind === 'founding' ? null : plan.period,
         });
       }
@@ -188,11 +182,9 @@ export const usePurchases = create<PurchasesState>((set, get) => ({
     try {
       if (backendEnabled()) await get().identify(await ensureSession());
       const offerings = get().offerings ?? (await Purchases.getOfferings());
-      const pkg = offerings.all[offeringFor(plan)]?.availablePackages.find(
-        (p) => p.identifier === packageIdFor(plan)
-      );
+      const pkg = offerings.all[OFFERING]?.availablePackages.find((p) => p.identifier === packageIdFor(plan));
       if (!pkg) return 'failed';
-      const { customerInfo } = await Purchases.purchasePackage(pkg, null, playChangeInfo(get().tier, plan, Purchases));
+      const { customerInfo } = await Purchases.purchasePackage(pkg);
       const next = planFromInfo(customerInfo);
       set({ customerInfo, ...next });
       if (next.tier === 'free') return 'failed';
@@ -245,23 +237,6 @@ export const usePurchases = create<PurchasesState>((set, get) => ({
   setDemoPlan: (tier, period = null) => set({ tier, period, expiresAt: null }),
   setDemoOutcome: (demoOutcome) => set({ demoOutcome }),
 }));
-
-type Sdk = NonNullable<ReturnType<typeof liveSdk>>;
-
-// Play needs the old subscription to switch tiers; upgrades charge the prorated
-// difference now, downgrades wait for the renewal.
-function playChangeInfo(current: Tier, plan: Plan, Purchases: Sdk): StoreProductChangeInfo | null {
-  if (Platform.OS !== 'android' || plan.kind !== 'sub') return null;
-  if (current !== 'hook' && current !== 'pull' && current !== 'platform') return null;
-  if (current === plan.tier) return null;
-  const up = TIER_RANK[plan.tier] > TIER_RANK[current];
-  return {
-    oldProductIdentifier: playSubscriptionId(current),
-    replacementMode: up
-      ? Purchases.STORE_REPLACEMENT_MODE.CHARGE_PRORATED_PRICE
-      : Purchases.STORE_REPLACEMENT_MODE.DEFERRED,
-  };
-}
 
 // RevenueCat Customer Center for managing or cancelling. No-op without the SDK so the
 // caller can fall back to the in-app plans screen.

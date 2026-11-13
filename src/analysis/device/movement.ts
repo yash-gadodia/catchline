@@ -102,7 +102,7 @@ export function signals(k0: K, fps: number): Signals | null {
     hang = foot > 0.5 * t && foot > 2.0 * hand;
   }
   const over = where(overhead);
-  if (!hang && over.length >= 0.75 * k.length) {
+  if (!hang && over.length >= Math.min(0.75 * k.length, 2 * fps)) {
     const smooth = (p: Pt[]) => {
       const sx = lowpass(p.map((q) => q[0]), fps);
       const sy = lowpass(p.map((q) => q[1]), fps);

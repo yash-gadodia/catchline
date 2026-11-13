@@ -1,51 +1,13 @@
 import type { ReactNode } from 'react';
-import { Pressable, Text, View, type StyleProp, type ViewStyle } from 'react-native';
-import type { Movement } from '../../analysis/types';
+import { Pressable, Text, TextInput, View, type StyleProp, type ViewStyle } from 'react-native';
 import Btn from '../../components/Btn';
 import { colors, shade, shape, space, stroke } from '../../design/tokens';
 import { fontFamily, type } from '../../design/typography';
-import { liftById } from '../onboarding/lifts';
+import type { Units } from '../onboarding/store';
 import { checkLabel, type CheckResult } from './checks';
 import { t } from '../../i18n';
 
 const HUD_BG = shade(0.6);
-
-export function LiftChip({
-  movement,
-  onPress,
-  scrim,
-  height = 40,
-}: {
-  movement: Movement;
-  onPress: () => void;
-  scrim?: boolean;
-  height?: number;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      testID="lift-chip"
-      accessibilityRole="button"
-      accessibilityLabel={t('capture.hud.liftA11y', { name: liftById(movement).name })}
-      style={{
-        height,
-        paddingHorizontal: space.s3,
-        borderWidth: stroke.hairline,
-        borderColor: colors.text,
-        ...shape.control,
-        backgroundColor: scrim ? HUD_BG : 'transparent',
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: space.s2,
-      }}
-    >
-      <Text style={{ color: colors.text, ...type.label }}>
-        {liftById(movement).name}
-      </Text>
-      <Text style={{ color: colors.text2, ...type.label, fontFamily: fontFamily.body }}>⌄</Text>
-    </Pressable>
-  );
-}
 
 export function HudBadge({
   children,
@@ -154,14 +116,6 @@ export function Underlined({ children, onPress, testID }: { children: string; on
   );
 }
 
-export function Meta({ children, testID }: { children: string; testID?: string }) {
-  return (
-    <Text testID={testID} numberOfLines={1} style={{ color: colors.text2, ...type.readout }}>
-      {children}
-    </Text>
-  );
-}
-
 export function Header({ left, center, right }: { left?: ReactNode; center?: ReactNode; right?: ReactNode }) {
   return (
     <View
@@ -176,6 +130,37 @@ export function Header({ left, center, right }: { left?: ReactNode; center?: Rea
       <View style={{ minWidth: 60 }}>{left}</View>
       {center}
       <View style={{ minWidth: 60, alignItems: 'flex-end' }}>{right}</View>
+    </View>
+  );
+}
+
+export function WeightField({ value, units, onChange }: { value: string; units: Units; onChange: (w: string) => void }) {
+  return (
+    <View
+      style={{
+        height: 40,
+        paddingHorizontal: space.s3,
+        borderWidth: stroke.hairline,
+        borderColor: colors.hairline,
+        ...shape.control,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: space.s2,
+      }}
+    >
+      <TextInput
+        testID="weight-input"
+        accessibilityLabel={t('capture.trim.weightA11y', { units })}
+        value={value}
+        onChangeText={(text) => onChange(text.replace(/[^0-9.,]/g, ''))}
+        keyboardType="decimal-pad"
+        placeholder="0"
+        placeholderTextColor={colors.text3}
+        maxLength={6}
+        // design-ok: TextInput, a lineHeight shifts the caret and text on iOS
+        style={{ color: colors.text, fontFamily: fontFamily.bodyMedium, fontSize: 15, minWidth: 36, padding: 0, textAlign: 'right' }}
+      />
+      <Text style={{ color: colors.text2, ...type.label, fontFamily: fontFamily.body }}>{units}</Text>
     </View>
   );
 }

@@ -64,39 +64,9 @@ export function keyFrameForPhase(rep: Rep, phase: string): KeyFrame | undefined 
   return rep.keyFrames.find((k) => k.phase === phase);
 }
 
-export function stepKeyFrame(rep: Rep, frame: number, dir: 1 | -1): number {
-  const frames = rep.keyFrames.map((k) => k.frame);
-  if (dir === 1) {
-    const next = frames.find((f) => f > frame);
-    return next ?? frame;
-  }
-  const prev = [...frames].reverse().find((f) => f < frame);
-  return prev ?? frame;
-}
-
-export function progressOf(rep: Rep, frame: number): number {
-  const span = rep.endFrame - rep.startFrame;
-  if (span <= 0) return 0;
-  return Math.min(1, Math.max(0, (frame - rep.startFrame) / span));
-}
-
-export function frameAtProgress(rep: Rep, progress: number): number {
-  const p = Math.min(1, Math.max(0, progress));
-  return Math.round(rep.startFrame + p * (rep.endFrame - rep.startFrame));
-}
-
-// Scrubber ticks: one per phase boundary (phase starts after the first).
-export function phaseTicks(rep: Rep): number[] {
-  return rep.phases.slice(1).map((p) => progressOf(rep, p.startFrame));
-}
-
 // True when moving from `a` to `b` crosses into a different phase.
 export function crossesPhase(rep: Rep, a: number, b: number): boolean {
   return phaseAt(rep, a)?.name !== phaseAt(rep, b)?.name;
-}
-
-export function phaseRail(rep: Rep): { name: Phase['name']; weight: number }[] {
-  return rep.phases.map((p) => ({ name: p.name, weight: p.endFrame - p.startFrame }));
 }
 
 // Floor to the catch: the drop into the catch and the stand-up retrace the

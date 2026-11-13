@@ -6,8 +6,6 @@ export const TOO_LONG_S = 30;
 export const MAX_RECORD_S = 120;
 export const LOW_STORAGE_S = 60;
 
-export type RepsMode = 'rep' | 'set';
-
 export type Session =
   | { kind: 'idle' }
   | { kind: 'storage'; secondsLeft: number }

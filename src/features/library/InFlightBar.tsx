@@ -1,5 +1,4 @@
 import { Pressable, Text, View } from 'react-native';
-import { movementLabel } from '../../analysis/format';
 import { colors, space } from '../../design/tokens';
 import { type } from '../../design/typography';
 import type { Job } from '../../data/pipeline';
@@ -31,7 +30,7 @@ export default function InFlightBar({ job, onOpen }: { job: Job | null; onOpen: 
       </View>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: space.gutter, paddingVertical: space.s2 }}>
         <Text style={{ color: colors.text, ...type.readout }}>
-          {t('library.inFlight.title', { movement: movementLabel(job.movement) })}
+          {t('library.inFlight.title')}
         </Text>
         <Text style={{ color: colors.text2, ...type.readout }}>{inFlightMeta(job)}</Text>
       </View>

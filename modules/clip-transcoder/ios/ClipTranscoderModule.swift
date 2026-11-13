@@ -31,6 +31,12 @@ func fileURL(_ uri: String) -> URL {
   return URL(fileURLWithPath: uri)
 }
 
+func shareFile(_ ext: String) throws -> URL {
+  let dir = FileManager.default.temporaryDirectory.appendingPathComponent("share-video", isDirectory: true)
+  try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+  return dir.appendingPathComponent("catchline-\(UUID().uuidString.prefix(8)).\(ext)")
+}
+
 public class ClipTranscoderModule: Module {
   public func definition() -> ModuleDefinition {
     Name("ClipTranscoder")
@@ -52,6 +58,30 @@ public class ClipTranscoderModule: Module {
 
     AsyncFunction("renderShareVideo") { (uri: String, spec: ShareSpec) async throws -> [String: Any] in
       try await renderShareVideo(uri: uri, spec: spec) { p in self.sendEvent("onProgress", ["progress": p]) }
+    }
+
+    // 4.0: the lift's kept clip with the tracker's overlay on every frame (TrackRenderer.swift). The spec is the
+    // JSON of src/features/share/trackShare.ts TrackSpec.
+    AsyncFunction("renderTrackVideo") { (uri: String, spec: String) async throws -> [String: Any] in
+      let url = try shareFile("mp4")
+      do {
+        let r = try await renderTrackVideo(source: fileURL(uri), to: url, spec: try decodeTrackSpec(spec)) { p in
+          self.sendEvent("onProgress", ["progress": p])
+        }
+        return ["uri": url.absoluteString, "width": r.width, "height": r.height, "frames": r.frames, "durationS": r.durationS]
+      } catch let e as TrackRenderError {
+        throw ShareRenderFailedException(e.message)
+      }
+    }
+
+    AsyncFunction("renderTrackImage") { (uri: String, spec: String) async throws -> [String: Any] in
+      let url = try shareFile("jpg")
+      do {
+        let r = try await renderTrackImage(source: fileURL(uri), to: url, spec: try decodeTrackSpec(spec))
+        return ["uri": url.absoluteString, "width": r.width, "height": r.height]
+      } catch let e as TrackRenderError {
+        throw ShareRenderFailedException(e.message)
+      }
     }
   }
 

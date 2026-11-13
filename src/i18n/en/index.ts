@@ -3,7 +3,6 @@ import { you } from './you';
 import { library } from './library';
 import { analysis } from './analysis';
 import { format } from './format';
-import { drills } from './drills';
 import { capture } from './capture';
 import { onboarding } from './onboarding';
 import { paywall } from './paywall';
@@ -17,7 +16,6 @@ export const en = {
   ...library,
   ...analysis,
   ...format,
-  ...drills,
   ...capture,
   ...onboarding,
   ...paywall,

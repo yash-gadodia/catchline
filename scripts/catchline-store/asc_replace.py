@@ -187,7 +187,7 @@ def rel(type_, id_):
 # ---------- copy from store-listing.md ----------
 
 def listing_copy(args):
-    text = LISTING.read_text()
+    text = pathlib.Path(args.listing).read_text() if args.listing else LISTING.read_text()
     row = lambda field: re.search(rf"^\| {re.escape(field)} \| [^|]+ \| `([^`]+)` \|", text, re.M).group(1)
     block = lambda heading: re.search(rf"^### {re.escape(heading)}[^\n]*\n+```\n(.*?)\n```", text, re.M | re.S).group(1)
     apple = text.split("## 2. Google Play")[0]
@@ -207,9 +207,10 @@ def listing_copy(args):
     notes = block("App Review notes")
     notes = re.sub(r"^Email: \[DEMO_EMAIL\]\nPassword: \[DEMO_PASSWORD\]\n",
                    "Credentials are in the Sign-in information fields.\n", notes, flags=re.M)
-    notes = notes.replace("Hello App Review team,\n\n", "Hello App Review team,\n\n" + CHANGE_OF_PURPOSE)
+    if not args.listing:  # the 3.0 replacement; a later version's notes stand as written
+        notes = notes.replace("Hello App Review team,\n\n", "Hello App Review team,\n\n" + CHANGE_OF_PURPOSE)
     fill = {"[SUPPORT_EMAIL]": args.support_email, "[PHONE]": args.contact_phone}
-    whats_new = args.whats_new or WHATS_NEW
+    whats_new = args.whats_new or (block("What's New") if args.listing else WHATS_NEW)
     for k, v in fill.items():
         if v:
             notes, whats_new = notes.replace(k, v), whats_new.replace(k, v)
@@ -425,10 +426,7 @@ class Run:
             gid = a.write("POST", "/v1/subscriptionGroups",
                           {"data": {"type": "subscriptionGroups", "attributes": {"referenceName": GROUP_NAME},
                                     "relationships": {"app": rel("apps", APP_ID)}}}, f"create subscription group {GROUP_NAME!r}")["data"]["id"]
-        if dry(gid) or not any(l["attributes"]["locale"] == LOCALE for l in a.get_all(f"/v1/subscriptionGroups/{gid}/subscriptionGroupLocalizations")):
-            a.write("POST", "/v1/subscriptionGroupLocalizations",
-                    {"data": {"type": "subscriptionGroupLocalizations", "attributes": {"locale": LOCALE, "name": "Catchline"},
-                              "relationships": {"subscriptionGroup": rel("subscriptionGroups", gid)}}}, "group localization 'Catchline'")
+        self.localize("subscriptionGroup", gid, {"locale": LOCALE, "name": "Catchline"}, "group localization 'Catchline'")
         existing = {} if dry(gid) else {s["attributes"]["productId"]: s for s in a.get_all(f"/v1/subscriptionGroups/{gid}/subscriptions?limit=50")}
         for pid, ref, period, level, usd, display, desc, trial in SUBSCRIPTIONS:
             print(f"  {pid}  {period} level {level}  ${usd}{'  +1 week free trial' if trial else ''}")
@@ -449,10 +447,7 @@ class Run:
     def sub_details(self, sid, display, desc, usd, trial):
         a = self.asc
         new = dry(sid)
-        if new or not any(l["attributes"]["locale"] == LOCALE for l in a.get_all(f"/v1/subscriptions/{sid}/subscriptionLocalizations")):
-            a.write("POST", "/v1/subscriptionLocalizations",
-                    {"data": {"type": "subscriptionLocalizations", "attributes": {"locale": LOCALE, "name": display, "description": desc},
-                              "relationships": {"subscription": rel("subscriptions", sid)}}}, f"localization {display!r}")
+        self.localize("subscription", sid, {"locale": LOCALE, "name": display, "description": desc}, f"localization {display!r}")
         if new or not a.get(f"/v1/subscriptions/{sid}/subscriptionAvailability"):
             a.write("POST", "/v1/subscriptionAvailabilities",
                     {"data": {"type": "subscriptionAvailabilities", "attributes": {"availableInNewTerritories": True},
@@ -488,7 +483,7 @@ class Run:
         else:
             print("    USA price already set")
         if trial:
-            has = False if new else bool(a.get_all(f"/v1/subscriptions/{sid}/introductoryOffers?limit=1"))
+            has = False if new else bool(a.get(f"/v1/subscriptions/{sid}/introductoryOffers?limit=1")["data"])  # one page: any offer means it is set
             if has:
                 print("    free trial already set")
             elif not a.apply:
@@ -520,10 +515,7 @@ class Run:
                                                    "reviewNote": "Founding member: Pull features for the life of the app, limited to 500 purchases. See App Review notes."},
                                     "relationships": {"app": rel("apps", APP_ID)}}}, "create non-consumable")["data"]["id"]
         new = dry(iid)
-        if new or not any(l["attributes"]["locale"] == LOCALE for l in a.get_all(f"/v2/inAppPurchases/{iid}/inAppPurchaseLocalizations")):
-            a.write("POST", "/v1/inAppPurchaseLocalizations",
-                    {"data": {"type": "inAppPurchaseLocalizations", "attributes": {"locale": LOCALE, "name": display, "description": desc},
-                              "relationships": {"inAppPurchaseV2": rel("inAppPurchases", iid)}}}, f"localization {display!r}")
+        self.localize("inAppPurchase", iid, {"locale": LOCALE, "name": display, "description": desc}, f"localization {display!r}")
         if new or not a.get(f"/v2/inAppPurchases/{iid}/inAppPurchaseAvailability"):
             a.write("POST", "/v1/inAppPurchaseAvailabilities",
                     {"data": {"type": "inAppPurchaseAvailabilities", "attributes": {"availableInNewTerritories": True},
@@ -551,6 +543,29 @@ class Run:
         self.review_screenshot(iid, new, "/v2/inAppPurchases/{}/appStoreReviewScreenshot",
                                "/v1/inAppPurchaseAppStoreReviewScreenshots", "inAppPurchaseAppStoreReviewScreenshots",
                                {"inAppPurchaseV2": rel("inAppPurchases", iid)})
+
+    # Product metadata lives in versions (App Store Connect API 4.4.1; the v1 localization resources are removed in
+    # early 2027): the localization goes on the newest version, or on a new one when that version is already approved
+    # (a change to a live product is a new version, reviewed with the next submission).
+    VERSIONS = {
+        "subscriptionGroup": ("/v1/subscriptionGroups/{}/versions", "subscriptionGroupVersions", "subscriptionGroups", "/v2/subscriptionGroupLocalizations", "subscriptionGroupLocalizations"),
+        "subscription": ("/v1/subscriptions/{}/versions", "subscriptionVersions", "subscriptions", "/v2/subscriptionLocalizations", "subscriptionLocalizations"),
+        "inAppPurchase": ("/v2/inAppPurchases/{}/versions", "inAppPurchaseVersions", "inAppPurchases", "/v2/inAppPurchaseLocalizations", "inAppPurchaseLocalizations"),
+    }
+
+    def localize(self, kind, oid, attributes, what):
+        a = self.asc
+        list_path, vtype, otype, loc_path, ltype = self.VERSIONS[kind]
+        versions = [] if dry(oid) else sorted(a.get_all(list_path.format(oid)), key=lambda v: v["attributes"].get("version") or 0)
+        latest = versions[-1] if versions else None
+        if latest and any(l["attributes"]["locale"] == attributes["locale"] and l["attributes"]["name"] == attributes["name"]
+                          and l["attributes"].get("description") == attributes.get("description")
+                          for l in a.get_all(f"/v1/{vtype}/{latest['id']}/localizations")):
+            return
+        if not latest or latest["attributes"].get("state") == "APPROVED":
+            latest = a.write("POST", f"/v1/{vtype}", {"data": {"type": vtype, "relationships": {kind: rel(otype, oid)}}},
+                             f"new {kind} version")["data"]
+        a.write("POST", loc_path, {"data": {"type": ltype, "attributes": attributes, "relationships": {"version": rel(vtype, latest["id"])}}}, what)
 
     def review_screenshot(self, oid, new, get_path, post_path, type_, relationships):
         path = self.args.iap_review_screenshot
@@ -659,6 +674,7 @@ def main():
     p.add_argument("--demo-email", help="demo account; password comes from env CATCHLINE_DEMO_PASSWORD")
     p.add_argument("--version", default=VERSION, help="App Store version string; must equal app.json \"version\" exactly")
     p.add_argument("--whats-new", help="override the 3.0 What's New text")
+    p.add_argument("--listing", help="listing markdown for a later version (same layout as store-listing.md, with a What's New block)")
     p.add_argument("--screenshots", default=str(SCREENSHOTS), help="folder of 1320x2868 PNGs, uploaded in name order")
     p.add_argument("--iap-review-screenshot", help="PNG of the paywall, attached to every new subscription/IAP")
     p.add_argument("--no-equalize", dest="equalize", action="store_false",

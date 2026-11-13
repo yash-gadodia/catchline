@@ -20,7 +20,9 @@ export type AnalysePlan = {
   windows?: { s0: number; count: number }[];
   plates?: { frame: number; wristA: [number, number] | null; wristB: [number, number] | null; bodyH: number; setupH: number | null }[];
   tracks?: { s0: number; n: number; start: number; plate: { centre: [number, number]; axes: [number, number]; score: number } }[];
-  follows?: { s0: number; n: number; seed: number; wrists: ([number, number] | null)[]; wristA: [number, number] | null; wristB: [number, number] | null; bodyH: number; setupH: number }[];
+  follows?: { s0: number; n: number; seed: number; wrists: ([number, number] | null)[]; wristA: [number, number] | null; wristB: [number, number] | null; bodyH: number; setupH: number; tap?: [number, number]; back?: boolean }[];
+  // PlateNet on frames [s0, s0 + n): per frame the centre of the square it looks at (null: skip), `side` px wide
+  plateNet?: { s0: number; n: number; side: number; centres: ([number, number] | null)[]; mark?: [number, number, number, number] }[];
   keyframes?: { name: string; frame: number }[];
 };
 
@@ -39,6 +41,8 @@ type Events = {
 };
 
 declare class PoseCoreMLModule extends NativeModule<Events> {
+  // true on a binary whose tracker starts from the lifter's mark on the plate (the build after 41)
+  supportsPlateMark?: boolean;
   analyzePose(uri: string): Promise<PoseResult>;
   ensureModels(): Promise<ModelsStatus>;
   modelsStatus(): Promise<ModelsStatus>;

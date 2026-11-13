@@ -218,6 +218,163 @@ func startPlate(_ img: BGRImage, _ gray: GrayImage, wrist: Point, wristA: Point,
   return best
 }
 
+// The plate around a point the user put on its middle: the best-edged disc centred within 0.15 of its own size of
+// the point, any size from a fifth of the setup height to 1.3 of it (a plate close to the camera is several times
+// the size the lifter's suggests) and any squeeze down to half; of the discs within 0.05 of the best rim the
+// largest. Held near the point the candidates are the plate's own rings (hub, inner ring, outer rim), so whichever
+// wins, its centre is the plate's: a point anywhere on the plate let an arc of the rim and the plate's lettering
+// make an off-centre disc (IMG_0596). Nil when no disc there has edges.
+func startPlateAt(_ img: BGRImage, _ gray: GrayImage, tap: Point, setupH: Double) throws -> Plate? {
+  guard tap.x.isFinite, tap.y.isFinite, setupH.isFinite, setupH > 0 else { return nil }
+  let majors = linspace(0.2, 1.3, 23).map { $0 * setupH }
+  let reach = 0.85 * majors.last!
+  let G = gradient(gray, around: [tap], reach: reach)
+  let m = plateMask(img, around: [tap], reach: reach)
+  var found: [Plate] = []
+  for M in majors {
+    var centres: [Point] = []
+    for dx in linspace(-0.15, 0.15, 11) { for dy in linspace(-0.15, 0.15, 11) { centres.append(tap + Point(dx * M, dy * M)) } }
+    if let p = searchPlate(m, G, centres, [M], [0.5, 0.6, 0.7, 0.8, 0.9, 1.0]) {
+      let r = rimSupport(G, p.centre, p.axes.0, p.axes.1 / p.axes.0)
+      if r.inside >= 0.6 { var q = p; q.score = r.rim; found.append(q) }
+    }
+  }
+  guard let top = found.map({ $0.score }).max(), top >= 0.4 else { return nil }
+  return found.filter { $0.score >= top - 0.05 }.max { $0.axes.0 < $1.axes.0 }
+}
+
+// MARK: - ring track (a plate the user pointed at)
+
+// A plate followed by what it looks like from its centre outwards, not by its place beside the hands: for each of
+// ringBins rings around the centre, out to a little past the start disc, the middle grey around the ring (so the
+// bar, a hand and lettering drop out) and how much the grey varies around it (a camo or speckled face against a
+// plain floor). A hub, a coloured ring and the rim are steps in that profile whichever way the plate has turned.
+// Each frame the profile is sought around where the plate was heading. A frame is held only when the best match is
+// good and stands out from the matches around it (a plain floor matches a plain plate everywhere: IMG_0975);
+// otherwise nothing is drawn there, and the plate is looked for again more widely with a higher bar. A plate with
+// no steps and no texture of its own (a black disc) is not looked for again once lost: black shorts are one too
+// (IMG_1559).
+private let ringBins = 20
+private let ringAngles: [(Double, Double)] = linspace(0, 2 * Double.pi, 32, endpoint: false).map { (cos($0), sin($0)) }
+private let ringOut = 1.15
+let ringHold = 0.55, ringFind = 0.75, ringLearn = 0.8, ringPeak = 0.12
+
+struct RingProfile {
+  var mid: [Float]
+  var spread: [Float]
+  // steps in the greys (a standard deviation of 4 levels across the rings) or texture around them
+  var marked: Bool {
+    let n = Float(mid.count), m = mid.reduce(0, +) / n
+    return mid.reduce(0) { $0 + ($1 - m) * ($1 - m) } >= n * 16 || spread.reduce(0, +) / n >= 20
+  }
+}
+
+struct RingTrack {
+  var centre: Point
+  var velocity = Point(0, 0)
+  var radius: Double  // of the start disc's vertical half axis, as followed
+  let radius0: Double
+  let ratio: Double
+  var profile: RingProfile
+  var lost = 0
+  var score = 1.0
+
+  init?(seed: Plate, gray: GrayImage, minRadius: Double) {
+    centre = seed.centre
+    radius = max(seed.axes.0 / 2, minRadius)
+    radius0 = radius
+    ratio = min(seed.axes.1 / seed.axes.0, 1.0)
+    guard let p = ringProfile(gray, seed.centre, radius, ratio) else { return nil }
+    profile = p
+  }
+}
+
+// The rings around c (vertical half axis R, squeezed across by q); nil when under 0.7 of the samples fall inside
+// the frame.
+func ringProfile(_ g: GrayImage, _ c: Point, _ R: Double, _ q: Double) -> RingProfile? {
+  guard c.x.isFinite, c.y.isFinite, R > 2 else { return nil }
+  var mid = [Float](repeating: 0, count: ringBins), spread = mid
+  var inside = 0
+  var v = [UInt8](repeating: 0, count: ringAngles.count)
+  for k in 0 ..< ringBins {
+    let r = (Double(k) + 0.5) / Double(ringBins) * ringOut * R
+    var n = 0
+    for (ct, st) in ringAngles {
+      let x = Int((c.x + r * q * ct).rounded()), y = Int((c.y + r * st).rounded())
+      if x >= 0, y >= 0, x < g.width, y < g.height { v[n] = g.data[y * g.width + x]; n += 1 }
+    }
+    inside += n
+    guard n >= ringAngles.count / 3 else { return nil }
+    v[0 ..< n].sort()
+    mid[k] = Float(v[n / 2])
+    spread[k] = Float(v[n * 3 / 4]) - Float(v[n / 4])
+  }
+  return inside * 10 >= ringBins * ringAngles.count * 7 ? RingProfile(mid: mid, spread: spread) : nil
+}
+
+// How alike a candidate is to the start profile: the correlation of the ring greys, less half their mean difference
+// in units of 48 levels (for a start profile with no steps the difference alone), less half the share by which the
+// texture around the rings differs.
+func ringScore(_ t: RingProfile, _ c: RingProfile) -> Double {
+  let a = t.mid, b = c.mid
+  let n = Float(a.count)
+  let ma = a.reduce(0, +) / n, mb = b.reduce(0, +) / n
+  var sab: Float = 0, saa: Float = 0, sbb: Float = 0, mad: Float = 0, tex: Float = 0
+  for i in 0 ..< a.count {
+    sab += (a[i] - ma) * (b[i] - mb); saa += (a[i] - ma) * (a[i] - ma); sbb += (b[i] - mb) * (b[i] - mb)
+    mad += abs(a[i] - b[i])
+    tex += abs(t.spread[i] - c.spread[i])
+  }
+  mad /= n
+  let grey = saa < n * 16 ? 1 - mad / 24 : (sbb > 0 ? sab / (saa * sbb).squareRoot() : 0) - 0.5 * min(1, mad / 48)
+  return Double(grey - 0.5 * min(1, tex / max(12 * n, t.spread.reduce(0, +))))
+}
+
+// The best match of the track's profile around a point: its centre (refined to a hundredth of the radius), size
+// step, score, and how far it stands above the matches 0.4 radii and more away (0 with none to compare).
+func ringSearch(_ gray: GrayImage, _ t: RingTrack, around: Point, span: Double, steps: Int, scales: [Double]) -> (centre: Point, scale: Double, score: Double, peak: Double)? {
+  let R = t.radius
+  var cands: [(Point, Double)] = []
+  for s in scales { for dx in linspace(-span, span, steps) { for dy in linspace(-span, span, steps) { cands.append((around + Point(dx * R, dy * R), s)) } } }
+  let template = t.profile, q = t.ratio
+  let scores = parallelMap(cands.count) { i -> Double in
+    guard let p = ringProfile(gray, cands[i].0, R * cands[i].1, q) else { return -2 }
+    return ringScore(template, p)
+  }
+  var bi = 0
+  for i in 1 ..< scores.count where scores[i] > scores[bi] { bi = i }
+  var best = cands[bi].0, top = scores[bi]
+  let scale = cands[bi].1
+  guard top > -2 else { return nil }
+  var around: [Double] = []
+  for i in 0 ..< cands.count where cands[i].1 == scale && scores[i] > -2 {
+    let d = cands[i].0 - cands[bi].0
+    if (d.x * d.x + d.y * d.y).squareRoot() >= 0.4 * R { around.append(scores[i]) }
+  }
+  for dx in linspace(-0.06, 0.06, 7) {
+    for dy in linspace(-0.06, 0.06, 7) {
+      let c = cands[bi].0 + Point(dx * R, dy * R)
+      if let p = ringProfile(gray, c, R * scale, q) { let v = ringScore(template, p); if v > top { top = v; best = c } }
+    }
+  }
+  return (best, scale, top, around.isEmpty ? 0 : top - middle(around))
+}
+
+// The track moved onto a match: centre, size (within half to 1.6 of the start) and, on a sure match, the profile.
+func ringAccept(_ gray: GrayImage, _ t: inout RingTrack, _ m: (centre: Point, scale: Double, score: Double, peak: Double)) {
+  t.velocity = t.lost == 0 ? m.centre - t.centre : Point(0, 0)
+  t.centre = m.centre
+  t.radius = min(max(0.8 * t.radius + 0.2 * t.radius * m.scale, 0.5 * t.radius0), 1.6 * t.radius0)
+  t.score = m.score
+  t.lost = 0
+  if m.score >= ringLearn, let p = ringProfile(gray, m.centre, t.radius, t.ratio) {
+    for k in 0 ..< ringBins {
+      t.profile.mid[k] = 0.95 * t.profile.mid[k] + 0.05 * p.mid[k]
+      t.profile.spread[k] = 0.95 * t.profile.spread[k] + 0.05 * p.spread[k]
+    }
+  }
+}
+
 func followPlateStep(_ img: BGRImage, _ gray: GrayImage, _ s: inout PlateFollow, wrist: Point) -> Int {
   defer { s.prev = gray }
   let M = s.major
@@ -270,7 +427,7 @@ func followPlateStep(_ img: BGRImage, _ gray: GrayImage, _ s: inout PlateFollow,
     next = d.centre
     src = 1
     s.flowRun = 0
-    s.major = 0.8 * M + 0.2 * d.axes.0
+    s.major = min(max(0.8 * M + 0.2 * d.axes.0, followSize.0 * s.major0), followSize.1 * s.major0)
   } else if let f = flow {
     next = f
     src = 2
@@ -430,7 +587,10 @@ private func gradient(_ g: GrayImage, around points: [Point], reach: Double) -> 
 
 private func box(around c: Point, half: Double, _ g: GrayImage) -> (Int, Int, Int, Int) {
   guard c.x.isFinite, c.y.isFinite else { return (0, 0, 0, 0) }
-  return (max(0, Int(c.x - half)), max(0, Int(c.y - half)), min(g.width, Int(c.x + half) + 1), min(g.height, Int(c.y + half) + 1))
+  // an empty box (x1 == x0) when the disc is wholly outside the frame: a followed plate that left the top of the
+  // frame gave a range running backwards here, which trapped
+  let x0 = min(max(0, Int(c.x - half)), g.width), y0 = min(max(0, Int(c.y - half)), g.height)
+  return (x0, y0, max(x0, min(g.width, Int(c.x + half) + 1)), max(y0, min(g.height, Int(c.y + half) + 1)))
 }
 
 private func crop(_ g: GrayImage, _ x0: Int, _ y0: Int, _ x1: Int, _ y1: Int) -> GrayImage {

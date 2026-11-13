@@ -55,7 +55,7 @@ function VideoClip({ uri, trim, width, height, seekTo, onTime, progress = true, 
   }, [player, trim.start, trim.end, seekTo, onTime]);
   return (
     <View testID="clip-video" style={{ width, height, backgroundColor: colors.surface, overflow: 'hidden' }}>
-      <VideoView player={player} style={{ width, height }} contentFit="cover" nativeControls={false} />
+      <VideoView player={player} style={{ width, height }} contentFit="cover" nativeControls={false} allowsVideoFrameAnalysis={false} />
       {progress && seekTo == null ? <ProgressLine at={(t - trim.start) / Math.max(trim.end - trim.start, 0.001)} /> : null}
       {children}
     </View>

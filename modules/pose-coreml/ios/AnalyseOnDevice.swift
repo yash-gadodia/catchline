@@ -8,20 +8,37 @@ import Foundation
 // ExpoModulesCore: the macOS harness drives this same file.
 
 private let cameraSmallHeight = 360
+// the follow backwards from its seed: frames kept (about 0.2 MB each as JPEG) and their quality
+private let followBackMax = 900
+private let followBackQuality = 0.85
 private let L_WRI = 9, R_WRI = 10
 
 struct AnalysePlan {
   struct Window { let s0: Int; let count: Int }
   struct PlateRequest { let frame: Int; let wristA: Point; let wristB: Point; let bodyH: Double; let setupH: Double? }
   struct TrackRequest { let s0: Int; let n: Int; let start: Int; let plate: Plate }
-  struct FollowRequest { let s0: Int; let n: Int; let seed: Int; let wrists: [Point]; let wristA: Point; let wristB: Point; let bodyH: Double; let setupH: Double }
+  // tap: a point the user put on the plate on the seed frame (inference px), which then starts the follow in place
+  // of the search around the hands; back: the plate is also followed over the frames before the seed
+  struct FollowRequest {
+    let s0: Int; let n: Int; let seed: Int; let wrists: [Point]; let wristA: Point; let wristB: Point; let bodyH: Double; let setupH: Double
+    var tap: Point? = nil
+    var back = false
+    // a follow is recorded by its window and seed frame; a tapped one also by its point, so it never answers for the
+    // automatic follow of the same frame
+    var key: String { tap.map { "\(s0):\(n):\(seed):tap:\(Int($0.x.rounded())),\(Int($0.y.rounded()))" } ?? "\(s0):\(n):\(seed)" }
+  }
   struct KeyframeRequest { let name: String; let frame: Int }
+  // PlateNet on frames [s0, s0 + n): per frame the centre of the square it looks at (NaN: skip the frame), `side` px
+  // wide, and a second square on the plate last seen (started on the lifter's mark when given: its frame in the
+  // window, centre and radius)
+  struct PlateNetRequest { let s0: Int; let n: Int; let side: Double; let centres: [Point]; let mark: (frame: Int, centre: Point, r: Double)? }
 
   var windows: [Window] = []
   var plates: [PlateRequest] = []
   var tracks: [TrackRequest] = []
   var follows: [FollowRequest] = []
   var keyframes: [KeyframeRequest] = []
+  var plateNet: [PlateNetRequest] = []
 
   init() {}
 
@@ -57,7 +74,13 @@ struct AnalysePlan {
     for t in json["follows"] as? [[String: Any]] ?? [] {
       follows.append(FollowRequest(s0: try int(t, "s0"), n: try int(t, "n"), seed: try int(t, "seed"),
                                    wrists: (t["wrists"] as? [Any] ?? []).map(point), wristA: point(t["wristA"]), wristB: point(t["wristB"]),
-                                   bodyH: try num(t, "bodyH"), setupH: try num(t, "setupH")))
+                                   bodyH: try num(t, "bodyH"), setupH: try num(t, "setupH"),
+                                   tap: t["tap"] == nil || t["tap"] is NSNull ? nil : point(t["tap"]), back: (t["back"] as? NSNumber)?.boolValue ?? false))
+    }
+    for t in json["plateNet"] as? [[String: Any]] ?? [] {
+      let m = (t["mark"] as? [NSNumber])?.map(\.doubleValue)
+      plateNet.append(PlateNetRequest(s0: try int(t, "s0"), n: try int(t, "n"), side: try num(t, "side"), centres: (t["centres"] as? [Any] ?? []).map(point),
+                                      mark: m.flatMap { $0.count == 4 ? (Int($0[0]), Point($0[1], $0[2]), $0[3]) : nil }))
     }
     for k in json["keyframes"] as? [[String: Any]] ?? [] {
       guard let name = k["name"] as? String else { throw StageError.invalid("plan: keyframe name missing") }
@@ -86,6 +109,15 @@ private func nanmedian(_ v: [Double]) -> Double {
 }
 
 private func affineND(_ M: Affine) -> [String: Any] { nd([2, 3], M) }
+
+private final class ReadAhead<T>: @unchecked Sendable {
+  let lock = NSLock()
+  var items: [T?] = []
+  var stop = false
+  var failure: Error?
+}
+
+private struct ReadAheadStopped: Error {}
 
 // Sequential decode of the clip's video track as 4:2:0 pixel buffers, one autorelease pool per frame.
 struct ClipReader {
@@ -136,6 +168,47 @@ struct ClipReader {
     if reader.status == .failed { throw PoseCoreMLError.readFailed(reader.error?.localizedDescription ?? "read") }
     return i
   }
+
+  // read with `prepare` (decode + colour conversion, CPU only) running on its own thread up to `ahead` frames in
+  // front of `body` (inference, which mostly waits on the GPU / Neural Engine). Same frames, same order, same values.
+  func read<T>(ahead: Int, prepare: @escaping (Int, CVPixelBuffer) -> T, _ body: (Int, T) throws -> Void) throws -> Int {
+    let shared = ReadAhead<T>()
+    let slots = DispatchSemaphore(value: ahead), ready = DispatchSemaphore(value: 0)
+    let thread = Thread {
+      do {
+        _ = try self.read { f, pb in
+          slots.wait()
+          let stop = shared.lock.withLock { shared.stop }
+          if stop { throw ReadAheadStopped() }
+          let item = prepare(f, pb)
+          shared.lock.withLock { shared.items.append(item) }
+          ready.signal()
+        }
+      } catch {
+        shared.lock.withLock { if !(error is ReadAheadStopped) { shared.failure = error } }
+      }
+      shared.lock.withLock { shared.items.append(nil) }
+      ready.signal()
+    }
+    thread.qualityOfService = .userInitiated
+    thread.start()
+    var i = 0
+    var bodyError: Error?
+    while true {
+      ready.wait()
+      guard let item = shared.lock.withLock({ shared.items.removeFirst() }) else { break }
+      if bodyError == nil {
+        do { try autoreleasepool { try body(i, item) }; i += 1 } catch {
+          bodyError = error
+          shared.lock.withLock { shared.stop = true }
+        }
+      }
+      slots.signal()
+    }
+    if let bodyError { throw bodyError }
+    if let failure = shared.failure { throw failure }
+    return i
+  }
 }
 
 // select_lifter seeds on the largest box x mean keypoint score and follows that person by box overlap, so a box far
@@ -151,8 +224,28 @@ func lifterCandidates(_ boxes: [[Float]]) -> [Int] {
 // The detector runs on every detectInterval-th frame (and whenever a carried pose weakens); the frames between pose the
 // people it found in boxes carried from their own keypoints. Off (1): at 4 the detector cost fell 26 -> 7 ms/frame but
 // RTMPose moves ~2 px whenever its box is not the detector's own (p50 1.55 px vs the 1 px bar) and 3 of 13 eval cues changed.
+// Still off after the 4.0 re-tune (12-11, 17 clips, bar: per joint median <= 0.03 and p95 <= 0.10 torso lengths): with
+// the rules below medians stay <= 0.012 at 4, but the far arm's p95 reaches 0.17-0.5 on 4-6 clips at every interval
+// tried (3, 4, 8), and the plate share moves on two (IMG_1561 98 -> 81%). The FP16 models fail the same bar worse.
 let detectInterval = 1
+// A carried pose goes back to the detector when its mean score falls under trackScoreDrop of its detection frame's, a
+// joint newly lies more than trackEdge of the box's size outside the box it was read in (RTMPose's crop adds 12.5% a side),
+// the body joints (their median) or the hips moved more than trackMaxShift box heights in the frame (select_lifter
+// drops a lifter at 0.15 and 0.1, Lifter.swift MAX_SHIFT and HIP_SHIFT, so a frame near those limits is read exactly as
+// before), or the moved box overlaps the last one by less than trackMinOverlap. A detected person counts as already
+// followed when a carried box overlaps theirs by trackSameOverlap. An elbow or wrist scored at least trackArmScore on
+// both frames that moved more than trackArmShift box heights also re-detects: the pull and the catch are where a
+// carried crop moves the arms most.
 let trackScoreDrop: Float = 0.75
+let trackArmShift: Float = 0.03
+let trackArmScore: Float = 0.5
+// A carried box that has run off the frame by more than trackFrameSlack of its size (someone walking past the lens,
+// whose detected box the detector itself keeps inside the frame) re-detects too.
+let trackFrameSlack: Float = 0.02
+let trackEdge: Float = 0.08
+let trackMaxShift: Float = 0.05
+let trackMinOverlap: Float = 0.8
+let trackSameOverlap: Float = 0.5
 private let boundsMinScore: Float = 0.3
 
 private func meanScore(_ s: [Float]) -> Float { s.reduce(0, +) / Float(s.count) }
@@ -163,49 +256,56 @@ private func stripped(_ p: PosePerson) -> PosePerson {
   return p
 }
 
-// One detection carried forward: its box, and for a posed person the detector box's margins around the keypoint
-// bounds (in bound heights) and the mean score at detection
+// One person carried forward from a detection: the box the next frame's pose is read in, the last pose (head points
+// kept) and the mean score at detection. Unposed people (person nil) only keep their detected box.
 struct Tracked {
   let box: [Float]
   let person: PosePerson?
-  let margins: [Float]
   let score: Float
 
   init(_ p: PosePerson?, box: [Float]) {
     self.box = box
     person = p
-    if let p, let k = keypointBounds(p) {
-      let h = k[3] - k[1]
-      margins = [(box[0] - k[0]) / h, (box[1] - k[1]) / h, (box[2] - k[2]) / h, (box[3] - k[3]) / h]
-      score = meanScore(p.scores)
-    } else {
-      margins = []
-      score = .infinity
+    score = p.map { meanScore($0.scores) } ?? .infinity
+  }
+
+  private init(box: [Float], person: PosePerson, score: Float) {
+    self.box = box; self.person = person; self.score = score
+  }
+
+  // The pose read in `box` on the next frame, with the box moved to it: each side goes as far as the outermost joint
+  // on that side went, over the joints scored at least boundsMinScore on both frames (so a joint coming into or
+  // going out of view does not move the box). nil sends the frame to the detector: see `carry` in posePass.
+  func moved(to k: [Float], _ sc: [Float], armShift: Float = trackArmShift) -> (tracked: Tracked?, why: String) {
+    guard let last = person else { return (nil, "nobody") }
+    if meanScore(sc) < trackScoreDrop * score { return (nil, "score") }
+    let h = box[3] - box[1], w = box[2] - box[0]
+    var a: [Float] = [.infinity, .infinity, -.infinity, -.infinity], b = a
+    var shifts: [Float] = []
+    var n = 0
+    func outside(_ x: Float, _ y: Float) -> Bool {
+      x < box[0] - trackEdge * w || x > box[2] + trackEdge * w || y < box[1] - trackEdge * h || y > box[3] + trackEdge * h
     }
+    for j in 0 ..< 26 where sc[j] >= boundsMinScore {
+      let x = k[j * 2], y = k[j * 2 + 1]
+      let seen = last.scores[j] >= boundsMinScore
+      let px = last.kpts[j * 2], py = last.kpts[j * 2 + 1]
+      if outside(x, y) && !(seen && outside(px, py)) { return (nil, "edge") }
+      guard seen else { continue }
+      a = [min(a[0], px), min(a[1], py), max(a[2], px), max(a[3], py)]
+      b = [min(b[0], x), min(b[1], y), max(b[2], x), max(b[3], y)]
+      let shift = ((x - px) * (x - px) + (y - py) * (y - py)).squareRoot()
+      if (7 ..< 11).contains(j), sc[j] >= trackArmScore, last.scores[j] >= trackArmScore, shift > armShift * h { return (nil, "arm") }
+      if (5 ..< 17).contains(j) { shifts.append(shift) }
+      n += 1
+    }
+    guard n >= 6, shifts.count >= 4 else { return (nil, "joints") }
+    let hipX = (k[22] + k[24] - last.kpts[22] - last.kpts[24]) / 2, hipY = (k[23] + k[25] - last.kpts[23] - last.kpts[25]) / 2
+    if shifts.sorted()[shifts.count / 2] > trackMaxShift * h || (hipX * hipX + hipY * hipY).squareRoot() > trackMaxShift * h { return (nil, "fast") }
+    let next = [box[0] + b[0] - a[0], box[1] + b[1] - a[1], box[2] + b[2] - a[2], box[3] + b[3] - a[3]]
+    guard next[2] - next[0] > 1, next[3] - next[1] > 1, iouXYXY(next, box) >= trackMinOverlap else { return (nil, "jump") }
+    return (Tracked(box: next, person: PosePerson(box: next, kpts: k, scores: sc), score: score), "")
   }
-
-  private init(box: [Float], person: PosePerson, margins: [Float], score: Float) {
-    self.box = box; self.person = person; self.margins = margins; self.score = score
-  }
-
-  func box(around p: PosePerson) -> [Float]? {
-    guard margins.count == 4, let k = keypointBounds(p) else { return nil }
-    let h = k[3] - k[1]
-    return [k[0] + margins[0] * h, k[1] + margins[1] * h, k[2] + margins[2] * h, k[3] + margins[3] * h]
-  }
-
-  func moved(to p: PosePerson) -> Tracked { Tracked(box: p.box, person: p, margins: margins, score: score) }
-}
-
-// x1 y1 x2 y2 of the keypoints scored at least boundsMinScore, head included; nil under 6 points or a flat box
-private func keypointBounds(_ p: PosePerson) -> [Float]? {
-  var b: [Float] = [.infinity, .infinity, -.infinity, -.infinity]
-  var n = 0
-  for j in 0 ..< 26 where p.scores[j] >= boundsMinScore && p.kpts[j * 2].isFinite && p.kpts[j * 2 + 1].isFinite {
-    b = [min(b[0], p.kpts[j * 2]), min(b[1], p.kpts[j * 2 + 1]), max(b[2], p.kpts[j * 2]), max(b[3], p.kpts[j * 2 + 1])]
-    n += 1
-  }
-  return n >= 6 && b[3] - b[1] > 1 ? b : nil
 }
 
 // What the first pass read, kept so a planned pass needs no second inference
@@ -221,10 +321,12 @@ struct PoseRun {
   var meta: [String: Any]
 }
 
-// Seconds per stage of the last pose pass (the harness prints ms per frame)
+// Seconds per stage of the last pose pass (the harness prints ms per frame). upright (decode, scaling, colour) runs on
+// its own thread, so the stages add up to more than wall; wait is the model thread waiting for the next frame.
 struct PoseTiming {
-  var decode = 0.0, upright = 0.0, detect = 0.0, pose = 0.0, camera = 0.0
-  var frames = 0, people = 0, posed = 0
+  var upright = 0.0, wait = 0.0, detect = 0.0, pose = 0.0, camera = 0.0, wall = 0.0
+  var frames = 0, people = 0, posed = 0, detections = 0, redetected = 0
+  var why: [String: Int] = [:]
 }
 
 final class DeviceAnalyser {
@@ -233,6 +335,7 @@ final class DeviceAnalyser {
   private(set) var timing = PoseTiming()
   var poseEveryone = false  // harness only: the full pose pass, for parity against lifter-only
   var detectEvery = detectInterval  // harness only: 1 detects every frame, for parity against tracking
+  var armShift = trackArmShift  // harness only
   var shouldStop: () -> Bool = { false }  // true once the system ended the app's background run (ContinuedRun)
 
   init(models: PoseModels) { self.models = models }
@@ -257,7 +360,7 @@ final class DeviceAnalyser {
     guard let r = run else { return [:] }
     return ["traceVersion": 1, "analysisVersion": NSNull(), "poseSource": "device", "meta": r.meta,
             "pose": [r.poseKey: ["shape": [poseInferHeight, r.outW, 3], "n": r.people.count] as [String: Any]],
-            "scale": NSNull(), "calls": r.calls]
+            "scale": NSNull(), "plateNet": models.plate != nil ? plateNetVersion : NSNull() as Any, "calls": r.calls]
   }
 
   private func posePass(url: URL, poseKey: String, twoPass: Bool, hanging: Bool, cameraPath: Bool,
@@ -279,72 +382,105 @@ final class DeviceAnalyser {
     let tracking = detectEvery > 1 && !poseEveryone && !twoPass
     var tracked: [Tracked] = []
     var lastDetect = Int.min / 2
-    // Between detections each posed person's box is carried from its own pose: the keypoint bounds with the margins the
-    // detector's box had around them. Unposed people keep their last detected box (the camera path's masks). A carried
-    // pose whose mean score falls under trackScoreDrop of its detection frame's sends the frame back to the detector.
+    // Between detections each posed person is read in a box carried from their own last pose (Tracked.moved); unposed
+    // people keep their last detected box (the camera path's masks). One person failing a check sends the whole frame
+    // back to the detector, so a doubtful frame is always read exactly as before.
     func carry(_ img: BGRImage, from prev: [Tracked]) throws -> ([PosePerson], [Tracked])? {
-      guard prev.contains(where: { $0.person != nil }) else { return nil }
+      guard prev.contains(where: { $0.person != nil }) else { tm.why["nobody", default: 0] += 1; return nil }
       var row: [PosePerson] = [], next: [Tracked] = []
       for t in prev {
         if t.person == nil { row.append(.unposed(box: t.box)); next.append(t); continue }
+        let b = t.box, mx = trackFrameSlack * (b[2] - b[0]), my = trackFrameSlack * (b[3] - b[1])
+        if b[0] < -mx || b[1] < -my || b[2] > Float(img.width) + mx || b[3] > Float(img.height) + my { tm.why["frame", default: 0] += 1; return nil }
         let (k, sc) = try estimatePose(img, box: t.box, models, stripHead: false)
-        let p = PosePerson(box: t.box, kpts: k, scores: sc)
-        guard meanScore(sc) >= trackScoreDrop * t.score, let box = t.box(around: p) else { return nil }
-        let moved = PosePerson(box: box, kpts: k, scores: sc)
-        row.append(stripped(moved))
-        next.append(t.moved(to: moved))
+        let (moved, why) = t.moved(to: k, sc, armShift: armShift)
+        guard let moved, let p = moved.person else { tm.why[why, default: 0] += 1; return nil }
+        row.append(stripped(p))
+        next.append(moved)
       }
       return (row, next)
     }
-    let n = try clip.read { f, pb in
-      if shouldStop() { throw PoseCoreMLError.interrupted }
-      tm.decode += lap()
-      let planes = UprightPlanes(pb, rotation: clip.rotation)
-      let img = uprightBGR(planes, outW: outW, outH: poseInferHeight)
-      tm.upright += lap()
-      var row: [PosePerson] = []
-      var posedCount = 0
-      if tracking && f - lastDetect < detectEvery, let carried = try carry(img, from: tracked) {
-        tm.pose += lap()
-        (row, tracked) = carried
-        posedCount = tracked.filter { $0.person != nil }.count
-      } else {
-        let boxes = try detectPeople(img, models)
-        tm.detect += lap()
-        lastDetect = f
-        let pick = poseEveryone || twoPass ? Array(boxes.indices) : lifterCandidates(boxes)
-        tracked = []
-        for (i, box) in boxes.enumerated() {
-          guard pick.contains(i) else { row.append(.unposed(box: box)); tracked.append(Tracked(nil, box: box)); continue }
-          // merge_passes compares the 26-point mean with the head scores still in; invertedPass strips them after
-          let (k, sc) = try estimatePose(img, box: box, models, stripHead: false)
-          let p = PosePerson(box: box, kpts: k, scores: sc)
-          tracked.append(Tracked(p, box: box))
-          row.append(twoPass ? p : stripped(p))
-        }
-        posedCount = pick.count
-        tm.pose += lap()
+    func detect(_ img: BGRImage) throws -> ([PosePerson], [Tracked]) {
+      let boxes = try detectPeople(img, models)
+      tm.detect += lap()
+      tm.detections += 1
+      let pick = poseEveryone || twoPass ? Array(boxes.indices) : lifterCandidates(boxes)
+      var row: [PosePerson] = [], found: [Tracked] = []
+      for (i, box) in boxes.enumerated() {
+        guard pick.contains(i) else { row.append(.unposed(box: box)); found.append(Tracked(nil, box: box)); continue }
+        // merge_passes compares the 26-point mean with the head scores still in; invertedPass strips them after
+        let (k, sc) = try estimatePose(img, box: box, models, stripHead: false)
+        let p = PosePerson(box: box, kpts: k, scores: sc)
+        found.append(Tracked(p, box: box))
+        row.append(twoPass ? p : stripped(p))
       }
-      tm.frames += 1
-      tm.people += row.count
-      tm.posed += posedCount
       if twoPass { row = try invertedPass(img, upright: row, models) }
-      // track.py camera_path: KLT on the clip at 360 px tall, the previous frame's people masked
-      let small = cameraPath ? grayscale(uprightBGR(planes, outW: smallW, outH: cameraSmallHeight)) : nil
-      if let prev = prevSmall, let small {
-        let boxes = people[f - 1].map { $0.box.map { Double($0) * s } }
-        let mask = try foregroundMask(width: smallW, height: cameraSmallHeight, boxes: boxes, wrists: nil, scale: 0)
-        let M = try cameraMotionStep(prev: prev, cur: small, foreground: mask, params: .cameraPath)?.affine ?? identityAffine
-        acc = compose(acc, M)
+      tm.pose += lap()
+      return (row, found)
+    }
+    // The frames carried since the last detection wait here: a detection that finds someone the carried boxes do not
+    // cover (walked in, or missed last time) sends them all back through the detector, so nobody is picked up late.
+    // The camera path masks the previous frame's people, so its steps run once those rows are settled.
+    var carried: [(f: Int, img: BGRImage)] = []
+    var smalls: [GrayImage] = []  // of the frames from path.count - 1 on
+    // track.py camera_path: KLT on the clip at 360 px tall, the previous frame's people masked
+    func cameraSteps() throws {
+      while path.count < people.count {
+        let f = path.count
+        if f > 0, smalls.count >= 2 {
+          let boxes = people[f - 1].map { $0.box.map { Double($0) * s } }
+          let mask = try foregroundMask(width: smallW, height: cameraSmallHeight, boxes: boxes, wrists: nil, scale: 0)
+          let M = try cameraMotionStep(prev: smalls[0], cur: smalls[1], foreground: mask, params: .cameraPath)?.affine ?? identityAffine
+          acc = compose(acc, M)
+        }
+        path.append([acc[0], acc[1], acc[2] / s, acc[3], acc[4], acc[5] / s])
+        if f > 0, !smalls.isEmpty { smalls.removeFirst() }
       }
-      path.append([acc[0], acc[1], acc[2] / s, acc[3], acc[4], acc[5] / s])
-      prevSmall = small
       tm.camera += lap()
-      people.append(row)
+    }
+    // Decode and the two scaled copies of the frame (1280 px for pose, 360 px grey for the camera path) are made one
+    // frame ahead on a second thread while this one runs the models
+    struct Prepared { let img: BGRImage; let small: GrayImage?; let seconds: Double }
+    let rotation = clip.rotation
+    let started = Date()
+    let n = try clip.read(ahead: 2, prepare: { _, pb -> Prepared in
+      let t = Date()
+      let planes = UprightPlanes(pb, rotation: rotation)
+      let img = uprightBGR(planes, outW: outW, outH: poseInferHeight)
+      let small = cameraPath ? grayscale(uprightBGR(planes, outW: smallW, outH: cameraSmallHeight)) : nil
+      return Prepared(img: img, small: small, seconds: Date().timeIntervalSince(t))
+    }) { f, frame in
+      if shouldStop() { throw PoseCoreMLError.interrupted }
+      tm.wait += lap()
+      tm.upright += frame.seconds
+      if let small = frame.small { smalls.append(small) }
+      if tracking && f - lastDetect < detectEvery, let (row, next) = try carry(frame.img, from: tracked) {
+        tm.pose += lap()
+        tracked = next
+        carried.append((f, frame.img))
+        people.append(row)
+      } else {
+        let (row, found) = try detect(frame.img)
+        let known = tracked.filter { $0.person != nil }.map(\.box)
+        if !carried.isEmpty, found.contains(where: { t in t.person != nil && !known.contains { iouXYXY($0, t.box) >= trackSameOverlap } }) {
+          for c in carried { people[c.f] = try detect(c.img).0 }
+          tm.redetected += carried.count
+        }
+        carried = []
+        tracked = found
+        lastDetect = f
+        people.append(row)
+        try cameraSteps()
+      }
       let p = duration > 0 ? min(Double(f + 1) / (duration * clip.fps), 1) : 0
       if p - sent >= 0.02 { sent = p; progress("pose", p) }
     }
+    try cameraSteps()
+    tm.frames = n
+    tm.people = people.reduce(0) { $0 + $1.count }
+    tm.posed = people.reduce(0) { $0 + $1.filter { $0.scores.contains { $0 != 0 } }.count }
     progress("pose", 1)
+    tm.wall = Date().timeIntervalSince(started)
     timing = tm
     let lifter = selectLifter(people, hanging: hanging)
     var k: [Double] = [], ks: [Double] = [], boxes: [Double] = []
@@ -401,10 +537,14 @@ final class DeviceAnalyser {
     final class FollowState {
       let req: AnalysePlan.FollowRequest
       var follow: PlateFollow?
+      var tapTrack: TapFollow?
       var start: Plate?
       var centres: [Double]
       var fit: [Double]
       var src: [Double]
+      // the frames before the seed (JPEG, the last followBackMax of them), for the follow backwards from it
+      var before: [Data] = []
+      var beforeStart = 0
       init(_ f: AnalysePlan.FollowRequest) {
         req = f
         centres = [Double](repeating: .nan, count: f.n * 2)
@@ -413,6 +553,11 @@ final class DeviceAnalyser {
       }
       func wrist(_ i: Int) -> Point { i < req.wrists.count ? req.wrists[i] : Point(.nan, .nan) }
     }
+    // per request, per frame, plateNetPeaks peaks of (confidence, x, y, radius) from the square around the hands, then
+    // as many from the square on the plate last seen; NaN where there is none
+    var netOut = plan.plateNet.map { [Double](repeating: .nan, count: $0.n * plateNetSlots * 4) }
+    var netFollow = plan.plateNet.map { _ in PlateNetFollow() }
+    var netSeconds = 0.0, netFrames = 0
     let windows = plan.windows.map { WindowState($0, total: total, boxes: r.lifter.boxes) }
     let follows = plan.follows.map { FollowState($0) }
     let tracks = plan.tracks.map { TrackState($0) }
@@ -421,7 +566,8 @@ final class DeviceAnalyser {
     var keyframes: [Int: [String]] = [:]
     for k in plan.keyframes { keyframes[min(max(k.frame, 0), total - 1), default: []].append(k.name) }
     let last = max(windows.map { $0.s0 + $0.n }.max() ?? 0, tracks.map { $0.req.s0 + $0.req.n }.max() ?? 0,
-                   (plateFrames.keys.max() ?? -1) + 1, (keyframes.keys.max() ?? -1) + 1, follows.map { $0.req.s0 + $0.req.n }.max() ?? 0)
+                   (plateFrames.keys.max() ?? -1) + 1, (keyframes.keys.max() ?? -1) + 1, follows.map { $0.req.s0 + $0.req.n }.max() ?? 0,
+                   models.plate == nil ? 0 : plan.plateNet.map { $0.s0 + $0.n }.max() ?? 0)
     try FileManager.default.createDirectory(at: stillsDir, withIntermediateDirectories: true)
     var stills: [String: URL] = [:]
     var sent = -1.0
@@ -467,16 +613,67 @@ final class DeviceAnalyser {
         t.centres[i * 2 + 1] = t.track.centre.y
         t.scores[i] = t.track.score
       }
+      for t in follows where t.req.back && f >= t.req.s0 && f < t.req.s0 + t.req.seed {
+        if t.before.isEmpty { t.beforeStart = f - t.req.s0 }
+        t.before.append(try jpegData(image(), quality: followBackQuality))
+        if t.before.count > followBackMax { t.before.removeFirst(); t.beforeStart += 1 }
+      }
       for t in follows where f >= t.req.s0 + t.req.seed && f < t.req.s0 + t.req.n {
         let i = f - t.req.s0
         let gray = grayscale(image())
         if i == t.req.seed {
-          if let p = try startPlate(image(), gray, wrist: t.wrist(i), wristA: t.req.wristA, wristB: t.req.wristB, bodyH: t.req.bodyH, setupH: t.req.setupH) {
+          let found: Plate?
+          if let tap = t.req.tap {
+            found = try startPlateAt(image(), gray, tap: tap, setupH: t.req.setupH)
+          } else {
+            found = try startPlate(image(), gray, wrist: t.wrist(i), wristA: t.req.wristA, wristB: t.req.wristB, bodyH: t.req.bodyH, setupH: t.req.setupH)
+          }
+          if let p = found, t.req.tap != nil {
+            // a tapped plate is followed by TapFollow, both ways, with no leash to the hands
+            if let seedImage = cgImage(image()), let fwd = TapFollow(seed: p, image: seedImage, gray: gray, minRadius: 0.2 * t.req.setupH) {
+              t.start = p
+              func record(_ k: Int, _ r: RingTrack) {
+                t.src[k] = 1
+                t.centres[k * 2] = r.centre.x
+                t.centres[k * 2 + 1] = r.centre.y
+                t.fit.replaceSubrange(k * 4 ..< k * 4 + 4, with: [2 * r.radius, r.score, 1, Double(r.profile.mid[0])])
+              }
+              record(i, fwd.ring)
+              if !t.before.isEmpty, let back = TapFollow(from: fwd, image: seedImage) {
+                for j in stride(from: t.before.count - 1, through: 0, by: -1) {
+                  guard let img = bgrImage(jpeg: t.before[j], width: outW, height: poseInferHeight), let cg = cgImage(jpeg: t.before[j]) else { break }
+                  if back.step(cg, grayscale(img)) > 0 { record(t.beforeStart + j, back.ring) }
+                }
+              }
+              t.tapTrack = fwd
+            }
+          } else if let p = found {
             t.start = p
             t.follow = PlateFollow(seed: p, wrist: t.wrist(i), gray: gray)
             t.centres[i * 2] = p.centre.x
             t.centres[i * 2 + 1] = p.centre.y
             t.src[i] = 1
+            // backwards from the seed over the kept frames, the same step with time reversed
+            var back = t.follow!
+            for j in stride(from: t.before.count - 1, through: 0, by: -1) {
+              guard let img = bgrImage(jpeg: t.before[j], width: outW, height: poseInferHeight) else { break }
+              let k = t.beforeStart + j
+              let g = grayscale(img)
+              t.src[k] = Double(followPlateStep(img, g, &back, wrist: t.wrist(k)))
+              guard t.src[k] > 0 else { continue }
+              t.centres[k * 2] = back.centre.x
+              t.centres[k * 2 + 1] = back.centre.y
+              let fit = plateFit(g, back.centre, back.major, p.axes.1 / p.axes.0)
+              t.fit.replaceSubrange(k * 4 ..< k * 4 + 4, with: [back.major, fit.rim, fit.polarity, fit.interior])
+            }
+          }
+          t.before = []
+        } else if let track = t.tapTrack {
+          if let cg = cgImage(image()), track.step(cg, gray) > 0 {
+            t.src[i] = 1
+            t.centres[i * 2] = track.ring.centre.x
+            t.centres[i * 2 + 1] = track.ring.centre.y
+            t.fit.replaceSubrange(i * 4 ..< i * 4 + 4, with: [2 * track.ring.radius, track.ring.score, 1, Double(track.ring.profile.mid[0])])
           }
         } else if t.follow != nil {
           t.src[i] = Double(followPlateStep(image(), gray, &t.follow!, wrist: t.wrist(i)))
@@ -485,9 +682,24 @@ final class DeviceAnalyser {
             t.centres[i * 2 + 1] = t.follow!.centre.y
           }
         }
-        if t.src[i] > 0, let st = t.start {
+        if t.src[i] > 0, t.follow != nil, let st = t.start {
           let fit = plateFit(gray, Point(t.centres[i * 2], t.centres[i * 2 + 1]), t.follow!.major, st.axes.1 / st.axes.0)
           t.fit.replaceSubrange(i * 4 ..< i * 4 + 4, with: [t.follow!.major, fit.rim, fit.polarity, fit.interior])
+        }
+      }
+      if let net = models.plate {
+        for (q, req) in plan.plateNet.enumerated() where f >= req.s0 && f < req.s0 + req.n && f - req.s0 < req.centres.count {
+          let i = f - req.s0
+          let t0 = Date()
+          if let m = req.mark, m.frame == i { netFollow[q].start(m.centre, m.r) }
+          let hands = try plateNetPeaks(net, image(), centre: req.centres[i], side: req.side)
+          let onPlate = try netFollow[q].at.map { try plateNetPeaks(net, image(), centre: $0, side: req.side) } ?? []
+          for (k, p) in zip(Array(0 ..< hands.count) + Array(plateNetPeaks ..< plateNetPeaks + onPlate.count), hands + onPlate) {
+            netOut[q].replaceSubrange((i * plateNetSlots + k) * 4 ..< (i * plateNetSlots + k) * 4 + 4, with: [p.confidence, p.centre.x, p.centre.y, p.radius])
+          }
+          netFollow[q].step(hands + onPlate)
+          netSeconds += Date().timeIntervalSince(t0)
+          netFrames += 1
         }
       }
       if let names = keyframes[f] {
@@ -509,8 +721,14 @@ final class DeviceAnalyser {
         .append(tup([nd([t.req.n, 2], t.centres), nd([t.req.n], t.scores)]))
     }
     for t in follows {
-      r.calls["follow_plate", default: [:]]["\(t.req.s0):\(t.req.n):\(t.req.seed)", default: []]
+      r.calls["follow_plate", default: [:]][t.req.key, default: []]
         .append(tup([nd([t.req.n, 2], t.centres), nd([t.req.n], t.src), nd([t.req.n, 4], t.fit), t.start.map(plateDict) ?? NSNull()]))
+    }
+    if models.plate != nil {
+      for (q, req) in plan.plateNet.enumerated() {
+        r.calls["plate_net", default: [:]]["\(req.s0):\(req.n)", default: []].append(nd([req.n, plateNetSlots, 4], netOut[q]))
+      }
+      if netFrames > 0 { NSLog("[PoseCoreML] plate_net %d frames, %.2f ms each", netFrames, 1000 * netSeconds / Double(netFrames)) }
     }
     progress("pixels", 1)
     run = r

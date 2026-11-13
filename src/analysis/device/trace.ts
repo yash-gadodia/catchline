@@ -4,7 +4,7 @@
 // a plate track stitched from the recorded one).
 import { Affine, Pt } from './num';
 import { FAMILY } from './movement';
-import { DeviceInput, FrameSource, PlateFollow, PlateObservation, PlateTrack } from './source';
+import { DeviceInput, FollowHow, FrameSource, PlateFollow, PlateObservation, PlatePeaks, PlateTrack } from './source';
 
 export const TRACE_VERSION = 1;
 
@@ -17,8 +17,12 @@ export type Plan = {
   windows: { s0: number; count: number }[];
   plates: { frame: number; wristA: [N, N]; wristB: [N, N]; bodyH: number; setupH: N }[];
   tracks: { s0: number; n: number; start: number; plate: { centre: Pt; axes: [number, number]; score: number } }[];
-  follows: { s0: number; n: number; seed: number; wrists: [N, N][]; wristA: [N, N]; wristB: [N, N]; bodyH: number; setupH: number }[];
+  // tap: the point the user put on the plate on the seed frame (whole inference px); back: also follow the frames before it
+  follows: { s0: number; n: number; seed: number; wrists: [N, N][]; wristA: [N, N]; wristB: [N, N]; bodyH: number; setupH: number; tap?: [number, number]; back?: boolean }[];
   keyframes: { name: string; frame: number }[];
+  // PlateNet over frames [s0, s0 + n): the square it looks at per frame (centre, null to skip; `side` px wide)
+  // mark: the lifter's mark (window frame, x, y, radius) the second square starts on
+  plateNet?: { s0: number; n: number; side: number; centres: [N, N][]; mark?: [number, number, number, number] }[];
 };
 type PlateArgs = { wristA: Pt; wristB: Pt; bodyH: number; setupH: number };
 const nn = (v: number): N => (Number.isFinite(v) ? v : null);
@@ -29,6 +33,8 @@ export type Trace = {
   meta: { width: number; height: number; fps: number; frameCount: number | null };
   pose: Record<string, { shape: number[] | null; n: number }>;
   calls: Calls;
+  // the plate model the phone that wrote this trace runs (absent or null: none, the rule stages find the plate)
+  plateNet?: string | null;
 };
 
 // Python's json.dumps writes NaN and Infinity bare; JSON.parse refuses them
@@ -231,12 +237,22 @@ export class Replayer {
     return { centres, scores };
   }
 
-  followPlate(s0: number, n: number, seed: number, wrists: Pt[], hands: [Pt, Pt], bodyH: number, setupH: number): PlateFollow {
-    const out = this.get('follow_plate', `${s0}:${n}:${seed}`) as [Pt[], number[], [number, number, number, number][], unknown] | undefined;
+  // a follow is recorded by its window and seed frame, a tapped one also by its point (AnalysePlan.FollowRequest.key)
+  plateNet(s0: number, n: number, side: number, centres: Pt[], mark?: [number, number, number, number]): PlatePeaks | null {
+    const out = this.get('plate_net', `${s0}:${n}`) as PlatePeaks | undefined;
+    if (out) return out;
+    this.miss(`plate_net ${s0}`);
+    if (!(this.plan.plateNet ?? []).some((p) => p.s0 === s0 && p.n === n)) (this.plan.plateNet ??= []).push({ s0, n, side, centres: centres.map((p): [N, N] => [nn(p[0]), nn(p[1])]), ...(mark ? { mark: mark.map((v) => Math.round(v * 10) / 10) as [number, number, number, number] } : {}) });
+    return null;
+  }
+
+  followPlate(s0: number, n: number, seed: number, wrists: Pt[], hands: [Pt, Pt], bodyH: number, setupH: number, how: FollowHow = {}): PlateFollow {
+    const tap = how.tap ? ([Math.round(how.tap[0]), Math.round(how.tap[1])] as [number, number]) : undefined;
+    const out = this.get('follow_plate', `${s0}:${n}:${seed}${tap ? `:tap:${tap[0]},${tap[1]}` : ''}`) as [Pt[], number[], [number, number, number, number][], unknown] | undefined;
     if (out) return { centres: out[0], src: out[1], fit: out[2] };
     this.miss(`follow_plate ${s0 + seed}`);
     const w = (p: Pt): [N, N] => [nn(p[0]), nn(p[1])];
-    this.plan.follows.push({ s0, n, seed, wrists: wrists.map(w), wristA: w(hands[0]), wristB: w(hands[1]), bodyH, setupH });
+    this.plan.follows.push({ s0, n, seed, wrists: wrists.map(w), wristA: w(hands[0]), wristB: w(hands[1]), bodyH, setupH, ...(tap ? { tap } : {}), ...(how.back ? { back: true } : {}) });
     return { centres: Array.from({ length: n }, (): Pt => [NaN, NaN]), src: new Array<number>(n).fill(0), fit: Array.from({ length: n }, (): [number, number, number, number] => [NaN, NaN, NaN, NaN]) };
   }
 }
@@ -263,9 +279,10 @@ export function traceInput(trace: Trace, movement: string): DeviceInput & { repl
     trackPlate(windowStart, windowLength, seed, plate, stop) {
       return rp.trackPlate(windowStart, windowLength, seed, plate, stop);
     },
-    followPlate(windowStart, windowLength, seed, wrists, hands, bodyH, setupH) {
-      return rp.followPlate(windowStart, windowLength, seed, wrists, hands, bodyH, setupH);
+    followPlate(windowStart, windowLength, seed, wrists, hands, bodyH, setupH, how) {
+      return rp.followPlate(windowStart, windowLength, seed, wrists, hands, bodyH, setupH, how);
     },
+    ...(trace.plateNet ? { plateNet: (windowStart: number, windowLength: number, side: number, centres: Pt[], mark?: [number, number, number, number]) => rp.plateNet(windowStart, windowLength, side, centres, mark) } : {}),
     platesSearched(frame) {
       return Boolean(rp.calls.find_plates?.[String(frame)]?.length);
     },

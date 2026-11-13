@@ -65,18 +65,28 @@ nonisolated(unsafe) var coreTiming = CoreTiming()
 final class PoseModels {
   let det: MLModel
   let pose: MLModel
+  // PlateNet (Stages/PlateNet.swift), from plateDirectory or beside the pose models; nil in a build without it,
+  // and the plates then come from the rule stages
+  let plate: MLModel?
 
-  init(directory: URL, units: MLComputeUnits = .all) throws {
+  init(directory: URL, plateDirectory: URL? = nil, units: MLComputeUnits = .all) throws {
     let cfg = MLModelConfiguration()
     cfg.computeUnits = units
-    func load(_ name: String) throws -> MLModel {
-      let compiled = directory.appendingPathComponent("\(name).mlmodelc")
+    func load(_ name: String, in dir: URL, _ cfg: MLModelConfiguration) throws -> MLModel {
+      let compiled = dir.appendingPathComponent("\(name).mlmodelc")
       if FileManager.default.fileExists(atPath: compiled.path) { return try MLModel(contentsOf: compiled, configuration: cfg) }
-      let pkg = directory.appendingPathComponent("\(name).mlpackage")
+      let pkg = dir.appendingPathComponent("\(name).mlpackage")
       return try MLModel(contentsOf: try MLModel.compileModel(at: pkg), configuration: cfg)
     }
-    det = try load("YoloxHuman")
-    pose = try load("RTMPoseHalpe26")
+    det = try load("YoloxHuman", in: directory, cfg)
+    pose = try load("RTMPoseHalpe26", in: directory, cfg)
+    let plateDir = plateDirectory ?? directory
+    let has = ["mlmodelc", "mlpackage"].contains { FileManager.default.fileExists(atPath: plateDir.appendingPathComponent("PlateNet.\($0)").path) }
+    // PlateNet never on the GPU: in the iOS simulator its GPU path returns all-zero maps (every peak at confidence 0.5),
+    // CPU and Neural Engine read it right on the simulator, the Mac and (Neural Engine) the phone
+    let plateCfg = MLModelConfiguration()
+    plateCfg.computeUnits = units == .cpuOnly ? .cpuOnly : .cpuAndNeuralEngine
+    plate = has ? try? load("PlateNet", in: plateDir, plateCfg) : nil
   }
 }
 
@@ -174,7 +184,7 @@ private func floats(_ m: MLMultiArray) -> [Float] {
   return out
 }
 
-private func iouXYXY(_ a: [Float], _ b: [Float]) -> Float {
+func iouXYXY(_ a: [Float], _ b: [Float]) -> Float {
   let iw = max(0, min(a[2], b[2]) - max(a[0], b[0])), ih = max(0, min(a[3], b[3]) - max(a[1], b[1]))
   let inter = iw * ih
   let u = (a[2] - a[0]) * (a[3] - a[1]) + (b[2] - b[0]) * (b[3] - b[1]) - inter

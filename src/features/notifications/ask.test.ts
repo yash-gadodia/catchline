@@ -43,7 +43,7 @@ describe('push ask', () => {
     expect(await maybeReaskForPush(alert)).toBe(false);
     noteAnalysisFinished();
     expect(await maybeReaskForPush(alert)).toBe(true);
-    expect(alert.mock.calls[0][0]).toBe('Get a nudge to retest your cue?');
+    expect(alert.mock.calls[0][0]).toBe('Get told when your lift is ready?');
     expect(alert.mock.calls[0][2].map((b: { text: string }) => b.text)).toEqual(['Not now', 'Open Settings']);
     alert.mock.calls[0][2][1].onPress();
     noteAnalysisFinished();

@@ -76,12 +76,16 @@ import {
   segmentSnatch,
 } from './phases';
 import * as rules from './rules';
-import { DeviceInput, FrameSource, PlateObservation } from './source';
+import { netTrack } from './plateNet';
+import { DeviceInput, FollowHow, FrameSource, PlateObservation } from './source';
 import type { PathOnlyGate, PathSource, RepGuides, RepTracks, TracePoint, TrackName } from '../types';
 
 export const KEYFRAME_H = 1080;
 const PLATE_CM = 45.0;
 const PLATE_PATH_MAX_DEG = 45;
+const LOW_BAND = 0.05;
+// the height a plate is sized against: a 45 cm plate is then 0.4 of it, the middle of the start search's sizes
+const SETUP_CM = 112;
 const PLATE_SPAN_CM = 150.0;
 const PLATE_FIT_SPREAD = 0.15;
 const SCALE_VS_BODY: [number, number] = [0.75, 1.75];
@@ -237,7 +241,12 @@ export type Ctx = {
   H: number;
   W: number;
   n: number;
+  // 4.0: a point the user put on the plate (frame, and x, y as shares of the frame), which seeds the plate follow
+  plateMark?: PlateMark;
 };
+// frame: the clip frame it was made on; x, y: the plate's centre as shares of the frame's width and height; r: its
+// radius as a share of the frame's height (absent: a bare point on the plate)
+export type PlateMark = { frame: number; x: number; y: number; r?: number };
 
 export type Result = { analysis: AnalysisJson; reps: RepInfo[]; repCalls: (RepInfo | null | false)[] };
 
@@ -300,26 +309,105 @@ const PLATE_HOME = 0.2;
 const PLATE_START = 0.25;
 const PLATE_START_SIZE = 0.3;
 const PLATE_SHARE_MIN = 0.1;
+const PLATE_FIT_SIZE: [number, number] = [0.25, 0.85];
+const PLATE_RIM_ALONE = 0.48;
+const PLATE_RIM_FITTED = 0.45;
+const PLATE_POLARITY_ALONE = 0.62;
+const PLATE_SAME = 0.1;
+const PLATE_RUN_SHARED = 6;
+const PLATE_FAR = 1.0;
+// the square PlateNet was trained on, in lifter box heights (v40/plate-model extract.py NOM)
+const NET_SIDE = 1.6;
+// a bare point's plate radius, as a share of the frame height
+const NET_MARK_R = 0.08;
+const PLATE_TAP_REACH = 0.35;
+const PLATE_MOVES = 0.5;
 
 export function platePath(source: FrameSource, s0: number, L: number, seed: number, kw: K, bodyH: number, setupH: number, barRaw: Pt[], Ms: Affine[], fps: number, offSide: number, plates: Plate[] = []): { drawn: Pt[]; plate: boolean[] } | null {
-  if (!(Number.isFinite(setupH) && Number.isFinite(bodyH)) || seed < 0 || seed >= L) return null;
+  if (offSide > PLATE_PATH_MAX_DEG) return null;
+  const held = plateHeld(source, s0, L, seed, kw, bodyH, setupH, fps, offSide, plates);
+  return held ? fusePlate(held, barRaw, Ms, fps) : null;
+}
+
+function fusePlate(held: Pt[], barRaw: Pt[], Ms: Affine[], fps: number): { drawn: Pt[]; plate: boolean[] } {
+  const fused = fusePath(toRef(held, Ms), barRaw);
+  return { drawn: lowpassPts(fused.path, fps, 6.0), plate: fused.plate };
+}
+
+// The middle of the hands on every frame, carried over from the last frame they were seen on (the first seen, before
+// it); NaN throughout when they never are.
+function handsFilled(kw: K): Pt[] {
+  const mids = kw.map((r): Pt => (finitePt(r[L_WRI]) && finitePt(r[R_WRI]) ? midPt(r[L_WRI], r[R_WRI]) : finitePt(r[L_WRI]) ? r[L_WRI] : r[R_WRI]));
+  const first = mids.find(finitePt);
+  if (!first) return mids;
+  let last = first;
+  return mids.map((p) => (finitePt(p) ? (last = p) : last));
+}
+
+// Two follows are of one plate when they put it in one place on the frames both hold (the middle distance within
+// PLATE_SAME setup heights); holding no frame in common, when they sit the same way from the hands (the middle
+// offset over the frames each holds). The near and the far plate of one bar do neither.
+function samePlate(a: Pt[], b: Pt[], kw: K, setupH: number): boolean {
+  const both = a.flatMap((p, f) => (finitePt(p) && finitePt(b[f]) ? [dist(p, b[f])] : []));
+  if (both.length >= PLATE_RUN_SHARED) return median(both) <= PLATE_SAME * setupH;
+  const off = (c: Pt[]) => {
+    const d = c.flatMap((p, f): Pt[] => (finitePt(p) && finitePt(kw[f][L_WRI]) && finitePt(kw[f][R_WRI]) ? [sub(p, midPt(kw[f][L_WRI], kw[f][R_WRI]))] : []));
+    return d.length ? ([median(d.map((p) => p[0])), median(d.map((p) => p[1]))] as Pt) : NAN_PT;
+  };
+  const d = dist(off(a), off(b));
+  return Number.isFinite(d) && d <= PLATE_SAME * setupH;
+}
+
+// The near plate's centre (the frame's own px) on the window frames a follow seeded at `seed` holds it, NaN elsewhere;
+// null when no follow is believed. Up to two follows are judged, the one anchored on the hands and, where the fitted
+// plate sits beyond the start search's reach of them, the one anchored on it; the one holding more frames is kept.
+export function plateHeld(source: FrameSource, s0: number, L: number, seed: number, kw: K, bodyH: number, setupH: number, fps: number, offSide: number, plates: Plate[] = [], how: FollowHow = {}): Pt[] | null {
+  if (!source.followPlate || !(Number.isFinite(setupH) && Number.isFinite(bodyH)) || seed < 0 || seed >= L) return null;
   const wristsW = barFromWrists(col(kw, L_WRI), col(kw, R_WRI), 0.12 * bodyH);
-  const fitted = plates.filter((p) => p.refined && finitePt(p.centre)).sort((a, b) => (b.diameter_px ?? 0) - (a.diameter_px ?? 0))[0];
+  // a fitted outline outside the sizes the start search can return (PLATE_FIT_SIZE setup heights) is clutter, not the
+  // plate (BAC0A244: a 49 px disc beside a 156 px plate), one further from the hands than a bar is long is somebody
+  // else's (gui001KNgZs), and so is the nearest searched frame's answer standing in
+  // for a frame not searched yet (DF250CAA: it anchored the follow where the plate had been 170 frames earlier)
+  const fitted = (source.platesSearched && !source.platesSearched(s0 + seed) ? [] : plates)
+    .filter((p) => p.refined && finitePt(p.centre) && (p.diameter_px ?? 0) >= PLATE_FIT_SIZE[0] * setupH && (p.diameter_px ?? 0) <= PLATE_FIT_SIZE[1] * setupH)
+    .sort((a, b) => (b.diameter_px ?? 0) - (a.diameter_px ?? 0))[0];
   const away = fitted && finitePt(wristsW[seed]) ? dist(fitted.centre, wristsW[seed]) : 0;
-  const far = away > PLATE_REACH * setupH && seed + 1 < L;
+  const far = away > PLATE_REACH * setupH && away <= PLATE_FAR * setupH && seed + 1 < L;
   const k = far ? 1 - (PLATE_HOME * setupH) / away : 0;
   const shift = far ? sub(fitted.centre, wristsW[seed]).map((v) => v * k) : [0, 0];
-  const anchor = far ? wristsW.map((p): Pt => (finitePt(p) ? [p[0] + shift[0], p[1] + shift[1]] : p)) : wristsW;
-  const at = far ? seed + 1 : seed;
-  const follow = source.followPlate?.(s0, L, at, anchor, [kw[at][L_WRI], kw[at][R_WRI]], bodyH, setupH);
-  if (!follow || offSide > PLATE_PATH_MAX_DEG || follow.src[at] !== 1) return null;
-  // a follow that started on some other disc than the plate the setup finder fitted is not followed
-  if (fitted && (dist(follow.centres[at], fitted.centre) > PLATE_START * setupH || Math.abs(follow.fit[at][0] / (fitted.diameter_px as number) - 1) > PLATE_START_SIZE)) return null;
-  const ok = onPlate(follow.src, follow.fit, follow.centres, anchor, at, offSide);
-  // a plate held on under a tenth of the window re-bases the hands' path on an offset read from too few frames
-  if (ok.filter(Boolean).length < PLATE_SHARE_MIN * L) return null;
-  const fused = fusePath(toRef(follow.centres.map((p, f): Pt => (ok[f] ? p : NAN_PT)), Ms), barRaw);
-  return { drawn: lowpassPts(fused.path, fps, 6.0), plate: fused.plate };
+  const tries: [number, Pt[]][] = [[seed, wristsW]];
+  if (far && !how.tap) tries.push([seed + 1, wristsW.map((p): Pt => (finitePt(p) ? [p[0] + shift[0], p[1] + shift[1]] : p))]);
+  let best: Pt[] | null = null;
+  let most = 0;
+  for (const [at, anchor] of tries) {
+    const follow = source.followPlate(s0, L, at, anchor, [kw[at][L_WRI], kw[at][R_WRI]], bodyH, setupH, how);
+    if (follow.src[at] !== 1) continue;
+    // a tapped plate is followed by its rings and judged natively (ringTrackStep): every held frame is the plate
+    // but not where it sits further from the hands than at the tap by more than PLATE_TAP_REACH setup heights: the bar
+    // has left the hands, or the tracker has settled on a look-alike (IMG_0975: floor shadows under a speckled plate)
+    if (how.tap) {
+      const home = finitePt(anchor[at]) ? dist(follow.centres[at], anchor[at]) : NaN;
+      return follow.centres.map((p, f): Pt => (follow.src[f] === 1 && !(finitePt(anchor[f]) && Number.isFinite(home) && dist(p, anchor[f]) - home > PLATE_TAP_REACH * setupH) ? p : NAN_PT));
+    }
+    const ok = onPlate(follow.src, follow.fit, follow.centres, anchor, at, offSide);
+    const held = ok.flatMap((v, f) => (v ? [f] : []));
+    // a plate held on under a tenth of the window (a second, in a long clip) re-bases the hands' path on an offset
+    // read from too few frames
+    if (held.length <= most || held.length < Math.min(PLATE_SHARE_MIN * L, fps)) continue;
+    // and a disc that never rises or falls is not on the bar (a plate leaning on a wall behind hands that stay still)
+    const ys = held.map((f) => follow.centres[f][1]).sort((a, b) => a - b);
+    if (ys[Math.floor(0.9 * (ys.length - 1))] - ys[Math.floor(0.1 * (ys.length - 1))] < PLATE_MOVES * follow.fit[at][0]) continue;
+    // the follow is believed when it started on the plate the setup finder fitted, or, with no such fit (a red plate,
+    // a dark plate on a dark floor: the finder reads colour), when its rim is one clear circle of one polarity on the
+    // frames it holds (6VWB9RY9XPg: a rim of mixed polarity against a bright window was 2.4 radii off the plate)
+    const agrees = fitted !== undefined && dist(follow.centres[at], fitted.centre) <= PLATE_START * setupH && Math.abs(follow.fit[at][0] / (fitted.diameter_px as number) - 1) <= PLATE_START_SIZE;
+    const rim = median(held.map((f) => follow.fit[f][1]));
+    // (agreeing with a fitted outline is not enough alone: IMG_1179, ring work, a fitted shoe and a rim of 0.43)
+    if (rim < PLATE_RIM_FITTED || (!agrees && (rim < PLATE_RIM_ALONE || median(held.map((f) => follow.fit[f][2])) < PLATE_POLARITY_ALONE))) continue;
+    most = held.length;
+    best = follow.centres.map((p, f): Pt => (ok[f] ? p : NAN_PT));
+  }
+  return best;
 }
 
 export function fail(ctx: Ctx, reason: string, code: string, message: string): Result {
@@ -384,23 +472,61 @@ export function pathOnly(ctx: Ctx, gate: PathOnlyGate): Result | null {
   const barRaw = hanging ? [] : barTrack(col(kr, L_WRI), col(kr, R_WRI), bodyH);
   const yaw = yawFromBody(ctx.k, 0, n - 1);
   // the plate is sought where the bar sat lowest with both hands on it (the floor, or the rack): the setup of
-  // whatever this clip holds
-  const low = barRaw.reduce((best, p, f) => (finitePt(kw[f][L_WRI]) && finitePt(kw[f][R_WRI]) && finitePt(p) && (best < 0 || p[1] > barRaw[best][1]) ? f : best), -1);
-  const found = !hanging && low >= 0 ? input.source.plates(low, kw[low][L_WRI], kw[low][R_WRI], bodyH, bodyH).map((p): Plate => ({ ...p, diameter_px: Math.max(...p.axes), refined: p.fitInliers !== undefined })) : [];
-  // with no rep to judge the follow by, only a plate whose outline the finder fitted is followed
-  const fused = hanging || !found.some((p) => p.refined) ? null : platePath(input.source, 0, L, low, kw, bodyH, bodyH, barRaw, Ms, fps, yaw ?? 0, found);
+  // whatever this clip holds. A follow only runs forwards, so it is also sought on the first frame the bar is about
+  // that low (the first of several lifts). Both are read in the whole-clip camera path's frame, which every pass
+  // has: the window's own affines arrive with the second pass, and a seed that moved then cost a pass (DF250CAA).
+  // (Against the lifter's ankles the lowest frame was worse: side-on the plates hide the feet.)
+  const barW = hanging ? [] : barTrack(col(ctx.world.slice(0, L), L_WRI), col(ctx.world.slice(0, L), R_WRI), bodyH);
+  const gripped = (f: number) => finitePt(kw[f][L_WRI]) && finitePt(kw[f][R_WRI]) && finitePt(barW[f]) && finitePt(barRaw[f]);
+  const low = barW.reduce((best, p, f) => (gripped(f) && (best < 0 || p[1] > barW[best][1]) ? f : best), -1);
+  const early = low < 0 ? -1 : barW.findIndex((p, f) => gripped(f) && p[1] >= barW[low][1] - LOW_BAND * bodyH);
+  const seeds = low < 0 ? [] : low - early > fps ? [early, low] : [low];
+  // the plate's size is searched for against the lifter's own size, not a box height: standing with the bar overhead
+  // a lifter's box is twice as tall as bent over the bar, and the start search's discs (0.3 to 0.75 heights) were
+  // then all larger than the plate (08C29B8B) or, from the box at the floor alone, all smaller (FF600EFA)
+  const bodyScale = scaleFromBody(ctx.k);
+  const setupH = bodyScale ? SETUP_CM * bodyScale : bodyH;
+  // a plate the finder did not fit is followed too (its colour mask sees only dark and green plates, the follower's
+  // start search reads edges), at any camera angle: what is drawn is what plateHeld believes, the lowest-bar seed's
+  // first and the earlier seed's on the frames that one does not hold. A point the user put on the plate replaces
+  // the search: that plate is followed from its frame, both ways.
+  const tap = ctx.plateMark && !hanging && ctx.plateMark.frame >= 0 && ctx.plateMark.frame < L ? ctx.plateMark : null;
+  // On a phone with the plate model the plate is the model's (plateNet.ts): looked for in a square NET_SIDE body
+  // heights wide around the hands (the hands' last seen place where they are not), started on the mark. The rule
+  // stages below are then not asked for at all.
+  const mark = tap ? { frame: tap.frame, centre: [tap.x * W, tap.y * H] as Pt, r: (tap.r ?? NET_MARK_R) * H } : null;
+  const net = !hanging && input.source.plateNet
+    ? input.source.plateNet(0, L, NET_SIDE * bodyH, handsFilled(kw), mark ? [mark.frame, mark.centre[0], mark.centre[1], mark.r] : undefined)
+    : undefined;
+  const netHeld = net ? netTrack(net, mark, fps, { a: col(kw, L_WRI), b: col(kw, R_WRI), bodyH, shoulders: kw.map((r) => midPt(r[L_SHO], r[R_SHO])) }) : null;
+  const plateAt = net !== undefined
+    ? [netHeld?.centres ?? null]
+    : tap
+    ? [plateHeld(input.source, 0, L, tap.frame, kw, bodyH, setupH, fps, yaw ?? 0, [], { tap: [tap.x * W, tap.y * H], back: true })]
+    : seeds.map((seed) => {
+        const found = input.source.plates(seed, kw[seed][L_WRI], kw[seed][R_WRI], bodyH, setupH).map((p): Plate => ({ ...p, diameter_px: Math.max(...p.axes), refined: p.fitInliers !== undefined }));
+        return plateHeld(input.source, 0, L, seed, kw, bodyH, setupH, fps, yaw ?? 0, found);
+      });
+  // a plate whose centre has left the frame is not drawn there (IMG_0830: overhead, out of the top of the picture)
+  const inFrame = (p: Pt): Pt => (p[0] >= 0 && p[0] <= W && p[1] >= 0 && p[1] <= H ? p : NAN_PT);
+  const merged = plateAt.reduceRight<Pt[] | null>((a, b) => (a && b ? (samePlate(a, b, kw, setupH) ? a.map((p, f) => (finitePt(p) ? p : b[f])) : a) : a ?? b), null);
+  const held = merged && merged.map(inFrame).some(finitePt) ? merged.map(inFrame) : null;
+  const fused = held ? fusePlate(held, barRaw, Ms, fps) : null;
   const bar = hanging ? mid(ksm, L_HIP, R_HIP) : fused ? fused.drawn : lowpassPts(barRaw, fps, 6.0);
   const seen = (f: number) => (hanging ? finitePt(kw[f][L_HIP]) && finitePt(kw[f][R_HIP]) : finitePt(kw[f][L_WRI]) || finitePt(kw[f][R_WRI]));
   const path: TracePoint[] = [];
   for (let f = 0; f < L; f++)
-    if (seen(f) && finitePt(bar[f])) path.push({ frame: f, ...normalise(fromRef(bar[f], Ms[f]), W, H), ...(hanging ? {} : { src: fused?.plate[f] ? 'plate' : 'wrist' }) });
+    if (seen(f) && finitePt(bar[f])) {
+      // the plate's radius where the model read it (a fraction of the picture's height): the scale for bar speed
+      const r = !hanging && fused?.plate[f] && netHeld && Number.isFinite(netHeld.radii[f]) && netHeld.radii[f] > 0 ? pyRound(netHeld.radii[f] / H, 4) : undefined;
+      path.push({ frame: f, ...normalise(fromRef(bar[f], Ms[f]), W, H), ...(hanging ? {} : { src: fused?.plate[f] ? 'plate' : 'wrist' }), ...(r !== undefined ? { r } : {}) });
+    }
   if (path.length < 2) return null;
   const first = path[0].frame;
   const last = path[path.length - 1].frame;
   const peak = path.reduce((a, b) => (b.y < a.y ? b : a)).frame;
   const fwd = facing(kw);
   const ring = path.reduce((a, b) => (fwd * (b.x - path[0].x) > fwd * (a.x - path[0].x) ? b : a));
-  const bodyScale = scaleFromBody(ctx.k);
   const keys: [string, number][] = [['setup', first], ['peak', peak]];
   const analysis: AnalysisJson = {
     ...base(ctx.analysisId, input.meta, n, ctx.movement),

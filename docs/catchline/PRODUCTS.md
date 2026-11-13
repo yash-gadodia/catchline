@@ -4,22 +4,22 @@ What Yash creates in App Store Connect, Google Play Console and RevenueCat. Noth
 
 Prices are USD base prices. Let Apple and Google set the other territories, then override any you want.
 
-## The plans
+## The plans (4.0, from 11 Nov 2026)
 
-| Plan | Videos | Monthly | Annual | Entitlements it grants |
-|---|---|---|---|---|
-| Free | 3 for life (1 in the ad funnel) | - | - | none |
-| Hook | 12 a month | $4.99 | $29.99 | `hook` |
-| Pull (preselected) | Unlimited (1000 a month fair use) | $2.99 | $19.99 | `hook`, `pull` |
-| Platform | 100 a month, fair use | $14.99 | $99.99 | `hook`, `pull`, `platform` |
-| Founding member | Unlimited (Pull for life) | - | $29.99 once | `hook`, `pull`, `founding` |
+The app sells one plan. The store products, entitlements and offerings below are unchanged; only what the app offers changed (JS only).
 
-What each tier unlocks (`featuresFor` in `entitlements.ts`):
-- Free and Hook: cue, player, watermarked share. Hook adds 90-day cue memory.
-- Pull and Founding: full cue memory, ghost of best rep, "did it stick", 240 fps, watermark-free export.
-- Platform: everything in Pull, plus coach link, explainer from your own clip, CSV export and priority queue.
+| Plan | Videos | Price | Store products the app sells |
+|---|---|---|---|
+| Free | 3 a week, every overlay | - | - |
+| Catchline Pro | Unlimited | $2.99 a month, $19.99 a year | `catchline_pull_monthly`, `catchline_pull_annual` (packages `pull_monthly`, `pull_annual` in offering `default`) |
+| Founding member | Unlimited, for life | $29.99 once | `catchline_founding_lifetime` (package `founding`), offered while seats remain |
 
-The monthly caps reset on the 1st of each calendar month. Usage is counted on the device for now (`usageStore.ts`). Phase 3 moves the count to the server.
+- The free week is a calendar week, Monday to Sunday, in the phone's local time (`weekKey`, `freeLeft` in `src/features/paywall/entitlements.ts`). It is counted on the phone only (`usageStore.ts`) and mirrored to the Keychain (`src/data/freeLifts.ts`, key `catchline.free_week`) so a reinstall does not hand the videos back. The server's `lift_allowance` is not consulted.
+- Hook and Platform are no longer offered. Anyone who owns Hook, Pull, Platform or Founding is Pro: `isPro(tier)` is every tier but `free`, and the tier still comes from the RevenueCat entitlements (`tierFromEntitlements`).
+- The trial products and the `ad_trial` offering are no longer requested by the app.
+- One paywall route, `/paywall` (`/paywall/cap` is the same screen, reached from capture when the week's free videos are used).
+
+Everything from here down describes what exists in the stores and RevenueCat, including the tiers the app no longer sells.
 
 ## App Store Connect
 

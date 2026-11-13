@@ -2,7 +2,6 @@ import type { Rep } from './types';
 import {
   clampFrame,
   crossesPhase,
-  frameAtProgress,
   keyFrameAt,
   liftPath,
   measurementsByPhase,
@@ -11,12 +10,8 @@ import {
   phaseAt,
   phaseFrame,
   phaseOfFrame,
-  phaseRail,
   phaseSeconds,
-  phaseTicks,
   pointAt,
-  progressOf,
-  stepKeyFrame,
 } from './timeline';
 
 const rep: Rep = {
@@ -92,26 +87,9 @@ describe('keyframes', () => {
     expect(keyFrameAt(rep, 199).image).toBe('c');
   });
 
-  it('steps to the next and previous keyframe and stays put at the ends', () => {
-    expect(stepKeyFrame(rep, 140, 1)).toBe(160);
-    expect(stepKeyFrame(rep, 140, -1)).toBe(110);
-    expect(stepKeyFrame(rep, 160, 1)).toBe(160);
-    expect(stepKeyFrame(rep, 110, -1)).toBe(110);
-  });
 });
 
 describe('scrubber maths', () => {
-  it('converts between frames and progress within the rep', () => {
-    expect(progressOf(rep, 150)).toBe(0.5);
-    expect(progressOf(rep, 50)).toBe(0);
-    expect(frameAtProgress(rep, 0.25)).toBe(125);
-    expect(frameAtProgress(rep, 1.4)).toBe(200);
-  });
-
-  it('puts a tick at every phase boundary after the first', () => {
-    expect(phaseTicks(rep)).toEqual([0.2, 0.5]);
-  });
-
   it('clamps and rounds frames into the rep', () => {
     expect(clampFrame(rep, 12)).toBe(100);
     expect(clampFrame(rep, 150.6)).toBe(151);
@@ -129,13 +107,6 @@ describe('phase timing', () => {
     expect(phaseSeconds(rep.phases[1], 60)).toBeCloseTo(0.5, 6);
   });
 
-  it('weights the rail by phase length', () => {
-    expect(phaseRail(rep)).toEqual([
-      { name: 'setup', weight: 20 },
-      { name: 'first_pull', weight: 30 },
-      { name: 'transition', weight: 50 },
-    ]);
-  });
 });
 
 describe('liftPath', () => {

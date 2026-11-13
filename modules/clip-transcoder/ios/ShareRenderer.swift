@@ -192,13 +192,6 @@ private func pathOverlay(_ spec: ShareSpec, size: CGSize, at t: Double) -> CIIma
   return image.cgImage.map { CIImage(cgImage: $0) }
 }
 
-private func orientation(_ t: CGAffineTransform) -> CGImagePropertyOrientation {
-  if t.a == 0 && t.b == 1 && t.c == -1 && t.d == 0 { return .right }
-  if t.a == 0 && t.b == -1 && t.c == 1 && t.d == 0 { return .left }
-  if t.a == -1 && t.d == -1 { return .down }
-  return .up
-}
-
 // The lifter's clip, trimmed to the rep (stretches slowed per segment), placed in
 // spec.video on black, with the bar path drawing in sync and the text on top.
 // Drawn per frame with Core Image + Core Graphics (Core Animation's offline
@@ -261,9 +254,7 @@ func renderShareVideo(uri: String, spec: ShareSpec, onProgress: @escaping (Doubl
   composition.colorYCbCrMatrix = AVVideoYCbCrMatrix_ITU_R_709_2
   composition.frameDuration = CMTime(value: 1, timescale: CMTimeScale(max(spec.fps, 1)))
 
-  let dir = FileManager.default.temporaryDirectory.appendingPathComponent("share-video", isDirectory: true)
-  try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-  let url = dir.appendingPathComponent("catchline-\(UUID().uuidString.prefix(8)).mp4")
+  let url = try shareFile("mp4")
 
   guard let session = AVAssetExportSession(asset: comp, presetName: AVAssetExportPresetHighestQuality) else {
     throw ShareRenderFailedException("export session")
