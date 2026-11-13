@@ -293,6 +293,28 @@ def test_unreadable_device_pose_falls_back_to_server_pose(caplog):
     assert "device pose for lift lift-1 unusable; running server pose" in caplog.text
 
 
+# #79: JSON that parses but is not a pose used to reach the pipeline and fail the lift 'unknown' three times.
+@pytest.mark.parametrize("bad", [
+    {"frames": "garbage"},
+    [],
+    {"fps": 30, "width": 1080, "height": 1920, "frames": [{"t": 0}]},
+    dict(POSE, frames=[{"t": 0, "people": [{"box": [1, 2, 3], "kp": []}]}]),
+])
+def test_a_parseable_but_malformed_device_pose_falls_back_to_server_pose(bad, caplog):
+    seen = {}
+
+    def analyse_with_pose(clip, job, workdir, pose=None):
+        seen["pose"] = pose
+        return fake_analyse(clip, job, workdir)
+
+    db = FakeDb([ROW], pose=bad)
+    with caplog.at_level(logging.ERROR, logger="catchline_worker"):
+        out = process_one(db, analyse_with_pose)
+    assert out["status"] == "done"
+    assert seen["pose"] is None
+    assert "device pose for lift lift-1 unusable; running server pose" in caplog.text
+
+
 def test_error_with_attempts_left_requeues_and_keeps_the_clip():
     db = FakeDb([ROW])
     out = process_one(db, crashing_analyse)
