@@ -8,6 +8,8 @@ export const you = {
   'you.plan': 'Plan',
   'you.section.lifting': 'Lifting',
   'you.section.privacy': 'Privacy',
+  'you.section.settings': 'Settings',
+  'you.section.help': 'Help',
   'you.units': 'Units',
   'you.defaultLift': 'Default lift',
   'you.frameRate': 'Frame rate',

@@ -35,6 +35,8 @@ export const capture: Strings<typeof en> = {
   'capture.mark.help': "Kreise die Scheibe ein, die der Kamera am nächsten ist. So weiß das Tracking, welcher Scheibe es folgen soll, und die Hantelbahn wird genauer.",
   'capture.mark.step1': "Drücke auf die Mitte der Scheibe",
   'capture.mark.step2': "Zieh bis zu ihrem Rand",
+  'capture.mark.coachDrag': "Zieh bis zum Rand der Scheibe",
+  'capture.mark.coachTap': "Ziehen, nicht tippen",
   'capture.mark.redo': "Markiert. Zum Ändern erneut drücken und ziehen.",
   'capture.mark.track': "Tracken",
   'capture.mark.skip': "Keine Scheibe? Überspringen",

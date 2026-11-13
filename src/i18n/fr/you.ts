@@ -11,6 +11,8 @@ export const you: Strings<typeof en> = {
   'you.plan': 'Formule',
   'you.section.lifting': 'Entraînement',
   'you.section.privacy': 'Confidentialité',
+  'you.section.settings': 'Réglages',
+  'you.section.help': 'Aide',
   'you.units': 'Unités',
   'you.defaultLift': 'Mouvement par défaut',
   'you.frameRate': "Fréquence d'images",

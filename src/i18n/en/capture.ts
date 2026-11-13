@@ -33,6 +33,8 @@ export const capture = {
   'capture.mark.help': "Circle the plate nearest the camera. It shows the tracker which plate to follow, so your bar path comes out more accurate.",
   'capture.mark.step1': "Press the middle of the plate",
   'capture.mark.step2': "Drag out to its edge",
+  'capture.mark.coachDrag': "Drag out to the edge of the plate",
+  'capture.mark.coachTap': "Drag, don't tap",
   'capture.mark.redo': "Marked. Press and drag again to redo it.",
   'capture.mark.track': "Track",
   'capture.mark.skip': "No plate? Skip",

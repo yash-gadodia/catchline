@@ -20,9 +20,9 @@ import DrawLayer from './DrawLayer';
 import { isComplete, type Shape } from './drawGeometry';
 import { openLiftOverlays, useOverlays } from './overlayPrefs';
 import { peakFrame } from './compare';
-import { barSpeed } from './speed';
+import { barSpeed, peakIn } from './speed';
 import type { LastLift } from './useLastLift';
-import { ANGLE_MAX_OFF_SIDE_DEG, drawnSide, frameAt, jointAngles, joints, liftRange, spread, timeOf } from './tracker';
+import { ANGLE_MAX_OFF_SIDE_DEG, drawnSide, frameAt, jointAngles, joints, liftRange, repAt, repStarts, spread, timeOf } from './tracker';
 import { t } from '../../i18n';
 
 type Speed = 0.25 | 0.5 | 1;
@@ -65,6 +65,8 @@ export default function TrackerScreen({
   const fps = duration > 0 ? count / duration : analysis.video.fps;
   // bar speed where the plate model measured the plate (a 4.0 lift with a bar path); none for a hip trail or an older lift
   const barSpeedOf = useMemo(() => barSpeed(analysis.reps[0]?.path ?? [], analysis.video.fps, analysis.lift), [analysis]);
+  // the peak shown is the rep on screen's (a set of several reps peaks once per rep)
+  const starts = useMemo(() => repStarts(analysis.reps[0]?.path ?? [], analysis.video.fps || 30), [analysis]);
   const src = { width: analysis.video.width, height: analysis.video.height };
   const maxH = Math.round(height * 0.6);
   const boxW = Math.min(width, Math.round((maxH * src.width) / src.height));
@@ -242,7 +244,7 @@ export default function TrackerScreen({
             <Readout testID="tracker-readout">{cropped ? `${seconds((frame - first) / fps)} s · ${frame + 1} / ${count}` : `${frame + 1} / ${count} · ${seconds(frame / fps)} s`}</Readout>
             {barSpeedOf?.peak && overlays.path ? (
               <Readout testID="tracker-speed">
-                {t('analysis.tracker.barSpeed', { now: speedAt(barSpeedOf.at, frame), peak: barSpeedOf.peak.v.toFixed(2) })}
+                {t('analysis.tracker.barSpeed', { now: speedAt(barSpeedOf.at, frame), peak: (peakIn(barSpeedOf.at, repAt(starts, frame).start, repAt(starts, frame).end) ?? barSpeedOf.peak.v).toFixed(2) })}
               </Readout>
             ) : null}
           </View>

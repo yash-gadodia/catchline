@@ -97,16 +97,18 @@ describe('plan and settings labels', () => {
 });
 
 describe('YouScreen', () => {
-  it('lists the profile, founding plan and every setting', async () => {
+  it('lists the profile, the founding plan, three sections, and none of the 3.x settings', async () => {
     const screen = await render(<YouScreen nav={nav} version="1.0.3" />);
     expect(within(screen.getByTestId('row-profile')).getByText('Alex')).toBeOnTheScreen();
     expect(screen.getByText('Signed in with Apple · synced')).toBeOnTheScreen();
     expect(screen.getByText('Catchline Pro · Founding member')).toBeOnTheScreen();
     expect(screen.getByTestId('founding-badge')).toBeOnTheScreen();
     expect(screen.queryByText(/renews/)).toBeNull();
-    expect(within(screen.getByTestId('row-frame-rate')).getByText('60 fps, 240 for snatch')).toBeOnTheScreen();
-    expect(within(screen.getByTestId('row-reminder')).getByText('Tue, Thu · 17:30')).toBeOnTheScreen();
-    expect(within(screen.getByTestId('row-auto-delete')).getByText('24 h')).toBeOnTheScreen();
+    expect(screen.getByText('SETTINGS')).toBeOnTheScreen();
+    expect(screen.getByText('PRIVACY')).toBeOnTheScreen();
+    expect(screen.getByText('HELP')).toBeOnTheScreen();
+    // 4.0 has no movement picker, cues or frame-rate choice, and nothing read these
+    for (const id of ['row-movement', 'row-frame-rate', 'toggle-voice', 'row-reminder', 'row-auto-delete', 'row-export-lifts']) expect(screen.queryByTestId(id)).toBeNull();
     expect(screen.getByText('About · 1.0.3')).toBeOnTheScreen();
     await press(screen.getByTestId('row-stored'));
     await press(screen.getByTestId('row-delete'));
@@ -138,52 +140,26 @@ describe('YouScreen', () => {
     expect(screen.getByTestId('you-build')).toHaveTextContent('Catchline 3.1 · update ota-42 · iPhone19,7 iOS 27.0.1');
   });
 
-  it('picks units and default lift from a sheet', async () => {
+  it('picks units from a sheet', async () => {
     const screen = await render(<YouScreen nav={nav} version="1.0.3" />);
     await press(screen.getByTestId('row-units'));
     await press(screen.getByTestId('pick-lb'));
     expect(useSettings.getState().units).toBe('lb');
     expect(within(screen.getByTestId('row-units')).getByText('lb')).toBeOnTheScreen();
     expect(screen.queryByTestId('option-sheet')).toBeNull();
-    await press(screen.getByTestId('row-movement'));
-    await press(screen.getByTestId('pick-bar_muscle_up'));
-    expect(within(screen.getByTestId('row-movement')).getByText('Bar muscle-up')).toBeOnTheScreen();
   });
 
-  it('toggles voice countdown and haptics, and haptics reaches the haptics module', async () => {
+  it('toggles haptics, and it reaches the haptics module', async () => {
     const screen = await render(<YouScreen nav={nav} version="1.0.3" />);
     await act(async () => {
       fireEvent(screen.getByTestId('toggle-haptics'), 'valueChange', false);
     });
-    await act(async () => {
-      fireEvent(screen.getByTestId('toggle-voice'), 'valueChange', false);
-    });
     expect(useSettings.getState().haptics).toBe(false);
-    expect(useSettings.getState().voiceCountdown).toBe(false);
     expect(isHapticsEnabled()).toBe(false);
     await act(async () => {
       fireEvent(screen.getByTestId('toggle-haptics'), 'valueChange', true);
     });
     expect(isHapticsEnabled()).toBe(true);
-  });
-
-  it('edits the cue reminder days and time', async () => {
-    const screen = await render(<YouScreen nav={nav} version="1.0.3" />);
-    await press(screen.getByTestId('row-reminder'));
-    await press(screen.getByTestId('day-Thu'));
-    await press(screen.getByTestId('day-Sat'));
-    await press(screen.getByTestId('time-07:30'));
-    await press(screen.getByText('Done'));
-    expect(within(screen.getByTestId('row-reminder')).getByText('Tue, Sat · 07:30')).toBeOnTheScreen();
-  });
-
-  it('keeps the cue reminder label on one line with the days and time under it, every day collapsed', async () => {
-    useSettings.getState().set('cueReminder', { days: [0, 1, 2, 3, 4, 5, 6], time: '07:30' });
-    const screen = await render(<YouScreen nav={nav} version="1.0.3" />);
-    const row = screen.getByTestId('row-reminder');
-    expect(row).toHaveTextContent('Cue reminderEvery day · 07:30One nudge before your usual session›');
-    expect(within(row).getByText('Cue reminder')).toHaveProp('numberOfLines', 1);
-    expect(within(row).getByText('Every day · 07:30')).toBeOnTheScreen();
   });
 
   it('renames the profile', async () => {
@@ -299,15 +275,6 @@ describe('YouScreen with the backend on', () => {
     expect(bundle).toMatchObject({ account: { name: '', plan: 'Free · 3 of 3 videos left this week' }, settings: DEFAULT_SETTINGS });
     expect(bundle.lifts.map((l) => l.id)).toEqual(['l-snatch-today', 'l-clean', 'l-mu', 'l-jerk', 'l-snatch-queued', 'l-snatch-miss', 'l-snatch-real', 'l-snatch-low']);
     expect(bundle.lifts.every((l) => l.date && l.movement)).toBe(true);
-  });
-
-  it('exports my lifts as a CSV for everyone, free plan included', async () => {
-    const send = jest.fn<Promise<void>, [string]>(() => Promise.resolve());
-    const screen = await render(<YouScreen nav={nav} version="1.0.3" exportLifts={send} />);
-    expect(screen.getByText('A spreadsheet of every lift and measurement')).toBeOnTheScreen();
-    await press(screen.getByTestId('row-export-lifts'));
-    expect(send).toHaveBeenCalledTimes(1);
-    expect(send.mock.calls[0][0].split('\n')[0]).toBe('date,lift_id,movement,load_kg,status,cue,measurement_id,measurement,value,unit,analysis_version');
   });
 
 });
