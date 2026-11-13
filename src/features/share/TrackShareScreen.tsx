@@ -209,7 +209,7 @@ export default function TrackShareScreen({
               <View>
                 {/* i18n-ok: the brand wordmark, as drawn on the video */}
                 <Text style={[display(mark.size * markScale * 1.45), { color: colors.text }]}>Catchline</Text>
-                <Text style={[type.caption, { color: colors.text2 }]}>{t('share.brandLine')}</Text>
+                <Text numberOfLines={1} style={[display(mark.size * markScale * 0.82), { color: colors.text2 }]}>{t('share.brandLine')}</Text>
               </View>
             </View>
           ) : watermark ? (
