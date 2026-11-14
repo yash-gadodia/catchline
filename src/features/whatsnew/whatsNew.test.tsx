@@ -22,13 +22,14 @@ describe("What's new", () => {
   });
 
   it('lists versions newest first, each dated', () => {
-    expect(CHANGELOG.map((e) => [e.version, e.date])).toEqual([['4.0.2', '2026-11-14'], ['4.0', '2026-11-13'], ['3.1', '2026-10-22']]);
-    expect(en[CHANGELOG[0].items[0]]).toBe('Each rep draws its own bar path, with your earlier reps faint underneath.');
+    expect(CHANGELOG.map((e) => [e.version, e.date])).toEqual([['4.0.3', undefined], ['4.0.2', '2026-11-14'], ['4.0', '2026-11-13'], ['3.1', '2026-10-22']]);
+    expect(en[CHANGELOG[0].items[0]]).toBe('The plate is found before tracking starts. Check the circle, adjust it if it is off, then track.');
+    expect(en[CHANGELOG[1].items[0]]).toBe('Each rep draws its own bar path, with your earlier reps faint underneath.');
   });
 
   it('keeps 3.1 with on-device analysis and the privacy line, word for word', () => {
-    expect(CHANGELOG[2].version).toBe('3.1');
-    expect(CHANGELOG[2].items.map((k) => en[k])).toEqual([
+    expect(CHANGELOG[3].version).toBe('3.1');
+    expect(CHANGELOG[3].items.map((k) => en[k])).toEqual([
       'Your lift is now analysed entirely on your iPhone, and analysis works with no signal.',
       'Your video never leaves your iPhone. Analysed on-device, never used to train AI.',
       'Sharper reads of lifts filmed at an angle and of hang lifts, and a full clean and jerk is read as one lift.',

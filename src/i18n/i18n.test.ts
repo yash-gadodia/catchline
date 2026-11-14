@@ -25,6 +25,14 @@ describe('t()', () => {
     expect(t('you.language')).toBe('Sprache');
     setLanguage('pt-BR');
     expect(t('you.language')).toBe('Idioma');
+    setLanguage('it');
+    expect(t('you.language')).toBe('Lingua');
+    setLanguage('ja');
+    expect(t('you.language')).toBe('言語');
+    setLanguage('ko');
+    expect(t('you.language')).toBe('언어');
+    setLanguage('zh-Hans');
+    expect(t('you.language')).toBe('语言');
   });
 
   it('falls back to English when a language lacks the key', () => {
@@ -51,6 +59,22 @@ describe('t()', () => {
     expect(pluralCategory('de', 0)).toBe('other');
     expect(pluralCategory('es', 1)).toBe('one');
   });
+
+  it('counts like English in Italian, and has one form in Japanese, Korean and Chinese', () => {
+    expect(pluralCategory('it', 1)).toBe('one');
+    expect(pluralCategory('it', 0)).toBe('other');
+    expect(pluralCategory('it', 2)).toBe('other');
+    for (const locale of ['ja', 'ko', 'zh-Hans'] as const) {
+      expect(pluralCategory(locale, 0)).toBe('other');
+      expect(pluralCategory(locale, 1)).toBe('other');
+      expect(pluralCategory(locale, 5)).toBe('other');
+    }
+    expect(translate('it', 'library.free.left', { count: 1 })).toBe('1 video gratuito rimasto');
+    expect(translate('it', 'library.free.left', { count: 3 })).toBe('3 video gratuiti rimasti');
+    expect(translate('ja', 'library.free.left', { count: 1 })).toBe('無料動画 残り1本');
+    expect(translate('ko', 'you.autoDelete.days', { count: 1 })).toBe('1일');
+    expect(translate('zh-Hans', 'you.autoDelete.days', { count: 7 })).toBe('7 天');
+  });
 });
 
 describe('languages', () => {
@@ -58,8 +82,25 @@ describe('languages', () => {
     expect(resolveLocale('es-MX')).toBe('es');
     expect(resolveLocale('pt-PT')).toBe('pt-BR');
     expect(resolveLocale('de_AT')).toBe('de');
-    expect(resolveLocale('ja-JP')).toBe('en');
+    expect(resolveLocale('it-CH')).toBe('it');
+    expect(resolveLocale('ja-JP')).toBe('ja');
+    expect(resolveLocale('ko_KR')).toBe('ko');
+    expect(resolveLocale('nl-NL')).toBe('en');
     expect(resolveLocale(undefined)).toBe('en');
+  });
+
+  it('gives Simplified Chinese to Hans, CN, SG and bare zh, and English to Traditional', () => {
+    expect(resolveLocale('zh-Hans')).toBe('zh-Hans');
+    expect(resolveLocale('zh-Hans-CN')).toBe('zh-Hans');
+    expect(resolveLocale('zh_Hans_HK')).toBe('zh-Hans');
+    expect(resolveLocale('zh-CN')).toBe('zh-Hans');
+    expect(resolveLocale('zh-SG')).toBe('zh-Hans');
+    expect(resolveLocale('zh')).toBe('zh-Hans');
+    expect(resolveLocale('zh-Hant')).toBe('en');
+    expect(resolveLocale('zh-Hant-TW')).toBe('en');
+    expect(resolveLocale('zh-Hant-CN')).toBe('en');
+    expect(resolveLocale('zh-TW')).toBe('en');
+    expect(resolveLocale('zh-HK')).toBe('en');
   });
 
   it('follows the setting, and System follows the device (en-US in jest)', () => {
@@ -75,6 +116,15 @@ describe('languages', () => {
     expect(formatDate(d, { day: 'numeric', month: 'long', timeZone: 'UTC' }, 'de')).toBe('3. Oktober');
     expect(formatNumber(1.5, 'fr')).toBe('1,5');
     expect(formatNumber(1.5, 'en')).toBe('1.5');
+    expect(formatNumber(1.5, 'it')).toBe('1,5');
+    expect(formatNumber(102.5, 'ja')).toBe('102.5');
+    expect(formatDate(d, { month: 'short', timeZone: 'UTC' }, 'it')).toBe('ott');
+    expect(formatDate(d, { month: 'short', timeZone: 'UTC' }, 'ja')).toBe('10月');
+    expect(formatDate(d, { month: 'short', timeZone: 'UTC' }, 'ko')).toBe('10월');
+    expect(formatDate(d, { month: 'short', timeZone: 'UTC' }, 'zh-Hans')).toBe('10月');
+    expect(translate('ja', 'library.date.dayMonth', { day: 3, month: '10月' })).toBe('10月3日');
+    expect(translate('ko', 'library.date.dayMonth', { day: 3, month: '10월' })).toBe('10월 3일');
+    expect(translate('zh-Hans', 'library.date.dayMonth', { day: 3, month: '10月' })).toBe('10月3日');
   });
 });
 
@@ -96,6 +146,14 @@ describe('catalogues', () => {
     for (const key of enKeys) {
       const k = key as keyof typeof en;
       expect(`${key}: ${vars(flat(CATALOGUES[locale][k]))}`).toBe(`${key}: ${vars(flat(en[k]))}`);
+    }
+  });
+
+  it.each(LOCALES.filter((l) => l !== 'en'))('%s has no emoji, em dash or banned claim', (locale) => {
+    for (const [key, value] of Object.entries(CATALOGUES[locale])) {
+      const text = typeof value === 'string' ? value : `${value.one} ${value.other}`;
+      expect(`${key}: ${/[\u2014\u2015]|\p{Extended_Pictographic}/u.test(text)}`).toBe(`${key}: false`);
+      expect(`${key}: ${/prevent injur|diagnos|診断|怪我を防|진단|부상 방지|诊断|预防受伤|infortun/i.test(text)}`).toBe(`${key}: false`);
     }
   });
 
@@ -144,6 +202,10 @@ describe('cue copy', () => {
       'Push the floor straight down',
     ]);
     expect(cueAlternates('jump_forward', 'es')[1]).toBe('Quédate detrás de la línea');
+    expect(cueAlternates('jump_forward', 'it')[1]).toBe('Resta dietro la linea');
+    expect(cueAlternates('jump_forward', 'ja')[1]).toBe('線の後ろにとどまる');
+    expect(cueAlternates('jump_forward', 'ko')[1]).toBe('선 뒤에 머물러요');
+    expect(cueAlternates('jump_forward', 'zh-Hans')[1]).toBe('留在线后面');
     expect(cueAlternates('not_a_fault', 'de')).toEqual([]);
   });
 
@@ -154,6 +216,21 @@ describe('cue copy', () => {
     );
     expect(cueWhy('chicken_wing', 'Your left elbow crossed the bar 120 ms behind the other.', 'fr')).toBe(
       "Ton coude gauche a passé la barre 120 ms après l'autre."
+    );
+  });
+
+  it('fills the measurement and the side in the new languages', () => {
+    expect(cueWhy('jump_forward', 'Your feet landed 9 cm in front of where they started.', 'it')).toBe(
+      'I piedi sono atterrati 9 cm davanti al punto di partenza.'
+    );
+    expect(cueWhy('chicken_wing', 'Your left elbow crossed the bar 120 ms behind the other.', 'ja')).toBe(
+      '左肘がもう一方より120 ms遅れてバーを越えました。'
+    );
+    expect(cueWhy('chicken_wing', 'Your right elbow crossed the bar 120 ms behind the other.', 'ko')).toBe(
+      '오른쪽 팔꿈치가 다른 쪽보다 120 ms 늦게 바를 넘었어요.'
+    );
+    expect(cueWhy('chicken_wing', 'Your left elbow crossed the bar 120 ms behind the other.', 'zh-Hans')).toBe(
+      '你的左肘比另一侧晚 120 ms 过杠。'
     );
   });
 

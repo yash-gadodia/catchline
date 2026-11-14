@@ -82,7 +82,8 @@
       },
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "BGTaskSchedulerPermittedIdentifiers": ["com.yashgadodia.parallax.analyse"]
+        "BGTaskSchedulerPermittedIdentifiers": ["com.yashgadodia.parallax.analyse"],
+        "CFBundleLocalizations": ["en", "es", "pt-BR", "fr", "de", "it", "ja", "ko", "zh-Hans"]
       },
       "icon": "./assets/icon.png"
     },
