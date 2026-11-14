@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { clearLiveAnalyses } from '../../analysis/live';
 import { backendEnabled, resetConsentSync } from '../../data/backend';
+import { deleteAllLocalLifts } from '../../data/localLifts';
+import { useLiftOutbox } from '../../data/liftOutbox';
 import { deleteAccount as deleteRemoteAccount } from '../../lib/api';
 import { signOut as endSession } from '../auth/appleSignIn';
 import { NO_USER, useAuthUser, type AuthUser } from '../auth/authUser';
@@ -161,6 +163,9 @@ export function leaveAccount(): void {
 // a fresh anonymous account from the first onboarding screen.
 export function forgetLocalData(): void {
   leaveAccount();
+  // the delete sheet promises every lift goes: the clips and tracking on this phone, and any record not yet synced
+  deleteAllLocalLifts();
+  useLiftOutbox.setState({ items: [] });
   useAccountStore.setState({ account: null });
   useOnboarding.getState().reset();
 }

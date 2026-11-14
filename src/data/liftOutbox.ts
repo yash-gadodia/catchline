@@ -54,7 +54,8 @@ export function flushLiftOutbox(): Promise<number> {
           await syncLift(item.id, item.lift);
         } catch (e) {
           const message = e instanceof Error ? e.message : '';
-          if (!PERMANENT.includes(message)) break;
+          // a record the server will never take (a refused value) is set aside, or it would hold back every lift after it
+          if (!PERMANENT.includes(message) && !message.includes('violates check constraint')) break;
         }
         useLiftOutbox.getState().markSynced(item.id);
         sent++;

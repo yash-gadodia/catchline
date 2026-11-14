@@ -31,7 +31,7 @@ export default function DevEntry() {
   const { shot } = useLocalSearchParams<{ shot?: string }>();
   // ?shot=1 plays the system screenshot (the dev client has no native listener)
   useEffect(() => {
-    if (shot) void onScreenshot();
+    if (__DEV__ && shot) void onScreenshot();
   }, [shot]);
   if (!__DEV__) return <Redirect href="/" />;
   return (

@@ -12,12 +12,14 @@ describe('InFlightBar', () => {
     expect(inFlight(null)).toBe(false);
     expect(inFlight(job({ status: 'preparing' }))).toBe(true);
     expect(inFlight(job({ status: 'uploading' }))).toBe(true);
+    expect(inFlight(job({ status: 'analysing' }))).toBe(true);
     expect(inFlight(job({ status: 'queued', liftId: 'l1' }))).toBe(false);
     expect(inFlight(job({ status: 'failed' }))).toBe(false);
   });
 
-  it('fills the bar through preparing and upload', () => {
-    expect(inFlightProgress(job({ prepared: 0.5 }))).toBe(0.4);
+  it('fills the bar through preparing, tracking and upload', () => {
+    expect(inFlightProgress(job({ prepared: 0.5 }))).toBeCloseTo(0.05);
+    expect(inFlightProgress(job({ status: 'analysing', fraction: 0.5 }))).toBeCloseTo(0.55);
     expect(inFlightProgress(job({ status: 'uploading', sent: 50, total: 100 }))).toBeCloseTo(0.9);
   });
 
@@ -26,7 +28,7 @@ describe('InFlightBar', () => {
     const { getByText, getByTestId } = await render(<InFlightBar job={job({ prepared: 0.42 })} onOpen={onOpen} />);
     expect(getByText('Tracking your lift')).toBeOnTheScreen();
     expect(getByText('preparing 42%')).toBeOnTheScreen();
-    expect(getByTestId('in-flight-progress')).toHaveStyle({ width: '34%' });
+    expect(getByTestId('in-flight-progress')).toHaveStyle({ width: '4%' });
     fireEvent.press(getByTestId('in-flight'));
     expect(onOpen).toHaveBeenCalledTimes(1);
   });

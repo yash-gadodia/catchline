@@ -61,6 +61,7 @@ export const analysis = {
   'analysis.processing.offlineBody': "The tracking needs a one-time download that did not finish. Check your connection (and Low Data Mode) and try again. This did not use one of your videos.",
   'analysis.processing.retry': 'Try again',
   'analysis.processing.cancelNote': "Stops the tracking. The clip stays on your phone and the video is not counted.",
+  'analysis.processing.trackingPct': 'tracking {pct}%',
   'analysis.processing.preparingPct': 'preparing {pct}%',
   'analysis.processing.uploadingPct': 'uploading {pct}%',
   'analysis.processing.seeIt': 'See it',

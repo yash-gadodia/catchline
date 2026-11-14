@@ -61,6 +61,14 @@ describe('the lift outbox', () => {
     expect(await flushLiftOutbox()).toBe(2);
   });
 
+  it('sets aside a lift with a value the server refuses, so the lifts after it still sync', async () => {
+    online();
+    useLiftOutbox.setState({ items: [{ id: 'l1', lift: LIFT }, { id: 'l2', lift: LIFT }] });
+    syncLift.mockRejectedValueOnce(new Error('new row for relation "lifts" violates check constraint "lifts_load_kg_check"'));
+    expect(await flushLiftOutbox()).toBe(2);
+    expect(syncLift).toHaveBeenCalledTimes(2);
+  });
+
   it('drops a lift the server will never take (another account owns the id) instead of resending it forever', async () => {
     online();
     useLiftOutbox.setState({ items: [{ id: 'l1', lift: LIFT }, { id: 'l2', lift: LIFT }] });

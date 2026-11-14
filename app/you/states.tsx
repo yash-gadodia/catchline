@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { Redirect, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SmallCaps from '../../src/components/SmallCaps';
 import { colors, shape, space } from '../../src/design/tokens';
@@ -17,7 +17,12 @@ import { NOTIFICATION_COPY, NOTIFICATION_TITLE } from '../../src/features/you/no
 const PERMISSIONS: Permission[] = ['camera', 'microphone', 'photos', 'notifications'];
 
 // Dev gallery for the global states; ?show=update opens the full-screen block.
+// A gallery of fixture states for design review: never reachable in a release build.
 export default function GlobalStatesRoute() {
+  return __DEV__ ? <GlobalStates /> : <Redirect href="/" />;
+}
+
+function GlobalStates() {
   const { show } = useLocalSearchParams<{ show?: string }>();
   const insets = useSafeAreaInsets();
   const [storage, setStorage] = useState(show === 'storage');

@@ -116,6 +116,12 @@ export function localClipUri(liftId: string): string | null {
   return file.exists ? file.uri : null;
 }
 
+// Delete account: every lift's folder (clip, analysis, joints, stills) goes with the account.
+export function deleteAllLocalLifts(): void {
+  const root = new Directory(Paths.document, LIFTS_DIR);
+  if (root.exists) root.delete();
+}
+
 export function deleteLocalLift(liftId: string): void {
   const dir = liftDir(liftId);
   if (dir.exists) dir.delete();

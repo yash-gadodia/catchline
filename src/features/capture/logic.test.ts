@@ -163,6 +163,9 @@ describe('submit', () => {
     expect(parseWeight('135', 'lb')).toBe(61.2);
     expect(parseWeight('', 'kg')).toBeNull();
     expect(parseWeight('0', 'kg')).toBeNull();
+    expect(parseWeight('500', 'kg')).toBeNull();
+    expect(parseWeight('1200', 'lb')).toBeNull();
+    expect(parseWeight('0.04', 'kg')).toBeNull();
   });
 
   it('packs the draft into a submission, always as a snatch: the lifter picks no movement', () => {
@@ -183,5 +186,12 @@ describe('submit', () => {
   it('sends the bundled sample clip (no uri) to the sample analysis and counts it', async () => {
     await submitClip(toSubmission(demoClip('ok'), '', 'kg'));
     expect(router.push).toHaveBeenCalledWith({ pathname: '/analysis/processing', params: { fixture: 'snatch-mock', count: '1' } });
+  });
+
+  it('a double tap on Track sends the clip once', async () => {
+    (router.push as jest.Mock).mockClear();
+    const clip = toSubmission(demoClip('ok'), '', 'kg');
+    await Promise.all([submitClip(clip), submitClip(clip)]);
+    expect(router.push).toHaveBeenCalledTimes(1);
   });
 });

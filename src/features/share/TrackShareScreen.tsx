@@ -101,7 +101,15 @@ export default function TrackShareScreen({
     };
   }, [player, fps, count, first, last]);
 
-  useEffect(() => () => Object.values(made.current).forEach((uri) => deps.discard(uri)), []);
+  const gone = useRef(false);
+  const busy = useRef(false);
+  useEffect(
+    () => () => {
+      gone.current = true;
+      Object.values(made.current).forEach((uri) => deps.discard(uri));
+    },
+    []
+  );
 
   const seek = (next: number) => {
     const f = Math.min(Math.max(first, Math.round(next)), last);
@@ -144,7 +152,16 @@ export default function TrackShareScreen({
 
   // Renders once per set of choices; the same choices share the file already made.
   const send = async (kind: 'video' | 'image') => {
-    if (making) return;
+    // a ref: two taps in one frame both read the same `making`
+    if (busy.current) return;
+    busy.current = true;
+    try {
+      await sendOnce(kind);
+    } finally {
+      busy.current = false;
+    }
+  };
+  const sendOnce = async (kind: 'video' | 'image') => {
     setNotice(null);
     player.pause();
     const key = kind === 'video' ? JSON.stringify(options) : JSON.stringify({ ...options, speed: 1, frame: frameRef.current });
@@ -156,6 +173,8 @@ export default function TrackShareScreen({
           kind === 'video'
             ? await deps.renderVideo(clipUri, buildTrackSpec(analysis, body, options), (progress) => setMaking({ kind, progress }))
             : await deps.renderImage(clipUri, buildTrackSpec(analysis, body, options, frameRef.current));
+        // the lifter left while it rendered: no share sheet over another screen, and the file goes
+        if (gone.current) return void deps.discard(uri);
         made.current[key] = uri;
       } catch {
         setNotice(t('share.renderFailed'));
@@ -255,9 +274,16 @@ export default function TrackShareScreen({
         <Btn kind="secondary" onPress={() => void send('image')} testID="share-image-btn">
           {t('share.shareImage')}
         </Btn>
-        <Btn kind="secondary" compact onPress={() => void deps.shareCsv(liftCsv(analysis), `catchline-${analysis.id}.csv`)} testID="share-csv-btn">
-          {t('share.shareData')}
-        </Btn>
+        {hasBarPath(analysis) ? (
+          <Btn
+            kind="secondary"
+            compact
+            onPress={() => void deps.shareCsv(liftCsv(analysis), `catchline-${analysis.id}.csv`).catch(() => setNotice(t('share.shareFailed')))}
+            testID="share-csv-btn"
+          >
+            {t('share.shareData')}
+          </Btn>
+        ) : null}
       </View>
     </View>
   );

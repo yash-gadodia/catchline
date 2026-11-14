@@ -63,6 +63,7 @@ export const analysis: Strings<typeof en> = {
   'analysis.processing.longTitle': "C'est plus long que d'habitude",
   'analysis.processing.maxSeconds': 'max {max} s',
   'analysis.processing.notifyMe': 'Préviens-moi',
+  'analysis.processing.trackingPct': 'suivi {pct} %',
   'analysis.processing.preparingPct': 'préparation {pct} %',
   'analysis.processing.uploadingPct': 'envoi {pct} %',
   'analysis.processing.seeIt': 'Voir',

@@ -89,6 +89,8 @@ export default function YouScreen({
     setAuthBusy(true);
     try {
       await signOut();
+    } catch {
+      // offline: still signed in, and the row is there to try again
     } finally {
       setAuthBusy(false);
     }

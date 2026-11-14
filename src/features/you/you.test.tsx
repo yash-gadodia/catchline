@@ -305,7 +305,8 @@ describe('WhatIsStoredScreen', () => {
     const onExport = jest.fn();
     const screen = await render(<WhatIsStoredScreen onBack={jest.fn()} onExport={onExport} />);
     expect(screen.getByText('On your phone. Analysed on your iPhone, never uploaded.')).toBeOnTheScreen();
-    expect(screen.getAllByText('kept')).toHaveLength(4);
+    expect(screen.getAllByText('kept')).toHaveLength(3);
+    expect(screen.queryByText('Cues and whether they stuck')).toBeNull();
     expect(screen.queryByTestId('toggle-improve')).toBeNull();
     await press(screen.getByText('Export all my data'));
     expect(onExport).toHaveBeenCalledTimes(1);

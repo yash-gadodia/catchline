@@ -23,7 +23,7 @@ import { writeFreeUsed } from './freeLifts';
 import { queueLiftSync } from './liftOutbox';
 import { syncConsent } from './backend';
 import { keepClip, saveLocalLift } from './localLifts';
-import { usePipeline } from './pipeline';
+import { usePipeline, type Job } from './pipeline';
 import { detectedMade } from '../features/library/madeLog';
 import { ClipTooLongError, discardPrepared, prepareClip } from './prepare';
 import { t } from '../i18n';
@@ -157,12 +157,19 @@ export function deviceCue(a: Analysis): { faultId: string; text: string; why: st
   return a.cue ? { faultId: a.cue.faultId, text: a.cue.text, why: a.cue.why } : null;
 }
 
-let cancelled = false;
+// One lift runs at a time: the native passes share one model, and the job on screen is the one in flight.
+let running: { liftId: string; done: Promise<void> } | null = null;
+let cancelledRun: string | null = null;
 
 // The lifter gave up on this lift: the pass that is running is left to finish and
 // its result is dropped.
 export function cancelDeviceLift(): void {
-  cancelled = true;
+  cancelledRun = running?.liftId ?? null;
+}
+
+// The run still on the phone: a cancelled one finishing its last pass, or one the lifter hid.
+export function deviceLiftInFlight(): { cancelled: boolean; done: Promise<void> } | null {
+  return running ? { cancelled: cancelledRun === running.liftId, done: running.done } : null;
 }
 
 type Extras = { startClass?: string; yawBucket?: string };
@@ -190,12 +197,23 @@ export function syncRecord(a: Analysis, sub: ClipSubmission, analysedAt: Date): 
 // the clip is trimmed and analysed on the phone, kept in Documents, counted, and
 // its slim record queued for sync_lift. Works in airplane mode. Never throws: the
 // outcome lands on the job.
-export async function startDeviceLift(sub: ClipSubmission & { uri: string }): Promise<void> {
-  const { start, patch } = usePipeline.getState();
-  cancelled = false;
+export function startDeviceLift(sub: ClipSubmission & { uri: string }): Promise<void> {
   const liftId = randomUUID();
-  start({
-    id: `job-${Date.now()}`,
+  const done = runDeviceLift(sub, liftId).finally(() => {
+    if (running?.liftId === liftId) running = null;
+  });
+  running = { liftId, done };
+  return done;
+}
+
+async function runDeviceLift(sub: ClipSubmission & { uri: string }, liftId: string): Promise<void> {
+  const jobId = `job-${liftId}`;
+  // a run only ever writes to its own job, never to one started after it
+  const patch = (fields: Partial<Job>) => {
+    if (usePipeline.getState().job?.id === jobId) usePipeline.getState().patch(fields);
+  };
+  usePipeline.getState().start({
+    id: jobId,
     movement: sub.movement,
     status: 'preparing',
     liftId,
@@ -222,7 +240,7 @@ export async function startDeviceLift(sub: ClipSubmission & { uri: string }): Pr
     const clip = await prepareClip(sub.uri, sub.trim, (p) => patch({ prepared: p }));
     prepared = clip.uri;
     patch({ status: 'analysing', prepared: 1 });
-    const loop = await analyseLoop(clip.uri, sub.movement, liftId, (stage, fraction) => patch({ stage, fraction }), () => cancelled, sub.plateMark ?? null);
+    const loop = await analyseLoop(clip.uri, sub.movement, liftId, (stage, fraction) => patch({ stage, fraction }), () => cancelledRun === liftId, sub.plateMark ?? null);
     const analysis = finishAnalysis(parseAnalysis(loop.analysis), liftId, sub);
     const local = saveLocalLift(liftId, analysis, loop.tracePath, loop.stills, loop.body);
     // 4.0: the clip stays on the phone with its lift (the player draws on the real video); deleted with the lift.

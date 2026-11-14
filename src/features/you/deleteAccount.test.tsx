@@ -9,6 +9,10 @@ import { useUsage } from '../paywall/usageStore';
 import { usePurchases } from '../purchases/usePurchases';
 import { createAccountRepository, useAccountStore } from './account';
 import DeleteAccountSheet from './DeleteAccountSheet';
+import { deleteAllLocalLifts } from '../../data/localLifts';
+import { useLiftOutbox } from '../../data/liftOutbox';
+
+jest.mock('../../data/localLifts', () => ({ ...jest.requireActual('../../data/localLifts'), deleteAllLocalLifts: jest.fn() }));
 
 jest.mock('../../lib/supabase', () => ({
   supabaseConfigured: true,
@@ -46,6 +50,7 @@ beforeEach(() => {
   useCapture.getState().setLastWeight('80');
   usePurchases.setState({ appUserId: 'u1', tier: 'pull', period: 'annual' });
   putLiveAnalysis(ANALYSES['snatch-mock']);
+  useLiftOutbox.setState({ items: [{ id: 'l1', lift: {} as never }] });
 });
 
 describe('DeleteAccountSheet against the backend', () => {
@@ -57,6 +62,8 @@ describe('DeleteAccountSheet against the backend', () => {
     expect(mocked.functions.invoke).toHaveBeenCalledWith('delete-account');
     expect(mocked.auth.signOut).toHaveBeenCalledWith({ scope: 'local' });
     expect(onDeleted).toHaveBeenCalledTimes(1);
+    expect(deleteAllLocalLifts).toHaveBeenCalledTimes(1);
+    expect(useLiftOutbox.getState().items).toEqual([]);
 
     expect(useAccountStore.getState().account).toBeNull();
     expect(useOnboarding.getState().consent).toBeNull();
