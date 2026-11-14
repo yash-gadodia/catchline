@@ -138,6 +138,11 @@ export const you: Strings<typeof en> = {
   // REVIEW
   'you.whatsNew.version': "Catchline {version}",
   // REVIEW
+  'you.whatsNew.v403.plate': "A anilha é encontrada antes do rastreio começar. Confira o círculo, ajuste se precisar e rastreie.",
+  'you.whatsNew.v403.share': "Os vídeos compartilhados podem levar o gráfico de velocidade da barra, a data e a carga, com toda a trajetória desenhada de leve atrás de cada repetição.",
+  'you.whatsNew.v403.tools': "No player: pinça para ampliar, grade, linha vertical, desenho livre e um gráfico de velocidade que dá para ampliar.",
+  'you.whatsNew.v403.notes': "Dê nome, tags e uma nota a um levantamento. Busque seus levantamentos e compare dois do mesmo tipo lado a lado.",
+  'you.whatsNew.v403.languages': "Agora em italiano, japonês, coreano e chinês simplificado.",
   'you.whatsNew.v402.reps': "Cada repetição desenha a própria trajetória da barra, com as anteriores suaves por baixo.",
   'you.whatsNew.v402.speed': "Velocidade da barra: veja a rapidez da barra em cada repetição.",
   'you.whatsNew.v402.share': "Compartilhe em velocidade 2x ou 4x, com um cartão final do Catchline mais limpo.",

@@ -138,6 +138,11 @@ export const you: Strings<typeof en> = {
   // REVIEW
   'you.whatsNew.version': "Catchline {version}",
   // REVIEW
+  'you.whatsNew.v403.plate': "El disco se encuentra antes de empezar el seguimiento. Revisa el círculo, ajústalo si hace falta y rastrea.",
+  'you.whatsNew.v403.share': "Los vídeos compartidos pueden llevar la gráfica de velocidad de la barra, la fecha y el peso, con toda la trayectoria dibujada tenue detrás de cada repetición.",
+  'you.whatsNew.v403.tools': "En el reproductor: pellizca para ampliar, cuadrícula, línea vertical, dibujo a mano y una gráfica de velocidad que puedes ampliar.",
+  'you.whatsNew.v403.notes': "Ponle nombre, etiquetas y una nota a un levantamiento. Busca tus levantamientos y compara dos del mismo tipo lado a lado.",
+  'you.whatsNew.v403.languages': "Ahora en italiano, japonés, coreano y chino simplificado.",
   'you.whatsNew.v402.reps': "Cada repetición dibuja su propia trayectoria de barra, con las anteriores tenues debajo.",
   'you.whatsNew.v402.speed': "Velocidad de barra: mira lo rápido que se mueve la barra en cada repetición.",
   'you.whatsNew.v402.share': "Comparte a velocidad 2x o 4x, con una tarjeta final de Catchline limpia.",

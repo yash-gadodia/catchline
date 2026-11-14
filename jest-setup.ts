@@ -380,6 +380,8 @@ jest.mock('./modules/pose-coreml', () => {
         return { tracePath: 'file:///cache/pose-coreml/trace.json.gz', stills: {} };
       }),
       endBackgroundRun: jest.fn(async () => undefined),
+      supportsFindPlate: true,
+      findPlate: jest.fn(async () => ({ x: 0.5164, y: 0.7994, r: 0.1442, confidence: 0.8993 })),
       analyzePose: jest.fn(async () => {
         listeners.forEach((l) => l({ progress: 0.5 }));
         listeners.forEach((l) => l({ progress: 1 }));

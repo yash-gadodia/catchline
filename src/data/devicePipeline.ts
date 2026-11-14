@@ -13,6 +13,7 @@ import type { ClipSubmission } from '../features/capture/submit';
 import { notifyLiftReady } from '../features/notifications';
 import { rememberClip } from '../features/share/localClips';
 import { hasBarPath } from '../features/share/trackShare';
+import { findPlateSupported } from '../features/capture/plateFind';
 import { usePurchases } from '../features/purchases/usePurchases';
 import { randomUUID } from 'expo-crypto';
 import type { SyncLiftInput } from '../lib/api';
@@ -136,7 +137,7 @@ export async function analyseLoop(uri: string, movement: Movement, liftId: strin
       }
       if (isCancelled()) throw new Error('cancelled');
       stills = { ...stills, ...result.stills };
-      tracked = trackTrace(await readTrace(result.tracePath), { analysisId: liftId, assetPrefix: liftId, ...(plateMark ? { plateMark: { frame: 0, ...plateMark } } : {}) });
+      tracked = trackTrace(await readTrace(result.tracePath), { analysisId: liftId, assetPrefix: liftId, ...(plateMark ? { plateMark: { frame: plateMark.frame ?? 0, x: plateMark.x, y: plateMark.y, r: plateMark.r } } : {}) });
       if (tracked.misses.length === 0) break;
       plan = toNativePlan(tracked.plan);
     }
@@ -229,8 +230,9 @@ async function runDeviceLift(sub: ClipSubmission & { uri: string }, liftId: stri
     fraction: 0,
   });
   const startedAt = Date.now();
-  // 4.0.2: the tracker finds the plate itself; a mark comes only from adjusting it afterwards (retrackLift)
-  const mark = sub.plateMark ? 'made' : 'not_asked';
+  // the plate found on one frame and checked by the lifter (4.0.3 on): taken or adjusted, skipped, or never asked
+  // for (4.0.2: the tracker finds the plate itself, and a mark comes only from adjusting it afterwards)
+  const mark = sub.plateMark ? 'made' : findPlateSupported() ? 'skipped' : 'not_asked';
   track(EVENTS.TRACK_STARTED, { source: sub.source, mark });
   let prepared: string | null = null;
   activateKeepAwakeAsync(KEEP_AWAKE_TAG).catch(() => undefined);
@@ -240,7 +242,9 @@ async function runDeviceLift(sub: ClipSubmission & { uri: string }, liftId: stri
     const clip = await prepareClip(sub.uri, sub.trim, (p) => patch({ prepared: p }));
     prepared = clip.uri;
     patch({ status: 'analysing', prepared: 1 });
-    const loop = await analyseLoop(clip.uri, sub.movement, liftId, (stage, fraction) => patch({ stage, fraction }), () => cancelledRun === liftId, sub.plateMark ?? null);
+    // the mark was made atS into the trimmed clip: that is this frame of the prepared one
+    const marked = sub.plateMark ? { ...sub.plateMark, frame: Math.max(0, Math.round((sub.plateMark.atS ?? 0) * (clip.fps || 30))) } : null;
+    const loop = await analyseLoop(clip.uri, sub.movement, liftId, (stage, fraction) => patch({ stage, fraction }), () => cancelledRun === liftId, marked);
     const analysis = finishAnalysis(parseAnalysis(loop.analysis), liftId, sub);
     const local = saveLocalLift(liftId, analysis, loop.tracePath, loop.stills, loop.body);
     // 4.0: the clip stays on the phone with its lift (the player draws on the real video); deleted with the lift.

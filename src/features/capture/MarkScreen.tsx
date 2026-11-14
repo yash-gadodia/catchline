@@ -12,10 +12,25 @@ import MarkExample from './MarkExample';
 import { containRect, grab, markFrom, type PlateMark } from './plateMark';
 import { t } from '../../i18n';
 
-// After tracking (owner, 14-11: find the plate first, then let me adjust): the frame at `at` seconds of the lift's clip
-// with the plate the tracker found (`initial`, null when it found none). The lifter moves or resizes the circle, or
-// draws a new one, and the clip is tracked again from it.
-export default function MarkScreen({ uri, at, initial, onBack, onTrack }: { uri: string; at: number; initial: PlateMark | null; onBack: () => void; onTrack: (mark: PlateMark) => void }) {
+// The plate, on one frame of the clip (`at` seconds), for the lifter to check (owner, 14-11: find the plate first,
+// then let me adjust). `initial` is the plate that was found, null when none was. The lifter moves or resizes the
+// circle, or draws a new one. Before tracking (`onSkip` given, 4.0.3 on) the plate found can be taken as it is and a
+// lift with no plate skips the step; after it, the clip is tracked again only once the circle has been changed.
+export default function MarkScreen({
+  uri,
+  at,
+  initial,
+  onBack,
+  onTrack,
+  onSkip,
+}: {
+  uri: string;
+  at: number;
+  initial: PlateMark | null;
+  onBack: () => void;
+  onTrack: (mark: PlateMark) => void;
+  onSkip?: () => void;
+}) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   // The picture takes what the instruction and buttons leave, so a long line (German) never pushes Track off screen.
@@ -129,7 +144,7 @@ export default function MarkScreen({ uri, at, initial, onBack, onTrack }: { uri:
     <View testID="mark-screen" style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }}>
       <Header
         left={<Underlined onPress={onBack} testID="mark-back">{t('capture.mark.back')}</Underlined>}
-        center={<Text style={{ color: colors.text, ...type.button }}>{t('capture.mark.title')}</Text>}
+        center={<Text style={{ color: colors.text, ...type.button }}>{onSkip ? t('capture.mark.checkTitle') : t('capture.mark.title')}</Text>}
         right={<View />}
       />
       <View
@@ -182,16 +197,22 @@ export default function MarkScreen({ uri, at, initial, onBack, onTrack }: { uri:
       <View style={{ paddingHorizontal: space.gutter, paddingTop: space.s4, paddingBottom: Math.max(insets.bottom, space.s4), gap: space.s5 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s4 }}>
           <Text testID="mark-help" style={{ ...type.callout, color: colors.text2, flex: 1 }}>
-            {!mark ? t('capture.mark.help') : moved ? t('capture.mark.redo') : t('capture.mark.found')}
+            {!mark ? t('capture.mark.help') : moved ? t('capture.mark.redo') : onSkip ? t('capture.mark.check') : t('capture.mark.found')}
           </Text>
         </View>
         <View style={{ gap: space.s3 }}>
-          <Btn onPress={() => mark && onTrack(mark)} disabled={!mark || !moved} testID="mark-track">
-            {t('capture.mark.track')}
+          <Btn onPress={() => mark && onTrack(mark)} disabled={!mark || (!onSkip && !moved)} testID="mark-track">
+            {onSkip ? t('capture.mark.go') : t('capture.mark.track')}
           </Btn>
-          <Btn kind="secondary" compact onPress={onBack} testID="mark-cancel">
-            {t('capture.mark.cancel')}
-          </Btn>
+          {onSkip ? (
+            <Btn kind="secondary" compact onPress={onSkip} testID="mark-skip">
+              {t('capture.mark.skip')}
+            </Btn>
+          ) : (
+            <Btn kind="secondary" compact onPress={onBack} testID="mark-cancel">
+              {t('capture.mark.cancel')}
+            </Btn>
+          )}
         </View>
       </View>
     </View>

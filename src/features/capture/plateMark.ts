@@ -1,6 +1,7 @@
 // The lifter's own mark on the plate nearest the camera, made on the first frame of the trimmed clip: the centre as
 // shares of the frame's width and height, the radius as a share of its height.
-export type PlateMark = { x: number; y: number; r: number };
+// atS: how far into the trimmed clip the frame it was made on is, in seconds (absent: its first frame).
+export type PlateMark = { x: number; y: number; r: number; atS?: number };
 
 export type Rect = { x: number; y: number; width: number; height: number };
 

@@ -43,6 +43,13 @@ type Events = {
 declare class PoseCoreMLModule extends NativeModule<Events> {
   // true on a binary whose tracker starts from the lifter's mark on the plate (the build after 41)
   supportsPlateMark?: boolean;
+  // true on a binary with findPlate (the build after 47)
+  supportsFindPlate?: boolean;
+  // The lifter's plate on the frame at atSeconds of the clip, about a tenth of a second once the models are loaded:
+  // x, y as shares of the upright frame's width and height, r as a share of its height (a PlateMark) and the
+  // model's confidence (0.3 to 1). Null with nobody in the frame or no plate in anyone's hands; rejects when the clip
+  // cannot be read. Independent of analyseOnDevice, before or after it.
+  findPlate?(uri: string, atSeconds: number): Promise<{ x: number; y: number; r: number; confidence: number } | null>;
   analyzePose(uri: string): Promise<PoseResult>;
   ensureModels(): Promise<ModelsStatus>;
   modelsStatus(): Promise<ModelsStatus>;

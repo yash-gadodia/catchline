@@ -75,8 +75,30 @@ describe('marking the plate', () => {
     const onBack = jest.fn();
     const onTrack = jest.fn();
     const view = await render(<MarkScreen uri="file:///lift.mov" at={1} initial={found} onBack={onBack} onTrack={onTrack} />);
-    fireEvent.press(view.getByTestId('mark-cancel'));
+    await act(async () => {
+      fireEvent.press(view.getByTestId('mark-cancel'));
+    });
     expect(onBack).toHaveBeenCalledTimes(1);
     expect(onTrack).not.toHaveBeenCalled();
+  });
+
+  it('before tracking, takes the plate found as it is, or skips for a lift with no plate', async () => {
+    const onTrack = jest.fn();
+    const onSkip = jest.fn();
+    const view = await render(<MarkScreen uri="file:///lift.mov" at={1} initial={found} onBack={jest.fn()} onTrack={onTrack} onSkip={onSkip} />);
+    expect(view.getByText('Check the plate')).toBeOnTheScreen();
+    expect(view.getByTestId('mark-help')).toHaveTextContent('Is the circle on your plate? Drag it to move it, or drag its rim to resize it.');
+    expect(view.getByTestId('mark-track')).toHaveTextContent('Track');
+    expect(view.getByTestId('mark-track')).toBeEnabled();
+    await act(async () => {
+      fireEvent.press(view.getByTestId('mark-track'));
+    });
+    expect(onTrack).toHaveBeenCalledWith(found);
+    expect(view.getByTestId('mark-skip')).toHaveTextContent('No plate? Skip');
+    await act(async () => {
+      fireEvent.press(view.getByTestId('mark-skip'));
+    });
+    expect(onSkip).toHaveBeenCalledTimes(1);
+    expect(view.queryByTestId('mark-cancel')).toBeNull();
   });
 });

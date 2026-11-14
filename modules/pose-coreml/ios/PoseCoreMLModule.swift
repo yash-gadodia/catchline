@@ -9,6 +9,10 @@ final class AnalyseFailedException: GenericException<String> {
   override var reason: String { "Could not analyse on device: \(param)" }
 }
 
+final class FindPlateFailedException: GenericException<String> {
+  override var reason: String { "Could not look for the plate: \(param)" }
+}
+
 private func fileURL(_ uri: String) -> URL {
   if let url = URL(string: uri), url.scheme != nil { return url }
   return URL(fileURLWithPath: uri)
@@ -54,7 +58,8 @@ public class PoseCoreMLModule: Module {
     Name("PoseCoreML")
 
     // the tracker starts from the lifter's mark on the plate (the app shows the mark step only where this is true)
-    Constants(["supportsPlateMark": true])
+    // supportsFindPlate: findPlate is in this binary
+    Constants(["supportsPlateMark": true, "supportsFindPlate": true])
 
     Events("onProgress", "onAnalyseProgress")
 
@@ -113,6 +118,19 @@ public class PoseCoreMLModule: Module {
         return ["tracePath": tracePath.path, "stills": stills.mapValues { $0.path }]
       } catch {
         throw AnalyseFailedException(String(describing: error))
+      }
+    }
+
+    // The lifter's plate on the frame at atSeconds of the clip, for the lifter to confirm before the clip is tracked:
+    // x, y (shares of the upright frame's width and height), r (share of its height) and the model's confidence. Null
+    // with nobody in the frame or no plate the model is sure of. Reads one frame; keeps nothing for analyseOnDevice.
+    AsyncFunction("findPlate") { (uri: String, atSeconds: Double) async throws -> [String: Double]? in
+      do {
+        let models = try await self.loadModels { _, _ in }
+        guard let p = try await findPlateInFrame(url: fileURL(uri), atSeconds: atSeconds, models: models) else { return nil }
+        return ["x": p.x, "y": p.y, "r": p.r, "confidence": p.confidence]
+      } catch {
+        throw FindPlateFailedException(String(describing: error))
       }
     }
 

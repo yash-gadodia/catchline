@@ -138,6 +138,11 @@ export const you: Strings<typeof en> = {
   // REVIEW
   'you.whatsNew.version': "Catchline {version}",
   // REVIEW
+  'you.whatsNew.v403.plate': "Le disque est trouvé avant le début du suivi. Vérifie le cercle, ajuste-le si besoin, puis lance le suivi.",
+  'you.whatsNew.v403.share': "Les vidéos partagées peuvent afficher le graphique de vitesse de la barre, la date et la charge, avec toute la trajectoire en léger derrière chaque répétition.",
+  'you.whatsNew.v403.tools': "Dans le lecteur : pince pour zoomer, une grille, une ligne verticale, le dessin à main levée et un graphique de vitesse dans lequel zoomer.",
+  'you.whatsNew.v403.notes': "Donne un nom, des tags et une note à un mouvement. Recherche dans tes mouvements et compare deux du même type côte à côte.",
+  'you.whatsNew.v403.languages': "Maintenant en italien, japonais, coréen et chinois simplifié.",
   'you.whatsNew.v402.reps': "Chaque répétition trace sa propre trajectoire de barre, les précédentes restent en transparence.",
   'you.whatsNew.v402.speed': "Vitesse de barre : vois à quelle vitesse la barre se déplace à chaque répétition.",
   'you.whatsNew.v402.share': "Partage en vitesse 2x ou 4x, avec une carte de fin Catchline épurée.",

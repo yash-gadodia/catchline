@@ -2,15 +2,17 @@ import Foundation
 
 // catchline-harness pose    <clip> --models <dir> --out <trace.json.gz> [--movement snatch] [--no-camera] [--all-people] [--detect-every N] [--pose-json <path>]
 // catchline-harness analyse <clip> --models <dir> --plan <plan.json> --out <trace.json.gz> [--stills <dir>] [--movement snatch]
+// catchline-harness find-plate <clip> --models <dir> --plate <dir> --at <seconds>
 //
 // pose: the first analyseOnDevice call (pose + lifter + camera path). analyse: the same, then the pixel
 // stages on the frames the plan names (the plan is what src/analysis/device planFromMisses writes).
 // --no-camera skips track.py camera_path (until CameraMotion.swift lands) so the lifter can be compared alone.
 // --all-people poses every detection (the app poses only the lifter's candidates after the first second).
+// find-plate: the module's findPlate, the plate on one frame as JSON on stdout (null: none), how it got there on stderr.
 // --detect-every N runs the person detector on every Nth frame (1: every frame; default the app's detectInterval).
 
 func usage() -> Never {
-  FileHandle.standardError.write(Data("usage: catchline-harness pose|analyse <clip> --models <dir> --out <trace.json.gz> [--plan <plan.json>] [--stills <dir>] [--movement <m>] [--no-camera] [--all-people] [--pose-json <path>]\n".utf8))
+  FileHandle.standardError.write(Data("usage: catchline-harness pose|analyse <clip> --models <dir> --out <trace.json.gz> [--plan <plan.json>] [--stills <dir>] [--movement <m>] [--no-camera] [--all-people] [--pose-json <path>]\n       catchline-harness find-plate <clip> --models <dir> --plate <dir> --at <seconds>\n".utf8))
   exit(2)
 }
 
@@ -26,7 +28,7 @@ while !args.isEmpty {
   guard a.hasPrefix("--"), !args.isEmpty else { usage() }
   opts[a] = args.removeFirst()
 }
-guard ["pose", "analyse"].contains(command), let modelsDir = opts["--models"], let out = opts["--out"] else { usage() }
+guard ["pose", "analyse", "find-plate"].contains(command), let modelsDir = opts["--models"] else { usage() }
 let movement = opts["--movement"] ?? "snatch"
 
 func log(_ s: String) { FileHandle.standardError.write(Data((s + "\n").utf8)) }
@@ -34,6 +36,31 @@ func log(_ s: String) { FileHandle.standardError.write(Data((s + "\n").utf8)) }
 let t0 = Date()
 let models = try PoseModels(directory: URL(fileURLWithPath: modelsDir), plateDirectory: opts["--plate"].map { URL(fileURLWithPath: $0) })
 log("models loaded in \(String(format: "%.1f", Date().timeIntervalSince(t0))) s")
+
+if command == "find-plate" {
+  guard let at = opts["--at"].flatMap(Double.init) else { usage() }
+  let done = DispatchSemaphore(value: 0)
+  Task {
+    do {
+      // twice: the first call also pays Core ML's first prediction on each model
+      for call in ["first", "second"] {
+        let t1 = Date()
+        let found = try await findPlateInFrame(url: clip, atSeconds: at, models: models) { if call == "second" { log($0) } }
+        log("\(call) call \(String(format: "%.0f", Date().timeIntervalSince(t1) * 1000)) ms")
+        guard call == "second" else { continue }
+        let r4 = { (v: Double) in (v * 10000).rounded() / 10000 }
+        print(found.map { pyJSON(["x": r4($0.x), "y": r4($0.y), "r": r4($0.r), "confidence": r4($0.confidence)]) } ?? "null")
+      }
+    } catch {
+      log("error: \(error)")
+      exit(1)
+    }
+    done.signal()
+  }
+  done.wait()
+  exit(0)
+}
+guard let out = opts["--out"] else { usage() }
 
 var plan: AnalysePlan?
 if command == "analyse" {

@@ -138,6 +138,11 @@ export const you: Strings<typeof en> = {
   // REVIEW
   'you.whatsNew.version': "Catchline {version}",
   // REVIEW
+  'you.whatsNew.v403.plate': "Die Scheibe wird vor dem Tracking gefunden. Prüf den Kreis, pass ihn an, falls er nicht stimmt, und tracke dann.",
+  'you.whatsNew.v403.share': "Geteilte Videos können das Diagramm der Hantelgeschwindigkeit, das Datum und das Gewicht zeigen, mit dem ganzen Hantelweg blass hinter jeder Wiederholung.",
+  'you.whatsNew.v403.tools': "Im Player: mit zwei Fingern zoomen, ein Raster, eine senkrechte Linie, Freihandzeichnen und ein Geschwindigkeitsdiagramm zum Hineinzoomen.",
+  'you.whatsNew.v403.notes': "Gib einem Lift einen Namen, Tags und eine Notiz. Durchsuche deine Lifts und stell zwei gleiche nebeneinander.",
+  'you.whatsNew.v403.languages': "Jetzt auch auf Italienisch, Japanisch, Koreanisch und in vereinfachtem Chinesisch.",
   'you.whatsNew.v402.reps': "Jede Wiederholung zeichnet ihren eigenen Hantelweg, frühere Wiederholungen bleiben blass darunter.",
   'you.whatsNew.v402.speed': "Hantelgeschwindigkeit: Sieh, wie schnell sich die Stange in jeder Wiederholung bewegt.",
   'you.whatsNew.v402.share': "Teilen mit 2- oder 4-facher Geschwindigkeit, mit einer sauberen Catchline-Abspannkarte.",
