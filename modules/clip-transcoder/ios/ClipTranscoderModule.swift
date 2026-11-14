@@ -1,5 +1,8 @@
 import AVFoundation
 import ExpoModulesCore
+#if os(iOS)
+import UIKit
+#endif
 
 struct TranscodeOptions: Record {
   @Field var uri: String = ""
@@ -37,6 +40,26 @@ func shareFile(_ ext: String) throws -> URL {
   return dir.appendingPathComponent("catchline-\(UUID().uuidString.prefix(8)).\(ext)")
 }
 
+#if os(iOS)
+// Preparing a clip takes a few seconds, and leaving the app in that time suspended it and failed the clip (audit,
+// 14-11). Under a background task iOS lets it run on for about half a minute, enough to finish.
+private final class PrepareTask: @unchecked Sendable {
+  private var id = UIBackgroundTaskIdentifier.invalid
+
+  @MainActor func begin() {
+    id = UIApplication.shared.beginBackgroundTask(withName: "catchline-prepare") { [weak self] in
+      Task { @MainActor in self?.end() }
+    }
+  }
+
+  @MainActor func end() {
+    guard id != .invalid else { return }
+    UIApplication.shared.endBackgroundTask(id)
+    id = .invalid
+  }
+}
+#endif
+
 public class ClipTranscoderModule: Module {
   public func definition() -> ModuleDefinition {
     Name("ClipTranscoder")
@@ -58,7 +81,20 @@ public class ClipTranscoderModule: Module {
     }
 
     AsyncFunction("transcode") { (o: TranscodeOptions) async throws -> [String: Any] in
-      try await self.transcode(o)
+      #if os(iOS)
+      let task = PrepareTask()
+      await task.begin()
+      do {
+        let result = try await self.transcode(o)
+        await task.end()
+        return result
+      } catch {
+        await task.end()
+        throw error
+      }
+      #else
+      return try await self.transcode(o)
+      #endif
     }
 
     AsyncFunction("renderShareVideo") { (uri: String, spec: ShareSpec) async throws -> [String: Any] in
