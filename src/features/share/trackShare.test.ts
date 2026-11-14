@@ -1,7 +1,7 @@
 import type { Analysis } from '../../analysis/types';
 import type { Body } from '../../analysis/device/tracking';
 import { snatchMock } from '../../analysis/fixtures';
-import { buildTrackSpec, frameCountOf, pxPerPt, type TrackShareOptions } from './trackShare';
+import { buildTrackSpec, frameCountOf, pxPerPt, shareChart, type TrackShareOptions } from './trackShare';
 
 // shoulder, elbow, wrist, hip, knee, ankle, heel, toe; left then right.
 const row = (pts: Record<number, [number, number]>): (number | null)[] => {
@@ -146,5 +146,40 @@ describe('buildTrackSpec', () => {
     expect(buildTrackSpec(lift(), body, ALL, 99).frame).toBe(2);
     expect(buildTrackSpec(lift(), body, ALL, -4).frame).toBe(0);
     expect(frameCountOf(lift({ video: { uri: '', width: 1080, height: 1920, fps: 30, frameCount: 0 } }), null)).toBe(1);
+  });
+});
+
+describe('what a 4.0.3 binary draws', () => {
+  // a plate read on every frame, rising steadily: one rep, with a bar speed on each frame
+  const rising = lift({
+    video: { uri: '', width: 1080, height: 1920, fps: 30, frameCount: 12 },
+    reps: [{ ...snatchMock.reps[0], path: Array.from({ length: 12 }, (_, f) => ({ frame: f, x: 0.5, y: 0.8 - f * 0.04, src: 'plate' as const, r: 0.1 })) }],
+  });
+
+  it('adds the whole path to draw faint, where each rep starts, the speed graph and the lifter line', () => {
+    const spec = buildTrackSpec(rising, null, { ...ALL, details: { graph: true, caption: '14 Nov 2026 · 62.5 kg' } });
+    expect(spec.ghost).toEqual([Array.from({ length: 12 }, (_, f) => [0.5, 0.8 - f * 0.04])]);
+    expect(spec.repStarts).toEqual([0]);
+    expect(spec.caption).toBe('14 Nov 2026 · 62.5 kg');
+    expect(spec.chart?.unit).toBe('m/s');
+    expect(spec.chart?.min).toBe(0);
+    expect(spec.chart?.values.length).toBe(8);
+    expect(spec.chart?.values.every(([, v]) => v > 0)).toBe(true);
+    expect(spec.chart?.max).toBe(Math.max(...(spec.chart?.values ?? []).map(([, v]) => v)));
+  });
+
+  it('leaves the graph and the line out when they are switched off, and all of it out on an older binary', () => {
+    const quiet = buildTrackSpec(rising, null, { ...ALL, details: { graph: false, caption: null } });
+    expect(quiet.chart).toBeUndefined();
+    expect(quiet.caption).toBeUndefined();
+    expect(quiet.repStarts).toEqual([0]);
+    const old = buildTrackSpec(rising, null, ALL);
+    expect(old.ghost).toBeUndefined();
+    expect(old.repStarts).toBeUndefined();
+    expect(old.chart).toBeUndefined();
+  });
+
+  it('has no graph for a lift whose plate size was never read', () => {
+    expect(shareChart(lift(), 0, 2)).toBeUndefined();
   });
 });

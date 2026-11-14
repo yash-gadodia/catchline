@@ -28,6 +28,8 @@ export async function renderVideo(uri: string, spec: OverlaySpec, onProgress: (p
 export const fastShareSupported = () => (Transcoder as { supportsFastShare?: boolean } | null)?.supportsFastShare === true;
 // the logo lockup and end card: only a binary whose TrackRenderer draws spec.brand (4.0.2 on)
 export const shareBrandSupported = () => (Transcoder as { supportsShareBrand?: boolean } | null)?.supportsShareBrand === true;
+// the whole path under each rep, the speed graph and the lifter's line: only a binary that draws them (4.0.3 on)
+export const shareDetailsSupported = () => (Transcoder as { supportsShareDetails?: boolean } | null)?.supportsShareDetails === true;
 
 // 4.0: the lift's kept clip with the tracker's overlay burned in, and one frame of it as an image.
 export async function renderTrackVideo(clipUri: string, spec: TrackSpec, onProgress: (p: number) => void): Promise<string> {

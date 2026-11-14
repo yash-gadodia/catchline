@@ -12,6 +12,8 @@ import TrackShareScreen from '../../src/features/share/TrackShareScreen';
 import { localClipFor } from '../../src/features/share/localClips';
 import { SHARE_ASPECTS } from '../../src/features/share/overlay';
 import { EVENTS, track } from '../../src/lib/analytics';
+import { liftCaption } from '../../src/features/library/derive';
+import { useLift } from '../../src/features/library/repository';
 
 // Where a share can be opened from; anything else in the link counts as the player.
 const FROM = ['player', 'reveal'];
@@ -30,11 +32,12 @@ export default function ShareRoute() {
   // A 4.0 lift keeps its clip: it shares the clip itself with the tracker's overlay, not the cue card.
   const kept = id ? localClipUri(id) : null;
   const body = useLocalBody(id, !!kept);
+  const lift = useLift(id);
   if (load.status !== 'ready') return <AnalysisPlaceholder status={load.status} onBack={back} />;
   const analysis = load.analysis;
   if (kept) {
     if (!body.ready) return <AnalysisPlaceholder status="loading" onBack={back} />;
-    return <TrackShareScreen key={analysis.id} analysis={analysis} body={body.body} clipUri={kept} watermark onBack={back} />;
+    return <TrackShareScreen key={analysis.id} analysis={analysis} body={body.body} clipUri={kept} watermark caption={lift ? liftCaption(lift) : null} onBack={back} />;
   }
   const clip = __DEV__ && p.clip ? { uri: p.clip, startS: Number(p.start ?? 0) } : localClipFor(analysis.id);
   return (

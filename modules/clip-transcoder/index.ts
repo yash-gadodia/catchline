@@ -29,6 +29,8 @@ declare class ClipTranscoderModule extends NativeModule<Events> {
   supportsFastShare?: boolean;
   // spec.brand draws the logo lockup and the end card (4.0.2 on)
   supportsShareBrand?: boolean;
+  // spec.ghost, repStarts, chart and caption are drawn (4.0.3 on)
+  supportsShareDetails?: boolean;
   probe(uri: string): Promise<SourceInfo>;
   transcode(options: TranscodeOptions): Promise<TranscodeResult>;
   renderShareVideo(uri: string, spec: OverlaySpec): Promise<ShareVideoResult>;

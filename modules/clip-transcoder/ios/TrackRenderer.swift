@@ -50,7 +50,22 @@ struct TrackSpec: Decodable {
   // the brand lockup (monogram, wordmark, a line under it) in place of the plain watermark, and an end card after the
   // last frame (4.0.2 on; older binaries draw the watermark text)
   var brand: TrackBrand?
+  // 4.0.3 on (a binary before it ignores them). ghost: the whole set's path as [x, y] polylines, drawn faint under the
+  // rep on screen. repStarts: the frames each rep begins on; the bright path starts again at each. chart: the bar
+  // speed graph. caption: the lifter's own line (date, weight).
+  var ghost: [[[Double]]]?
+  var repStarts: [Double]?
+  var chart: TrackChart?
+  var caption: String?
   var style: TrackStyle
+}
+
+struct TrackChart: Decodable {
+  // [frame, value] per frame that has one
+  var values: [[Double]]
+  var min: Double
+  var max: Double
+  var unit: String
 }
 
 struct TrackBrand: Decodable {
@@ -160,12 +175,27 @@ func drawTrack(_ ctx: CGContext, spec: TrackSpec, frame: Int, size: CGSize, full
     ctx.strokeEllipse(in: r)
   }
 
+  // the whole set's path, faint and dotted as the player draws it; the share image already draws it whole and bright
+  if let ghost = spec.ghost, !fullPath {
+    ctx.saveGState()
+    ctx.setStrokeColor(cgColor(st.bone, st.lineAlpha))
+    ctx.setLineWidth(st.pathWidth * 0.8)
+    ctx.setLineDash(phase: 0, lengths: [CGFloat(st.pathWidth * 0.4), CGFloat(st.pathWidth * 2)])
+    for line in ghost where line.count > 1 {
+      ctx.addLines(between: line.map { pt($0[0], $0[1]) })
+      ctx.strokePath()
+    }
+    ctx.restoreGState()
+  }
+
   if let first = spec.path.first, let last = spec.path.last {
     var pts: [CGPoint] = []
     if fullPath {
       pts = spec.path.map { pt($0[1], $0[2]) }
     } else if f >= first[0] {
-      let from = spec.trailFrames.map { f - Double($0) } ?? -Double.infinity
+      // the bright path is the rep on screen: it starts again where each rep begins
+      let rep = spec.repStarts?.last(where: { $0 <= f }) ?? -Double.infinity
+      let from = max(spec.trailFrames.map { f - Double($0) } ?? -Double.infinity, rep)
       pts = spec.path.filter { $0[0] < f && $0[0] >= from }.map { pt($0[1], $0[2]) }
       if let end = pointAt(spec.path, f) { pts.append(pt(end.x, end.y)) }
     }
@@ -188,12 +218,17 @@ func drawTrack(_ ctx: CGContext, spec: TrackSpec, frame: Int, size: CGSize, full
     }
   }
 
+  // the lifter's line and the graph sit under the lockup, in its column (clear of the Reels header and buttons)
+  var below = CGPoint(x: size.width * 0.045, y: size.height * (spec.brand?.top ?? 0.12))
+  var column = st.markSize * 8
   if let brand = spec.brand {
     let u = st.markSize
-    let x = size.width * 0.045
-    let y = size.height * (brand.top ?? 0.12)
-    drawLockup(ctx, st, brand, at: CGPoint(x: x, y: y), unit: u, plate: true)
-  } else if let text = spec.watermark, !text.isEmpty {
+    let box = drawLockup(ctx, st, brand, at: below, unit: u, plate: true)
+    below.y += box.height + u * 0.2
+    column = box.width
+  }
+  drawDetails(ctx, spec, frame: f, at: below, width: column)
+  if spec.brand == nil, let text = spec.watermark, !text.isEmpty {
     let line = CTLineCreateWithAttributedString(NSAttributedString(string: text, attributes: [
       NSAttributedString.Key(kCTFontAttributeName as String): markFont(st),
       NSAttributedString.Key(kCTForegroundColorAttributeName as String): cgColor(st.bone),
@@ -209,6 +244,76 @@ func drawTrack(_ ctx: CGContext, spec: TrackSpec, frame: Int, size: CGSize, full
     CTLineDraw(line, ctx)
     ctx.restoreGState()
   }
+}
+
+// Under the lockup: the lifter's own line (date, weight) on a dark plate, then the bar speed graph with the speed on
+// this frame, the line so far bone on a faint whole, and a flare cursor. As wide as the lockup; sizes follow its unit.
+private func drawDetails(_ ctx: CGContext, _ spec: TrackSpec, frame f: Double, at origin: CGPoint, width: Double) {
+  let st = spec.style
+  let u = st.markSize
+  let pad = u * 0.45
+  let radius = u * 0.27
+  var y = origin.y
+  func plate(_ box: CGRect) {
+    ctx.saveGState()
+    ctx.setFillColor(CGColor(gray: 0.04, alpha: 0.82))
+    ctx.addPath(CGPath(roundedRect: box, cornerWidth: radius, cornerHeight: radius, transform: nil))
+    ctx.fillPath()
+    ctx.restoreGState()
+  }
+  if let caption = spec.caption, !caption.isEmpty {
+    let line = markLine(caption, st, size: u * 0.82, kern: 0.03, alpha: 1)
+    let box = CGRect(x: origin.x, y: y, width: max(width, line.width + pad * 2), height: line.ascent + line.descent + pad * 1.4)
+    plate(box)
+    drawText(ctx, line, baseline: CGPoint(x: box.minX + pad, y: box.minY + pad * 0.7 + line.ascent))
+    y = box.maxY + u * 0.2
+  }
+  guard let chart = spec.chart, chart.values.count > 1, chart.max > chart.min else { return }
+  let first = Double(spec.startFrame ?? 0)
+  let last = Double(spec.endFrame ?? max(spec.frameCount - 1, 1))
+  guard last > first else { return }
+  let box = CGRect(x: origin.x, y: y, width: width, height: u * 3.8)
+  plate(box)
+  let now = chart.values.last(where: { $0[0] <= f && f - $0[0] <= 1 })?[1]
+  let label = markLine((now.map { String(format: "%.2f", $0) } ?? "–") + " " + chart.unit, st, size: u * 0.82, kern: 0.03, alpha: 1)
+  drawText(ctx, label, baseline: CGPoint(x: box.minX + pad, y: box.minY + pad * 0.8 + label.ascent))
+  let plot = CGRect(x: box.minX + pad, y: box.minY + pad * 1.4 + label.ascent + label.descent, width: box.width - pad * 2, height: box.maxY - pad - (box.minY + pad * 1.4 + label.ascent + label.descent))
+  let at = { (frame: Double, v: Double) in
+    CGPoint(x: plot.minX + (min(max(frame, first), last) - first) / (last - first) * plot.width, y: plot.maxY - (v - chart.min) / (chart.max - chart.min) * plot.height)
+  }
+  ctx.saveGState()
+  ctx.setLineCap(.round)
+  ctx.setLineJoin(.round)
+  if chart.min < 0 && chart.max > 0 {
+    ctx.setStrokeColor(cgColor(st.bone, 0.3))
+    ctx.setLineWidth(st.lineWidth)
+    ctx.move(to: at(first, 0))
+    ctx.addLine(to: at(last, 0))
+    ctx.strokePath()
+  }
+  let shown = chart.values.filter { $0[0] >= first && $0[0] <= last }
+  let width = max(st.lineWidth * 1.5, u * 0.07)
+  for (alpha, pts) in [(0.35, shown), (1.0, shown.filter { $0[0] <= f })] where pts.count > 1 {
+    ctx.setStrokeColor(cgColor(st.bone, alpha))
+    ctx.setLineWidth(width)
+    ctx.addLines(between: pts.map { at($0[0], $0[1]) })
+    ctx.strokePath()
+  }
+  if f >= first && f <= last {
+    let x = at(f, 0).x
+    ctx.setStrokeColor(cgColor(st.flare))
+    ctx.setLineWidth(st.lineWidth)
+    ctx.move(to: CGPoint(x: x, y: plot.minY))
+    ctx.addLine(to: CGPoint(x: x, y: plot.maxY))
+    ctx.strokePath()
+    if let v = now {
+      let c = at(f, v)
+      let r = u * 0.16
+      ctx.setFillColor(cgColor(st.flare))
+      ctx.fillEllipse(in: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2))
+    }
+  }
+  ctx.restoreGState()
 }
 
 // The clip decoded in order as BGRA, so the nth buffer is trace frame n.
@@ -413,6 +518,9 @@ func renderTrackVideo(source: URL, to url: URL, spec: TrackSpec, onProgress: @es
         plain.floorY = nil
         // a hanging movement's hip trail is only meaningful as its last second: the card leaves it out
         if spec.trailFrames != nil { plain.path = [] }
+        plain.ghost = nil
+        plain.chart = nil
+        plain.caption = nil
         if let k = lastKept {
           try compose(k.sample, src, into: card, ci: ci, spec: plain, frame: k.frame, fullPath: true)
         } else {

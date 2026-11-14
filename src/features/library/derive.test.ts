@@ -1,6 +1,6 @@
 import { File } from 'expo-file-system';
 import { setLanguage } from '../../i18n';
-import { byDay, freeVideosLabel, isTracked, liftTime, liftDetail, liftLink, liftTitle, liftWhen, newestFirst, sessionsDone } from './derive';
+import { byDay, freeVideosLabel, isTracked, liftTime, liftDetail, liftCaption, liftLink, liftTitle, liftWhen, newestFirst, sessionsDone } from './derive';
 import { emptyLibrary } from './seed';
 import type { CueRecord, Lift, Session } from './types';
 
@@ -44,6 +44,9 @@ describe('a lift row', () => {
     expect(liftWhen(lift())).toBe('11 Nov, 14:32');
     expect(liftTitle(lift())).toBe('11 Nov, 14:32');
     expect(liftTitle(lift({ loadKg: 62.5 }))).toBe('11 Nov, 14:32 · 62.5 kg');
+    // the line a shared video carries: the day with its year, and the load when there is one
+    expect(liftCaption(lift({ loadKg: 62.5 }))).toMatch(/^(11 Nov 2026|Nov 11, 2026) · 62\.5 kg$/);
+    expect(liftCaption(lift())).toMatch(/^(11 Nov 2026|Nov 11, 2026)$/);
     expect(liftTitle(lift({ at: undefined, loadKg: 60 }))).toBe('11 Nov · 60 kg');
   });
 

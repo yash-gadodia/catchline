@@ -187,7 +187,7 @@ describe('TrackShareScreen', () => {
       await waitFor(() => expect(d.askRating).toHaveBeenCalledTimes(1));
       expect(jest.mocked(track).mock.calls).toEqual([
         // 4 frames at 60 fps, at half speed
-        ['share_exported', { kind: 'video', speed: 0.5, overlay_path: true, overlay_lines: true, overlay_body: true, whole_clip: false, has_bar_path: true, duration_s: 0.1, completed: true }],
+        ['share_exported', { kind: 'video', speed: 0.5, overlay_path: true, overlay_lines: true, overlay_body: true, overlay_graph: false, overlay_caption: false, whole_clip: false, has_bar_path: true, duration_s: 0.1, completed: true }],
         ['share_completed', { kind: 'video', activity: 'com.apple.UIKit.activity.SaveToCameraRoll' }],
       ]);
       expect(d.askRating).toHaveBeenCalledWith(true);
@@ -201,7 +201,7 @@ describe('TrackShareScreen', () => {
       await press(getByTestId('share-image-btn'));
       await waitFor(() => expect(d.askRating).toHaveBeenCalledWith(false));
       expect(jest.mocked(track).mock.calls).toEqual([
-        ['share_exported', { kind: 'image', speed: 1, overlay_path: true, overlay_lines: false, overlay_body: true, whole_clip: false, has_bar_path: false, duration_s: 0, completed: true }],
+        ['share_exported', { kind: 'image', speed: 1, overlay_path: true, overlay_lines: false, overlay_body: true, overlay_graph: false, overlay_caption: false, whole_clip: false, has_bar_path: false, duration_s: 0, completed: true }],
         ['share_completed', { kind: 'image', activity: 'com.apple.UIKit.activity.SaveToCameraRoll' }],
       ]);
     });
@@ -282,5 +282,42 @@ describe('TrackShareScreen', () => {
     await waitFor(() => expect(d.share).toHaveBeenCalled());
     await unmount();
     expect(d.discard).toHaveBeenCalledWith(VIDEO);
+  });
+
+  describe('what a 4.0.3 binary adds to the video', () => {
+    it('offers the date line, on from the start when the lift has a weight, and sends it with the video', async () => {
+      const d = deps({ shareDetails: true });
+      const heavy = { ...analysis, loadKg: 62.5 };
+      const { getByTestId, queryByTestId } = await render(<TrackShareScreen analysis={heavy} body={body} clipUri={CLIP} watermark caption="14 Nov 2026 · 62.5 kg" onBack={() => {}} deps={d} />);
+      expect(getByTestId('share-caption')).toHaveTextContent('14 Nov 2026 · 62.5 kg');
+      expect(getByTestId('share-toggle-caption')).toHaveTextContent('date and weight');
+      await press(getByTestId('share-video-btn'));
+      expect(specOf(d.renderVideo).caption).toBe('14 Nov 2026 · 62.5 kg');
+      await press(getByTestId('share-toggle-caption'));
+      expect(queryByTestId('share-caption')).toBeNull();
+      await press(getByTestId('share-video-btn'));
+      expect(specOf(d.renderVideo, 1).caption).toBeUndefined();
+    });
+
+    it('leaves a date with no weight off until asked for', async () => {
+      const d = deps({ shareDetails: true });
+      const { getByTestId, queryByTestId } = await render(<TrackShareScreen analysis={{ ...analysis, loadKg: undefined }} body={body} clipUri={CLIP} watermark caption="14 Nov 2026" onBack={() => {}} deps={d} />);
+      expect(queryByTestId('share-caption')).toBeNull();
+      expect(getByTestId('share-toggle-caption')).toHaveTextContent('date');
+      await press(getByTestId('share-toggle-caption'));
+      expect(getByTestId('share-caption')).toHaveTextContent('14 Nov 2026');
+    });
+
+    it('offers none of it on an older binary', async () => {
+      const d = deps();
+      const { queryByTestId, getByTestId } = await render(<TrackShareScreen analysis={analysis} body={body} clipUri={CLIP} watermark caption="14 Nov 2026" onBack={() => {}} deps={d} />);
+      expect(queryByTestId('share-toggle-caption')).toBeNull();
+      expect(queryByTestId('share-toggle-graph')).toBeNull();
+      await press(getByTestId('share-video-btn'));
+      const spec = specOf(d.renderVideo);
+      expect(spec.caption).toBeUndefined();
+      expect(spec.ghost).toBeUndefined();
+      expect(spec.chart).toBeUndefined();
+    });
   });
 });

@@ -25,6 +25,12 @@ export function liftWhen(l: Pick<Lift, 'date' | 'at'>): string {
   return t('library.date.dayTime', { date, time: `${pad(d.getHours())}:${pad(d.getMinutes())}` });
 }
 
+// The line a shared video can carry: the day of the lift, and its load if the lifter set one ("14 Nov 2026 · 62.5 kg").
+export function liftCaption(l: Pick<Lift, 'date' | 'at' | 'loadKg'>): string {
+  const day = formatDate(l.at ? new Date(l.at) : utc(l.date), { day: 'numeric', month: 'short', year: 'numeric', ...(l.at ? {} : { timeZone: 'UTC' }) });
+  return l.loadKg != null ? `${day} · ${fmt(l.loadKg)} kg` : day;
+}
+
 // A 4.0 lift keeps its clip and was never given a movement by the lifter.
 export function isTracked(l: Pick<Lift, 'id' | 'analysisId'>): boolean {
   return localClipUri(l.analysisId ?? l.id) !== null;

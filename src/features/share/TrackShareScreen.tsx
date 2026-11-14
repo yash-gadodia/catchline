@@ -14,11 +14,12 @@ import Mark from '../../components/Mark';
 import { display, type } from '../../design/typography';
 import TrackOverlay from '../analysis/TrackOverlay';
 import { frameAt, liftRange, timeOf } from '../analysis/tracker';
-import { discardRender, fastShareSupported, renderTrackImage, shareBrandSupported, renderTrackVideo, shareFile } from './exporter';
+import { discardRender, fastShareSupported, renderTrackImage, shareBrandSupported, shareDetailsSupported, renderTrackVideo, shareFile } from './exporter';
+import ShareDetails from './ShareDetails';
 import { askForRatingOnce } from './rating';
 import { liftCsv } from './csv';
 import { shareLiftsCsv } from '../you/liftsCsv';
-import { buildTrackSpec, markLayout, shareSpeeds, frameCountOf, hasBarPath, type ShareSpeed, type TrackShareOptions } from './trackShare';
+import { buildTrackSpec, markLayout, shareChart, shareSpeeds, frameCountOf, hasBarPath, type ShareSpeed, type TrackShareOptions } from './trackShare';
 import { Chip } from './ui';
 
 export type TrackShareDeps = {
@@ -32,6 +33,8 @@ export type TrackShareDeps = {
   shareBrand?: boolean;
   // tests: whether the binary renders 2x / 4x (default: ask ClipTranscoder)
   fastShare?: boolean;
+  // tests: whether the binary draws the whole path, the graph and the caption (default: ask ClipTranscoder)
+  shareDetails?: boolean;
 };
 
 const DEFAULT_DEPS: TrackShareDeps = { renderVideo: renderTrackVideo, renderImage: renderTrackImage, share: shareFile, discard: discardRender, askRating: askForRatingOnce, shareCsv: shareLiftsCsv };
@@ -44,6 +47,7 @@ export default function TrackShareScreen({
   body,
   clipUri,
   watermark,
+  caption = null,
   onBack,
   deps = DEFAULT_DEPS,
 }: {
@@ -51,6 +55,8 @@ export default function TrackShareScreen({
   body: Body | null;
   clipUri: string;
   watermark: boolean;
+  // the lift's date, and its weight when the lifter gave one: offered as a line on the video
+  caption?: string | null;
   onBack: () => void;
   deps?: TrackShareDeps;
 }) {
@@ -64,10 +70,15 @@ export default function TrackShareScreen({
   // Like the player, the share keeps to the lift itself until the lifter asks for the whole clip.
   const hasLift = liftRange(analysis.lift, count, false).cropped;
   const [whole, setWhole] = useState(false);
+  // 4.0.3 on: the speed graph and the lifter's line on the video. The line starts on only when it carries a weight.
+  const details = deps.shareDetails ?? shareDetailsSupported();
+  const [graph, setGraph] = useState(true);
+  const [captioned, setCaptioned] = useState(analysis.loadKg != null);
   const { first, last } = liftRange(analysis.lift, count, whole);
   const [frame, setFrameState] = useState(first);
   const [making, setMaking] = useState<{ kind: 'video' | 'image'; progress: number } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [lockupW, setLockupW] = useState(120);
   const frameRef = useRef(first);
   const made = useRef<Record<string, string>>({});
 
@@ -148,7 +159,9 @@ export default function TrackShareScreen({
     player.currentTime = timeOf(next.first, fps);
   };
 
-  const options: TrackShareOptions = { ...layers, body: layers.body && body !== null, watermark, speed, whole };
+  const lockup = watermark && (deps.shareBrand ?? shareBrandSupported());
+  const chart = details && graph ? shareChart(analysis, first, last) : undefined;
+  const options: TrackShareOptions = { ...layers, body: layers.body && body !== null, watermark, speed, whole, ...(details ? { details: { graph, caption: captioned ? caption : null } } : {}) };
 
   // Renders once per set of choices; the same choices share the file already made.
   const send = async (kind: 'video' | 'image') => {
@@ -190,6 +203,8 @@ export default function TrackShareScreen({
       overlay_path: options.path,
       overlay_lines: options.lines,
       overlay_body: options.body,
+      overlay_graph: !!options.details?.graph,
+      overlay_caption: !!options.details?.caption,
       whole_clip: whole,
       has_bar_path: barPath,
       duration_s: kind === 'video' ? Number(((last - first + 1) / fps / speed).toFixed(1)) : 0,
@@ -216,22 +231,28 @@ export default function TrackShareScreen({
           style={{ width: box.width, height: box.height, overflow: 'hidden' }}
         >
           <VideoView player={player} style={{ width: box.width, height: box.height }} contentFit="fill" nativeControls={false} allowsVideoFrameAnalysis={false} />
-          <TrackOverlay analysis={analysis} body={body} frame={frame} box={box} show={options} />
-          {watermark && (deps.shareBrand ?? shareBrandSupported()) ? (
-            // the lockup the video carries (TrackRenderer drawLockup): monogram, wordmark and the App Store line on a dark plate
-            <View
-              testID="share-lockup"
-              pointerEvents="none"
-              style={{ position: 'absolute', left: box.width * 0.045, top: box.height * 0.12, flexDirection: 'row', alignItems: 'center', gap: space.s2, paddingHorizontal: space.s2, paddingVertical: space.s2, backgroundColor: shade(0.82), ...shape.control }}
-            >
-              <Mark size={mark.size * markScale * 2} />
-              <View>
-                {/* i18n-ok: the brand wordmark, as drawn on the video */}
-                <Text style={[display(mark.size * markScale * 1.45), { color: colors.text }]}>Catchline</Text>
-                <Text numberOfLines={1} style={[display(mark.size * markScale * 0.82), { color: colors.text2 }]}>{t('share.brandLine')}</Text>
-              </View>
+          <TrackOverlay analysis={analysis} body={body} frame={frame} box={box} show={options} whole={details} />
+          {lockup || details ? (
+            // the column the video carries (TrackRenderer drawLockup, drawDetails): the lockup on a dark plate, then the lifter's line and the graph
+            <View pointerEvents="none" style={{ position: 'absolute', left: box.width * 0.045, top: box.height * 0.12, gap: mark.size * markScale * 0.2, alignItems: 'flex-start' }}>
+              {lockup ? (
+                <View
+                  testID="share-lockup"
+                  onLayout={(e) => setLockupW(e.nativeEvent.layout.width)}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: space.s2, paddingHorizontal: space.s2, paddingVertical: space.s2, backgroundColor: shade(0.82), ...shape.control }}
+                >
+                  <Mark size={mark.size * markScale * 2} />
+                  <View>
+                    {/* i18n-ok: the brand wordmark, as drawn on the video */}
+                    <Text style={[display(mark.size * markScale * 1.45), { color: colors.text }]}>Catchline</Text>
+                    <Text numberOfLines={1} style={[display(mark.size * markScale * 0.82), { color: colors.text2 }]}>{t('share.brandLine')}</Text>
+                  </View>
+                </View>
+              ) : null}
+              {details ? <ShareDetails unit={mark.size * markScale} width={lockup ? lockupW : mark.size * markScale * 8} caption={captioned ? caption : null} chart={chart} frame={frame} first={first} last={last} /> : null}
             </View>
-          ) : watermark ? (
+          ) : null}
+          {watermark && !lockup ? (
             <Text testID="share-watermark" style={[display(mark.size * markScale), { position: 'absolute', right: mark.inset * markScale, bottom: mark.inset * markScale, color: colors.text }]}>
               {t('share.mark')}
             </Text>
@@ -249,6 +270,8 @@ export default function TrackShareScreen({
             <Chip key={k} testID={`share-toggle-${k}`} label={t(`analysis.tracker.overlay.${k}`)} on={layers[k]} mono onPress={() => setLayers((l) => ({ ...l, [k]: !l[k] }))} />
           ))}
           {hasLift ? <Chip testID="share-toggle-whole" label={t('analysis.tracker.wholeClip')} on={whole} mono onPress={toggleWhole} /> : null}
+          {details && shareChart(analysis, first, last) ? <Chip testID="share-toggle-graph" label={t('share.graph')} on={graph} mono onPress={() => setGraph((g) => !g)} /> : null}
+          {details && caption ? <Chip testID="share-toggle-caption" label={analysis.loadKg != null ? t('share.dateWeight') : t('share.date')} on={captioned} mono onPress={() => setCaptioned((c) => !c)} /> : null}
         </View>
         <Segmented
           testID="share-speed"

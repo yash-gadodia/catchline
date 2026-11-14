@@ -1,7 +1,8 @@
 import type { Analysis } from '../../analysis/types';
 import type { Body } from '../../analysis/device/tracking';
 import type { Size } from '../../analysis/geometry';
-import { HIP_TRAIL_S, bones, drawnSide, floorY, joints, liftRange, startLineX } from '../analysis/tracker';
+import { HIP_TRAIL_S, bones, drawnPaths, drawnSide, floorY, joints, liftRange, repStarts, startLineX } from '../analysis/tracker';
+import { barSpeed } from '../analysis/speed';
 import { dark, opacity, stroke } from '../../design/tokens';
 import { t } from '../../i18n';
 
@@ -12,7 +13,9 @@ export const SHARE_SPEEDS: ShareSpeed[] = [1, 0.5, 0.25];
 export const FAST_SHARE_SPEEDS: ShareSpeed[] = [4, 2, 1, 0.5, 0.25];
 export const shareSpeeds = (fast: boolean): ShareSpeed[] => (fast ? FAST_SHARE_SPEEDS : SHARE_SPEEDS);
 // `whole` shares every frame of the clip; off, a lift that tracking marked is shared from its first frame to its last.
-export type TrackShareOptions = { path: boolean; lines: boolean; body: boolean; watermark: boolean; speed: ShareSpeed; whole?: boolean };
+// `details` is given only on a binary that draws them (4.0.3 on): each rep's path over the whole set's, drawn faint,
+// with the bar speed graph (`graph`) and the lifter's own line, its date and weight (`caption`), where asked for.
+export type TrackShareOptions = { path: boolean; lines: boolean; body: boolean; watermark: boolean; speed: ShareSpeed; whole?: boolean; details?: { graph: boolean; caption: string | null } };
 
 // What modules/clip-transcoder TrackRenderer.swift draws on the lift's kept clip. Positions are 0..1 of the frame,
 // sizes are output pixels; a layer that is off is empty (or null), so the native side only draws what it is given.
@@ -38,6 +41,12 @@ export type TrackSpec = {
   watermark: string | null;
   // the logo lockup and the end card; a binary before 4.0.2 ignores it and draws `watermark`
   brand?: { wordmark: string; line: string; endLine: string; endS: number; top: number };
+  // 4.0.3 on. ghost: the whole set's path as [x, y] polylines, drawn faint under the rep on screen. repStarts: the
+  // frames each rep begins on. chart: bar speed, [frame, m/s]. caption: the lifter's line.
+  ghost?: [number, number][][];
+  repStarts?: number[];
+  chart?: { values: [number, number][]; min: number; max: number; unit: string };
+  caption?: string;
   style: {
     flare: string;
     halo: string;
@@ -71,6 +80,17 @@ export function hasBarPath(analysis: Analysis): boolean {
 }
 
 const px = (pt: number, unit: number) => Number((pt * unit).toFixed(2));
+const r3 = (v: number) => Number(v.toFixed(3));
+
+// The bar speed graph for the frames the video holds: nothing for a lift with no bar speed.
+export function shareChart(analysis: Analysis, first: number, last: number): TrackSpec['chart'] | undefined {
+  const speed = hasBarPath(analysis) ? barSpeed(analysis.reps[0].path, analysis.video.fps, analysis.lift) : null;
+  if (!speed) return undefined;
+  const values = [...speed.at].filter(([f]) => f >= first && f <= last).sort((a, b) => a[0] - b[0]).map(([f, v]): [number, number] => [f, r3(v)]);
+  if (values.length < 2) return undefined;
+  const vs = values.map(([, v]) => v);
+  return { values, min: Math.min(0, ...vs), max: Math.max(0, ...vs), unit: 'm/s' };
+}
 
 // The mark says what made the video and where to get it (owner, 12-11): "Catchline · free on the App Store". Reels and
 // TikTok cover the bottom ~20% (caption) and a right-hand column (buttons), so it sits a fifth of the height up and as
@@ -114,6 +134,11 @@ export function buildTrackSpec(analysis: Analysis, body: Body | null, options: T
     ),
     watermark: options.watermark ? t('share.mark') : null,
     ...(options.watermark ? { brand: { wordmark: 'Catchline', line: t('share.brandLine'), endLine: t('share.endLine'), endS: 1.5, top: 0.12 } } : {}),
+    ...(options.details && options.path && hasBarPath(analysis)
+      ? { ghost: drawnPaths(analysis, range.last).whole.map((seg) => seg.map((p): [number, number] => [p.x, p.y])), repStarts: repStarts(rep.path, analysis.video.fps || 30) }
+      : {}),
+    ...(options.details?.graph ? (() => { const chart = shareChart(analysis, range.first, range.last); return chart ? { chart } : {}; })() : {}),
+    ...(options.details?.caption ? { caption: options.details.caption } : {}),
     style: {
       flare: dark.flare,
       halo: dark.halo,
