@@ -2,7 +2,7 @@
   "expo": {
     "name": "Catchline",
     "slug": "parallax",
-    "version": "4.0.2",
+    "version": "4.0.3",
     "orientation": "portrait",
     "scheme": "catchline",
     "icon": "./assets/icon.png",
