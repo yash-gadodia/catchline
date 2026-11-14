@@ -25,6 +25,7 @@ import { syncConsent } from './backend';
 import { keepClip, saveLocalLift } from './localLifts';
 import { usePipeline, type Job } from './pipeline';
 import { detectedMade } from '../features/library/madeLog';
+import { rememberLiftShape } from '../features/library/liftNames';
 import { ClipTooLongError, discardPrepared, prepareClip } from './prepare';
 import { t } from '../i18n';
 
@@ -245,6 +246,7 @@ async function runDeviceLift(sub: ClipSubmission & { uri: string }, liftId: stri
     const local = saveLocalLift(liftId, analysis, loop.tracePath, loop.stills, loop.body);
     // 4.0: the clip stays on the phone with its lift (the player draws on the real video); deleted with the lift.
     keepClip(liftId, clip.uri);
+    if (!local.failure) rememberLiftShape(liftId, { analysis: local, body: loop.body ?? null });
     prepared = null;
     const now = new Date();
     if (!local.failure) await countLift(now);

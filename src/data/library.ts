@@ -4,6 +4,7 @@ import { putLiveAnalysis } from '../analysis/live';
 import { keyFrameForPhase, repByIndex } from '../analysis/timeline';
 import { deleteLift, ensureSession, listLifts } from '../lib/api';
 import { deleteLocalLift, listLocalAnalyses } from './localLifts';
+import { forgetLiftName } from '../features/library/liftNames';
 import { flushLiftOutbox, useLiftOutbox, type OutboxItem } from './liftOutbox';
 import type { Lift as LiftRow } from '../types/db';
 import { FAILURE_COPY } from '../features/library/failures';
@@ -136,5 +137,6 @@ export async function removeLift(liftId: string): Promise<void> {
   const item = useLiftOutbox.getState().items.find((i) => i.id === liftId);
   if (!item || item.synced) await deleteLift(liftId);
   deleteLocalLift(liftId);
+  forgetLiftName(liftId);
   useLiftOutbox.getState().forget(liftId);
 }

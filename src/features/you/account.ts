@@ -9,6 +9,7 @@ import { NO_USER, useAuthUser, type AuthUser } from '../auth/authUser';
 import { useCapture } from '../capture/store';
 import { emptyLibrary } from '../library/seed';
 import { useLibraryStore } from '../library/store';
+import { useLiftNames } from '../library/liftNames';
 import { useOnboarding } from '../onboarding/store';
 import { FREE_PER_WEEK, freeLeft, type Tier, type Usage } from '../paywall/entitlements';
 import { useUsage } from '../paywall/usageStore';
@@ -166,6 +167,7 @@ export function forgetLocalData(): void {
   // the delete sheet promises every lift goes: the clips and tracking on this phone, and any record not yet synced
   deleteAllLocalLifts();
   useLiftOutbox.setState({ items: [] });
+  useLiftNames.setState({ shapes: {} });
   useAccountStore.setState({ account: null });
   useOnboarding.getState().reset();
 }

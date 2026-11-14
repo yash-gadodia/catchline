@@ -11,6 +11,7 @@ import SmallCaps from '../../components/SmallCaps';
 import { colors, space } from '../../design/tokens';
 import { display, fontFamily, type } from '../../design/typography';
 import { byDay, freeVideosLabel, liftDetail, liftTime } from './derive';
+import { liftKind, useLiftNames } from './liftNames';
 import { t } from '../../i18n';
 import { useLibrary } from './repository';
 import type { Lift } from './types';
@@ -88,7 +89,9 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
 
 function LiftRow({ lift, nav }: { lift: Lift; nav: LiftsNav }) {
   const muted = lift.status === 'queued';
-  const detail = liftDetail(lift);
+  // a tracked lift whose kind was read is titled by it, with the time moved to the line under
+  const kind = useLiftNames((n) => (lift.status === 'done' ? liftKind(n.shapes, lift.analysisId ?? lift.id) : null));
+  const detail = kind ? [liftTime(lift), liftDetail(lift)].filter(Boolean).join(' · ') : liftDetail(lift);
   const thumb =
     lift.status === 'processing' ? (
       <Pulse>
@@ -106,7 +109,7 @@ function LiftRow({ lift, nav }: { lift: Lift; nav: LiftsNav }) {
       {thumb}
       <View style={{ flex: 1, gap: 2 }}>
         <Text testID={`lift-title-${lift.id}`} style={{ color: muted ? colors.text2 : colors.text, ...type.button }}>
-          {liftTime(lift)}
+          {kind ?? liftTime(lift)}
         </Text>
         {detail ? (
           <Text testID={`lift-detail-${lift.id}`} numberOfLines={1} style={{ color: colors.text2, ...type.readout }}>

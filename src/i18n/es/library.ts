@@ -13,6 +13,11 @@ export const library: Strings<typeof en> = {
   'library.inFlight.title': "Siguiendo tu levantamiento",
   'library.detail.queued': "En cola · vídeos gratis usados",
   'library.detail.failed': "No se pudo seguir",
+  'library.kind.snatch': "Arrancada",
+  'library.kind.cleanJerk': "Dos tiempos",
+  'library.kind.clean': "Cargada",
+  'library.kind.pull': "Tirón",
+  'library.kind.overhead': "Sobre la cabeza",
   'library.detail.barAndBody': "Trayectoria de la barra y cuerpo",
   'library.detail.bodyOnly': "Solo cuerpo",
   // REVIEW: machine-drafted, needs a native speaker before release.

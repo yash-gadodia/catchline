@@ -6,6 +6,7 @@ import { useAnalysis } from '../../src/analysis/useAnalysis';
 import AnalysisPlaceholder from '../../src/features/analysis/AnalysisPlaceholder';
 import PlayerScreen from '../../src/features/analysis/PlayerScreen';
 import TrackerScreen from '../../src/features/analysis/TrackerScreen';
+import { rememberLiftShape } from '../../src/features/library/liftNames';
 import { useLocalBody } from '../../src/features/analysis/useLocalBody';
 import { useLastLift } from '../../src/features/analysis/useLastLift';
 import { localClipUri } from '../../src/data/localLifts';
@@ -36,6 +37,10 @@ export default function PlayerRoute() {
   }, [opened?.id]);
   const lift = useLift(id);
   const body = useLocalBody(id, !!clip);
+  // an older lift gets its kind (Snatch, Clean and jerk) the first time it is opened
+  useEffect(() => {
+    if (id && clip && body.ready && opened) rememberLiftShape(id, { analysis: opened, body: body.body });
+  }, [id, clip, body.ready, opened?.id]);
   const lastLift = useLastLift(clip && body.ready && load.status === 'ready' ? load.analysis : null, body.body, __DEV__ ? last : undefined);
   // A 4.0 lift (its clip is kept) plays on the tracker and lands here straight from the tracking; a 3.x lift opens on its stills.
   // Leaving a 4.0 lift goes to the Lifts tab, not back to the clip's review.

@@ -13,6 +13,11 @@ export const library: Strings<typeof en> = {
   'library.inFlight.title': "Dein Lift wird erfasst",
   'library.detail.queued': "In der Warteschlange · kostenlose Videos aufgebraucht",
   'library.detail.failed': "Erfassung nicht möglich",
+  'library.kind.snatch': "Reißen",
+  'library.kind.cleanJerk': "Stoßen",
+  'library.kind.clean': "Umsetzen",
+  'library.kind.pull': "Zug",
+  'library.kind.overhead': "Überkopf",
   'library.detail.barAndBody': "Hantelweg und Körper",
   'library.detail.bodyOnly': "Nur Körper",
   // REVIEW: machine-drafted, needs a native speaker before release.
