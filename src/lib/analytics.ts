@@ -8,6 +8,7 @@ export const EVENTS = {
   SIGNUP_COMPLETED: 'signup_completed',
   PAYWALL_VIEWED: 'paywall_viewed',
   PURCHASE_COMPLETED: 'purchase_completed',
+  SIGN_IN_FAILED: 'sign_in_failed',
   ACCOUNT_DELETED: 'account_deleted',
   FRAMING_CHECKED: 'framing_checked',
   ANALYSIS_COMPLETED: 'analysis_completed',

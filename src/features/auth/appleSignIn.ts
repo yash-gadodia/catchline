@@ -2,6 +2,7 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import { syncLibrary } from '../../data/library';
 import { supabase } from '../../lib/supabase';
 import { ApiError } from '../../lib/api/errors';
+import { EVENTS, track } from '../../lib/analytics';
 import { usePurchases } from '../purchases/usePurchases';
 import { syncAuthUser } from './authUser';
 import { hashNonce, rawNonce } from './nonce';
@@ -42,16 +43,24 @@ export async function signInWithApple(): Promise<AppleSignIn> {
     });
   } catch (e) {
     if (isAppleCancel(e)) return { cancelled: true };
+    // why a sign-in failed was never recorded (14-11: a lifter could not sign in and nothing said why)
+    track(EVENTS.SIGN_IN_FAILED, { stage: 'apple', code: String((e as { code?: string } | null)?.code ?? 'unknown'), message: e instanceof Error ? e.message.slice(0, 200) : '' });
     throw e;
   }
-  if (!credential.identityToken) throw new ApiError('not_authenticated', 'Apple returned no identity token');
+  if (!credential.identityToken) {
+    track(EVENTS.SIGN_IN_FAILED, { stage: 'apple', code: 'no_identity_token', message: '' });
+    throw new ApiError('not_authenticated', 'Apple returned no identity token');
+  }
 
   const { data, error } = await supabase.auth.signInWithIdToken({
     provider: 'apple',
     token: credential.identityToken,
     nonce: raw,
   });
-  if (error || !data.user) throw new ApiError('not_authenticated', error?.message);
+  if (error || !data.user) {
+    track(EVENTS.SIGN_IN_FAILED, { stage: 'server', code: String(error?.code ?? error?.status ?? 'unknown'), message: (error?.message ?? '').slice(0, 200) });
+    throw new ApiError('not_authenticated', error?.message);
+  }
   const userId = data.user.id;
 
   // Apple's one-time code buys the refresh token that account deletion revokes

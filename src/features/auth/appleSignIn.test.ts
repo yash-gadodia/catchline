@@ -5,6 +5,8 @@ import { usePurchases } from '../purchases/usePurchases';
 import { syncLibrary } from '../../data/library';
 
 jest.mock('../../data/library', () => ({ syncLibrary: jest.fn(() => Promise.resolve()) }));
+jest.mock('../../lib/analytics', () => ({ ...jest.requireActual('../../lib/analytics'), track: jest.fn() }));
+import { track } from '../../lib/analytics';
 
 // Chainable thenable: update().eq() resolves, select().eq().maybeSingle() reads the name.
 const mockProfileQuery = {
@@ -166,6 +168,9 @@ describe('signInWithApple', () => {
     mockSignInAsync.mockResolvedValue({ identityToken: 'apple-id-token', fullName: null, email: null });
     mockSignInWithIdToken.mockResolvedValue({ data: { user: null, session: null }, error: { message: 'bad nonce' } });
     await expect(signInWithApple()).rejects.toThrow('bad nonce');
+    // each failure says where it happened and why, so a lifter who cannot sign in can be helped
+    expect(track).toHaveBeenCalledWith('sign_in_failed', { stage: 'apple', code: 'no_identity_token', message: '' });
+    expect(track).toHaveBeenCalledWith('sign_in_failed', expect.objectContaining({ stage: 'server', message: 'bad nonce' }));
     expect(mockInvoke).not.toHaveBeenCalled();
   });
 
