@@ -168,9 +168,17 @@ describe('TrackerScreen bar speed', () => {
     expect(getByTestId('tracker-speed')).toHaveTextContent('1.08 m/s · peak 1.08');
   });
 
+  it('charts the speed under the controls, with the rep in numbers', async () => {
+    const { getByTestId } = await show(measured);
+    await at(120);
+    expect(getByTestId('speed-chart')).toBeOnTheScreen();
+    expect(getByTestId('speed-stats')).toHaveTextContent(/^now 0\.54 · avg up 0\.\d\d · min 0\.54 · max 1\.08 m\/s$/);
+  });
+
   it('shows no speed on a lift whose plate was not measured', async () => {
     const { queryByTestId } = await show(marked);
     expect(queryByTestId('tracker-speed')).toBeNull();
+    expect(queryByTestId('speed-chart')).toBeNull();
   });
 });
 

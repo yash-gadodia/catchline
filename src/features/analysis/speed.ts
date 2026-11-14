@@ -20,6 +20,14 @@ export function peakIn(at: Map<number, number>, from: number, to: number): numbe
   return best;
 }
 
+// The rep on screen in numbers: the mean of its upward speeds (the pull, not the drop), and its slowest and fastest.
+export function speedStats(at: Map<number, number>, from: number, to: number): { avgUp: number | undefined; min: number; max: number } | null {
+  const vs = [...at].filter(([f]) => f >= from && f < to).map(([, v]) => v);
+  if (!vs.length) return null;
+  const up = vs.filter((v) => v > 0);
+  return { avgUp: up.length ? up.reduce((a, b) => a + b, 0) / up.length : undefined, min: Math.min(...vs), max: Math.max(...vs) };
+}
+
 export function barSpeed(path: TracePoint[], fps: number, window?: { startFrame: number; endFrame: number }): BarSpeed | null {
   const read = path.filter((p) => p.r !== undefined && p.r > 0);
   if (read.length < 2 || !(fps > 0)) return null;

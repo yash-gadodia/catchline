@@ -117,6 +117,8 @@ export const analysis: Strings<typeof en> = {
   'analysis.processing.preparing': "Preparando seu vídeo.",
   'analysis.processing.tracking': "Seguindo a barra e seu corpo, quadro a quadro.",
   'analysis.tracker.compare': "Comparar com seu último levantamento",
+  'analysis.tracker.speedChart': "Velocidade da barra durante o levantamento",
+  'analysis.tracker.speedStats': "agora {now} · média subida {avg} · mín {min} · máx {max} m/s",
   'analysis.tracker.barSpeed': "{now} m/s · pico {peak}",
   'analysis.tracker.comparing': "Linha pontilhada: {when}",
 };

@@ -1,5 +1,5 @@
 import type { TracePoint } from '../../analysis/types';
-import { barSpeed } from './speed';
+import { speedStats, barSpeed } from './speed';
 
 // A plate 0.05 of the picture's height in radius: 0.225 m is 0.05 of the height, so 1 picture height is 4.5 m.
 const pt = (frame: number, y: number, r: number | undefined = 0.05): TracePoint => ({ frame, x: 0.5, y, src: 'plate', ...(r ? { r } : {}) });
@@ -36,5 +36,14 @@ describe('barSpeed', () => {
 
   it('is nothing without plate readings (a body-only result, a lift from before 4.0)', () => {
     expect(barSpeed(Array.from({ length: 10 }, (_, f) => pt(f, 0.8 - 0.01 * f, 0)), 30)).toBeNull();
+  });
+});
+
+describe('speedStats', () => {
+  it('gives the rep on screen its mean upward speed, slowest and fastest', () => {
+    const at = new Map([[10, 0.5], [11, 1.5], [12, -2], [13, 1], [30, 3]]);
+    expect(speedStats(at, 10, 14)).toEqual({ avgUp: 1, min: -2, max: 1.5 });
+    expect(speedStats(at, 12, 13)).toEqual({ avgUp: undefined, min: -2, max: -2 });
+    expect(speedStats(at, 14, 20)).toBeNull();
   });
 });

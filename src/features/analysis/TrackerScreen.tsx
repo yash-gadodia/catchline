@@ -21,6 +21,7 @@ import { isComplete, type Shape } from './drawGeometry';
 import { openLiftOverlays, useOverlays } from './overlayPrefs';
 import { peakFrame } from './compare';
 import { barSpeed, peakIn } from './speed';
+import SpeedChart from './SpeedChart';
 import type { LastLift } from './useLastLift';
 import { ANGLE_MAX_OFF_SIDE_DEG, drawnSide, frameAt, jointAngles, joints, liftRange, repAt, repStarts, spread, timeOf } from './tracker';
 import { t } from '../../i18n';
@@ -64,11 +65,13 @@ export default function TrackerScreen({
   const count = Math.max(analysis.video.frameCount, body?.frames.length ?? 0, 1);
   const fps = duration > 0 ? count / duration : analysis.video.fps;
   // bar speed where the plate model measured the plate (a 4.0 lift with a bar path); none for a hip trail or an older lift
-  const barSpeedOf = useMemo(() => barSpeed(analysis.reps[0]?.path ?? [], analysis.video.fps, analysis.lift), [analysis]);
+  // (at the clip's real rate, as the overlay is: the recorded rate reads fast on a clip with uneven frame timing)
+  const barSpeedOf = useMemo(() => barSpeed(analysis.reps[0]?.path ?? [], fps, analysis.lift), [analysis, fps]);
   // the peak shown is the rep on screen's (a set of several reps peaks once per rep)
   const starts = useMemo(() => repStarts(analysis.reps[0]?.path ?? [], analysis.video.fps || 30), [analysis]);
   const src = { width: analysis.video.width, height: analysis.video.height };
-  const maxH = Math.round(height * 0.6);
+  // a lift with bar speed gives the picture a little less height, for the speed chart under the controls
+  const maxH = Math.round(height * (barSpeedOf ? 0.5 : 0.6));
   const boxW = Math.min(width, Math.round((maxH * src.width) / src.height));
   const box = { width: boxW, height: Math.round((boxW * src.height) / src.width) };
   const fit: Fit = { x: 0, y: 0, width: box.width, height: box.height };
@@ -359,6 +362,7 @@ export default function TrackerScreen({
             </Text>
           ) : null}
         </View>
+        {barSpeedOf && revealing !== 'playing' ? <SpeedChart at={barSpeedOf.at} frame={frame} first={first} last={last} rep={repAt(starts, frame)} onSeek={seek} /> : null}
         {onShare && revealing !== 'playing' ? (
           <Btn kind={revealing === 'done' ? 'primary' : 'secondary'} compact={revealing !== 'done'} onPress={onShare} testID="tracker-share">
             {t('analysis.player.share')}
