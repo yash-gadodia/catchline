@@ -185,6 +185,11 @@ describe('TrackerScreen first look (reveal)', () => {
     expect(player?.play).toHaveBeenCalledTimes(1);
     expect(player).toMatchObject({ playbackRate: 0.5 });
     expect(getByTestId('speed')).toHaveTextContent('0.5×');
+    for (const [label, rate] of [['1×', 1], ['2×', 2], ['4×', 4], ['0.25×', 0.25], ['0.5×', 0.5]] as const) {
+      await act(async () => fireEvent.press(getByTestId('speed')));
+      expect(getByTestId('speed')).toHaveTextContent(label);
+      expect(player).toMatchObject({ playbackRate: rate });
+    }
     await at(150);
     expect(getByTestId('path-done')).toBeOnTheScreen();
     expect(getByTestId('tracker-body')).toBeOnTheScreen();

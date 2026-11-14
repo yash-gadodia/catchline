@@ -25,8 +25,8 @@ import type { LastLift } from './useLastLift';
 import { ANGLE_MAX_OFF_SIDE_DEG, drawnSide, frameAt, jointAngles, joints, liftRange, repAt, repStarts, spread, timeOf } from './tracker';
 import { t } from '../../i18n';
 
-type Speed = 0.25 | 0.5 | 1;
-const SPEEDS: Speed[] = [0.25, 0.5, 1];
+type Speed = 0.25 | 0.5 | 1 | 2 | 4;
+const SPEEDS: Speed[] = [0.25, 0.5, 1, 2, 4];
 const SCRUB_H = 44;
 
 // The 4.0 result: the lifter's own clip, every frame, with the tracked path and body drawn on it.
