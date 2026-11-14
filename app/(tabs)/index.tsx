@@ -20,6 +20,7 @@ export default function LiftsRoute() {
         onUnlock: unlock,
         onRecord: () => router.push(captureHref('/capture') as Href),
         onImport: () => router.push(captureHref('/capture/import') as Href),
+        onDetails: (lift) => router.push({ pathname: '/analysis/details', params: { id: lift.analysisId ?? lift.id } } as Href),
         onDelete: (lift) =>
           Alert.alert(t('library.lifts.deleteTitle'), t('library.lifts.deleteBody'), [
             { text: t('library.lifts.deleteCancel'), style: 'cancel' },

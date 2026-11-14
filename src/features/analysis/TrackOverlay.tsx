@@ -18,6 +18,7 @@ export default function TrackOverlay({
   show,
   ghost,
   speed,
+  whole,
 }: {
   analysis: Analysis;
   body: Body | null;
@@ -28,6 +29,9 @@ export default function TrackOverlay({
   ghost?: Point[] | null;
   // bar speed by frame (speed.ts): colours the path by how fast the bar is moving
   speed?: Map<number, number> | null;
+  // the player: every rep of the set is drawn faint from the first frame, the rep on screen bright over it as it
+  // plays. Off for the share preview, which shows what TrackRenderer.swift burns in.
+  whole?: boolean;
 }) {
   const s = (p: Point) => toScreen(p, { x: 0, y: 0, width: box.width, height: box.height });
   // where each rep of the set starts, read once per lift (the path does not change while it plays)
@@ -71,9 +75,9 @@ export default function TrackOverlay({
       ) : null}
       {show.path ? (
         <>
-          {/* earlier reps of the set, faint and dotted like a compared lift; the rep on screen in flare */}
-          {drawn.earlier.map((seg, i) => (
-            <Path key={i} testID="path-earlier" d={svgPath(seg.map(s))} stroke={colors.text} strokeWidth={stroke.ghost} strokeLinecap="round" strokeLinejoin="round" strokeDasharray="1 5" opacity={opacity.lines} fill="none" />
+          {/* earlier reps of the set (in the player every rep), faint and dotted like a compared lift; the rep on screen in flare */}
+          {(whole ? drawn.whole : drawn.earlier).map((seg, i) => (
+            <Path key={i} testID={whole ? 'path-whole' : 'path-earlier'} d={svgPath(seg.map(s))} stroke={colors.text} strokeWidth={stroke.ghost} strokeLinecap="round" strokeLinejoin="round" strokeDasharray="1 5" opacity={opacity.lines} fill="none" />
           ))}
           <FlarePath points={drawn.current.map(s)} heat={heat ? drawn.current.map((p) => heat(p.frame)) : undefined} testID="path-done" />
           <CurrentDot point={current ? s(current) : null} />

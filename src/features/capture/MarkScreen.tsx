@@ -9,21 +9,22 @@ import { type } from '../../design/typography';
 import { selection } from '../../lib/haptics';
 import { Header, Underlined } from './hud';
 import MarkExample from './MarkExample';
-import { containRect, markFrom, type PlateMark } from './plateMark';
-import type { Clip } from './store';
+import { containRect, grab, markFrom, type PlateMark } from './plateMark';
 import { t } from '../../i18n';
 
-// One step before tracking (owner, 11-11): the lifter marks the plate nearest the camera on the first frame of the
-// trimmed clip, so the tracker starts on the right plate at the right size. Skipping leaves it to find the plate.
-export default function MarkScreen({ clip, onBack, onTrack }: { clip: Clip & { uri: string }; onBack: () => void; onTrack: (mark: PlateMark | null) => void }) {
+// After tracking (owner, 14-11: find the plate first, then let me adjust): the frame at `at` seconds of the lift's clip
+// with the plate the tracker found (`initial`, null when it found none). The lifter moves or resizes the circle, or
+// draws a new one, and the clip is tracked again from it.
+export default function MarkScreen({ uri, at, initial, onBack, onTrack }: { uri: string; at: number; initial: PlateMark | null; onBack: () => void; onTrack: (mark: PlateMark) => void }) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   // The picture takes what the instruction and buttons leave, so a long line (German) never pushes Track off screen.
   const [stageH, setStageH] = useState(Math.round(height * 0.58));
   const box = { width, height: stageH };
   const [frame, setFrame] = useState<{ width: number; height: number } | null>(null);
-  const [mark, setMark] = useState<PlateMark | null>(null);
+  const [mark, setMark] = useState<PlateMark | null>(initial);
   const [drag, setDrag] = useState<{ cx: number; cy: number; r: number } | null>(null);
+  const [moved, setMoved] = useState(false);
   // the hint sits on the picture until the first press (owner, 13-11: the instruction under the picture was unclear)
   const [touched, setTouched] = useState(false);
   // What the finger is doing now, so the instruction follows it (owner, 13-11: a plain tap did nothing and hid the hint):
@@ -32,10 +33,10 @@ export default function MarkScreen({ clip, onBack, onTrack }: { clip: Clip & { u
   const [coach, setCoach] = useState<'drag' | 'tap' | null>(null);
   const rect = frame ? containRect(frame, box) : null;
 
-  const player = useVideoPlayer(clip.uri, (p) => {
+  const player = useVideoPlayer(uri, (p) => {
     p.muted = true;
     p.seekTolerance = { toleranceBefore: 0, toleranceAfter: 0 };
-    p.currentTime = clip.trim.start;
+    p.currentTime = at;
     p.pause();
   });
   // The frame's real shape (upright, as shown) comes from a thumbnail; the player answers with none until its item
@@ -47,7 +48,7 @@ export default function MarkScreen({ clip, onBack, onTrack }: { clip: Clip & { u
       tries += 1;
       const track = player.videoTrack?.size ?? player.availableVideoTracks[0]?.size;
       if (track && track.width > 0 && track.height > 0) setFrame((f) => f ?? { width: track.width, height: track.height });
-      player.generateThumbnailsAsync([clip.trim.start], { maxWidth: 64 }).then(
+      player.generateThumbnailsAsync([at], { maxWidth: 64 }).then(
         (thumbs) => {
           if (!live) return;
           if (thumbs[0] && thumbs[0].width > 0) {
@@ -65,10 +66,16 @@ export default function MarkScreen({ clip, onBack, onTrack }: { clip: Clip & { u
       live = false;
       clearInterval(timer);
     };
-  }, [player, clip.trim.start]);
+  }, [player, at]);
 
-  const live = useRef({ rect, start: null as { x: number; y: number } | null });
+  // What a press does depends on where it lands on the circle already there: inside moves it, on the rim resizes it,
+  // anywhere else starts a new one from that point.
+  type Hold = { mode: 'new' | 'move' | 'resize'; x: number; y: number; cx: number; cy: number; r: number };
+  const live = useRef({ rect, mark, hold: null as Hold | null });
   live.current.rect = rect;
+  live.current.mark = mark;
+  const circleAt = (h: Hold, dx: number, dy: number) =>
+    h.mode === 'move' ? { cx: h.cx + dx, cy: h.cy + dy, r: h.r } : { cx: h.cx, cy: h.cy, r: Math.hypot(h.x + dx - h.cx, h.y + dy - h.cy) };
   const pan = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -76,34 +83,40 @@ export default function MarkScreen({ clip, onBack, onTrack }: { clip: Clip & { u
       onPanResponderTerminationRequest: () => false,
       onPanResponderGrant: (e) => {
         const p = { x: e.nativeEvent.locationX, y: e.nativeEvent.locationY };
-        live.current.start = p;
+        const { rect: r, mark: m } = live.current;
+        const c = m && r ? { cx: r.x + m.x * r.width, cy: r.y + m.y * r.height, r: m.r * r.height } : null;
+        const mode = c ? grab(Math.hypot(p.x - c.cx, p.y - c.cy), c.r) : 'new';
+        const hold: Hold = mode === 'new' || !c ? { mode: 'new', x: p.x, y: p.y, cx: p.x, cy: p.y, r: 0 } : { mode, x: p.x, y: p.y, ...c };
+        live.current.hold = hold;
         setTouched(true);
-        setCoach('drag');
-        setDrag({ cx: p.x, cy: p.y, r: 0 });
+        setCoach(hold.mode === 'new' ? 'drag' : null);
+        setDrag(circleAt(hold, 0, 0));
       },
       onPanResponderMove: (_, g) => {
-        const s = live.current.start;
-        if (s) setDrag({ cx: s.x, cy: s.y, r: Math.hypot(g.dx, g.dy) });
+        const h = live.current.hold;
+        if (h) setDrag(circleAt(h, g.dx, g.dy));
       },
       onPanResponderRelease: (_, g) => {
-        const s = live.current.start;
+        const h = live.current.hold;
         const r = live.current.rect;
-        live.current.start = null;
+        live.current.hold = null;
         setDrag(null);
-        if (!s || !r) return;
-        const next = markFrom(s, { x: s.x + g.dx, y: s.y + g.dy }, r);
+        if (!h || !r) return;
+        const c = circleAt(h, g.dx, g.dy);
+        const next = markFrom({ x: c.cx, y: c.cy }, { x: c.cx + c.r, y: c.cy }, r);
         if (next) {
           selection();
           setMark(next);
+          setMoved(true);
           setCoach(null);
-        } else {
-          // a tap, or a circle too small to be a plate: bring the example back and say what was missing
+        } else if (h.mode === 'new') {
+          // a tap, or a circle too small to be a plate: say what was missing (the example comes back when nothing is marked)
           setCoach('tap');
           setTouched(false);
         }
       },
       onPanResponderTerminate: () => {
-        live.current.start = null;
+        live.current.hold = null;
         setCoach(null);
         setDrag(null);
       },
@@ -169,15 +182,15 @@ export default function MarkScreen({ clip, onBack, onTrack }: { clip: Clip & { u
       <View style={{ paddingHorizontal: space.gutter, paddingTop: space.s4, paddingBottom: Math.max(insets.bottom, space.s4), gap: space.s5 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s4 }}>
           <Text testID="mark-help" style={{ ...type.callout, color: colors.text2, flex: 1 }}>
-            {mark ? t('capture.mark.redo') : t('capture.mark.help')}
+            {!mark ? t('capture.mark.help') : moved ? t('capture.mark.redo') : t('capture.mark.found')}
           </Text>
         </View>
         <View style={{ gap: space.s3 }}>
-          <Btn onPress={() => onTrack(mark)} disabled={!mark} testID="mark-track">
+          <Btn onPress={() => mark && onTrack(mark)} disabled={!mark || !moved} testID="mark-track">
             {t('capture.mark.track')}
           </Btn>
-          <Btn kind="secondary" compact onPress={() => onTrack(null)} testID="mark-skip">
-            {t('capture.mark.skip')}
+          <Btn kind="secondary" compact onPress={onBack} testID="mark-cancel">
+            {t('capture.mark.cancel')}
           </Btn>
         </View>
       </View>

@@ -122,7 +122,7 @@ export const you = {
   'you.whatsNew.v402.share': "Share at 2x or 4x speed, finished with a clean Catchline end card.",
   'you.whatsNew.v402.compare': "Compare with your last lift of the same kind.",
   'you.whatsNew.v402.csv': "Export a lift's bar path and speed as a spreadsheet.",
-  'you.whatsNew.v402.plate': "A clearer example of how to circle the plate, and Skip for lifts with no plate.",
+  'you.whatsNew.v402.plate': "The plate is found for you. If it is off, tap adjust plate in the player and track again. Plus a grid, a vertical line, notes, tags and search.",
   'you.whatsNew.v402.you': "A simpler You page.",
   'you.whatsNew.v40.tracker': "Catchline is now a tracker: film or import a lift and see the bar path and your joints on the real video, every frame.",
   'you.whatsNew.v40.private': "Everything is tracked on your iPhone. Your video never leaves it.",

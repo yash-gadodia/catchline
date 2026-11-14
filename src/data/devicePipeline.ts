@@ -13,7 +13,6 @@ import type { ClipSubmission } from '../features/capture/submit';
 import { notifyLiftReady } from '../features/notifications';
 import { rememberClip } from '../features/share/localClips';
 import { hasBarPath } from '../features/share/trackShare';
-import { plateMarkSupported } from '../features/capture/plateMark';
 import { usePurchases } from '../features/purchases/usePurchases';
 import { randomUUID } from 'expo-crypto';
 import type { SyncLiftInput } from '../lib/api';
@@ -22,7 +21,7 @@ import { useUsage } from '../features/paywall/usageStore';
 import { writeFreeUsed } from './freeLifts';
 import { queueLiftSync } from './liftOutbox';
 import { syncConsent } from './backend';
-import { keepClip, saveLocalLift } from './localLifts';
+import { keepClip, localClipUri, readLocalAnalysis, saveLocalLift } from './localLifts';
 import { usePipeline, type Job } from './pipeline';
 import { detectedMade } from '../features/library/madeLog';
 import { rememberLiftShape } from '../features/library/liftNames';
@@ -117,8 +116,8 @@ export function toNativePlan(plan: Plan): AnalysePlan {
 export const PASS_WEIGHTS = [0.8, 0.12, 0.08];
 const PASS_STARTS = PASS_WEIGHTS.map((_, i) => PASS_WEIGHTS.slice(0, i).reduce((a, b) => a + b, 0));
 
-// plateMark: the lifter's mark on the plate, made on the first frame of the clip at `uri` (null: skipped).
-export async function analyseLoop(uri: string, movement: Movement, liftId: string, onProgress: Progress, isCancelled: () => boolean = () => false, plateMark: PlateMark | null = null): Promise<LoopResult> {
+// plateMark: the lifter's mark on the plate, on that frame of the clip at `uri` (frame 0 when not given; null: none).
+export async function analyseLoop(uri: string, movement: Movement, liftId: string, onProgress: Progress, isCancelled: () => boolean = () => false, plateMark: (PlateMark & { frame?: number }) | null = null): Promise<LoopResult> {
   const native = PoseCoreML;
   if (!native) throw new Error('no_native');
   const words = { title: t('library.inFlight.title'), subtitle: t('analysis.processing.background') };
@@ -230,8 +229,8 @@ async function runDeviceLift(sub: ClipSubmission & { uri: string }, liftId: stri
     fraction: 0,
   });
   const startedAt = Date.now();
-  // the lifter's mark on the plate: made, skipped, or never asked for (the binary cannot start from one)
-  const mark = sub.plateMark ? 'made' : plateMarkSupported() ? 'skipped' : 'not_asked';
+  // 4.0.2: the tracker finds the plate itself; a mark comes only from adjusting it afterwards (retrackLift)
+  const mark = sub.plateMark ? 'made' : 'not_asked';
   track(EVENTS.TRACK_STARTED, { source: sub.source, mark });
   let prepared: string | null = null;
   activateKeepAwakeAsync(KEEP_AWAKE_TAG).catch(() => undefined);
@@ -270,6 +269,51 @@ async function runDeviceLift(sub: ClipSubmission & { uri: string }, liftId: stri
   } finally {
     deactivateKeepAwake(KEEP_AWAKE_TAG).catch(() => undefined);
     if (prepared) discardPrepared(prepared);
+  }
+}
+
+// The lifter adjusted the plate on a lift already tracked: its kept clip is tracked again from that mark and the
+// result replaces the old one. It uses no free lift, and a run that fails leaves the lift as it was.
+export function retrackLift(liftId: string, movement: Movement, plateMark: PlateMark & { frame: number }): Promise<void> | null {
+  const uri = localClipUri(liftId);
+  if (!uri || running) return null;
+  const done = runRetrack(liftId, uri, movement, plateMark).finally(() => {
+    if (running?.liftId === liftId) running = null;
+  });
+  running = { liftId, done };
+  return done;
+}
+
+async function runRetrack(liftId: string, uri: string, movement: Movement, plateMark: PlateMark & { frame: number }): Promise<void> {
+  const jobId = `job-${Date.now()}`;
+  const patch = (fields: Partial<Job>) => {
+    if (usePipeline.getState().job?.id === jobId) usePipeline.getState().patch(fields);
+  };
+  usePipeline.getState().start({ id: jobId, movement, status: 'analysing', liftId, prepared: 1, sent: 0, total: 0, uploadUrl: null, error: null, maxS: null, uri, device: true, stage: null, fraction: 0 });
+  track(EVENTS.TRACK_STARTED, { source: 'adjust', mark: 'made' });
+  const startedAt = Date.now();
+  activateKeepAwakeAsync(KEEP_AWAKE_TAG).catch(() => undefined);
+  try {
+    const before = await readLocalAnalysis(liftId);
+    const loop = await analyseLoop(uri, movement, liftId, (stage, fraction) => patch({ stage, fraction }), () => cancelledRun === liftId, plateMark);
+    const parsed = parseAnalysis(loop.analysis);
+    const analysis: Analysis = { ...parsed, id: liftId, movement, ...(before?.loadKg != null ? { loadKg: before.loadKg } : {}) };
+    if (analysis.failure) {
+      track(EVENTS.ANALYSIS_FAILED, { movement, code: analysis.failure.code ?? analysis.failure.reason });
+      patch({ status: 'failed', error: 'analysis_failed', result: analysis });
+      return;
+    }
+    const local = saveLocalLift(liftId, analysis, loop.tracePath, loop.stills, loop.body);
+    rememberLiftShape(liftId, { analysis: local, body: loop.body ?? null });
+    track(EVENTS.TRACK_COMPLETED, { seconds: Math.round((Date.now() - startedAt) / 1000), frames: local.video.frameCount, has_bar_path: hasBarPath(local), mark: 'made' });
+    patch({ status: 'done', result: local });
+  } catch (e) {
+    const code = nativeCode(e);
+    track(EVENTS.ANALYSIS_FAILED, { movement, code });
+    if (code === 'cancelled' || code === MODELS_UNAVAILABLE) patch({ status: 'failed', error: code });
+    else patch({ status: 'failed', error: 'analysis_failed', failureReason: failureReason(code), failureDetail: e instanceof Error ? e.message : String(e) });
+  } finally {
+    deactivateKeepAwake(KEEP_AWAKE_TAG).catch(() => undefined);
   }
 }
 

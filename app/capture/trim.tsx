@@ -4,7 +4,6 @@ import { useRouter } from 'expo-router';
 import { demoClip } from '../../src/features/capture/demo';
 import { useCapture, useCaptureHydrated } from '../../src/features/capture/store';
 import { submitDraft } from '../../src/features/capture/submit';
-import { plateMarkSupported } from '../../src/features/capture/plateMark';
 import TrimScreen from '../../src/features/capture/TrimScreen';
 import { useNoSwipeBack } from '../../src/lib/useNoSwipeBack';
 import { useOnboarding } from '../../src/features/onboarding/store';
@@ -32,10 +31,9 @@ export default function TrimRoute() {
       onWeight={setLastWeight}
       onCancel={() => (router.canGoBack() ? router.back() : router.replace('/'))}
       onTrack={(trim) => {
+        // the plate is found by the tracker; the lifter adjusts it afterwards from the player if it is wrong
         updateDraft({ trim, plateMark: null });
-        // a real clip goes on to the mark; the dev sample has no picture to mark
-        if (draft.uri && plateMarkSupported()) router.push('/capture/mark');
-        else submitDraft();
+        submitDraft();
       }}
     />
   );

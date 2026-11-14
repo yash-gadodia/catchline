@@ -269,6 +269,27 @@ describe('TrackerScreen compare with the last lift', () => {
     expect(none.queryByTestId('side-by-side')).toBeNull();
   });
 
+  it('offers the plate correction and the notes when the screen is given them', async () => {
+    const onAdjustPlate = jest.fn();
+    const onDetails = jest.fn();
+    const { getByTestId } = await show(marked, body, { onAdjustPlate, onDetails });
+    expect(getByTestId('adjust-plate')).toHaveTextContent('adjust plate');
+    expect(getByTestId('lift-details')).toHaveTextContent('notes');
+    await press(getByTestId('adjust-plate'));
+    await press(getByTestId('lift-details'));
+    expect(onAdjustPlate).toHaveBeenCalledTimes(1);
+    expect(onDetails).toHaveBeenCalledTimes(1);
+    const bare = await show(marked);
+    expect(bare.queryByTestId('adjust-plate')).toBeNull();
+    expect(bare.queryByTestId('lift-details')).toBeNull();
+  });
+
+  it('has no plate correction on a hip trail, but keeps the notes', async () => {
+    const { getByTestId, queryByTestId } = await show({ ...marked, traceKind: 'hip' }, body, { onAdjustPlate: () => {}, onDetails: () => {} });
+    expect(queryByTestId('adjust-plate')).toBeNull();
+    expect(getByTestId('lift-details')).toBeOnTheScreen();
+  });
+
   it('is not offered on a first lift, or while the first look plays', async () => {
     const first = await show(marked);
     expect(first.queryByTestId('tracker-compare')).toBeNull();
@@ -278,5 +299,214 @@ describe('TrackerScreen compare with the last lift', () => {
     expect(revealing.queryByTestId('tracker-compare')).toBeNull();
     await at(240);
     expect(revealing.getByTestId('tracker-compare')).toBeOnTheScreen();
+  });
+});
+
+describe('TrackerScreen player tools', () => {
+  // the same lift as the bar speed tests: the plate read on frames 90 to 240, the bar at half the picture's width
+  const path = Array.from({ length: 151 }, (_, i) => {
+    const frame = 90 + i;
+    const y = frame <= 170 ? 0.8 - 0.002 * (frame - 90) : 0.64 - 0.004 * (frame - 170);
+    return { frame, x: 0.5, y, src: 'plate' as const, r: 0.05 };
+  });
+  const measured: Analysis = { ...marked, reps: [{ ...marked.reps[0], path }] };
+  const fire = async (el: Parameters<typeof fireEvent>[0], event: string, nativeEvent: object) => {
+    await act(async () => {
+      fireEvent(el, event, { nativeEvent });
+    });
+  };
+
+  it('draws the whole bar path faint from the first frame and the rep bright over it as it plays', async () => {
+    const { getByTestId, queryByTestId } = await show(measured);
+    expect(getByTestId('path-whole')).toBeOnTheScreen();
+    expect(queryByTestId('path-done')).toBeNull();
+    await at(150);
+    expect(getByTestId('path-whole')).toBeOnTheScreen();
+    expect(getByTestId('path-done')).toBeOnTheScreen();
+    await press(getByTestId('toggle-path'));
+    expect(queryByTestId('path-whole')).toBeNull();
+  });
+
+  it('leaves a hip trail as it was: no whole path', async () => {
+    const { queryByTestId } = await show({ ...measured, traceKind: 'hip' });
+    await at(150);
+    expect(queryByTestId('path-whole')).toBeNull();
+  });
+
+  it('lays a grid over the picture from the toolbar', async () => {
+    const { getByTestId, queryByTestId } = await show(measured);
+    expect(queryByTestId('ref-grid')).toBeNull();
+    expect(getByTestId('toggle-grid')).toHaveTextContent('grid');
+    await press(getByTestId('toggle-grid'));
+    // the picture is 375 x 667: cells of 62.5, five lines down and ten across
+    expect(getByTestId('ref-grid').children).toHaveLength(15);
+    expect(getByTestId('toggle-grid')).toHaveProp('accessibilityState', { checked: true });
+    await press(getByTestId('toggle-grid'));
+    expect(queryByTestId('ref-grid')).toBeNull();
+  });
+
+  it('puts a vertical line where the bar started and lets the lifter drag it', async () => {
+    const { getByTestId, queryByTestId } = await show(measured);
+    expect(getByTestId('toggle-plumb')).toHaveTextContent('vertical line');
+    await press(getByTestId('toggle-plumb'));
+    // the bar starts at half of the 375 pt picture; the handle is 44 wide
+    expect(getByTestId('ref-plumb')).toHaveStyle({ left: 165.5 });
+    await fire(getByTestId('ref-plumb'), 'responderGrant', { pageX: 200 });
+    await fire(getByTestId('ref-plumb'), 'responderMove', { pageX: 275 });
+    expect(getByTestId('ref-plumb')).toHaveStyle({ left: 240.5 });
+    // it comes back where it was left
+    await press(getByTestId('toggle-plumb'));
+    expect(queryByTestId('ref-plumb')).toBeNull();
+    await press(getByTestId('toggle-plumb'));
+    expect(getByTestId('ref-plumb')).toHaveStyle({ left: 240.5 });
+  });
+
+  it('starts the vertical line in the centre when the bar’s start is not known', async () => {
+    const { getByTestId } = await show({ ...marked, reps: [{ ...marked.reps[0], path: [] }] });
+    await press(getByTestId('toggle-plumb'));
+    // no chart on this lift, so the picture is 450 pt wide
+    expect(getByTestId('ref-plumb')).toHaveStyle({ left: 203 });
+  });
+
+  it('in draw mode a touch on the video draws instead of playing, and clear takes the strokes off', async () => {
+    const { getByTestId, queryByTestId } = await show(measured);
+    expect(queryByTestId('freehand-surface')).toBeNull();
+    expect(getByTestId('toggle-freehand')).toHaveTextContent('draw');
+    await press(getByTestId('toggle-freehand'));
+    await press(getByTestId('tracker-video'));
+    expect(player?.play).not.toHaveBeenCalled();
+    const surface = getByTestId('freehand-surface');
+    await fire(surface, 'responderGrant', { locationX: 75, locationY: 100 });
+    await fire(surface, 'responderMove', { locationX: 150, locationY: 200 });
+    await fire(surface, 'responderRelease', { locationX: 150, locationY: 200 });
+    expect(getByTestId('freehand-stroke-0')).toHaveProp('d', 'M75.0 100.0 L150.0 200.0');
+    // out of draw mode the stroke stays and the video plays on a tap again
+    await press(getByTestId('toggle-freehand'));
+    expect(getByTestId('freehand-stroke-0')).toBeOnTheScreen();
+    await press(getByTestId('tracker-video'));
+    expect(player?.play).toHaveBeenCalledTimes(1);
+    await press(getByTestId('toggle-clear'));
+    expect(queryByTestId('freehand-stroke-0')).toBeNull();
+    expect(queryByTestId('toggle-clear')).toBeNull();
+  });
+
+  it('draw and measure are one at a time', async () => {
+    const { getByTestId, queryByTestId } = await show(measured);
+    expect(getByTestId('toggle-draw')).toHaveTextContent('measure');
+    await press(getByTestId('toggle-draw'));
+    expect(getByTestId('draw-surface')).toBeOnTheScreen();
+    await press(getByTestId('toggle-freehand'));
+    expect(queryByTestId('draw-surface')).toBeNull();
+    expect(getByTestId('freehand-surface')).toBeOnTheScreen();
+    await press(getByTestId('toggle-draw'));
+    expect(queryByTestId('freehand-surface')).toBeNull();
+    expect(getByTestId('draw-surface')).toBeOnTheScreen();
+  });
+});
+
+describe('TrackerScreen chart zoom and divider', () => {
+  const path = Array.from({ length: 151 }, (_, i) => {
+    const frame = 90 + i;
+    const y = frame <= 170 ? 0.8 - 0.002 * (frame - 90) : 0.64 - 0.004 * (frame - 170);
+    return { frame, x: 0.5, y, src: 'plate' as const, r: 0.05 };
+  });
+  const measured: Analysis = { ...marked, reps: [{ ...marked.reps[0], path }] };
+  const fire = async (el: Parameters<typeof fireEvent>[0], event: string, nativeEvent: object) => {
+    await act(async () => {
+      fireEvent(el, event, { nativeEvent });
+    });
+  };
+  const fingers = (...xs: number[]) => ({ pageX: xs[0], locationX: xs[0], touches: xs.map((pageX) => ({ pageX })) });
+  // 336 wide: 300 of plot. Two fingers either side of the middle spread to twice as wide: frames 128 to 203.
+  const zoomIn = async (view: Awaited<ReturnType<typeof show>>) => {
+    const plot = view.getByTestId('speed-plot');
+    await fire(plot, 'layout', { layout: { width: 336, height: 140 } });
+    await fire(plot, 'responderGrant', fingers(136, 236));
+    await fire(plot, 'responderMove', fingers(136, 236));
+    await fire(plot, 'responderMove', fingers(86, 286));
+    await fire(plot, 'responderRelease', fingers(86));
+  };
+
+  it('labels the chart in seconds from the start of the lift, with the playhead’s time', async () => {
+    const view = await show(measured);
+    await fire(view.getByTestId('speed-plot'), 'layout', { layout: { width: 336, height: 140 } });
+    await at(162);
+    expect(view.getByTestId('speed-cursor-time')).toHaveTextContent('1.20 s');
+    expect(view.getByTestId('speed-tick-x-2')).toHaveTextContent('2.0 s');
+  });
+
+  it('zoomed in, playback starts at the window and loops inside it until the zoom is reset', async () => {
+    const view = await show(measured);
+    await zoomIn(view);
+    expect(view.getByTestId('speed-zoom-reset')).toBeOnTheScreen();
+    expect(view.getByTestId('speed-tick-x-0')).toHaveTextContent('1.0 s');
+    // the playhead is on frame 90, before the window: play starts from the window's first frame
+    await press(view.getByTestId('tracker-play'));
+    expect(player?.currentTime).toBeCloseTo(128.5 / 60, 6);
+    expect(view.getByTestId('tracker-readout')).toHaveTextContent('0.63 s · 129 / 300');
+    await at(150);
+    expect(view.getByTestId('tracker-readout')).toHaveTextContent('1.00 s · 151 / 300');
+    if (player) player.currentTime = undefined;
+    await at(203);
+    expect(player?.currentTime).toBeCloseTo(128.5 / 60, 6);
+    expect(player?.pause).not.toHaveBeenCalled();
+    expect(view.getByTestId('tracker-readout')).toHaveTextContent('0.63 s · 129 / 300');
+    // a time still arriving from before the jump is not the end of the window reached again
+    if (player) player.currentTime = undefined;
+    await at(204);
+    expect(player?.currentTime).toBeUndefined();
+    await at(130);
+    expect(view.getByTestId('tracker-readout')).toHaveTextContent('0.67 s · 131 / 300');
+    await press(view.getByTestId('speed-zoom-reset'));
+    expect(view.queryByTestId('speed-zoom-reset')).toBeNull();
+    await at(203);
+    expect(player?.currentTime).toBeUndefined();
+    expect(view.getByTestId('tracker-readout')).toHaveTextContent('1.88 s · 204 / 300');
+    await at(240);
+    expect(player?.pause).toHaveBeenCalledTimes(1);
+  });
+
+  it('dragging the chart still seeks, inside the window when zoomed', async () => {
+    const view = await show(measured);
+    await fire(view.getByTestId('speed-plot'), 'layout', { layout: { width: 336, height: 140 } });
+    await fire(view.getByTestId('speed-plot'), 'responderGrant', fingers(100));
+    await fire(view.getByTestId('speed-plot'), 'responderMove', fingers(186));
+    expect(view.getByTestId('tracker-readout')).toHaveTextContent('1.25 s · 166 / 300');
+    await fire(view.getByTestId('speed-plot'), 'responderRelease', fingers(186));
+    await zoomIn(view);
+    await fire(view.getByTestId('speed-plot'), 'responderGrant', fingers(100));
+    await fire(view.getByTestId('speed-plot'), 'responderMove', fingers(336));
+    expect(view.getByTestId('tracker-readout')).toHaveTextContent('1.88 s · 204 / 300');
+  });
+
+  it('showing the whole clip clears the zoom', async () => {
+    const view = await show(measured);
+    await zoomIn(view);
+    await press(view.getByTestId('toggle-whole'));
+    expect(view.queryByTestId('speed-zoom-reset')).toBeNull();
+  });
+
+  it('the divider makes the video smaller or bigger, within limits', async () => {
+    const view = await show(measured);
+    // a 750 x 1334 screen: the 9:16 video opens at half its height
+    expect(view.getByTestId('tracker-video')).toHaveStyle({ width: 375, height: 667 });
+    const divider = view.getByTestId('tracker-divider');
+    await fire(divider, 'responderGrant', { pageY: 800 });
+    await fire(divider, 'responderMove', { pageY: 700 });
+    expect(view.getByTestId('tracker-video')).toHaveStyle({ width: 319, height: 567 });
+    // no smaller than a quarter of the screen
+    await fire(divider, 'responderMove', { pageY: 100 });
+    expect(view.getByTestId('tracker-video')).toHaveStyle({ width: 188, height: 334 });
+    await fire(divider, 'responderRelease', { pageY: 100 });
+    // and no bigger than leaves the chart its room: 200 pt under a 334 pt video, of which the chart keeps 160
+    await fire(view.getByTestId('tracker-bottom'), 'layout', { layout: { height: 200 } });
+    await fire(divider, 'responderGrant', { pageY: 500 });
+    await fire(divider, 'responderMove', { pageY: 1200 });
+    expect(view.getByTestId('tracker-video')).toHaveStyle({ width: 210, height: 373 });
+  });
+
+  it('has no divider on a lift with no chart', async () => {
+    const { queryByTestId } = await show(marked);
+    expect(queryByTestId('tracker-divider')).toBeNull();
   });
 });

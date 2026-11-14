@@ -135,6 +135,16 @@ describe('reps of a set', () => {
     expect(drawnPath(set, 35)[0].frame).toBe(21);
   });
 
+  it('has every rep of the set whole from the first frame, for the faint path under the one being drawn', () => {
+    const ends = (segs: { frame: number }[][]) => segs.map((r) => [r[0].frame, r[r.length - 1].frame]);
+    // both reps before either has started, and still both on the last frame; never the setup
+    expect(ends(drawnPaths(set, 0).whole)).toEqual([[21, 61], [61, 109]]);
+    expect(ends(drawnPaths(set, 109).whole)).toEqual([[21, 61], [61, 109]]);
+    // a single lift is one whole path
+    expect(ends(drawnPaths({ ...set, reps: [{ ...set.reps[0], path: seg(5, lift) }] }, 5).whole)).toEqual([[5, 14]]);
+    expect(drawnPaths({ ...set, traceKind: 'hip' }, 75).whole).toEqual([]);
+  });
+
   it('is one rep when there is no rest to split at (touch and go)', () => {
     expect(repStarts(seg(5, lift), 30)).toEqual([5]);
     expect(repStarts([], 30)).toEqual([]);

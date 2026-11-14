@@ -143,7 +143,7 @@ export const you: Strings<typeof en> = {
   'you.whatsNew.v402.share': "Compartilhe em velocidade 2x ou 4x, com um cartão final do Catchline mais limpo.",
   'you.whatsNew.v402.compare': "Compare com seu último levantamento do mesmo tipo.",
   'you.whatsNew.v402.csv': "Exporte a trajetória e a velocidade de um levantamento como planilha.",
-  'you.whatsNew.v402.plate': "Um exemplo mais claro de como circular a anilha, e Pular para levantamentos sem anilha.",
+  'you.whatsNew.v402.plate': "A anilha é encontrada para você. Se estiver errada, toque em ajustar anilha no player e rastreie de novo. E mais: grade, linha vertical, notas, tags e busca.",
   'you.whatsNew.v402.you': "Uma página Você mais simples.",
   'you.whatsNew.v40.tracker': "O Catchline agora é um rastreador: grave ou importe um levantamento e veja a trajetória da barra e suas articulações no vídeo real, quadro a quadro.",
   'you.whatsNew.v40.private': "Tudo é rastreado no seu iPhone. Seu vídeo nunca sai dele.",

@@ -143,7 +143,7 @@ export const you: Strings<typeof en> = {
   'you.whatsNew.v402.share': "Partage en vitesse 2x ou 4x, avec une carte de fin Catchline épurée.",
   'you.whatsNew.v402.compare': "Compare avec ton dernier mouvement du même type.",
   'you.whatsNew.v402.csv': "Exporte la trajectoire et la vitesse d'un mouvement en tableur.",
-  'you.whatsNew.v402.plate': "Un exemple plus clair pour entourer le disque, et Passer pour les mouvements sans disque.",
+  'you.whatsNew.v402.plate': "Le disque est trouvé pour toi. S'il est mal placé, touche ajuster le disque dans le lecteur et relance le suivi. En plus : grille, ligne verticale, notes, tags et recherche.",
   'you.whatsNew.v402.you': "Une page Toi plus simple.",
   'you.whatsNew.v40.tracker': "Catchline est désormais un tracker : filme ou importe un mouvement et vois la trajectoire de la barre et tes articulations sur la vraie vidéo, image par image.",
   'you.whatsNew.v40.private': "Tout est suivi sur ton iPhone. Ta vidéo ne le quitte jamais.",

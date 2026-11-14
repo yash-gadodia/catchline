@@ -3,7 +3,7 @@ import { usePurchases } from '../purchases/usePurchases';
 import { FREE_PER_WEEK } from '../paywall/entitlements';
 import { useVideosLeft } from '../paywall/hooks';
 import { useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, G, Line, Path, Rect, Text as SvgText } from 'react-native-svg';
 import Btn from '../../components/Btn';
@@ -12,6 +12,8 @@ import SmallCaps from '../../components/SmallCaps';
 import { colors, control, shape, space, stroke } from '../../design/tokens';
 import { display, fontFamily, type } from '../../design/typography';
 import { byDay, freeVideosLabel, liftDetail, liftTime } from './derive';
+import { fmt } from '../../analysis/format';
+import { detailsOf, matchesSearch, useLiftDetails } from './liftDetails';
 import { kindsOf, liftKind, useLiftNames } from './liftNames';
 import FadeRow from '../analysis/FadeRow';
 import { t } from '../../i18n';
@@ -25,7 +27,11 @@ export type LiftsNav = {
   onRecord: () => void;
   onImport: () => void;
   onDelete: (lift: Lift) => void;
+  onDetails: (lift: Lift) => void;
 };
+
+// Fewer lifts than this fit on a screen or two, where looking is quicker than typing.
+export const SEARCH_MIN = 8;
 
 export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
   const insets = useSafeAreaInsets();
@@ -39,7 +45,19 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
   const kinds = kindsOf(shapes, lib.lifts.filter((l) => l.status === 'done').map(idOf));
   const [only, setOnly] = useState<string | null>(null);
   const kind = only && kinds.includes(only) ? only : null;
-  const shown = kind ? lib.lifts.filter((l) => l.status === 'done' && liftKind(shapes, idOf(l)) === kind) : lib.lifts;
+  const details = useLiftDetails((d) => d.details);
+  const [query, setQuery] = useState('');
+  const searchable = lib.lifts.length >= SEARCH_MIN;
+  const q = searchable ? query.trim() : '';
+  const ofKind = kind ? lib.lifts.filter((l) => l.status === 'done' && liftKind(shapes, idOf(l)) === kind) : lib.lifts;
+  // the search reads what the row shows (name, kind, tags, note, load), with and without the unit
+  const shown = q
+    ? ofKind.filter((l) => {
+        const d = detailsOf(details, idOf(l));
+        const load = l.loadKg != null ? [`${fmt(l.loadKg)} kg`, `${fmt(l.loadKg)}kg`, `${l.loadKg}kg`] : [];
+        return matchesSearch(q, [d.name, l.status === 'done' ? liftKind(shapes, idOf(l)) : null, ...d.tags, d.note, liftDetail(l), ...load]);
+      })
+    : ofKind;
   const chip = freeVideosLabel(backendEnabled() ? { plan: tier === 'free' ? 'free' : 'paid', freeVideosUsed: used } : lib);
   const header = (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -79,9 +97,39 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
     <ScrollView
       style={{ flex: 1, backgroundColor: colors.bg }}
       contentContainerStyle={{ paddingTop: insets.top + space.s3, paddingHorizontal: space.gutter, paddingBottom: space.s6, gap: space.s4 }}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
       testID="lifts"
     >
       {header}
+      {searchable ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', height: control.compactHeight, borderWidth: stroke.hairline, borderColor: colors.hairline, ...shape.control }}>
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder={t('library.search.placeholder')}
+            placeholderTextColor={colors.text3}
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="search"
+            accessibilityLabel={t('library.search.placeholder')}
+            testID="lift-search"
+            // a TextInput takes no lineHeight: on iOS it shifts the caret and the text
+            style={{ flex: 1, alignSelf: 'stretch', paddingHorizontal: space.s3, color: colors.text, fontFamily: type.callout.fontFamily, fontSize: type.callout.fontSize }}
+          />
+          {query ? (
+            <Pressable
+              onPress={() => setQuery('')}
+              accessibilityRole="button"
+              accessibilityLabel={t('library.search.clear')}
+              testID="lift-search-clear"
+              style={{ width: control.compactHeight, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Text style={{ ...type.button, color: colors.text2 }}>×</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
       {kinds.length > 1 ? (
         <View style={{ marginHorizontal: -space.gutter }}>
           <FadeRow testID="kind-filter" contentContainerStyle={{ gap: space.s2, paddingHorizontal: space.gutter }}>
@@ -98,6 +146,13 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
               </Pressable>
             ))}
           </FadeRow>
+        </View>
+      ) : null}
+      {q && shown.length === 0 ? (
+        <View testID="lifts-no-match" style={{ paddingTop: space.s6, gap: space.s3, alignItems: 'flex-start' }}>
+          <Text style={{ ...type.title, color: colors.text }}>{t('library.search.noneTitle')}</Text>
+          <Text style={{ ...type.callout, color: colors.text2 }}>{t(kind ? 'library.search.noneInKind' : 'library.search.none', { query: q, kind: kind ?? '' })}</Text>
+          <Underlined onPress={() => setQuery('')} testID="lifts-no-match-clear">{t('library.search.clear')}</Underlined>
         </View>
       ) : null}
       {byDay(shown).map((g) => (
@@ -118,7 +173,10 @@ function LiftRow({ lift, nav }: { lift: Lift; nav: LiftsNav }) {
   const muted = lift.status === 'queued';
   // a tracked lift whose kind was read is titled by it, with the time moved to the line under
   const kind = useLiftNames((n) => (lift.status === 'done' ? liftKind(n.shapes, lift.analysisId ?? lift.id) : null));
-  const detail = kind ? [liftTime(lift), liftDetail(lift)].filter(Boolean).join(' · ') : liftDetail(lift);
+  // the lifter's own name for it comes first; tags and the start of the note sit under the row's own lines
+  const mine = useLiftDetails((d) => detailsOf(d.details, lift.analysisId ?? lift.id));
+  const name = mine.name || kind;
+  const detail = name ? [liftTime(lift), liftDetail(lift)].filter(Boolean).join(' · ') : liftDetail(lift);
   const thumb =
     lift.status === 'processing' ? (
       <Pulse>
@@ -136,14 +194,36 @@ function LiftRow({ lift, nav }: { lift: Lift; nav: LiftsNav }) {
       {thumb}
       <View style={{ flex: 1, gap: 2 }}>
         <Text testID={`lift-title-${lift.id}`} style={{ color: muted ? colors.text2 : colors.text, ...type.button }}>
-          {kind ?? liftTime(lift)}
+          {name ?? liftTime(lift)}
         </Text>
         {detail ? (
           <Text testID={`lift-detail-${lift.id}`} numberOfLines={1} style={{ color: colors.text2, ...type.readout }}>
             {detail}
           </Text>
         ) : null}
+        {mine.tags.length > 0 ? (
+          <Text testID={`lift-tags-${lift.id}`} numberOfLines={1} style={{ color: colors.text, ...type.caption }}>
+            {mine.tags.map((x) => `#${x}`).join('  ')}
+          </Text>
+        ) : null}
+        {mine.note ? (
+          <Text testID={`lift-note-${lift.id}`} numberOfLines={1} style={{ color: colors.text2, ...type.small }}>
+            {mine.note.replace(/\s+/g, ' ')}
+          </Text>
+        ) : null}
       </View>
+      {lift.status === 'done' ? (
+        <Pressable
+          onPress={() => nav.onDetails(lift)}
+          accessibilityRole="button"
+          accessibilityLabel={t('library.details.open')}
+          hitSlop={space.s2}
+          testID={`lift-details-${lift.id}`}
+          style={{ width: control.chipHeight, height: control.compactHeight, alignItems: 'flex-end', justifyContent: 'center' }}
+        >
+          <Text style={{ ...type.button, color: colors.text2 }}>···</Text>
+        </Pressable>
+      ) : null}
       {lift.status === 'queued' ? <Underlined onPress={nav.onUnlock} testID={`unlock-${lift.id}`}>{t('library.lifts.unlock')}</Underlined> : null}
     </Row>
   );

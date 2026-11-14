@@ -1,5 +1,3 @@
-import PoseCoreML from '../../../modules/pose-coreml';
-
 // The lifter's own mark on the plate nearest the camera, made on the first frame of the trimmed clip: the centre as
 // shares of the frame's width and height, the radius as a share of its height.
 export type PlateMark = { x: number; y: number; r: number };
@@ -27,8 +25,16 @@ export function markFrom(centre: { x: number; y: number }, edge: { x: number; y:
   return { x: round(x), y: round(y), r: round(Math.min(r, 1)) };
 }
 
-// The mark is only asked for where the tracker can start from it: a binary whose native module says so (the build
-// after 41), and dev builds, where the step is worked on.
-export function plateMarkSupported(): boolean {
-  return __DEV__ || (PoseCoreML as { supportsPlateMark?: boolean } | null)?.supportsPlateMark === true;
+// What a press at `d` points from the centre of a circle of radius `r` takes hold of: the circle itself (move), its
+// rim (resize), or nothing (a new circle starts there). The bands are never thinner than a fingertip.
+export function grab(d: number, r: number): 'move' | 'resize' | 'new' {
+  const inner = Math.max(r * 0.6, Math.min(r, 14));
+  if (d <= inner) return 'move';
+  return d <= Math.max(r * 1.5, r + 28) ? 'resize' : 'new';
+}
+
+// The plate the tracker followed, as a mark on the first frame of the path that has its size (null: no plate found).
+export function foundMark(path: { frame: number; x: number; y: number; r?: number }[]): (PlateMark & { frame: number }) | null {
+  const p = path.find((q) => q.r !== undefined);
+  return p && p.r !== undefined ? { frame: p.frame, x: p.x, y: p.y, r: p.r } : null;
 }

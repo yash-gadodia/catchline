@@ -163,28 +163,34 @@ export function repAt(starts: number[], frame: number): { start: number; end: nu
 const REP_TRAVEL = 0.3;
 
 // The path drawn at a frame. A bar path: the current rep from its start up to the frame, and every earlier rep of the
-// set whole, to be drawn faint underneath (owner, 13-11: one line on top of another read as a tangle). A hanging
-// movement's hips swing back and forth every rep, so only its last HIP_TRAIL_S is drawn and the trail follows the
-// swing (owner's pull-ups, 12-11).
+// set whole, to be drawn faint underneath (owner, 13-11: one line on top of another read as a tangle). `whole` is
+// every rep of the set end to end, earlier or not: the player draws it faint from the first frame, and the rep on
+// screen bright over it as it plays (owner, 14-11: parity with WL Analysis). A hanging movement's hips swing back
+// and forth every rep, so only its last HIP_TRAIL_S is drawn and the trail follows the swing (owner's pull-ups,
+// 12-11); it has no whole path.
 export const HIP_TRAIL_S = 1;
 export function drawnPath(analysis: Analysis, frame: number, starts?: number[]): TracePoint[] {
   return drawnPaths(analysis, frame, starts).current;
 }
-export function drawnPaths(analysis: Analysis, frame: number, starts?: number[]): { current: TracePoint[]; earlier: TracePoint[][] } {
+export function drawnPaths(analysis: Analysis, frame: number, starts?: number[]): { current: TracePoint[]; earlier: TracePoint[][]; whole: TracePoint[][] } {
   const path: TracePoint[] = analysis.reps[0]?.path ?? [];
   if (analysis.traceKind === 'hip') {
     const from = frame - Math.round(HIP_TRAIL_S * (analysis.video.fps || 30));
-    return { current: pathUpTo(path.filter((p) => p.frame >= from), frame), earlier: [] };
+    return { current: pathUpTo(path.filter((p) => p.frame >= from), frame), earlier: [], whole: [] };
   }
   const s = starts ?? repStarts(path, analysis.video.fps || 30);
   const rep = repAt(s, frame);
   const ys = path.map((p) => p.y);
   const range = ys.length ? Math.max(...ys) - Math.min(...ys) : 0;
   const earlier: TracePoint[][] = [];
-  for (let i = 0; i + 1 < s.length && s[i + 1] <= rep.start; i++) {
-    const seg = path.filter((p) => p.frame >= s[i] && p.frame <= s[i + 1]);
+  const whole: TracePoint[][] = [];
+  for (let i = 0; i < s.length; i++) {
+    const end = s[i + 1] ?? Infinity;
+    const seg = path.filter((p) => p.frame >= s[i] && p.frame <= end);
     const sy = seg.map((p) => p.y);
-    if (seg.length > 1 && Math.max(...sy) - Math.min(...sy) >= REP_TRAVEL * range) earlier.push(seg);
+    if (seg.length < 2 || Math.max(...sy) - Math.min(...sy) < REP_TRAVEL * range) continue;
+    whole.push(seg);
+    if (end <= rep.start) earlier.push(seg);
   }
-  return { current: pathUpTo(path.filter((p) => p.frame >= rep.start), frame), earlier };
+  return { current: pathUpTo(path.filter((p) => p.frame >= rep.start), frame), earlier, whole };
 }

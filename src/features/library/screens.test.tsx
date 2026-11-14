@@ -20,11 +20,14 @@ const liftsNav = () => ({
   onRecord: jest.fn(),
   onImport: jest.fn(),
   onDelete: jest.fn(),
+  onDetails: jest.fn(),
 });
 
 beforeEach(() => {
   jest.clearAllMocks();
   loadLibrary('seeded');
+  require('./liftDetails').useLiftDetails.setState({ details: {} });
+  require('./liftNames').useLiftNames.setState({ shapes: {} });
   require('../paywall/usageStore').useUsage.setState({ usage: { lifetime: 0, month: '', thisMonth: 0 } });
 });
 
@@ -76,7 +79,121 @@ describe('LiftsScreen', () => {
     expect(getAllByTestId(/^lift-title-/).map((n) => n.props.testID)).toEqual(['lift-title-l1', 'lift-title-l2']);
     await press(getByTestId('kind-all'));
     expect(getAllByTestId(/^lift-title-/)).toHaveLength(4);
-    useLiftNames.setState({ shapes: {} });
+  });
+
+  it("titles a lift by the lifter's own name, with its tags and the first line of its note", async () => {
+    const at = new Date(2026, 2, 11, 14, 32).toISOString();
+    const { useLiftNames } = require('./liftNames');
+    const { useLiftDetails } = require('./liftDetails');
+    useLiftNames.setState({ shapes: { 'a-1': 'floor-overhead' } });
+    useLiftDetails.setState({
+      details: {
+        'a-1': { name: 'Opener', tags: ['pr', 'comp prep'], note: 'Felt fast.\nStay over the bar.' },
+        l2: { name: 'Warm up', tags: [], note: '' },
+      },
+    });
+    useLibraryStore.getState().load({
+      ...emptyLibrary(),
+      lifts: [
+        { id: 'l1', movement: 'snatch', date: '2026-03-11', at, status: 'done', analysisId: 'a-1', loadKg: 62.5 },
+        { id: 'l2', movement: 'snatch', date: '2026-03-10', status: 'done', loadKg: 40 },
+        { id: 'l3', movement: 'snatch', date: '2026-03-09', status: 'done', analysisId: 'a-3' },
+        { id: 'l4', movement: 'snatch', date: '2026-03-08', status: 'processing' },
+      ],
+    });
+    const nav = liftsNav();
+    const { getByTestId, queryByTestId } = await render(<LiftsScreen nav={nav} />);
+    expect(getByTestId('lift-title-l1')).toHaveTextContent('Opener');
+    expect(getByTestId('lift-detail-l1')).toHaveTextContent('14:32 · 62.5 kg · Snatch');
+    expect(getByTestId('lift-tags-l1')).toHaveTextContent('#pr  #comp prep');
+    expect(getByTestId('lift-note-l1')).toHaveTextContent('Felt fast. Stay over the bar.');
+    expect(getByTestId('lift-note-l1')).toHaveProp('numberOfLines', 1);
+    expect(getByTestId('lift-title-l2')).toHaveTextContent('Warm up');
+    expect(getByTestId('lift-detail-l2')).toHaveTextContent('10 Mar · 40 kg · Snatch');
+    expect(getByTestId('lift-title-l3')).toHaveTextContent('9 Mar');
+    for (const none of ['lift-tags-l2', 'lift-note-l2', 'lift-tags-l3', 'lift-note-l3']) expect(queryByTestId(none)).toBeNull();
+  });
+
+  it('opens the details from the button on a tracked row, without opening the player or the delete prompt', async () => {
+    const nav = liftsNav();
+    const { getByTestId, queryByTestId } = await render(<LiftsScreen nav={nav} />);
+    expect(getByTestId('lift-details-l-snatch-today')).toHaveProp('accessibilityLabel', 'Name, tags and note');
+    await press(getByTestId('lift-details-l-snatch-today'));
+    expect(nav.onDetails).toHaveBeenCalledWith(expect.objectContaining({ id: 'l-snatch-today' }));
+    expect(nav.onOpen).not.toHaveBeenCalled();
+    expect(nav.onDelete).not.toHaveBeenCalled();
+    for (const id of ['l-clean', 'l-jerk', 'l-snatch-queued']) expect(queryByTestId(`lift-details-${id}`)).toBeNull();
+  });
+
+  it('searches by name, kind, tag, note and weight, together with the kind filter', async () => {
+    const { useLiftNames } = require('./liftNames');
+    const { useLiftDetails } = require('./liftDetails');
+    useLiftNames.setState({ shapes: { a1: 'floor-overhead', a2: 'floor-overhead', a3: 'floor-shoulders', a4: 'floor-shoulders' } });
+    useLiftDetails.setState({
+      details: {
+        a1: { name: 'Opener', tags: ['pr'], note: 'Felt fast' },
+        a2: { name: '', tags: ['heavy'], note: 'Hips shot up' },
+        a3: { name: '', tags: ['heavy', 'pr'], note: '' },
+      },
+    });
+    const done = (n: number, loadKg?: number) => ({ id: `l${n}`, movement: 'snatch' as const, date: `2026-03-${String(20 - n).padStart(2, '0')}`, status: 'done' as const, analysisId: `a${n}`, loadKg });
+    useLibraryStore.getState().load({
+      ...emptyLibrary(),
+      lifts: [done(1, 62.5), done(2, 70), done(3, 90), done(4, 62.5), done(5), done(6), done(7), { id: 'l8', movement: 'snatch', date: '2026-03-01', status: 'processing', loadKg: 70 }],
+    });
+    const { getByTestId, getAllByTestId, queryByTestId, queryAllByTestId } = await render(<LiftsScreen nav={liftsNav()} />);
+    const rows = () => queryAllByTestId(/^lift-title-/).map((n) => n.props.testID.replace('lift-title-', ''));
+    const search = async (text: string) => {
+      await act(async () => {
+        fireEvent.changeText(getByTestId('lift-search'), text);
+      });
+    };
+    expect(getAllByTestId(/^lift-title-/)).toHaveLength(8);
+    expect(queryByTestId('lift-search-clear')).toBeNull();
+    await search('open');
+    expect(rows()).toEqual(['l1']);
+    await search('clean');
+    expect(rows()).toEqual(['l3', 'l4']);
+    await search('PR');
+    expect(rows()).toEqual(['l1', 'l3']);
+    await search('hips');
+    expect(rows()).toEqual(['l2']);
+    await search('62.5');
+    expect(rows()).toEqual(['l1', 'l4']);
+    await search('70kg');
+    expect(rows()).toEqual(['l2', 'l8']);
+    await search('heavy shot');
+    expect(rows()).toEqual(['l2']);
+
+    await search('pr');
+    await press(getByTestId('kind-Clean'));
+    expect(rows()).toEqual(['l3']);
+    await search('opener');
+    expect(rows()).toEqual([]);
+    expect(getByTestId('lifts-no-match')).toHaveTextContent('No lifts foundNothing in Clean matches "opener".Clear search');
+    await press(getByTestId('kind-all'));
+    expect(rows()).toEqual(['l1']);
+
+    await search('zzz');
+    expect(getByTestId('lifts-no-match')).toHaveTextContent('No lifts foundNothing matches "zzz". Search looks at names, tags, notes and weights.Clear search');
+    await press(getByTestId('lifts-no-match-clear'));
+    expect(getByTestId('lift-search')).toHaveProp('value', '');
+    expect(rows()).toHaveLength(8);
+    await search('zzz');
+    await press(getByTestId('lift-search-clear'));
+    expect(queryByTestId('lifts-no-match')).toBeNull();
+    expect(rows()).toHaveLength(8);
+  });
+
+  it('keeps the search field away until there are eight lifts', async () => {
+    const lifts = Array.from({ length: 7 }, (_, n) => ({ id: `l${n}`, movement: 'snatch' as const, date: `2026-03-${String(10 + n)}`, status: 'done' as const }));
+    useLibraryStore.getState().load({ ...emptyLibrary(), lifts });
+    const { queryByTestId, getByTestId } = await render(<LiftsScreen nav={liftsNav()} />);
+    expect(queryByTestId('lift-search')).toBeNull();
+    await act(async () => {
+      useLibraryStore.getState().load({ ...emptyLibrary(), lifts: [...lifts, { id: 'l7', movement: 'snatch', date: '2026-03-17', status: 'done' }] });
+    });
+    expect(getByTestId('lift-search')).toHaveProp('placeholder', 'Search lifts');
   });
 
   it('shows every row state of the seeded library, with Unlock only on the queued lift', async () => {

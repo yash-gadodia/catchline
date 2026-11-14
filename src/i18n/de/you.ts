@@ -143,7 +143,7 @@ export const you: Strings<typeof en> = {
   'you.whatsNew.v402.share': "Teilen mit 2- oder 4-facher Geschwindigkeit, mit einer sauberen Catchline-Abspannkarte.",
   'you.whatsNew.v402.compare': "Vergleiche mit deinem letzten Lift derselben Art.",
   'you.whatsNew.v402.csv': "Exportiere Hantelweg und Geschwindigkeit eines Lifts als Tabelle.",
-  'you.whatsNew.v402.plate': "Ein klareres Beispiel, wie du die Scheibe einkreist, und Überspringen für Lifts ohne Scheibe.",
+  'you.whatsNew.v402.plate': "Die Scheibe wird für dich gefunden. Stimmt sie nicht, tippe im Player auf Scheibe anpassen und tracke erneut. Dazu Raster, senkrechte Linie, Notizen, Tags und Suche.",
   'you.whatsNew.v402.you': "Eine einfachere Du-Seite.",
   'you.whatsNew.v40.tracker': "Catchline ist jetzt ein Tracker: Filme oder importiere einen Lift und sieh Hantelweg und Gelenke auf dem echten Video, Bild für Bild.",
   'you.whatsNew.v40.private': "Alles wird auf deinem iPhone getrackt. Dein Video verlässt es nie.",

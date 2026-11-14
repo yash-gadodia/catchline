@@ -21,14 +21,21 @@ import { isComplete, type Shape } from './drawGeometry';
 import { openLiftOverlays, useOverlays } from './overlayPrefs';
 import { peakFrame } from './compare';
 import { barSpeed, peakIn } from './speed';
-import SpeedChart from './SpeedChart';
+import SpeedChart, { SPEED_CHART_MIN_H } from './SpeedChart';
+import type { FrameWindow } from './chart';
+import { Freehand, Grid, PlumbLine } from './ReferenceTools';
 import type { LastLift } from './useLastLift';
-import { ANGLE_MAX_OFF_SIDE_DEG, drawnSide, frameAt, jointAngles, joints, liftRange, repAt, repStarts, spread, timeOf } from './tracker';
+import { ANGLE_MAX_OFF_SIDE_DEG, drawnSide, frameAt, jointAngles, joints, liftRange, repAt, repStarts, spread, startLineX, timeOf } from './tracker';
 import { t } from '../../i18n';
 
 type Speed = 0.25 | 0.5 | 1 | 2 | 4;
 const SPEEDS: Speed[] = [0.25, 0.5, 1, 2, 4];
 const SCRUB_H = 44;
+// the divider between the video and the chart: how small the video can go, how big when the space under it has not
+// been measured, and how far one VoiceOver step moves it
+const VIDEO_MIN = 0.25;
+const VIDEO_MAX = 0.6;
+const DIVIDER_STEP = 40;
 
 // The 4.0 result: the lifter's own clip, every frame, with the tracked path and body drawn on it.
 export default function TrackerScreen({
@@ -42,6 +49,8 @@ export default function TrackerScreen({
   reveal,
   lastLift,
   onSideBySide,
+  onAdjustPlate,
+  onDetails,
   reduceMotion,
 }: {
   analysis: Analysis;
@@ -58,6 +67,10 @@ export default function TrackerScreen({
   lastLift?: LastLift | null;
   // Opens this lift next to the last lift of the same kind (two videos in step).
   onSideBySide?: () => void;
+  // Opens the plate the tracker found, to move or resize it and track again (bar paths only).
+  onAdjustPlate?: () => void;
+  // Opens the lift's name, tags and note.
+  onDetails?: () => void;
   reduceMotion?: boolean;
 }) {
   const { width, height } = useWindowDimensions();
@@ -73,8 +86,10 @@ export default function TrackerScreen({
   // the peak shown is the rep on screen's (a set of several reps peaks once per rep)
   const starts = useMemo(() => repStarts(analysis.reps[0]?.path ?? [], analysis.video.fps || 30), [analysis]);
   const src = { width: analysis.video.width, height: analysis.video.height };
-  // a lift with bar speed gives the picture a little less height, for the speed chart under the controls
-  const maxH = Math.round(height * (barSpeedOf ? 0.5 : 0.6));
+  // a lift with bar speed gives the picture a little less height, for the speed chart under the controls; the lifter
+  // drags the divider between them to give either one more
+  const [videoH, setVideoH] = useState<number | null>(null);
+  const maxH = videoH ?? Math.round(height * (barSpeedOf ? 0.5 : 0.6));
   const boxW = Math.min(width, Math.round((maxH * src.width) / src.height));
   const box = { width: boxW, height: Math.round((boxW * src.height) / src.width) };
   const fit: Fit = { x: 0, y: 0, width: box.width, height: box.height };
@@ -83,6 +98,7 @@ export default function TrackerScreen({
 
   // The player keeps to the lift itself (tracking marks it) until the lifter asks for the whole clip.
   const hasLift = liftRange(analysis.lift, count, false).cropped;
+  const adjustable = !!onAdjustPlate && analysis.traceKind !== 'hip';
   const [whole, setWhole] = useState(false);
   const { cropped, first, last } = liftRange(analysis.lift, count, whole);
   // It opens on the lift's first frame: the readout and the overlay from the first paint, the picture as soon as
@@ -106,12 +122,22 @@ export default function TrackerScreen({
   const overlays = revealing === 'playing' ? { ...prefs, path: true, body: true } : prefs;
   const [drawing, setDrawing] = useState(false);
   const [shapes, setShapes] = useState<Shape[]>([]);
+  // the reference tools last for this look at the lift only
+  const [tools, setTools] = useState({ grid: false, plumb: false });
+  const [plumbX, setPlumbX] = useState<number | null>(null);
+  const [freehand, setFreehand] = useState(false);
+  const [strokes, setStrokes] = useState<Point[][]>([]);
+  // the part of the lift the speed chart is zoomed in on: playback loops inside it
+  const [zoom, setZoom] = useState<FrameWindow | null>(null);
+  const zoomRef = useRef(zoom);
+  zoomRef.current = zoom;
   const frameRef = useRef(opensOn);
   const path = analysis.reps[0]?.path ?? [];
   // The top of the lift, felt once as the first look passes it.
   const peak = useRef(reveal ? peakFrame(path, first, last) : null);
-  // Set on playing again from the end: the times still arriving from the old position are not the end reached again.
-  const restarting = useRef(false);
+  // Set on playing again from the end, or from the start of the zoomed window: the times still arriving from the old
+  // position are skipped until one inside these frames arrives.
+  const restarting = useRef<FrameWindow | null>(null);
 
   const player = useVideoPlayer(clipUri, (p) => {
     p.loop = false;
@@ -128,12 +154,21 @@ export default function TrackerScreen({
       if (player.duration > 0 && Math.abs(player.duration - duration) > 0.01) setDuration(player.duration);
       const at = frameAt(currentTime, fps, count);
       if (restarting.current) {
-        if (at >= last) return;
-        restarting.current = false;
+        if (at < restarting.current.first || at >= restarting.current.last) return;
+        restarting.current = null;
       }
       if (revealRef.current === 'playing' && peak.current !== null && at >= peak.current) {
         peak.current = null;
         impact('light');
+      }
+      // zoomed in on the chart, it loops inside the frames the chart shows
+      const loop = zoomRef.current;
+      if (loop && player.playing && (at >= loop.last || at < loop.first)) {
+        restarting.current = loop;
+        frameRef.current = loop.first;
+        setFrameState(loop.first);
+        player.currentTime = timeOf(loop.first, fps);
+        return;
       }
       // it stops on the last frame, not one past it
       if (at >= last && player.playing) {
@@ -170,7 +205,7 @@ export default function TrackerScreen({
   const seek = (next: number) => {
     const f = Math.min(Math.max(first, Math.round(next)), last);
     endReveal();
-    restarting.current = false;
+    restarting.current = null;
     player.pause();
     if (f === frameRef.current) return;
     frameRef.current = f;
@@ -188,11 +223,12 @@ export default function TrackerScreen({
     endReveal();
     if (playing) return player.pause();
     exitDraw();
-    if (frameRef.current >= last || frameRef.current < first) {
-      restarting.current = true;
-      frameRef.current = first;
-      setFrameState(first);
-      player.currentTime = timeOf(first, fps);
+    const from = zoom ?? { first, last };
+    if (frameRef.current >= from.last || frameRef.current < from.first) {
+      restarting.current = from;
+      frameRef.current = from.first;
+      setFrameState(from.first);
+      player.currentTime = timeOf(from.first, fps);
     }
     player.play();
   };
@@ -201,6 +237,7 @@ export default function TrackerScreen({
   const toggleWhole = () => {
     const next = liftRange(analysis.lift, count, !whole);
     setWhole(!whole);
+    setZoom(null);
     if (frameRef.current >= next.first && frameRef.current <= next.last) return;
     player.pause();
     frameRef.current = next.first;
@@ -219,7 +256,21 @@ export default function TrackerScreen({
     }),
   ).current;
 
+  // The divider: the video takes what the lifter gives it, down to a quarter of the screen and up to where the chart
+  // under it would no longer fit (or the picture is as wide as the screen).
+  const charted = barSpeedOf !== null && revealing !== 'playing';
+  const bottomH = useRef(0);
+  const minBottom = space.s3 + SPEED_CHART_MIN_H + (onShare ? space.s2 + control.compactHeight : 0) + Math.max(insets.bottom, space.s4);
+  const videoLimits = () => {
+    const min = Math.round(height * VIDEO_MIN);
+    const room = bottomH.current > 0 ? box.height + bottomH.current - minBottom : Math.round(height * VIDEO_MAX);
+    return { min, max: Math.max(min, Math.min(room, Math.round((width * src.height) / src.width))) };
+  };
+  const resizing = useRef<{ y: number; h: number; min: number; max: number } | null>(null);
+  const resizeTo = (h: number, { min, max }: { min: number; max: number }) => setVideoH(Math.round(Math.min(Math.max(h, min), max)));
+
   const s = (p: Point) => toScreen(p, fit);
+  const plumb = Math.min(Math.max(plumbX ?? startLineX(analysis.reps[0]) ?? 0.5, 0), 1);
   const j = overlays.angles ? joints(body, frame) : [];
   const side = drawnSide(body, offSide);
 
@@ -229,14 +280,15 @@ export default function TrackerScreen({
       <View style={{ alignItems: 'center', backgroundColor: colors.surface }}>
         <Pressable
           onPress={togglePlay}
-          disabled={drawing}
+          disabled={drawing || freehand}
           accessibilityRole="button"
           accessibilityLabel={playing ? t('analysis.player.pause') : t('analysis.player.play')}
           testID="tracker-video"
           style={{ width: box.width, height: box.height, overflow: 'hidden' }}
         >
           <VideoView player={player} style={{ width: box.width, height: box.height }} contentFit="fill" nativeControls={false} allowsVideoFrameAnalysis={false} />
-          <TrackOverlay analysis={analysis} body={body} frame={frame} box={box} show={overlays} ghost={comparing && lastLift ? lastLift.points : null} speed={barSpeedOf?.at} />
+          {tools.grid ? <Grid box={box} /> : null}
+          <TrackOverlay analysis={analysis} body={body} frame={frame} box={box} show={overlays} ghost={comparing && lastLift ? lastLift.points : null} speed={barSpeedOf?.at} whole />
           {overlays.angles && anglesOk
             ? spread(jointAngles(j, src, side).map((a) => ({ ...a, x: s(a.at).x + 10, y: s(a.at).y - 12 })), 56, 28).map((a) => (
                 <View key={a.name} pointerEvents="none" style={{ position: 'absolute', left: Math.min(Math.max(4, a.x), box.width - 56), top: Math.min(Math.max(4, a.y), box.height - 26) }}>
@@ -245,6 +297,8 @@ export default function TrackerScreen({
               ))
             : null}
           <DrawLayer box={box} fit={fit} video={src} shapes={shapes} onShapes={setShapes} drawing={drawing} />
+          {tools.plumb ? <PlumbLine box={box} x={plumb} onMove={setPlumbX} /> : null}
+          <Freehand box={box} strokes={strokes} onStrokes={setStrokes} drawing={freehand} />
           {/* time, and under it the bar speed: stacked so they never meet on a narrow (portrait) video */}
           <View pointerEvents="none" style={{ position: 'absolute', top: space.s3, left: space.s3, alignItems: 'flex-start', gap: space.s1 }}>
             <Readout testID="tracker-readout">{cropped ? `${seconds((frame - first) / fps)} s · ${frame + 1} / ${count}` : `${frame + 1} / ${count} · ${seconds(frame / fps)} s`}</Readout>
@@ -254,7 +308,7 @@ export default function TrackerScreen({
               </Readout>
             ) : null}
           </View>
-          {lastLift && revealing !== 'playing' && !drawing ? (
+          {lastLift && revealing !== 'playing' && !drawing && !freehand ? (
             <Pressable
               testID="tracker-compare"
               accessibilityRole="switch"
@@ -330,28 +384,49 @@ export default function TrackerScreen({
                 {t(`analysis.tracker.overlay.${k}`)}
               </Chip>
             ))}
+          {(['grid', 'plumb'] as const).map((k) => (
+            <Chip key={k} testID={`toggle-${k}`} toggle on={tools[k]} onPress={() => setTools((all) => ({ ...all, [k]: !all[k] }))}>
+              {t(`analysis.tracker.tool.${k}`)}
+            </Chip>
+          ))}
+          <Chip
+            testID="toggle-freehand"
+            toggle
+            on={freehand}
+            onPress={() => {
+              if (!freehand) exitDraw();
+              setFreehand(!freehand);
+            }}
+          >
+            {t('analysis.tracker.tool.draw')}
+          </Chip>
           {hasLift ? (
             <Chip testID="toggle-whole" toggle on={whole} onPress={toggleWhole}>
               {t('analysis.tracker.wholeClip')}
             </Chip>
           ) : null}
-          {lastLift && onSideBySide ? (
-            <Chip testID="side-by-side" on onPress={onSideBySide}>
-              {t('analysis.tracker.sideBySide')}
-            </Chip>
-          ) : null}
           {playing ? null : (
-            <Chip testID="toggle-draw" toggle on={drawing} onPress={() => (drawing ? exitDraw() : setDrawing(true))}>
-              {t('analysis.player.overlay.draw')}
+            <Chip
+              testID="toggle-draw"
+              toggle
+              on={drawing}
+              onPress={() => {
+                if (drawing) return exitDraw();
+                setFreehand(false);
+                setDrawing(true);
+              }}
+            >
+              {t('analysis.tracker.tool.measure')}
             </Chip>
           )}
-          {shapes.length > 0 ? (
+          {shapes.length > 0 || strokes.length > 0 ? (
             <Chip
               testID="toggle-clear"
               label={t('analysis.player.clearDrawings')}
               on
               onPress={() => {
                 setShapes([]);
+                setStrokes([]);
                 impact('light');
               }}
             >
@@ -359,8 +434,58 @@ export default function TrackerScreen({
             </Chip>
           ) : null}
         </FadeRow>
+        {(lastLift && onSideBySide) || adjustable || onDetails ? (
+          <FadeRow testID="tracker-actions" contentContainerStyle={{ gap: space.s2, paddingHorizontal: space.gutter, paddingBottom: space.s2, alignItems: 'center' }}>
+            {lastLift && onSideBySide ? (
+              <Chip testID="side-by-side" on onPress={onSideBySide}>
+                {t('analysis.tracker.sideBySide')}
+              </Chip>
+            ) : null}
+            {adjustable ? (
+              <Chip testID="adjust-plate" on onPress={onAdjustPlate}>
+                {t('analysis.tracker.adjustPlate')}
+              </Chip>
+            ) : null}
+            {onDetails ? (
+              <Chip testID="lift-details" on onPress={onDetails}>
+                {t('analysis.tracker.details')}
+              </Chip>
+            ) : null}
+          </FadeRow>
+        ) : null}
       </View>
-      <View style={{ flex: 1, paddingHorizontal: space.gutter, paddingTop: space.s3, paddingBottom: Math.max(insets.bottom, space.s4), gap: space.s2, justifyContent: 'space-between' }}>
+      {charted ? (
+        <View
+          testID="tracker-divider"
+          accessibilityRole="adjustable"
+          accessibilityLabel={t('analysis.tracker.divider')}
+          accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+          onAccessibilityAction={(e) => resizeTo(box.height + (e.nativeEvent.actionName === 'increment' ? DIVIDER_STEP : -DIVIDER_STEP), videoLimits())}
+          hitSlop={{ top: 10, bottom: 10 }}
+          onStartShouldSetResponder={() => true}
+          onMoveShouldSetResponder={() => true}
+          onResponderTerminationRequest={() => false}
+          onResponderGrant={(e) => (resizing.current = { y: e.nativeEvent.pageY, h: box.height, ...videoLimits() })}
+          onResponderMove={(e) => {
+            if (resizing.current) resizeTo(resizing.current.h + e.nativeEvent.pageY - resizing.current.y, resizing.current);
+          }}
+          onResponderRelease={() => (resizing.current = null)}
+          onResponderTerminate={() => (resizing.current = null)}
+          style={{ height: space.s5, alignItems: 'center', justifyContent: 'center' }}
+        >
+          <View style={{ width: space.s7, height: space.s1, backgroundColor: colors.text3 }} />
+        </View>
+      ) : null}
+      <View
+        onLayout={(e) => {
+          const h = e.nativeEvent.layout.height;
+          bottomH.current = h;
+          // a small phone: the video gives up what the chart is short of, down to its smallest size
+          if (charted && h < minBottom) resizeTo(box.height - (minBottom - h), { min: Math.round(height * VIDEO_MIN), max: box.height });
+        }}
+        testID="tracker-bottom"
+        style={{ flex: 1, paddingHorizontal: space.gutter, paddingTop: charted ? 0 : space.s3, paddingBottom: Math.max(insets.bottom, space.s4), gap: space.s2, justifyContent: 'space-between' }}
+      >
         <View style={{ gap: space.s1 }}>
           {!path.length && analysis.traceKind === 'bar' ? (
             <Text testID="tracker-note-hands" style={{ ...type.caption, color: colors.text2 }}>
@@ -373,7 +498,7 @@ export default function TrackerScreen({
             </Text>
           ) : null}
         </View>
-        {barSpeedOf && revealing !== 'playing' ? <SpeedChart at={barSpeedOf.at} frame={frame} first={first} last={last} rep={repAt(starts, frame)} onSeek={seek} /> : null}
+        {barSpeedOf && charted ? <SpeedChart at={barSpeedOf.at} frame={frame} first={first} last={last} rep={repAt(starts, frame)} onSeek={seek} fps={fps} zoom={zoom} onZoom={setZoom} /> : null}
         {onShare && revealing !== 'playing' ? (
           <Btn kind={revealing === 'done' ? 'primary' : 'secondary'} compact={revealing !== 'done'} onPress={onShare} testID="tracker-share">
             {t('analysis.player.share')}

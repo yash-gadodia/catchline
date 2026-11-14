@@ -3,6 +3,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { t, type Key } from '../../i18n';
 import { liftShape, type TrackedLift } from '../analysis/compare';
+import { forgetLiftDetails } from './liftDetails';
 
 // What kind of lift each tracked lift is, read from the bar's path against the body (compare.ts liftShape) when the
 // lift is tracked, or the first time an older one is opened. Kept on the phone only, beside the lift it names.
@@ -25,11 +26,13 @@ export function rememberLiftShape(liftId: string, lift: TrackedLift): void {
   if (shape) useLiftNames.setState((s) => ({ shapes: { ...s.shapes, [liftId]: shape } }));
 }
 
+// Called when a lift is deleted: its kind goes, and so does what the lifter wrote about it.
 export function forgetLiftName(liftId: string): void {
   useLiftNames.setState((s) => {
     const { [liftId]: _gone, ...shapes } = s.shapes;
     return { shapes };
   });
+  forgetLiftDetails(liftId);
 }
 
 export function liftKind(shapes: Record<string, string>, liftId: string): string | null {

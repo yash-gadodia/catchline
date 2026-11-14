@@ -10,6 +10,7 @@ import { useCapture } from '../capture/store';
 import { emptyLibrary } from '../library/seed';
 import { useLibraryStore } from '../library/store';
 import { useLiftNames } from '../library/liftNames';
+import { useLiftDetails } from '../library/liftDetails';
 import { useOnboarding } from '../onboarding/store';
 import { FREE_PER_WEEK, freeLeft, type Tier, type Usage } from '../paywall/entitlements';
 import { useUsage } from '../paywall/usageStore';
@@ -168,6 +169,7 @@ export function forgetLocalData(): void {
   deleteAllLocalLifts();
   useLiftOutbox.setState({ items: [] });
   useLiftNames.setState({ shapes: {} });
+  useLiftDetails.setState({ details: {} });
   useAccountStore.setState({ account: null });
   useOnboarding.getState().reset();
 }

@@ -125,7 +125,7 @@ describe('add a video, trim, track', () => {
     expect(view.queryByTestId('lift-chip')).toBeNull();
   });
 
-  it('Track on the trim screen keeps the trim and goes on to marking the plate', async () => {
+  it('Track on the trim screen keeps the trim and starts tracking, with no plate to mark first', async () => {
     useCapture.setState({ draft: { uri: 'file:///lift.mov', durationS: 8, fps: 30, source: 'library', trim: { start: 1, end: 6 }, overridden: [] }, lastWeight: '62.5' });
     const view = await render(<TrimRoute />);
     expect(view.queryByTestId('lift-chip')).toBeNull();
@@ -137,9 +137,8 @@ describe('add a video, trim, track', () => {
       fireEvent.press(view.getByTestId('trim-track'));
     });
     expect(useCapture.getState().draft?.trim).toEqual({ start: 1, end: 6 });
-    // on to the mark, with any earlier mark cleared; tracking starts from there
     expect(useCapture.getState().draft?.plateMark).toBeNull();
-    expect(mockNav.push).toHaveBeenCalledWith('/capture/mark');
+    expect(mockNav.push).not.toHaveBeenCalledWith('/capture/mark');
   });
 });
 

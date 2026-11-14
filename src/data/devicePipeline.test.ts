@@ -3,7 +3,7 @@ import { snatchMock } from '../analysis/fixtures';
 import type { Analysis } from '../analysis/types';
 import type { ClipSubmission } from '../features/capture/submit';
 import { usePipeline, startLift } from './pipeline';
-import { analyseLoop, cancelDeviceLift, failureReason, nativeCode, readTrace, startDeviceLift, toNativePlan } from './devicePipeline';
+import { analyseLoop, cancelDeviceLift, failureReason, nativeCode, readTrace, retrackLift, startDeviceLift, toNativePlan } from './devicePipeline';
 import { strFromU8 } from 'fflate';
 import { AppState } from 'react-native';
 import * as Notifications from 'expo-notifications';
@@ -34,6 +34,8 @@ jest.mock('./prepare', () => ({
 jest.mock('./localLifts', () => ({
   saveLocalLift: jest.fn((_id: string, a: Analysis) => a),
   keepClip: jest.fn(),
+  localClipUri: jest.fn((id: string) => (id === 'gone' ? null : `file:///lifts/${id}/clip.mp4`)),
+  readLocalAnalysis: jest.fn(async () => ({ loadKg: 82.5 })),
 }));
 jest.mock('../analysis/device/analyseTrace', () => {
   const mocks = {
@@ -135,9 +137,9 @@ describe('startDeviceLift, the happy path', () => {
       no_cue_code: 'none',
       made: snatchMock.reps[snatchMock.bestRepIndex].made,
     });
-    // __DEV__ offers the plate mark, and this clip came without one
-    expect(track).toHaveBeenCalledWith('track_started', { source: 'camera', mark: 'skipped' });
-    expect(track).toHaveBeenCalledWith('track_completed', { seconds: 0, frames: snatchMock.video.frameCount, has_bar_path: true, mark: 'skipped' });
+    // the tracker finds the plate itself; a mark only comes from adjusting it afterwards
+    expect(track).toHaveBeenCalledWith('track_started', { source: 'camera', mark: 'not_asked' });
+    expect(track).toHaveBeenCalledWith('track_completed', { seconds: 0, frames: snatchMock.video.frameCount, has_bar_path: true, mark: 'not_asked' });
     expect(track).toHaveBeenCalledTimes(3);
   });
 
@@ -319,7 +321,7 @@ describe('startDeviceLift when the analysis fails', () => {
     expect(job?.error).toBe('analysis_failed');
     expect(job?.result?.failure?.reason).toBe('clip_cut_off');
     expect(track).toHaveBeenCalledWith('analysis_failed', { movement: 'snatch', code: 'no_reps' });
-    expect(track).toHaveBeenCalledWith('track_started', { source: 'camera', mark: 'skipped' });
+    expect(track).toHaveBeenCalledWith('track_started', { source: 'camera', mark: 'not_asked' });
     expect(track).not.toHaveBeenCalledWith('track_completed', expect.anything());
     // the trimmed clip is kept for "Send this clip so we can fix it", not discarded
     expect(keepClip).toHaveBeenCalledWith('lift-1', 'file:///clip.mov.mp4');
@@ -411,5 +413,40 @@ describe('readTrace', () => {
   it('reads the bare NaN the Swift trace writes for a missing keypoint (iPhone 23-10: JSON Parse error: Unexpected character: N)', async () => {
     jest.mocked(strFromU8).mockReturnValueOnce('{"wrist": [NaN, 1.5], "box": [Infinity, -Infinity]}');
     expect(await readTrace('/tmp/t.json.gz')).toEqual({ wrist: [NaN, 1.5], box: [Infinity, -Infinity] });
+  });
+});
+
+describe('retrackLift, tracking a lift again from an adjusted plate', () => {
+  const MARK = { frame: 12, x: 0.4, y: 0.8, r: 0.1 };
+
+  it('tracks the kept clip from the mark and replaces the lift, without preparing, counting or syncing again', async () => {
+    await retrackLift('lift-9', 'snatch', MARK);
+    expect(prepareClip).not.toHaveBeenCalled();
+    expect(mockAnalyse).toHaveBeenCalledWith('file:///lifts/lift-9/clip.mp4', 'snatch', undefined, { title: 'Tracking your lift', subtitle: 'Keeps working in the background.', from: 0, to: 0.8 });
+    expect(mockTrace).toHaveBeenCalledWith({ traceVersion: 1, frames: [] }, 'snatch', { analysisId: 'lift-9', assetPrefix: 'lift-9', plateMark: MARK });
+    expect(saveLocalLift).toHaveBeenCalledWith('lift-9', expect.objectContaining({ id: 'lift-9', movement: 'snatch', loadKg: 82.5 }), 'file:///cache/pose-coreml/trace.json.gz', {}, null);
+    expect(keepClip).not.toHaveBeenCalled();
+    expect(queueLiftSync).not.toHaveBeenCalled();
+    expect(useUsage.getState().usage.lifetime).toBe(0);
+    expect(writeFreeUsed).not.toHaveBeenCalled();
+    const job = usePipeline.getState().job;
+    expect(job?.status).toBe('done');
+    expect(job?.liftId).toBe('lift-9');
+    expect(job?.result?.id).toBe('lift-9');
+    expect(track).toHaveBeenCalledWith('track_started', { source: 'adjust', mark: 'made' });
+    expect(deactivateKeepAwake).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves the lift as it was when the new tracking fails', async () => {
+    mockTrace.mockReturnValue({ ...snatchMock, id: 'x', failure: { reason: 'no_bar', message: 'No bar' } });
+    await retrackLift('lift-9', 'snatch', MARK);
+    expect(saveLocalLift).not.toHaveBeenCalled();
+    expect(usePipeline.getState().job?.status).toBe('failed');
+    expect(usePipeline.getState().job?.error).toBe('analysis_failed');
+  });
+
+  it('does nothing for a lift whose clip is gone', () => {
+    expect(retrackLift('gone', 'snatch', MARK)).toBeNull();
+    expect(mockAnalyse).not.toHaveBeenCalled();
   });
 });
