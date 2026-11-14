@@ -10,6 +10,7 @@ export const library = {
   'library.inFlight.title': "Tracking your lift",
   'library.detail.queued': 'Queued · free videos used',
   'library.detail.failed': "Couldn't track it",
+  'library.lifts.allKinds': "All",
   'library.kind.snatch': "Snatch",
   'library.kind.cleanJerk': "Clean and jerk",
   'library.kind.clean': "Clean",

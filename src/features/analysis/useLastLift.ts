@@ -9,7 +9,7 @@ import { ghostPath, liftShape, liftsBefore } from './compare';
 // how many earlier lifts are read looking for one of the same kind
 const LOOK_BACK = 10;
 
-export type LastLift = { title: string; points: Point[] };
+export type LastLift = { id: string; title: string; points: Point[] };
 
 // The lifter's last lift of the same kind before this one, its bar path already laid on this lift's video. Null until read, and when
 // there is no earlier lift with a path. `devId` names the earlier lift outright (a dev link, for simulator checks).
@@ -35,7 +35,7 @@ export function useLastLift(analysis: Analysis | null, body: Body | null, devId?
         const points = ghostPath(earlier, today);
         if (!points) continue;
         const lift = candidates[i];
-        setState({ key, last: { title: lift ? liftTitle(lift) : ids[i], points } });
+        setState({ key, last: { id: ids[i], title: lift ? liftTitle(lift) : ids[i], points } });
         return;
       }
       setState({ key, last: null });

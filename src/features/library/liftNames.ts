@@ -36,3 +36,13 @@ export function liftKind(shapes: Record<string, string>, liftId: string): string
   const key = NAMES[shapes[liftId] ?? ''];
   return key ? t(key) : null;
 }
+
+// The kinds among these lifts, most lifts first: the Lifts list filters by them once there is more than one.
+export function kindsOf(shapes: Record<string, string>, liftIds: string[]): string[] {
+  const count = new Map<string, number>();
+  for (const id of liftIds) {
+    const kind = liftKind(shapes, id);
+    if (kind) count.set(kind, (count.get(kind) ?? 0) + 1);
+  }
+  return [...count].sort((a, b) => b[1] - a[1]).map(([kind]) => kind);
+}

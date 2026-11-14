@@ -1,4 +1,4 @@
-import { forgetLiftName, liftKind, rememberLiftShape, useLiftNames } from './liftNames';
+import { forgetLiftName, kindsOf, liftKind, rememberLiftShape, useLiftNames } from './liftNames';
 import * as compare from '../analysis/compare';
 
 const lift = {} as compare.TrackedLift;
@@ -25,6 +25,11 @@ describe('lift names', () => {
     rememberLiftShape('l2', lift);
     expect(useLiftNames.getState().shapes.l2).toBeUndefined();
     expect(liftKind(useLiftNames.getState().shapes, 'nope')).toBeNull();
+  });
+
+  it('lists the kinds among the lifts, the most common first', () => {
+    const shapes = { a: 'floor-shoulders', b: 'floor-overhead', c: 'floor-overhead', d: 'rack-shoulders' };
+    expect(kindsOf(shapes, ['a', 'b', 'c', 'd', 'e'])).toEqual(['Snatch', 'Clean']);
   });
 
   it('forgets the name with the lift', () => {

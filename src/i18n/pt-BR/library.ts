@@ -13,6 +13,7 @@ export const library: Strings<typeof en> = {
   'library.inFlight.title': "Rastreando seu levantamento",
   'library.detail.queued': "Na fila · vídeos grátis usados",
   'library.detail.failed': "Não deu para rastrear",
+  'library.lifts.allKinds': "Todos",
   'library.kind.snatch': "Arranco",
   'library.kind.cleanJerk': "Arremesso",
   'library.kind.clean': "Clean",

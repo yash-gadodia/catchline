@@ -13,6 +13,7 @@ export const library: Strings<typeof en> = {
   'library.inFlight.title': "Dein Lift wird erfasst",
   'library.detail.queued': "In der Warteschlange · kostenlose Videos aufgebraucht",
   'library.detail.failed': "Erfassung nicht möglich",
+  'library.lifts.allKinds': "Alle",
   'library.kind.snatch': "Reißen",
   'library.kind.cleanJerk': "Stoßen",
   'library.kind.clean': "Umsetzen",

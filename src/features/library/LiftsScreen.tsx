@@ -2,16 +2,18 @@ import { backendEnabled } from '../../data/backend';
 import { usePurchases } from '../purchases/usePurchases';
 import { FREE_PER_WEEK } from '../paywall/entitlements';
 import { useVideosLeft } from '../paywall/hooks';
+import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, G, Line, Path, Rect, Text as SvgText } from 'react-native-svg';
 import Btn from '../../components/Btn';
 import Row from '../../components/Row';
 import SmallCaps from '../../components/SmallCaps';
-import { colors, space } from '../../design/tokens';
+import { colors, control, shape, space, stroke } from '../../design/tokens';
 import { display, fontFamily, type } from '../../design/typography';
 import { byDay, freeVideosLabel, liftDetail, liftTime } from './derive';
-import { liftKind, useLiftNames } from './liftNames';
+import { kindsOf, liftKind, useLiftNames } from './liftNames';
+import FadeRow from '../analysis/FadeRow';
 import { t } from '../../i18n';
 import { useLibrary } from './repository';
 import type { Lift } from './types';
@@ -31,6 +33,13 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
   const tier = usePurchases((s) => s.tier);
   const used = FREE_PER_WEEK - useVideosLeft();
   // With a backend, the live plan, so a purchase shows at once, not after the next library sync.
+  // the kinds of lift in the list (Snatch, Clean and jerk): one tap keeps the list to a kind
+  const shapes = useLiftNames((n) => n.shapes);
+  const idOf = (l: Lift) => l.analysisId ?? l.id;
+  const kinds = kindsOf(shapes, lib.lifts.filter((l) => l.status === 'done').map(idOf));
+  const [only, setOnly] = useState<string | null>(null);
+  const kind = only && kinds.includes(only) ? only : null;
+  const shown = kind ? lib.lifts.filter((l) => l.status === 'done' && liftKind(shapes, idOf(l)) === kind) : lib.lifts;
   const chip = freeVideosLabel(backendEnabled() ? { plan: tier === 'free' ? 'free' : 'paid', freeVideosUsed: used } : lib);
   const header = (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -73,7 +82,25 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
       testID="lifts"
     >
       {header}
-      {byDay(lib.lifts).map((g) => (
+      {kinds.length > 1 ? (
+        <View style={{ marginHorizontal: -space.gutter }}>
+          <FadeRow testID="kind-filter" contentContainerStyle={{ gap: space.s2, paddingHorizontal: space.gutter }}>
+            {[null, ...kinds].map((k) => (
+              <Pressable
+                key={k ?? 'all'}
+                testID={`kind-${k ?? 'all'}`}
+                accessibilityRole="button"
+                accessibilityState={{ selected: kind === k }}
+                onPress={() => setOnly(k)}
+                style={{ height: control.chipHeight, paddingHorizontal: space.s3, justifyContent: 'center', borderWidth: stroke.hairline, borderColor: kind === k ? colors.text : colors.hairline, ...shape.control }}
+              >
+                <Text style={{ ...type.caption, color: kind === k ? colors.text : colors.text2 }}>{k ?? t('library.lifts.allKinds')}</Text>
+              </Pressable>
+            ))}
+          </FadeRow>
+        </View>
+      ) : null}
+      {byDay(shown).map((g) => (
         <View key={g.day} testID={`day-${g.day}`} style={{ gap: space.s2 }}>
           <SmallCaps>{g.label}</SmallCaps>
           <View>

@@ -41,6 +41,7 @@ export default function TrackerScreen({
   onMore,
   reveal,
   lastLift,
+  onSideBySide,
   reduceMotion,
 }: {
   analysis: Analysis;
@@ -55,6 +56,8 @@ export default function TrackerScreen({
   reveal?: boolean;
   // The lifter's last lift before this one, to lay its bar path on this video.
   lastLift?: LastLift | null;
+  // Opens this lift next to the last lift of the same kind (two videos in step).
+  onSideBySide?: () => void;
   reduceMotion?: boolean;
 }) {
   const { width, height } = useWindowDimensions();
@@ -265,6 +268,7 @@ export default function TrackerScreen({
                 position: 'absolute',
                 left: space.s3,
                 bottom: space.s3,
+                maxWidth: box.width - 2 * space.s3,
                 height: control.chipHeight,
                 paddingHorizontal: space.s3,
                 justifyContent: 'center',
@@ -274,7 +278,9 @@ export default function TrackerScreen({
                 ...shape.control,
               }}
             >
-              <Text style={{ ...type.caption, color: colors.text }}>{comparing ? t('analysis.tracker.comparing', { when: lastLift.title }) : t('analysis.tracker.compare')}</Text>
+              <Text numberOfLines={1} adjustsFontSizeToFit style={{ ...type.caption, color: colors.text }}>
+                {comparing ? t('analysis.tracker.comparing', { when: lastLift.title }) : t('analysis.tracker.compare')}
+              </Text>
             </Pressable>
           ) : null}
         </Pressable>
@@ -327,6 +333,11 @@ export default function TrackerScreen({
           {hasLift ? (
             <Chip testID="toggle-whole" toggle on={whole} onPress={toggleWhole}>
               {t('analysis.tracker.wholeClip')}
+            </Chip>
+          ) : null}
+          {lastLift && onSideBySide ? (
+            <Chip testID="side-by-side" on onPress={onSideBySide}>
+              {t('analysis.tracker.sideBySide')}
             </Chip>
           ) : null}
           {playing ? null : (

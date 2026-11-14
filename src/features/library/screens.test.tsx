@@ -55,6 +55,30 @@ describe('LiftsScreen', () => {
     expect(nav.onOpen).toHaveBeenCalledWith(expect.objectContaining({ id: 'new' }));
   });
 
+  it('names lifts by kind and keeps the list to one kind on a tap', async () => {
+    const { useLiftNames } = require('./liftNames');
+    useLiftNames.setState({ shapes: { 'a-1': 'floor-overhead', 'a-2': 'floor-overhead', 'a-3': 'floor-shoulders' } });
+    useLibraryStore.getState().load({
+      ...emptyLibrary(),
+      lifts: [
+        { id: 'l1', movement: 'snatch', date: '2026-03-11', status: 'done', analysisId: 'a-1' },
+        { id: 'l2', movement: 'snatch', date: '2026-03-10', status: 'done', analysisId: 'a-2' },
+        { id: 'l3', movement: 'snatch', date: '2026-03-09', status: 'done', analysisId: 'a-3' },
+        { id: 'l4', movement: 'snatch', date: '2026-03-08', status: 'done', analysisId: 'a-4' },
+      ],
+    });
+    const { getByTestId, getAllByTestId } = await render(<LiftsScreen nav={liftsNav()} />);
+    expect(getByTestId('lift-title-l1')).toHaveTextContent('Snatch');
+    expect(getByTestId('lift-title-l3')).toHaveTextContent('Clean');
+    expect(getByTestId('lift-title-l4')).toHaveTextContent('8 Mar');
+    expect(getAllByTestId(/^kind-/).map((n) => n.props.testID)).toEqual(['kind-filter', 'kind-all', 'kind-Snatch', 'kind-Clean']);
+    await press(getByTestId('kind-Snatch'));
+    expect(getAllByTestId(/^lift-title-/).map((n) => n.props.testID)).toEqual(['lift-title-l1', 'lift-title-l2']);
+    await press(getByTestId('kind-all'));
+    expect(getAllByTestId(/^lift-title-/)).toHaveLength(4);
+    useLiftNames.setState({ shapes: {} });
+  });
+
   it('shows every row state of the seeded library, with Unlock only on the queued lift', async () => {
     const nav = liftsNav();
     const { getByTestId, queryByTestId } = await render(<LiftsScreen nav={nav} />);

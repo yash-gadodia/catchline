@@ -246,18 +246,27 @@ describe('TrackerScreen first look (reveal)', () => {
 });
 
 describe('TrackerScreen compare with the last lift', () => {
-  const lastLift = { title: '9 Nov, 18:05', points: [{ x: 0.5, y: 0.8 }, { x: 0.52, y: 0.4 }, { x: 0.5, y: 0.2 }] };
+  const lastLift = { id: 'earlier', title: '9 Nov, 18:05', points: [{ x: 0.5, y: 0.8 }, { x: 0.52, y: 0.4 }, { x: 0.5, y: 0.2 }] };
 
   it('draws the last lift’s path on one tap and takes it off on the next', async () => {
     const { getByTestId, queryByTestId } = await show(marked, body, { lastLift });
     expect(queryByTestId('path-ghost')).toBeNull();
-    expect(getByTestId('tracker-compare')).toHaveTextContent('Compare with your last lift');
+    expect(getByTestId('tracker-compare')).toHaveTextContent('Overlay last lift');
     await press(getByTestId('tracker-compare'));
     expect(getByTestId('path-ghost')).toBeOnTheScreen();
     expect(getByTestId('tracker-compare')).toHaveTextContent('Dotted line: 9 Nov, 18:05');
     expect(getByTestId('tracker-compare')).toHaveProp('accessibilityState', { checked: true });
     await press(getByTestId('tracker-compare'));
     expect(queryByTestId('path-ghost')).toBeNull();
+  });
+
+  it('opens the two lifts side by side from the controls', async () => {
+    const onSideBySide = jest.fn();
+    const { getByTestId } = await show(marked, body, { lastLift, onSideBySide });
+    await press(getByTestId('side-by-side'));
+    expect(onSideBySide).toHaveBeenCalledTimes(1);
+    const none = await show(marked, body, { onSideBySide });
+    expect(none.queryByTestId('side-by-side')).toBeNull();
   });
 
   it('is not offered on a first lift, or while the first look plays', async () => {
