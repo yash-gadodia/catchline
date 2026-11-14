@@ -64,7 +64,8 @@ Owner decision 11-11: drop cues; the app tracks any lift or gymnastics clip and 
 - [x] Thumbnails: stills are pointed at the lift folder on read (iOS moved the app container on update)
 - [x] Audit (5 agents): one lift at a time + job-scoped patch, double-tap guard, hidden lift on the Lifts tab, delete account removes lift folders and outbox, load bounded to 0-500 kg and a refused record never blocks sync, share races, /you/states dev only, What is stored drops cues
 - [x] Parity: 2x/4x in the player, bar speed chart + now/avg/min/max, path coloured by speed, lifts named by kind
-- [ ] Parity left: side-by-side comparison of two lifts, video zoom, rename + search on lifts, export options (graph, date, weight), 4 more languages. Power/force skipped (needs bar weight and bodyweight)
+- [x] Parity: side-by-side comparison (/analysis/compare, the last lift of the same kind), filter chips by kind on the Lifts list. Filter chips are covered by tests only (the sim had one kind of lift)
+- [ ] Parity left: pick any earlier lift to compare (not only the last), video zoom, rename a lift, export options (graph, date, weight), 4 more languages. Power/force skipped (needs bar weight and bodyweight)
 - [ ] Next build (native): bar speed + per-rep lines in the share video, background protection while preparing the clip, subtitle "On-device. Video stays private", primary category Sports
 - [ ] Owner to decide: founding seats 500 -> 100. Decided: sign-out keeps the lifts on the phone
 - [ ] Unverified: a real purchase on 4.0.x (no RevenueCat purchase event since 2 Nov)
