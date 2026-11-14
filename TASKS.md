@@ -326,3 +326,15 @@ Build 26: Cues crashed and Trends was empty on a real account. Root cause: the C
 - [ ] Small phones: the player's second chip row leaves the video small on an SE; consider a header menu. (Claude)
 - [ ] Next build: a first-frame plate check before tracking (needs a native single-frame detect), graph and date in the share video, voice start. (Claude)
 - Gotcha: `idb ui text` hangs on the Mini's simulator; the text does land, kill the command after a few seconds.
+
+### 14 Nov (evening): 4.0.3, branch v40/build403
+- [x] Shared video: whole path faint behind each rep, bar speed graph, date and weight line (TrackRenderer `ghost`, `repStarts`, `chart`, `caption`; `supportsShareDetails`). Rendered through the Mac harness and in the app on the simulator.
+- [x] Plate found on one frame before tracking and checked by the lifter (`findPlate`, `/capture/plate`); falls back 0.5 s and 1 s later when the first frame has none. 58 of 63 frames agree with the full run on the gate clips.
+- [x] Preparing a clip carries on when the app is left (`beginBackgroundTask`). Phone only: not checked.
+- [x] Italian, Japanese, Korean, Simplified Chinese (machine drafts, need a native lifter). `CFBundleLocalizations` lists all nine.
+- [x] Pinch to zoom the video; side by side against any lift of the same kind (also live on 4.0.2).
+- [ ] TestFlight phone pass by the owner, then a day on internal TestFlight, then submit for review (owner's go). Store listing for 4.0.3: subtitle "On-device. Video stays private", category Sports.
+- [ ] A takeaway line per lift (owner to decide): only 3 people have come back on a second day; a tester asked what to do with a bar path.
+- Gotcha: the Mini cannot hold a local Release simulator build (needs ~7 GB, has ~5). `eas build --profile release-simulator` builds it in the cloud; download the .tar.gz on the Mini and `simctl install` the .app.
+- Gotcha: the gate marks a run "dirty" if any tracked file is uncommitted when it starts, even one unrelated to tracking; commit first.
+- Gotcha: Supabase log queries moved to `/analytics/endpoints/logs` (ClickHouse SQL, one `logs` table, no `select *`).
