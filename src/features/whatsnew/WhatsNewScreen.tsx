@@ -4,7 +4,7 @@ import SmallCaps from '../../components/SmallCaps';
 import TopBar from '../../components/TopBar';
 import { colors, space } from '../../design/tokens';
 import { type } from '../../design/typography';
-import { t } from '../../i18n';
+import { formatDate, t } from '../../i18n';
 import { CHANGELOG, type ChangelogEntry } from './changelog';
 
 export default function WhatsNewScreen({
@@ -28,11 +28,19 @@ export default function WhatsNewScreen({
       <ScrollView contentContainerStyle={{ padding: space.gutter, paddingBottom: insets.bottom + space.s6, gap: space.s6 }}>
         {entries.map((e) => (
           <View key={e.version} style={{ gap: space.s3 }} testID={`whats-new-${e.version}`}>
-            <SmallCaps size={12}>{t('you.whatsNew.version', { version: e.version })}</SmallCaps>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
+              <SmallCaps size={12}>{t('you.whatsNew.version', { version: e.version })}</SmallCaps>
+              {e.date ? (
+                <Text style={{ color: colors.text2, ...type.readout }} testID={`whats-new-date-${e.version}`}>
+                  {formatDate(new Date(`${e.date}T12:00:00`), { day: 'numeric', month: 'short', year: 'numeric' })}
+                </Text>
+              ) : null}
+            </View>
             {e.items.map((key) => (
-              <Text key={key} style={{ color: colors.text, ...type.body }}>
-                {t(key)}
-              </Text>
+              <View key={key} style={{ flexDirection: 'row', gap: space.s2 }}>
+                <Text style={{ color: colors.text2, ...type.body }}>·</Text>
+                <Text style={{ color: colors.text, ...type.body, flex: 1 }}>{t(key)}</Text>
+              </View>
             ))}
           </View>
         ))}

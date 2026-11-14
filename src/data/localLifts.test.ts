@@ -117,6 +117,14 @@ describe('reading back', () => {
     expect(all.find((r) => r.liftId === 'lift-2')?.analysis.id).toBe('lift-2');
   });
 
+  it('points stills at the lift folder as it is now when iOS has moved the app container', async () => {
+    const saved = saveLocalLift('lift-3', analysis, null, {});
+    const moved = JSON.stringify(saved).split('file:///Documents/').join('file:///OldContainer/Documents/');
+    fs.__files.set('file:///Documents/lifts/lift-3/analysis.json', moved);
+    const read = await readLocalAnalysis('lift-3');
+    expect(read?.reps[0].keyFrames[0].image).toBe('file:///Documents/lifts/lift-3/stills/r1-1-setup.jpg');
+  });
+
   it('lists nothing before the first lift', async () => {
     expect(await listLocalAnalyses()).toEqual([]);
   });

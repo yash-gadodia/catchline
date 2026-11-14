@@ -2,6 +2,8 @@ import { flushProblemReports, queueProblemReport, reportDetails, useProblemRepor
 
 jest.mock('./backend', () => ({ backendEnabled: () => true }));
 jest.mock('../lib/api', () => ({ ensureSession: jest.fn(), sendProblemReport: jest.fn(), uploadProblemShot: jest.fn() }));
+const mockMissing = new Set<string>();
+jest.mock('expo-file-system', () => ({ File: jest.fn().mockImplementation((uri: string) => ({ exists: !mockMissing.has(uri) })) }));
 jest.mock('./readClip', () => ({ readClip: (uri: string) => ({ size: 3, uri }) }));
 jest.mock('expo-crypto', () => {
   let n = 0;
@@ -48,6 +50,16 @@ describe('problem reports', () => {
     expect(await queueProblemReport({ body: 'Crash', shot: 'file:///mock/screen.jpg' })).toBe(0);
     expect(api.sendProblemReport).not.toHaveBeenCalled();
     expect(useProblemReports.getState().items.map((i) => [i.body, i.shot])).toEqual([['Crash', 'file:///mock/screen.jpg']]);
+  });
+
+  it('sends a report without its screenshot once iOS has cleared the picture, so it never blocks the queue', async () => {
+    mockMissing.add('file:///mock/gone.jpg');
+    useProblemReports.setState({ items: [{ id: 'old', body: 'Old', appVersion: '3.1', updateId: 'x', device: 'd', liftId: null, context: null, reportedAt: '2026-10-01T00:00:00Z', shot: 'file:///mock/gone.jpg' }] });
+    api.sendProblemReport.mockResolvedValue(undefined);
+    expect(await queueProblemReport({ body: 'New one' })).toBe(2);
+    expect(api.uploadProblemShot).not.toHaveBeenCalled();
+    expect(api.sendProblemReport.mock.calls.map((c) => c[0].body)).toEqual(['Old', 'New one']);
+    expect(useProblemReports.getState().items).toEqual([]);
   });
 
   it('keeps a report queued offline and sends it on the next flush', async () => {

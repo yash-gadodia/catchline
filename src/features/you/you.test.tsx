@@ -40,7 +40,7 @@ const press = async (el: Parameters<typeof fireEvent.press>[0]) => {
 };
 
 const initialAccount = useAccountStore.getState();
-const nav = { onDemo: jest.fn(), onWhatIsStored: jest.fn(), onDeleteAccount: jest.fn(), onPlan: jest.fn(), onReport: jest.fn(), onWhatsNew: jest.fn(), onHelp: jest.fn() };
+const nav = { onDemo: jest.fn(), onWhatIsStored: jest.fn(), onDeleteAccount: jest.fn(), onPlan: jest.fn(), onReport: jest.fn(), onWhatsNew: jest.fn() };
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -98,7 +98,7 @@ describe('plan and settings labels', () => {
 
 describe('YouScreen', () => {
   it('lists the profile, the founding plan, three sections, and none of the 3.x settings', async () => {
-    const screen = await render(<YouScreen nav={nav} version="1.0.3" />);
+    const screen = await render(<YouScreen nav={nav} />);
     expect(within(screen.getByTestId('row-profile')).getByText('Alex')).toBeOnTheScreen();
     expect(screen.getByText('Signed in with Apple · synced')).toBeOnTheScreen();
     expect(screen.getByText('Catchline Pro · Founding member')).toBeOnTheScreen();
@@ -109,7 +109,7 @@ describe('YouScreen', () => {
     expect(screen.getByText('HELP')).toBeOnTheScreen();
     // 4.0 has no movement picker, cues or frame-rate choice, and nothing read these
     for (const id of ['row-movement', 'row-frame-rate', 'toggle-voice', 'row-reminder', 'row-auto-delete', 'row-export-lifts']) expect(screen.queryByTestId(id)).toBeNull();
-    expect(screen.getByText('About · 1.0.3')).toBeOnTheScreen();
+    for (const id of ['row-support', 'row-help']) expect(screen.queryByTestId(id)).toBeNull();
     await press(screen.getByTestId('row-stored'));
     await press(screen.getByTestId('row-delete'));
     await press(screen.getByTestId('row-report'));
@@ -121,27 +121,14 @@ describe('YouScreen', () => {
     expect(nav.onWhatsNew).toHaveBeenCalledTimes(1);
   });
 
-  it('hides Help & support when Intercom is not configured', async () => {
-    const screen = await render(<YouScreen nav={nav} version="1.0.3" />);
-    expect(screen.queryByTestId('row-support')).toBeNull();
-  });
-
-  it('opens Help & support when Intercom is configured', async () => {
-    const onSupport = jest.fn();
-    const screen = await render(<YouScreen nav={{ ...nav, onSupport }} version="1.0.3" />);
-    expect(within(screen.getByTestId('row-support')).getByText('Help & support')).toBeOnTheScreen();
-    await press(screen.getByTestId('row-support'));
-    expect(onSupport).toHaveBeenCalledTimes(1);
-  });
-
   it('shows the exact build at the bottom', async () => {
     jest.spyOn(problemReports, 'reportDetails').mockReturnValue({ appVersion: '3.1', updateId: 'ota-42', device: 'iPhone19,7 iOS 27.0.1' });
-    const screen = await render(<YouScreen nav={nav} version="3.1" />);
+    const screen = await render(<YouScreen nav={nav} />);
     expect(screen.getByTestId('you-build')).toHaveTextContent('Catchline 3.1 · update ota-42 · iPhone19,7 iOS 27.0.1');
   });
 
   it('picks units from a sheet', async () => {
-    const screen = await render(<YouScreen nav={nav} version="1.0.3" />);
+    const screen = await render(<YouScreen nav={nav} />);
     await press(screen.getByTestId('row-units'));
     await press(screen.getByTestId('pick-lb'));
     expect(useSettings.getState().units).toBe('lb');
@@ -150,7 +137,7 @@ describe('YouScreen', () => {
   });
 
   it('toggles haptics, and it reaches the haptics module', async () => {
-    const screen = await render(<YouScreen nav={nav} version="1.0.3" />);
+    const screen = await render(<YouScreen nav={nav} />);
     await act(async () => {
       fireEvent(screen.getByTestId('toggle-haptics'), 'valueChange', false);
     });
@@ -163,7 +150,7 @@ describe('YouScreen', () => {
   });
 
   it('renames the profile', async () => {
-    const screen = await render(<YouScreen nav={nav} version="1.0.3" />);
+    const screen = await render(<YouScreen nav={nav} />);
     await press(screen.getByTestId('row-profile'));
     await act(async () => {
       fireEvent.changeText(screen.getByTestId('name-input'), '  Alex Tan ');
@@ -174,7 +161,7 @@ describe('YouScreen', () => {
 
   it('exports everything stored', async () => {
     const send = jest.fn(() => Promise.resolve());
-    const screen = await render(<YouScreen nav={nav} version="1.0.3" exportData={send} />);
+    const screen = await render(<YouScreen nav={nav} exportData={send} />);
     await press(screen.getByTestId('row-export'));
     const bundle = (send.mock.calls[0] as unknown as [DataExport])[0];
     expect(bundle).toMatchObject({ account: { name: 'Alex', plan: 'Catchline Pro · Founding member' }, settings: DEFAULT_SETTINGS });
@@ -188,7 +175,7 @@ describe('YouScreen with the backend on', () => {
 
   it('shows the anonymous account and the real free allowance, never the fixture', async () => {
     useUsage.getState().record('free', new Date());
-    const screen = await render(<YouScreen nav={nav} version="1.0.3" />);
+    const screen = await render(<YouScreen nav={nav} />);
     expect(within(screen.getByTestId('row-profile')).getByText('Anonymous on this phone')).toBeOnTheScreen();
     expect(within(screen.getByTestId('row-profile')).queryByText('Edit')).toBeNull();
     expect(screen.queryByText('Alex')).toBeNull();
@@ -204,7 +191,7 @@ describe('YouScreen with the backend on', () => {
       useAuthUser.setState({ userId: 'apple-1', anonymous: false, displayName: 'Alex Tan' });
       return { cancelled: false as const, userId: 'apple-1', transferred: true };
     });
-    const screen = await render(<YouScreen nav={nav} version="1.0.3" signIn={signIn} />);
+    const screen = await render(<YouScreen nav={nav} signIn={signIn} />);
     expect(within(screen.getByTestId('row-profile')).getByText('Sign in with Apple')).toBeOnTheScreen();
     expect(screen.queryByTestId('row-sign-out')).toBeNull();
     await press(screen.getByTestId('row-profile'));
@@ -220,7 +207,7 @@ describe('YouScreen with the backend on', () => {
 
   it('says so when Apple sign-in fails and stays anonymous', async () => {
     const signIn = jest.fn(() => Promise.reject(new Error('bad nonce')));
-    const screen = await render(<YouScreen nav={nav} version="1.0.3" signIn={signIn} />);
+    const screen = await render(<YouScreen nav={nav} signIn={signIn} />);
     await press(screen.getByTestId('row-profile'));
     expect(screen.getByTestId('sign-in-failed')).toHaveTextContent("Apple sign-in didn't go through. Try again.");
     expect(within(screen.getByTestId('row-profile')).getByText('Anonymous on this phone')).toBeOnTheScreen();
@@ -231,7 +218,7 @@ describe('YouScreen with the backend on', () => {
     const signOut = jest.fn(async () => {
       useAuthUser.setState(NO_USER);
     });
-    const screen = await render(<YouScreen nav={nav} version="1.0.3" signOut={signOut} />);
+    const screen = await render(<YouScreen nav={nav} signOut={signOut} />);
     expect(within(screen.getByTestId('row-profile')).getByText('Signed in with Apple')).toBeOnTheScreen();
     await press(screen.getByTestId('row-sign-out'));
     expect(signOut).toHaveBeenCalledTimes(1);
@@ -242,7 +229,7 @@ describe('YouScreen with the backend on', () => {
   it('exports the Apple name once signed in', async () => {
     useAuthUser.setState({ userId: 'apple-1', anonymous: false, displayName: 'Alex Tan' });
     const send = jest.fn(() => Promise.resolve());
-    const screen = await render(<YouScreen nav={nav} version="1.0.3" exportData={send} />);
+    const screen = await render(<YouScreen nav={nav} exportData={send} />);
     await press(screen.getByTestId('row-export'));
     expect(send).toHaveBeenCalledWith(expect.objectContaining({ account: { name: 'Alex Tan', plan: 'Free · 3 of 3 videos left this week' } }));
   });
@@ -251,14 +238,14 @@ describe('YouScreen with the backend on', () => {
     usePurchases.getState().setDemoPlan('founding');
     useUsage.getState().record('founding', new Date());
     useUsage.getState().record('founding', new Date());
-    const screen = await render(<YouScreen nav={nav} version="1.0.3" />);
+    const screen = await render(<YouScreen nav={nav} />);
     expect(within(screen.getByTestId('row-plan')).getByText('Catchline Pro · Founding member')).toBeOnTheScreen();
     expect(screen.getByTestId('founding-badge')).toBeOnTheScreen();
   });
 
   it('reads and writes units through the onboarding store', async () => {
     useOnboarding.getState().setUnits('lb');
-    const screen = await render(<YouScreen nav={nav} version="1.0.3" />);
+    const screen = await render(<YouScreen nav={nav} />);
     expect(within(screen.getByTestId('row-units')).getByText('lb')).toBeOnTheScreen();
     await press(screen.getByTestId('row-units'));
     await press(screen.getByTestId('pick-kg'));
@@ -269,7 +256,7 @@ describe('YouScreen with the backend on', () => {
 
   it('exports the anonymous account and the lifts in the library, not the fixture ids', async () => {
     const send = jest.fn(() => Promise.resolve());
-    const screen = await render(<YouScreen nav={nav} version="1.0.3" exportData={send} />);
+    const screen = await render(<YouScreen nav={nav} exportData={send} />);
     await press(screen.getByTestId('row-export'));
     const bundle = (send.mock.calls[0] as unknown as [DataExport])[0];
     expect(bundle).toMatchObject({ account: { name: '', plan: 'Free · 3 of 3 videos left this week' }, settings: DEFAULT_SETTINGS });

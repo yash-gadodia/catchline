@@ -1,7 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { Platform, Pressable, ScrollView, Share, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Constants from 'expo-constants';
 import { File, Paths } from 'expo-file-system';
 import { backendEnabled } from '../../data/backend';
 import { reportDetails } from '../../data/problemReports';
@@ -21,7 +20,7 @@ import { LANGUAGE_NAMES, LOCALES, t, type Language } from '../../i18n';
 import { accountRepository, signOutOfAccount, useAccountView, type DataExport } from './account';
 import { UNIT_LABELS, settingsOf, useSettings } from './settings';
 
-type Nav = { onDemo?: () => void; onWhatIsStored: () => void; onDeleteAccount: () => void; onPlan: () => void; onReport: () => void; onSupport?: () => void; onWhatsNew: () => void; onHelp: () => void };
+type Nav = { onDemo?: () => void; onWhatIsStored: () => void; onDeleteAccount: () => void; onPlan: () => void; onReport: () => void; onWhatsNew: () => void };
 type Picker = 'name' | 'language' | 'units' | null;
 
 function options<T extends string>(labels: Record<T, string>): { value: T; label: string }[] {
@@ -52,13 +51,11 @@ export async function exportMyData(send: (bundle: DataExport) => Promise<void> =
 
 export default function YouScreen({
   nav,
-  version = Constants.expoConfig?.version ?? '1.0.0',
   exportData = shareExport,
   signIn = signInWithApple,
   signOut = signOutOfAccount,
 }: {
   nav: Nav;
-  version?: string;
   exportData?: (bundle: DataExport) => Promise<void>;
   signIn?: () => Promise<AppleSignIn>;
   signOut?: () => Promise<void>;
@@ -152,9 +149,7 @@ export default function YouScreen({
           sub={t('you.shot.toggleSub')}
           right={<Toggle value={shotPrompt} onChange={(v) => useScreenshotFeedback.getState().setEnabled(v)} testID="toggle-screenshot" />}
         />
-        {nav.onSupport ? <Row title={t('you.helpSupport')} right={<Value>›</Value>} onPress={nav.onSupport} testID="row-support" /> : null}
-        <Row title={t('you.whatsNew')} right={<Value>›</Value>} onPress={nav.onWhatsNew} testID="row-whats-new" />
-        <Row title={t('you.help')} muted right={<Value>{t('you.about', { version })}</Value>} onPress={nav.onHelp} last testID="row-help" />
+        <Row title={t('you.whatsNew')} right={<Value>›</Value>} onPress={nav.onWhatsNew} last testID="row-whats-new" />
         <BuildLine />
       </ScrollView>
 

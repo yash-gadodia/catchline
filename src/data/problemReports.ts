@@ -5,6 +5,7 @@ import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Updates from 'expo-updates';
 import { randomUUID } from 'expo-crypto';
+import { File } from 'expo-file-system';
 import { ensureSession, sendProblemReport, uploadProblemShot, type ProblemReport } from '../lib/api';
 import { backendEnabled } from './backend';
 import { readClip } from './readClip';
@@ -41,7 +42,9 @@ export function flushProblemReports(): Promise<number> {
       if (useProblemReports.getState().items.length === 0) return 0;
       await ensureSession();
       for (const item of useProblemReports.getState().items) {
-        if (item.shot) await uploadProblemShot(item.id, readClip(item.shot));
+        // iOS clears the cache a screenshot sits in; a report whose picture is gone goes without it, or it
+        // would fail every flush and hold back every report behind it.
+        if (item.shot && new File(item.shot).exists) await uploadProblemShot(item.id, readClip(item.shot));
         await sendProblemReport(item);
         useProblemReports.setState((s) => ({ items: s.items.filter((i) => i.id !== item.id) }));
         sent++;

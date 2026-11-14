@@ -138,6 +138,15 @@ export const you: Strings<typeof en> = {
   // REVIEW
   'you.whatsNew.version': "Catchline {version}",
   // REVIEW
+  'you.whatsNew.v402.reps': "Jede Wiederholung zeichnet ihren eigenen Hantelweg, frühere Wiederholungen bleiben blass darunter.",
+  'you.whatsNew.v402.speed': "Hantelgeschwindigkeit: Sieh, wie schnell sich die Stange in jeder Wiederholung bewegt.",
+  'you.whatsNew.v402.share': "Teilen mit 2- oder 4-facher Geschwindigkeit, mit einer sauberen Catchline-Abspannkarte.",
+  'you.whatsNew.v402.compare': "Vergleiche mit deinem letzten Lift derselben Art.",
+  'you.whatsNew.v402.csv': "Exportiere Hantelweg und Geschwindigkeit eines Lifts als Tabelle.",
+  'you.whatsNew.v402.plate': "Ein klareres Beispiel, wie du die Scheibe einkreist, und Überspringen für Lifts ohne Scheibe.",
+  'you.whatsNew.v402.you': "Eine einfachere Du-Seite.",
+  'you.whatsNew.v40.tracker': "Catchline ist jetzt ein Tracker: Filme oder importiere einen Lift und sieh Hantelweg und Gelenke auf dem echten Video, Bild für Bild.",
+  'you.whatsNew.v40.private': "Alles wird auf deinem iPhone getrackt. Dein Video verlässt es nie.",
   'you.whatsNew.v31.onDevice': "Dein Lift wird jetzt komplett auf deinem iPhone analysiert, und die Analyse funktioniert auch ohne Netz.",
   // REVIEW
   'you.whatsNew.v31.privacy': "Dein Video verlässt nie dein iPhone. Auf dem Gerät analysiert, nie zum Trainieren von KI verwendet.",

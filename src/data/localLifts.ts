@@ -67,7 +67,9 @@ export function saveLocalLift(liftId: string, analysis: Analysis, tracePath: str
 export async function readLocalAnalysis(liftId: string): Promise<Analysis | null> {
   const file = new File(liftDir(liftId), ANALYSIS_FILE);
   if (!file.exists) return null;
-  return parseAnalysis(JSON.parse(await file.text()));
+  // The stored URIs carry the app's container path, which iOS can move on an update; point them at this
+  // lift's stills folder as it is now, or the thumbnails and stills of every older lift come up blank.
+  return withLocalStills(parseAnalysis(JSON.parse(await file.text())), new Directory(liftDir(liftId), STILLS_DIR));
 }
 
 export function hasLocalLift(liftId: string): boolean {

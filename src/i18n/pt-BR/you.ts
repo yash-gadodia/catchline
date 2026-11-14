@@ -138,6 +138,15 @@ export const you: Strings<typeof en> = {
   // REVIEW
   'you.whatsNew.version': "Catchline {version}",
   // REVIEW
+  'you.whatsNew.v402.reps': "Cada repetição desenha a própria trajetória da barra, com as anteriores suaves por baixo.",
+  'you.whatsNew.v402.speed': "Velocidade da barra: veja a rapidez da barra em cada repetição.",
+  'you.whatsNew.v402.share': "Compartilhe em velocidade 2x ou 4x, com um cartão final do Catchline mais limpo.",
+  'you.whatsNew.v402.compare': "Compare com seu último levantamento do mesmo tipo.",
+  'you.whatsNew.v402.csv': "Exporte a trajetória e a velocidade de um levantamento como planilha.",
+  'you.whatsNew.v402.plate': "Um exemplo mais claro de como circular a anilha, e Pular para levantamentos sem anilha.",
+  'you.whatsNew.v402.you': "Uma página Você mais simples.",
+  'you.whatsNew.v40.tracker': "O Catchline agora é um rastreador: grave ou importe um levantamento e veja a trajetória da barra e suas articulações no vídeo real, quadro a quadro.",
+  'you.whatsNew.v40.private': "Tudo é rastreado no seu iPhone. Seu vídeo nunca sai dele.",
   'you.whatsNew.v31.onDevice': "Seu levantamento agora é analisado inteiramente no seu iPhone, e a análise funciona sem sinal.",
   // REVIEW
   'you.whatsNew.v31.privacy': "Seu vídeo nunca sai do seu iPhone. Analisado no aparelho, nunca usado para treinar IA.",

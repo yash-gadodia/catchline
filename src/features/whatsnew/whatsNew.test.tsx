@@ -21,9 +21,14 @@ describe("What's new", () => {
     expect(useWhatsNew.getState().seen).toBeNull();
   });
 
-  it('leads 3.1 with on-device analysis and the privacy line, word for word', () => {
-    expect(CHANGELOG[0].version).toBe('3.1');
-    expect(CHANGELOG[0].items.map((k) => en[k])).toEqual([
+  it('lists versions newest first, each dated', () => {
+    expect(CHANGELOG.map((e) => [e.version, e.date])).toEqual([['4.0.2', '2026-11-14'], ['4.0', '2026-11-13'], ['3.1', '2026-10-22']]);
+    expect(en[CHANGELOG[0].items[0]]).toBe('Each rep draws its own bar path, with your earlier reps faint underneath.');
+  });
+
+  it('keeps 3.1 with on-device analysis and the privacy line, word for word', () => {
+    expect(CHANGELOG[2].version).toBe('3.1');
+    expect(CHANGELOG[2].items.map((k) => en[k])).toEqual([
       'Your lift is now analysed entirely on your iPhone, and analysis works with no signal.',
       'Your video never leaves your iPhone. Analysed on-device, never used to train AI.',
       'Sharper reads of lifts filmed at an angle and of hang lifts, and a full clean and jerk is read as one lift.',
@@ -35,6 +40,8 @@ describe("What's new", () => {
     const onBack = jest.fn();
     const view = await render(<WhatsNewScreen back="You" onBack={onBack} />);
     expect(view.getByTestId('whats-new-3.1')).toHaveTextContent(/Your lift is now analysed entirely on your iPhone/);
+    expect(view.getByTestId('whats-new-4.0.2')).toHaveTextContent(/Bar speed: see how fast the bar moves through every rep/);
+    expect(view.getByTestId('whats-new-date-4.0.2')).toHaveTextContent('Nov 14, 2026');
     expect(view.getByText('Your video never leaves your iPhone. Analysed on-device, never used to train AI.')).toBeOnTheScreen();
     await act(async () => fireEvent.press(view.getByTestId('topbar-back')));
     expect(onBack).toHaveBeenCalledTimes(1);
