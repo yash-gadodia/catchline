@@ -33,6 +33,18 @@
         "EXPO_PUBLIC_ON_DEVICE_POSE": "1",
         "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       }
+    },
+    "release-simulator": {
+      "distribution": "internal",
+      "channel": "preview",
+      "environment": "production",
+      "ios": {
+        "simulator": true
+      },
+      "env": {
+        "EXPO_PUBLIC_ON_DEVICE_POSE": "1",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
+      }
     }
   },
   "submit": {
