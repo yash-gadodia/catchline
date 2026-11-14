@@ -172,6 +172,8 @@ describe('TrackerScreen bar speed', () => {
     const { getByTestId } = await show(measured);
     await at(120);
     expect(getByTestId('speed-chart')).toBeOnTheScreen();
+    // the path is coloured by speed: at frame 120 the bar is at half the lift's fastest, the second step of four
+    expect(getByTestId('path-heat-2')).toBeOnTheScreen();
     expect(getByTestId('speed-stats')).toHaveTextContent(/^now 0\.54 · avg up 0\.\d\d · min 0\.54 · max 1\.08 m\/s$/);
   });
 

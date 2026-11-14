@@ -233,7 +233,7 @@ export default function TrackerScreen({
           style={{ width: box.width, height: box.height, overflow: 'hidden' }}
         >
           <VideoView player={player} style={{ width: box.width, height: box.height }} contentFit="fill" nativeControls={false} allowsVideoFrameAnalysis={false} />
-          <TrackOverlay analysis={analysis} body={body} frame={frame} box={box} show={overlays} ghost={comparing && lastLift ? lastLift.points : null} />
+          <TrackOverlay analysis={analysis} body={body} frame={frame} box={box} show={overlays} ghost={comparing && lastLift ? lastLift.points : null} speed={barSpeedOf?.at} />
           {overlays.angles && anglesOk
             ? spread(jointAngles(j, src, side).map((a) => ({ ...a, x: s(a.at).x + 10, y: s(a.at).y - 12 })), 56, 28).map((a) => (
                 <View key={a.name} pointerEvents="none" style={{ position: 'absolute', left: Math.min(Math.max(4, a.x), box.width - 56), top: Math.min(Math.max(4, a.y), box.height - 26) }}>

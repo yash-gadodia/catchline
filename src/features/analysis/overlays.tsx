@@ -21,14 +21,19 @@ export function OverlaySvg({ box, children }: { box: Size; children: ReactNode }
 }
 
 // Flare path: 2.5pt, round caps, a thin black outline.
+const HEAT_STEPS = [0.15, 0.45, 0.75, 1];
+
 export function FlarePath({
   points,
   dashed,
   faint,
   halo = true,
+  heat,
   testID,
 }: {
   points: Point[];
+  // how fast the bar is at each point, 0 (still) to 1 (the lift's fastest): the path runs from bone to flare with it
+  heat?: number[];
   dashed?: boolean;
   faint?: boolean;
   halo?: boolean;
@@ -36,6 +41,21 @@ export function FlarePath({
 }) {
   if (points.length < 2) return null;
   const d = svgPath(points);
+  if (heat && heat.length === points.length) {
+    // four steps of flare over a bone line: one path per step, not one per frame
+    const steps = HEAT_STEPS.map(() => '');
+    for (let i = 1; i < points.length; i++) {
+      const k = Math.min(HEAT_STEPS.length - 1, Math.floor(((heat[i - 1] + heat[i]) / 2) * HEAT_STEPS.length));
+      steps[k] += `M${points[i - 1].x} ${points[i - 1].y}L${points[i].x} ${points[i].y}`;
+    }
+    return (
+      <G testID={testID} fill="none" strokeLinecap="round" strokeLinejoin="round">
+        {halo ? <Path d={d} stroke={colors.halo} strokeWidth={stroke.halo} /> : null}
+        <Path d={d} stroke={colors.text} strokeWidth={stroke.path} />
+        {steps.map((sd, k) => (sd ? <Path key={k} testID={`path-heat-${k}`} d={sd} stroke={colors.flare} strokeWidth={stroke.path} opacity={HEAT_STEPS[k]} /> : null))}
+      </G>
+    );
+  }
   return (
     <G testID={testID} opacity={faint ? 0.35 : 1}>
       {halo && !faint ? (

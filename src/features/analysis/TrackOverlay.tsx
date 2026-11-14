@@ -17,6 +17,7 @@ export default function TrackOverlay({
   box,
   show,
   ghost,
+  speed,
 }: {
   analysis: Analysis;
   body: Body | null;
@@ -25,6 +26,8 @@ export default function TrackOverlay({
   show: { path: boolean; lines: boolean; body: boolean };
   // An earlier lift's bar path, already in this video's coordinates (compare.ts): a faint bone line under today's.
   ghost?: Point[] | null;
+  // bar speed by frame (speed.ts): colours the path by how fast the bar is moving
+  speed?: Map<number, number> | null;
 }) {
   const s = (p: Point) => toScreen(p, { x: 0, y: 0, width: box.width, height: box.height });
   // where each rep of the set starts, read once per lift (the path does not change while it plays)
@@ -32,6 +35,9 @@ export default function TrackOverlay({
   const drawn = drawnPaths(analysis, frame, starts);
   const rep = analysis.reps[0];
   const path = rep?.path ?? [];
+  // full flare is the lift's fastest pull (a drop is faster still and would leave the whole pull pale)
+  const fastest = useMemo(() => (speed?.size ? Math.max(...speed.values()) : 0), [speed]);
+  const heat = speed && fastest > 0 ? (f: number) => Math.min(1, Math.abs(speed.get(f) ?? speed.get(f - 1) ?? speed.get(f + 1) ?? 0) / fastest) : null;
   const current = path.length && frame >= path[0].frame && frame <= path[path.length - 1].frame ? pointAt(path, frame) : null;
   const j = show.body ? joints(body, frame) : [];
   const side = drawnSide(body, analysis.noCueReason?.offSideDeg);
@@ -69,7 +75,7 @@ export default function TrackOverlay({
           {drawn.earlier.map((seg, i) => (
             <Path key={i} testID="path-earlier" d={svgPath(seg.map(s))} stroke={colors.text} strokeWidth={stroke.ghost} strokeLinecap="round" strokeLinejoin="round" strokeDasharray="1 5" opacity={opacity.lines} fill="none" />
           ))}
-          <FlarePath points={drawn.current.map(s)} testID="path-done" />
+          <FlarePath points={drawn.current.map(s)} heat={heat ? drawn.current.map((p) => heat(p.frame)) : undefined} testID="path-done" />
           <CurrentDot point={current ? s(current) : null} />
         </>
       ) : null}
