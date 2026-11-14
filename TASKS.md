@@ -68,6 +68,7 @@ Owner decision 11-11: drop cues; the app tracks any lift or gymnastics clip and 
 - [ ] Next build (native): bar speed + per-rep lines in the share video, background protection while preparing the clip, subtitle "On-device. Video stays private", primary category Sports
 - [ ] Owner to decide: founding seats 500 -> 100. Decided: sign-out keeps the lifts on the phone
 - [ ] Unverified: a real purchase on 4.0.x (no RevenueCat purchase event since 2 Nov)
+- [ ] Later (owner, 14 Nov): gamification. Ideas to weigh: personal-best bar speed per lift kind, streak of training days, a weekly count; nothing built yet
 - Sim gotcha: a swapped main.jsbundle is ignored until `.expo-internal` in the data container is deleted
 
 ## Notes
