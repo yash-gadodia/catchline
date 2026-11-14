@@ -58,6 +58,18 @@ Owner decision 11-11: drop cues; the app tracks any lift or gymnastics clip and 
 - [x] "Compare with your last lift": the earlier bar path as a dotted bone line (`compare.ts`: anchored at the lowest point before the peak, scaled by shoulder-to-ankle height, mirrored when facing the other way)
 - [x] Lifts list grouped by day (Today, Yesterday, date)
 - [ ] Nothing asks for notifications any more on the way to the first result (the alert would land on the first look); decide where, if anywhere
+## 14 Nov: 4.0.2 live, audit, WL Analysis parity (branch v40/you2, OTA on runtime 4.0.2)
+- [x] 4.0.2 (build 47) released by the owner 14 Nov; JS published to runtime 4.0.2
+- [x] Reports: a queued report whose screenshot iOS cleared goes without it (the queue no longer blocks). NOT yet confirmed on the owner's phone: `problem_reports` still had 0 rows at 08:40
+- [x] Thumbnails: stills are pointed at the lift folder on read (iOS moved the app container on update)
+- [x] Audit (5 agents): one lift at a time + job-scoped patch, double-tap guard, hidden lift on the Lifts tab, delete account removes lift folders and outbox, load bounded to 0-500 kg and a refused record never blocks sync, share races, /you/states dev only, What is stored drops cues
+- [x] Parity: 2x/4x in the player, bar speed chart + now/avg/min/max, path coloured by speed, lifts named by kind
+- [ ] Parity left: side-by-side comparison of two lifts, video zoom, rename + search on lifts, export options (graph, date, weight), 4 more languages. Power/force skipped (needs bar weight and bodyweight)
+- [ ] Next build (native): bar speed + per-rep lines in the share video, background protection while preparing the clip, subtitle "On-device. Video stays private", primary category Sports
+- [ ] Owner to decide: founding seats 500 -> 100. Decided: sign-out keeps the lifts on the phone
+- [ ] Unverified: a real purchase on 4.0.x (no RevenueCat purchase event since 2 Nov)
+- Sim gotcha: a swapped main.jsbundle is ignored until `.expo-internal` in the data container is deleted
+
 ## Notes
 - Release gate (11-11): `scripts/eval31/gate.sh` (`--check`, `--replay`, `--record`, `--sheets`, `--original`) runs the 14 clips of `gate-clips.json` on the Mini in `~/catchline-gate`, prepared by the app's own transcoder code (`modules/clip-transcoder/harness` `probe` / `transcode`, behind a stand-in ExpoModulesCore) and tracked like the phone. `ota.sh publish` and `store-build.sh` need a passing result for the commit; read `.claude/skills/release-verify` before any release. The gate also scores the path against the hand plate labels on the Mini (`L` = share of labelled plate frames within 0.25 r; label frame i = prepared frame i, checked by packet count). Gotchas (12-11): a parsed trace does not survive `JSON.stringify` (replay must re-merge the raw `pose`/`pixN` files); never edit `gate.sh` while a run is going (bash reads the script by offset); IMG_0976 got a 350-point plate path in one run and none in the next on the same code, so a single run can flip a clip.
 - [ ] (Claude) Re-record the gate baseline when the trained plate model (`v40/plate-path`, build 42) lands; the `L` column is the number to move.
