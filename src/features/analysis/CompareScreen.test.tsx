@@ -97,4 +97,43 @@ describe('CompareScreen', () => {
     expect(players[A].playbackRate).toBe(0.5);
     expect(players[B].playbackRate).toBe(0.5);
   });
+
+  it('offers the other lifts of the same kind, marks the one on show, and picks another', async () => {
+    const onPick = jest.fn();
+    const others = [
+      { id: 'b', title: '13 Nov, 10:55' },
+      { id: 'c', title: 'Heavy single · 12 Nov, 09:10' },
+    ];
+    const view = await render(
+      <CompareScreen
+        today={{ analysis: lift('a', 90, 210), body: null, clipUri: A, title: '14 Nov, 08:50' }}
+        earlier={{ analysis: lift('b', 30, 90), body: null, clipUri: B, title: '13 Nov, 10:55' }}
+        onBack={() => {}}
+        others={others}
+        picked="b"
+        onPick={onPick}
+      />,
+    );
+    expect(view.getByTestId('compare-pick-b')).toBeSelected();
+    expect(view.getByTestId('compare-pick-c')).not.toBeSelected();
+    expect(view.getByTestId('compare-pick-c')).toHaveTextContent('Heavy single · 12 Nov, 09:10');
+    await press(view.getByTestId('compare-pick-b'));
+    expect(onPick).not.toHaveBeenCalled();
+    await press(view.getByTestId('compare-pick-c'));
+    expect(onPick).toHaveBeenCalledWith('c');
+  });
+
+  it('has no picker when there is only one lift to set against', async () => {
+    const view = await render(
+      <CompareScreen
+        today={{ analysis: lift('a', 90, 210), body: null, clipUri: A, title: '14 Nov, 08:50' }}
+        earlier={{ analysis: lift('b', 30, 90), body: null, clipUri: B, title: '13 Nov, 10:55' }}
+        onBack={() => {}}
+        others={[{ id: 'b', title: '13 Nov, 10:55' }]}
+        picked="b"
+        onPick={jest.fn()}
+      />,
+    );
+    expect(view.queryByTestId('compare-others')).toBeNull();
+  });
 });

@@ -133,6 +133,17 @@ export function ghostPath(earlier: TrackedLift, today: TrackedLift): Point[] | n
   return from.map((p) => ({ x: q0.x + flip * (p.x - p0.x) * kx, y: q0.y + (p.y - p0.y) * ky }));
 }
 
+// Every other tracked lift of the same kind as this one, newest first: what side by side can be set against. The kind
+// is the shape kept when each lift was tracked or first opened (library/liftNames).
+export function sameKindLifts(lifts: Lift[], shapes: Record<string, string>, id: string | undefined): Lift[] {
+  const shape = id ? shapes[id] : undefined;
+  if (!shape) return [];
+  const when = (l: Lift) => l.at ?? l.date;
+  return lifts
+    .filter((l) => l.status === 'done' && !!l.analysisId && l.analysisId !== id && l.id !== id && shapes[l.analysisId] === shape)
+    .sort((a, b) => (when(a) < when(b) ? 1 : when(a) > when(b) ? -1 : 0));
+}
+
 // The lifts to compare with, newest first: finished lifts filmed before this one that have a bar path. The first of
 // them with the same shape (liftShape) is the one shown.
 export function liftsBefore(lifts: Lift[], id: string | undefined): Lift[] {

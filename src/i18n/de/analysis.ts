@@ -129,6 +129,7 @@ export const analysis: Strings<typeof en> = {
   'analysis.tracker.zoomReset': "Zoom zurücksetzen",
   'analysis.compare.back': "Lift",
   'analysis.compare.title': "Nebeneinander",
+  'analysis.compare.against': "gegen",
   'analysis.compare.thisLift': "Dieser · {when}",
   'analysis.compare.today': "dieser",
   'analysis.compare.earlier': "früher",

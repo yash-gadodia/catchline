@@ -123,6 +123,7 @@ export const analysis = {
   'analysis.tracker.zoomReset': "reset zoom",
   'analysis.compare.back': "Lift",
   'analysis.compare.title': "Side by side",
+  'analysis.compare.against': "against",
   'analysis.compare.thisLift': "This · {when}",
   'analysis.compare.today': "this",
   'analysis.compare.earlier': "earlier",

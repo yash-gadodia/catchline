@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { PanResponder, Pressable, Text, View, useWindowDimensions } from 'react-native';
+import { PanResponder, Pressable, Text, View, useWindowDimensions, type GestureResponderEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useReducedMotion } from 'react-native-reanimated';
 import { useVideoPlayer, VideoView } from 'expo-video';
@@ -26,6 +26,7 @@ import type { FrameWindow } from './chart';
 import { Freehand, Grid, PlumbLine } from './ReferenceTools';
 import type { LastLift } from './useLastLift';
 import { ANGLE_MAX_OFF_SIDE_DEG, drawnSide, frameAt, jointAngles, joints, liftRange, repAt, repStarts, spread, startLineX, timeOf } from './tracker';
+import { dragged, NO_ZOOM, pinched, type PictureZoom } from './videoZoom';
 import { t } from '../../i18n';
 
 type Speed = 0.25 | 0.5 | 1 | 2 | 4;
@@ -269,6 +270,34 @@ export default function TrackerScreen({
   const resizing = useRef<{ y: number; h: number; min: number; max: number } | null>(null);
   const resizeTo = (h: number, { min, max }: { min: number; max: number }) => setVideoH(Math.round(Math.min(Math.max(h, min), max)));
 
+  // Pinch the picture to enlarge it, drag it once enlarged (owner, 14-11: parity with WL Analysis). A tap still plays
+  // and pauses; the drawing tools keep their own touches.
+  const [picture, setPicture] = useState<PictureZoom>(NO_ZOOM);
+  const pictureRef = useRef(picture);
+  pictureRef.current = picture;
+  const boxRef = useRef(box);
+  boxRef.current = box;
+  const pinch = useRef<{ from: PictureZoom; a: { x: number; y: number }; b: { x: number; y: number } | null } | null>(null);
+  const fingers = (e: GestureResponderEvent) => e.nativeEvent.touches.map((f) => ({ x: f.pageX, y: f.pageY }));
+  const startPinch = (e: GestureResponderEvent) => {
+    const f = fingers(e);
+    pinch.current = f.length ? { from: pictureRef.current, a: f[0], b: f[1] ?? null } : null;
+  };
+  const zoomHandlers = {
+    onMoveShouldSetResponder: (e: GestureResponderEvent) => !drawing && !freehand && (e.nativeEvent.touches.length === 2 || (pictureRef.current.scale > 1 && e.nativeEvent.touches.length === 1)),
+    onResponderGrant: startPinch,
+    onResponderMove: (e: GestureResponderEvent) => {
+      const f = fingers(e);
+      const p = pinch.current;
+      // a finger added or lifted starts the gesture again from where the picture is
+      if (!p || (f.length >= 2) !== (p.b !== null)) return startPinch(e);
+      if (p.b && f.length >= 2) setPicture(pinched(p.from, p.a, p.b, f[0], f[1], boxRef.current));
+      else if (f.length === 1) setPicture(dragged(p.from, f[0].x - p.a.x, f[0].y - p.a.y, boxRef.current));
+    },
+    onResponderRelease: () => (pinch.current = null),
+    onResponderTerminate: () => (pinch.current = null),
+  };
+
   const s = (p: Point) => toScreen(p, fit);
   const plumb = Math.min(Math.max(plumbX ?? startLineX(analysis.reps[0]) ?? 0.5, 0), 1);
   const j = overlays.angles ? joints(body, frame) : [];
@@ -277,7 +306,7 @@ export default function TrackerScreen({
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }} testID="tracker-screen">
       <TopBar title={title} onBack={onBack} onMore={onMore} more={!!onMore} />
-      <View style={{ alignItems: 'center', backgroundColor: colors.surface }}>
+      <View {...zoomHandlers} testID="tracker-stage" style={{ alignItems: 'center', backgroundColor: colors.surface }}>
         <Pressable
           onPress={togglePlay}
           disabled={drawing || freehand}
@@ -286,6 +315,7 @@ export default function TrackerScreen({
           testID="tracker-video"
           style={{ width: box.width, height: box.height, overflow: 'hidden' }}
         >
+          <View testID="tracker-picture" style={{ width: box.width, height: box.height, transform: [{ translateX: picture.x }, { translateY: picture.y }, { scale: picture.scale }] }}>
           <VideoView player={player} style={{ width: box.width, height: box.height }} contentFit="fill" nativeControls={false} allowsVideoFrameAnalysis={false} />
           {tools.grid ? <Grid box={box} /> : null}
           <TrackOverlay analysis={analysis} body={body} frame={frame} box={box} show={overlays} ghost={comparing && lastLift ? lastLift.points : null} speed={barSpeedOf?.at} whole />
@@ -299,6 +329,7 @@ export default function TrackerScreen({
           <DrawLayer box={box} fit={fit} video={src} shapes={shapes} onShapes={setShapes} drawing={drawing} />
           {tools.plumb ? <PlumbLine box={box} x={plumb} onMove={setPlumbX} /> : null}
           <Freehand box={box} strokes={strokes} onStrokes={setStrokes} drawing={freehand} />
+          </View>
           {/* time, and under it the bar speed: stacked so they never meet on a narrow (portrait) video */}
           <View pointerEvents="none" style={{ position: 'absolute', top: space.s3, left: space.s3, alignItems: 'flex-start', gap: space.s1 }}>
             <Readout testID="tracker-readout">{cropped ? `${seconds((frame - first) / fps)} s · ${frame + 1} / ${count}` : `${frame + 1} / ${count} · ${seconds(frame / fps)} s`}</Readout>
@@ -308,6 +339,18 @@ export default function TrackerScreen({
               </Readout>
             ) : null}
           </View>
+          {picture.scale > 1 ? (
+            <Pressable
+              testID="picture-reset"
+              accessibilityRole="button"
+              accessibilityLabel={t('analysis.tracker.zoomReset')}
+              onPress={() => setPicture(NO_ZOOM)}
+              hitSlop={6}
+              style={{ position: 'absolute', right: space.s3, top: space.s3, height: control.chipHeight, paddingHorizontal: space.s3, justifyContent: 'center', backgroundColor: shade(0.6), borderWidth: stroke.hairline, borderColor: colors.hairline, ...shape.control }}
+            >
+              <Text style={{ ...type.caption, color: colors.text }}>{`${picture.scale.toFixed(1)}× · ${t('analysis.tracker.zoomReset')}`}</Text>
+            </Pressable>
+          ) : null}
           {lastLift && revealing !== 'playing' && !drawing && !freehand ? (
             <Pressable
               testID="tracker-compare"

@@ -2,7 +2,7 @@ import type { Analysis, TracePoint } from '../../analysis/types';
 import type { Body } from '../../analysis/device/tracking';
 import { snatchMock } from '../../analysis/fixtures';
 import type { Lift } from '../library/types';
-import { anchor, facing, ghostPath, liftPath, liftShape, liftsBefore, peakFrame, standingHeightPx } from './compare';
+import { anchor, facing, ghostPath, liftPath, liftShape, liftsBefore, peakFrame, sameKindLifts, standingHeightPx } from './compare';
 
 // One body row: both shoulders at shoulderY, both ankles at ankleY, heels at heelX and toes at toeX.
 function row(shoulderY: number, ankleY: number, heelX = 0.4, toeX = 0.5): (number | null)[] {
@@ -126,6 +126,22 @@ describe('liftsBefore', () => {
   it('is nothing for the first lift, or a lift not in the library', () => {
     expect(liftsBefore(lifts, 'older')).toEqual([]);
     expect(liftsBefore(lifts, 'missing')).toEqual([]);
+  });
+});
+
+describe('sameKindLifts', () => {
+  const l = (id: string, at: string, more: Partial<Lift> = {}): Lift => ({ id, analysisId: id, movement: 'snatch', date: at.slice(0, 10), at, status: 'done', ...more });
+  const lifts = [l('a', '2026-11-11T10:00:00.000Z'), l('later', '2026-11-12T10:00:00.000Z'), l('old', '2026-11-08T10:00:00.000Z'), l('clean', '2026-11-10T10:00:00.000Z'), l('failed', '2026-11-09T10:00:00.000Z', { status: 'failed' })];
+  const shapes = { a: 'floor-overhead', later: 'floor-overhead', old: 'floor-overhead', clean: 'floor-shoulders', failed: 'floor-overhead' };
+
+  it('is every other finished lift of the same kind, earlier or later, newest first', () => {
+    expect(sameKindLifts(lifts, shapes, 'a').map((x) => x.id)).toEqual(['later', 'old']);
+    expect(sameKindLifts(lifts, shapes, 'clean')).toEqual([]);
+  });
+
+  it('is nothing for a lift whose kind is not known', () => {
+    expect(sameKindLifts(lifts, {}, 'a')).toEqual([]);
+    expect(sameKindLifts(lifts, shapes, undefined)).toEqual([]);
   });
 });
 

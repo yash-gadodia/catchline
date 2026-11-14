@@ -10,6 +10,7 @@ import { impact } from '../../lib/haptics';
 import { colors, control, shape, space, stroke } from '../../design/tokens';
 import { type } from '../../design/typography';
 import { t } from '../../i18n';
+import FadeRow from './FadeRow';
 import TrackOverlay from './TrackOverlay';
 import { barSpeed, speedStats } from './speed';
 import { frameAt, liftRange, timeOf } from './tracker';
@@ -33,7 +34,22 @@ function sideOf(lift: ComparedLift, duration: number) {
 // Two lifts of the same kind next to each other (owner, 14-11: parity with WL Analysis), in step from the moment
 // each lift begins: today's on the left, the earlier one on the right, each with its own bar path and body, and
 // both bar speeds on one chart. One set of controls drives both.
-export default function CompareScreen({ today, earlier, onBack }: { today: ComparedLift; earlier: ComparedLift; onBack: () => void }) {
+export default function CompareScreen({
+  today,
+  earlier,
+  onBack,
+  others = [],
+  picked,
+  onPick,
+}: {
+  today: ComparedLift;
+  earlier: ComparedLift;
+  onBack: () => void;
+  // the other lifts of the same kind this one can be set against, newest first, and the one on show
+  others?: { id: string; title: string }[];
+  picked?: string;
+  onPick?: (id: string) => void;
+}) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const lifts = [today, earlier] as const;
@@ -161,6 +177,16 @@ export default function CompareScreen({ today, earlier, onBack }: { today: Compa
           </Text>
         ))}
       </View>
+      {onPick && others.length > 1 ? (
+        <FadeRow testID="compare-others" contentContainerStyle={{ gap: space.s2, paddingHorizontal: space.gutter, paddingTop: space.s2, alignItems: 'center' }}>
+          <Text style={{ ...type.caption, color: colors.text3 }}>{t('analysis.compare.against')}</Text>
+          {others.map((o) => (
+            <Chip key={o.id} testID={`compare-pick-${o.id}`} label={o.title} on={o.id === picked} onPress={() => o.id !== picked && onPick(o.id)}>
+              {o.title}
+            </Chip>
+          ))}
+        </FadeRow>
+      ) : null}
       <View {...pan.panHandlers} testID="compare-scrub" accessibilityRole="adjustable" accessibilityLabel={t('analysis.tracker.scrub')} style={{ height: 44, justifyContent: 'center' }}>
         <View style={{ height: 3, backgroundColor: colors.hairline }}>
           <View style={{ height: 3, width: `${(at / total) * 100}%`, backgroundColor: colors.text }} />
@@ -217,15 +243,16 @@ export default function CompareScreen({ today, earlier, onBack }: { today: Compa
   );
 }
 
-function Chip({ testID, label, onPress, children }: { testID: string; label: string; onPress: () => void; children: string }) {
+function Chip({ testID, label, onPress, on, children }: { testID: string; label: string; onPress: () => void; on?: boolean; children: string }) {
   return (
     <Pressable
       testID={testID}
       accessibilityRole="button"
+      accessibilityState={on === undefined ? undefined : { selected: on }}
       accessibilityLabel={label}
       onPress={onPress}
       hitSlop={2}
-      style={{ height: control.chipHeight, minWidth: control.chipHeight, paddingHorizontal: space.s3, borderWidth: stroke.hairline, borderColor: colors.hairline, ...shape.control, alignItems: 'center', justifyContent: 'center' }}
+      style={{ height: control.chipHeight, minWidth: control.chipHeight, paddingHorizontal: space.s3, borderWidth: stroke.hairline, borderColor: on ? colors.text : colors.hairline, ...shape.control, alignItems: 'center', justifyContent: 'center' }}
     >
       <Text style={{ ...type.caption, color: colors.text }}>{children}</Text>
     </Pressable>

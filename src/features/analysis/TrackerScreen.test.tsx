@@ -510,3 +510,28 @@ describe('TrackerScreen chart zoom and divider', () => {
     expect(queryByTestId('tracker-divider')).toBeNull();
   });
 });
+
+describe('enlarging the picture', () => {
+  const fire = async (el: Parameters<typeof fireEvent>[0], event: string, nativeEvent: object) => {
+    await act(async () => {
+      fireEvent(el, event, { nativeEvent });
+    });
+  };
+  const two = (ax: number, bx: number) => ({ touches: [{ pageX: ax, pageY: 300 }, { pageX: bx, pageY: 300 }] });
+
+  it('pinching enlarges the video and its overlays, and reset brings the whole picture back', async () => {
+    const view = await show(marked);
+    const stage = view.getByTestId('tracker-stage');
+    expect(view.queryByTestId('picture-reset')).toBeNull();
+    await fire(stage, 'responderGrant', two(150, 250));
+    await fire(stage, 'responderMove', two(100, 300));
+    expect(view.getByTestId('tracker-picture')).toHaveStyle({ transform: [{ translateX: 0 }, { translateY: 0 }, { scale: 2 }] });
+    expect(view.getByTestId('picture-reset')).toHaveTextContent('2.0× · reset zoom');
+    await fire(stage, 'responderRelease', { touches: [] });
+    await act(async () => {
+      fireEvent.press(view.getByTestId('picture-reset'));
+    });
+    expect(view.getByTestId('tracker-picture')).toHaveStyle({ transform: [{ translateX: 0 }, { translateY: 0 }, { scale: 1 }] });
+    expect(view.queryByTestId('picture-reset')).toBeNull();
+  });
+});
