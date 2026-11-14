@@ -317,3 +317,12 @@ Build 26: Cues crashed and Trends was empty on a real account. Root cause: the C
 - [x] (Claude) PathReplay draws hips / shoulders / feet marks with a legend toggle and a hip-height curve; ResultNumbers lists the readings and says why forward/back ones are hidden; "Path only · couldn't find the phases" in 5 locales
 - [x] (Claude) `scripts/eval31/tracks.ts`: the track eval (bar vs plate labels, plate seen, feet/hip continuity, path produced); table in docs/catchline/on-device-plan.md
 - Gotchas: a path-only rep must ask `window(0, n)` or the first native pass has no misses and no stills; the harness wants an absolute `--models` dir of `.mlmodelc` (a relative one looks for `.mlpackage`); the bar path is wrist-derived everywhere, so "plate-tagged share" is 0 by construction
+
+### 14 Nov (pm): plate found first, player tools, notes
+- [x] Track goes straight to tracking; "adjust plate" in the player opens the plate the tracker found, move or resize, track again (`retrackLift`, no free lift used, a failed re-track keeps the old result). d823e03, live on 4.0.2.
+- [x] Player: grid, vertical line, freehand draw, draggable divider, whole path as a ghost, chart with m/s and seconds axes, pinch to zoom and loop.
+- [x] Lifts: name, tags, note (phone only), search from 8 lifts.
+- [ ] Apple sign-in: no new Apple identity since 26 Oct and no purchase since 2 Nov; a purchase needs sign-in first. `sign_in_failed` (stage, code, message) now recorded; read it in PostHog after the next failed attempt. (Claude)
+- [ ] Small phones: the player's second chip row leaves the video small on an SE; consider a header menu. (Claude)
+- [ ] Next build: a first-frame plate check before tracking (needs a native single-frame detect), graph and date in the share video, voice start. (Claude)
+- Gotcha: `idb ui text` hangs on the Mini's simulator; the text does land, kill the command after a few seconds.
