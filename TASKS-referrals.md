@@ -5,23 +5,29 @@ Decided by Yash 15-11-2026: free tier 1 video a week; give a month, get a month 
 Everything ships as an OTA on the 4.0.3 runtime (no native code). Native end card on the exported video waits for the next store build.
 
 ## Backend
-- [ ] 0025_referrals.sql: codes, referrals, reward ledger, claim RPC, my_referrals RPC, preview RPC for the web page, qualify trigger on the first done lift, coach codes, coach payout view
-- [ ] Edge function referral-rewards: grants pending rewards as RevenueCat promotional `pull`, 12-month cap, then applies the plan
-- [ ] Deno tests for the grant maths; SQL checks against a scratch run
-- [ ] Apply 0025 to prod, deploy the function, verify with a test pair of accounts
+- [x] 0025_referrals.sql: codes, referrals, reward ledger, claim RPC, my_referrals RPC, preview RPC for the web page, qualify trigger on the first done lift, coach codes (payouts come from scripts/referrals/coach.py)
+- [x] Edge function referral-rewards: grants pending rewards as RevenueCat promotional `pull`, 12-month cap, then applies the plan
+- [x] Deno tests for the grant maths; SQL checks against a scratch run
+- [x] Apply 0025 to prod, deploy the function (15-11; service-role call returns 200)
+- [ ] End-to-end with a real pair of accounts (needs Yash's go: grants real promo time)
 
 ## App (OTA)
-- [ ] FREE_PER_WEEK 3 -> 1, copy and tests
-- [ ] Invite screen from You: code, share to a friend, share to a gym chat, counter, milestones, badge; Apple sign-in first when anonymous
-- [ ] Claim: "Have an invite code?" in first run and in Invite; catchline://invite/CODE prefills
-- [ ] Share caption carries the code and link
-- [ ] After a share: "give a friend a free month" prompt, once
-- [ ] Analytics events: invite_shared, referral_claimed, referral_qualified (server), invite_viewed
-- [ ] Tests, typecheck on the Mini
+- [x] FREE_PER_WEEK 3 -> 1, copy and tests
+- [x] Invite screen from You: code, share to a friend, share to a gym chat, counter, milestones, badge; Apple sign-in first when anonymous
+- [x] Claim: "Got a code from a friend?" on the Invite screen; catchline://invite/CODE prefills it
+- [ ] A first-run "Have an invite code?" prompt (not built: a link already opens Invite with the code filled in)
+- [ ] Share caption carries the code and link (deferred: the share is a file, iOS drops the text for most targets; the native end card waits for the next store build)
+- [x] After a share: "give a friend a free month" prompt, once
+- [x] Analytics events: invite_shared, referral_claimed, referral_qualified (server), invite_viewed
+- [x] Tests, typecheck on the Mini
 
 ## Web
-- [ ] docs/i/index.html on the catchline branch: inviter's first name, code, App Store button, open-in-app link
+- [x] docs/i/index.html on the catchline branch (6b45042, live): code, App Store button, open-in-app link. No inviter name: gitleaks blocks the publishable key in the public repo; referral_preview stays for a later server-side page
 
 ## Ops
-- [ ] scripts/referrals: make a coach code, list coach payouts
+- [x] scripts/referrals: make a coach code, list coach payouts
 - [ ] OTA to production after Yash sees it on a phone
+
+## Notes
+- 0025 was numbered past flywheel's unapplied 0024; pushing 0024 later needs `supabase db push --include-all`.
+- Free tier 1 a week changes behaviour for live users the moment the OTA lands.
