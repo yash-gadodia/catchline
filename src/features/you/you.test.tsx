@@ -173,6 +173,17 @@ describe('YouScreen with the backend on', () => {
 
   beforeEach(() => mockBackendEnabled.mockReturnValue(true));
 
+  it('opens Give a month, get a month from its row', async () => {
+    const onInvite = jest.fn();
+    const screen = await render(<YouScreen nav={{ ...nav, onInvite }} />);
+    expect(within(screen.getByTestId('row-invite')).getByText('Give a month, get a month')).toBeOnTheScreen();
+    expect(within(screen.getByTestId('row-invite')).getByText('Catchline Pro free for you and a friend')).toBeOnTheScreen();
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('row-invite'));
+    });
+    expect(onInvite).toHaveBeenCalledTimes(1);
+  });
+
   it('shows the anonymous account and the real free allowance, never the fixture', async () => {
     useUsage.getState().record('free', new Date());
     const screen = await render(<YouScreen nav={nav} />);
