@@ -29,7 +29,7 @@ values
   (gen_random_uuid(), 'f1000000-0000-0000-0000-000000000006', 'apple-sub-lifter', 'apple', '{"sub":"apple-sub-lifter"}', now(), now());
 
 create temp table t_code (code text) on commit drop;
-grant all on t_code to authenticated;
+grant all on t_code to authenticated, anon;
 
 -- ---- An anonymous user has no code ------------------------------------------
 set local role authenticated;
