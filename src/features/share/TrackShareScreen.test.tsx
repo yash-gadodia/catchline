@@ -6,6 +6,7 @@ import { snatchMock } from '../../analysis/fixtures';
 import TrackShareScreen, { type TrackShareDeps } from './TrackShareScreen';
 import type { TrackSpec } from './trackShare';
 import { track } from '../../lib/analytics';
+import { useInvite } from '../referrals/store';
 
 jest.mock('../../lib/analytics', () => ({ ...jest.requireActual('../../lib/analytics'), track: jest.fn() }));
 beforeEach(() => jest.mocked(track).mockClear());
@@ -84,6 +85,27 @@ describe('TrackShareScreen', () => {
     expect(spec.frame).toBe(0);
     expect(spec.watermark).toBe('Catchline · free on the App Store');
     expect(d.renderVideo).not.toHaveBeenCalled();
+  });
+
+  it('after the first share, offers a friend a free month', async () => {
+    useInvite.setState({ promptedAfterShare: false });
+    const onInvite = jest.fn();
+    const { getByTestId, queryByTestId } = await render(<TrackShareScreen analysis={analysis} body={null} clipUri={CLIP} watermark onBack={() => {}} onInvite={onInvite} deps={deps()} />);
+    expect(queryByTestId('share-invite')).toBeNull();
+    await press(getByTestId('share-image-btn'));
+    await waitFor(() => expect(getByTestId('share-invite')).toHaveTextContent('Give a friend a free month of Pro'));
+    expect(useInvite.getState().promptedAfterShare).toBe(true);
+    await press(getByTestId('share-invite'));
+    expect(onInvite).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers the free month only once', async () => {
+    useInvite.setState({ promptedAfterShare: true });
+    const d = deps();
+    const { getByTestId, queryByTestId } = await render(<TrackShareScreen analysis={analysis} body={null} clipUri={CLIP} watermark onBack={() => {}} onInvite={jest.fn()} deps={d} />);
+    await press(getByTestId('share-image-btn'));
+    await waitFor(() => expect(d.share).toHaveBeenCalledWith(IMAGE));
+    expect(queryByTestId('share-invite')).toBeNull();
   });
 
   it('has no whole-clip chip when tracking marked no lift, and shares every frame', async () => {

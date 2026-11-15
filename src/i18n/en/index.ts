@@ -9,6 +9,7 @@ import { paywall } from './paywall';
 import { share } from './share';
 import { notifications } from './notifications';
 import { cue } from './cue';
+import { invite } from './invite';
 
 export const en = {
   ...common,
@@ -22,6 +23,7 @@ export const en = {
   ...share,
   ...notifications,
   ...cue,
+  ...invite,
 };
 
 export type Key = keyof typeof en;

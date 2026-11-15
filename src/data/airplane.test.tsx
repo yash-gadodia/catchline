@@ -150,32 +150,31 @@ describe('airplane mode, fresh install', () => {
     noServerAnalysis();
   });
 
-  it('three free lifts in a week, counted in the Keychain and queued for sync_lift; the fourth goes to the weekly cap', async () => {
-    const ids = [await analyse(), await analyse(), await analyse()];
-    expect(new Set(ids).size).toBe(3);
-    expect(useUsage.getState().usage.lifetime).toBe(3);
-    expect(await SecureStore.getItemAsync(FREE_USED_KEY)).toBe('3');
-    expect(await SecureStore.getItemAsync(FREE_WEEK_KEY)).toBe(`${weekKey(new Date())}:3`);
-    expect(useLiftOutbox.getState().items.map((i) => [i.id, i.synced ?? false])).toEqual(ids.map((id) => [id, false]));
+  it('the week\'s free lift is counted in the Keychain and queued for sync_lift; the next goes to the weekly cap', async () => {
+    const id = await analyse();
+    expect(useUsage.getState().usage.lifetime).toBe(1);
+    expect(await SecureStore.getItemAsync(FREE_USED_KEY)).toBe('1');
+    expect(await SecureStore.getItemAsync(FREE_WEEK_KEY)).toBe(`${weekKey(new Date())}:1`);
+    expect(useLiftOutbox.getState().items.map((i) => [i.id, i.synced ?? false])).toEqual([[id, false]]);
     expect(useLiftOutbox.getState().items[0].lift).toMatchObject({ movement: 'snatch', loadKg: 62.5, made: true });
 
     await submitClip(CLIP);
     const [{ pathname, params: p }] = nav.push.mock.calls[nav.push.mock.calls.length - 1];
     expect(pathname).toBe('/paywall/cap');
     expect(p.movement).toBe('snatch');
-    expect(analyseOnDevice).toHaveBeenCalledTimes(3);
-    expect(usePipeline.getState().job?.liftId).toBe(ids[2]);
+    expect(analyseOnDevice).toHaveBeenCalledTimes(1);
+    expect(usePipeline.getState().job?.liftId).toBe(id);
     noServerAnalysis();
   });
 
   it('a reinstall reads this week’s Keychain count, so the free lifts are not handed back', async () => {
-    await SecureStore.setItemAsync(FREE_WEEK_KEY, `${weekKey(new Date())}:3`);
+    await SecureStore.setItemAsync(FREE_WEEK_KEY, `${weekKey(new Date())}:1`);
     await submitClip(CLIP);
     expect(nav.push).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/paywall/cap' }));
     expect(analyseOnDevice).not.toHaveBeenCalled();
   });
 
-  it('a paid plan from the cached entitlement keeps analysing past the free three', async () => {
+  it('a paid plan from the cached entitlement keeps analysing past the free one', async () => {
     usePurchases.setState({ tier: 'pull', period: 'monthly' });
     useUsage.setState({ usage: { lifetime: 3, week: weekKey(new Date()), thisWeek: 3 } });
     await analyse();

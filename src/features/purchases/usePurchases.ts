@@ -108,6 +108,8 @@ interface PurchasesState extends ActivePlan {
   identify: (userId: string) => Promise<void>;
   purchase: (plan: Plan) => Promise<PurchaseStatus>;
   restore: () => Promise<Tier>;
+  /** Re-reads RevenueCat, e.g. after the server grants referral time. */
+  refresh: () => Promise<void>;
   /** The server's plan when it ranks above RevenueCat's; true when the server holds a paid plan. */
   adoptServerPlan: () => Promise<boolean>;
   /** Back to a free, unidentified plan; RevenueCat forgets the user too. */
@@ -165,6 +167,14 @@ export const usePurchases = create<PurchasesState>((set, get) => ({
     if (!Purchases || get().appUserId === userId) return;
     const { customerInfo } = await Purchases.logIn(userId);
     set({ appUserId: userId, customerInfo, ...planFromInfo(customerInfo) });
+  },
+
+  refresh: async () => {
+    const Purchases = liveSdk();
+    if (!Purchases) return;
+    await Purchases.invalidateCustomerInfoCache();
+    const info = await Purchases.getCustomerInfo();
+    set({ customerInfo: info, ...planFromInfo(info) });
   },
 
   purchase: async (plan: Plan) => {

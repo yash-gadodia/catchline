@@ -20,7 +20,7 @@ import { LANGUAGE_NAMES, LOCALES, t, type Language } from '../../i18n';
 import { accountRepository, signOutOfAccount, useAccountView, type DataExport } from './account';
 import { UNIT_LABELS, settingsOf, useSettings } from './settings';
 
-type Nav = { onDemo?: () => void; onWhatIsStored: () => void; onDeleteAccount: () => void; onPlan: () => void; onReport: () => void; onWhatsNew: () => void };
+type Nav = { onDemo?: () => void; onWhatIsStored: () => void; onDeleteAccount: () => void; onPlan: () => void; onReport: () => void; onWhatsNew: () => void; onInvite?: () => void };
 type Picker = 'name' | 'language' | 'units' | null;
 
 function options<T extends string>(labels: Record<T, string>): { value: T; label: string }[] {
@@ -126,6 +126,9 @@ export default function YouScreen({
             onPress={nav.onPlan}
             testID="row-plan"
           />
+        ) : null}
+        {account && live && nav.onInvite ? (
+          <Row title={t('invite.row')} sub={t('invite.rowSub')} right={<Value>›</Value>} onPress={nav.onInvite} testID="row-invite" />
         ) : null}
         {/* 4.0 (owner, 13-11: too many things going): settings that still do something, privacy, help */}
         <Section>{t('you.section.settings')}</Section>

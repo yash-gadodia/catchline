@@ -6,6 +6,7 @@ import type { Analysis } from '../../analysis/types';
 import type { Body } from '../../analysis/device/tracking';
 import { t } from '../../i18n';
 import { EVENTS, track } from '../../lib/analytics';
+import { useInvite } from '../referrals/store';
 import Btn from '../../components/Btn';
 import Segmented from '../../components/Segmented';
 import TopBar from '../../components/TopBar';
@@ -49,6 +50,7 @@ export default function TrackShareScreen({
   watermark,
   caption = null,
   onBack,
+  onInvite,
   deps = DEFAULT_DEPS,
 }: {
   analysis: Analysis;
@@ -58,6 +60,8 @@ export default function TrackShareScreen({
   // the lift's date, and its weight when the lifter gave one: offered as a line on the video
   caption?: string | null;
   onBack: () => void;
+  // after a first share: a line offering a friend a free month (referrals)
+  onInvite?: () => void;
   deps?: TrackShareDeps;
 }) {
   const insets = useSafeAreaInsets();
@@ -78,6 +82,7 @@ export default function TrackShareScreen({
   const [frame, setFrameState] = useState(first);
   const [making, setMaking] = useState<{ kind: 'video' | 'image'; progress: number } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [invitePrompt, setInvitePrompt] = useState(false);
   const [lockupW, setLockupW] = useState(120);
   const frameRef = useRef(first);
   const made = useRef<Record<string, string>>({});
@@ -214,6 +219,10 @@ export default function TrackShareScreen({
       const res = await deps.share(uri);
       track(EVENTS.SHARE_COMPLETED, { kind, activity: res.outcome === 'cancelled' ? 'dismissed' : (res.activity ?? 'unknown') });
       if (res.outcome === 'shared') void deps.askRating(barPath).catch(() => undefined);
+      if (res.outcome === 'shared' && onInvite && !useInvite.getState().promptedAfterShare) {
+        useInvite.getState().markPrompted();
+        setInvitePrompt(true);
+      }
     } catch {
       setNotice(t('share.shareFailed'));
     }
@@ -290,6 +299,18 @@ export default function TrackShareScreen({
           <Text testID="share-notice" style={[type.callout, { color: colors.text2, textAlign: 'center' }]}>
             {notice}
           </Text>
+        ) : null}
+        {invitePrompt && onInvite ? (
+          <Btn
+            kind="text"
+            onPress={() => {
+              track(EVENTS.INVITE_PROMPT_TAPPED, { from: 'share' });
+              onInvite();
+            }}
+            testID="share-invite"
+          >
+            {t('invite.afterShare')}
+          </Btn>
         ) : null}
         <Btn onPress={() => void send('video')} testID="share-video-btn">
           {making?.kind === 'video' ? t('share.making', { pct: Math.round(making.progress * 100) }) : t('share.shareVideo')}

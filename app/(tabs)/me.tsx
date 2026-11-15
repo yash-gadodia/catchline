@@ -15,6 +15,7 @@ export default function YouRoute() {
             if (!opened) router.push('/report' as Href);
           }),
         onWhatsNew: () => router.push('/whats-new' as Href),
+        onInvite: () => router.push('/you/invite' as Href),
       }}
     />
   );

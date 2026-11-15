@@ -9,6 +9,7 @@ import { capture } from './capture';
 import { onboarding } from './onboarding';
 import { paywall } from './paywall';
 import { share } from './share';
+import { invite } from './invite';
 import { notifications } from './notifications';
 import { cue } from './cue';
 
@@ -22,6 +23,7 @@ export const ja: Strings<typeof en> = {
   ...onboarding,
   ...paywall,
   ...share,
+  ...invite,
   ...notifications,
   ...cue,
 };

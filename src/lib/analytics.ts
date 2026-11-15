@@ -19,6 +19,10 @@ export const EVENTS = {
   SHARE_OPENED: 'share_opened',
   SHARE_EXPORTED: 'share_exported',
   SHARE_COMPLETED: 'share_completed',
+  INVITE_OPENED: 'invite_opened',
+  INVITE_SHARED: 'invite_shared',
+  REFERRAL_CLAIMED: 'referral_claimed',
+  INVITE_PROMPT_TAPPED: 'invite_prompt_tapped',
 } as const;
 
 export type EventName = (typeof EVENTS)[keyof typeof EVENTS];

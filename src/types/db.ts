@@ -647,11 +647,13 @@ export type Database = {
       }
       fail_device_lift: { Args: { p_code: string; p_lift_id: string }; Returns: string }
       delete_my_server_analyses: { Args: never; Returns: number }
+      claim_referral: { Args: { p_code: string }; Returns: Json }
       founding_seats: { Args: never; Returns: Json }
       get_coach_link: { Args: { p_token: string }; Returns: Json }
       lift_allowance: { Args: never; Returns: Json }
       lifts_ahead: { Args: { p_lift_id: string }; Returns: number }
       mark_clip_deleted: { Args: { p_lift_id: string }; Returns: undefined }
+      my_referral: { Args: never; Returns: Json }
       ops_health: { Args: { p_now?: string }; Returns: Json }
       ops_health_check: { Args: { p_now?: string }; Returns: Json }
       plan_cap: {

@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useAnalysis } from '../../src/analysis/useAnalysis';
 import AnalysisPlaceholder from '../../src/features/analysis/AnalysisPlaceholder';
 import { usePurchases } from '../../src/features/purchases/usePurchases';
@@ -37,7 +37,7 @@ export default function ShareRoute() {
   const analysis = load.analysis;
   if (kept) {
     if (!body.ready) return <AnalysisPlaceholder status="loading" onBack={back} />;
-    return <TrackShareScreen key={analysis.id} analysis={analysis} body={body.body} clipUri={kept} watermark caption={lift ? liftCaption(lift) : null} onBack={back} />;
+    return <TrackShareScreen key={analysis.id} analysis={analysis} body={body.body} clipUri={kept} watermark caption={lift ? liftCaption(lift) : null} onBack={back} onInvite={() => router.push('/you/invite' as Href)} />;
   }
   const clip = __DEV__ && p.clip ? { uri: p.clip, startS: Number(p.start ?? 0) } : localClipFor(analysis.id);
   return (
