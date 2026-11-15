@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>A month of Catchline Pro</title>
+  <meta name="description" content="Your friend sent you a month of Catchline Pro: bar path and joint angles on your own lift video, on your iPhone.">
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: #000; color: #ECE7DF; }
+    body { font: 17px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; min-height: 100vh; display: flex; }
+    main { margin: auto; padding: 48px 24px; max-width: 520px; width: 100%; }
+    h1 { font-size: 34px; line-height: 1.15; letter-spacing: -0.02em; margin: 0 0 12px; font-weight: 700; }
+    p { margin: 0 0 20px; color: #ECE7DF; }
+    .muted { color: #A39F97; font-size: 15px; }
+    .label { color: #A39F97; font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.08em; text-transform: uppercase; margin: 28px 0 6px; }
+    .code { font: 700 44px/1.1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.02em; margin: 0 0 12px; word-break: break-all; }
+    .row { display: flex; flex-direction: column; gap: 12px; margin: 24px 0 32px; }
+    .btn { display: block; background: #FF1F3D; color: #ECE7DF; text-decoration: none; font-weight: 700; padding: 16px 24px; border-radius: 4px; text-align: center; border: 0; font-size: 17px; cursor: pointer; }
+    .btn.secondary { background: transparent; color: #ECE7DF; border: 2px solid #ECE7DF; padding: 14px 22px; }
+    .btn:active { opacity: 0.8; }
+    ol { padding-left: 20px; margin: 0 0 24px; color: #ECE7DF; }
+    ol li { margin-bottom: 8px; }
+    nav a { color: #A39F97; text-decoration: none; margin-right: 20px; font-size: 15px; }
+    nav a:hover { color: #ECE7DF; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1 id="title">A friend sent you a month of Catchline Pro.</h1>
+    <p>Catchline draws the bar path, your body lines and joint angles on your own lift video, right on your iPhone. Your video never leaves your phone.</p>
+    <div id="has-code" hidden>
+      <div class="label">Your invite code</div>
+      <div class="code" id="code"></div>
+      <div class="row">
+        <a class="btn" href="https://apps.apple.com/app/id6785406082">Get Catchline on the App Store</a>
+        <button class="btn secondary" id="copy" type="button">Copy the code</button>
+        <a class="btn secondary" id="open" href="#">Already have it? Open Catchline</a>
+      </div>
+      <ol>
+        <li>Install Catchline and sign in with Apple on the You tab.</li>
+        <li>Open <em>Give a month, get a month</em> and enter the code.</li>
+        <li>Track your first lift. You and your friend both get a month of Pro.</li>
+      </ol>
+      <p class="muted">Codes work in your first 30 days on Catchline, once per Apple ID.</p>
+    </div>
+    <div id="no-code" hidden>
+      <div class="row"><a class="btn" href="https://apps.apple.com/app/id6785406082">Get Catchline on the App Store</a></div>
+    </div>
+    <nav>
+      <a href="../index.html">Catchline</a>
+      <a href="../legal/terms.html">Terms</a>
+      <a href="../support.html">Support</a>
+    </nav>
+  </main>
+  <script>
+    (function () {
+      var raw = new URLSearchParams(location.search).get('c') || '';
+      var code = raw.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 12);
+      if (!code) { document.getElementById('no-code').hidden = false; return; }
+      document.getElementById('code').textContent = code;
+      document.getElementById('open').href = 'catchline://invite/' + code;
+      document.getElementById('has-code').hidden = false;
+      document.getElementById('copy').addEventListener('click', function (e) {
+        var b = e.currentTarget;
+        (navigator.clipboard ? navigator.clipboard.writeText(code) : Promise.reject()).then(function () {
+          b.textContent = 'Copied';
+        }, function () { b.textContent = code; });
+      });
+    })();
+  </script>
+</body>
+</html>
