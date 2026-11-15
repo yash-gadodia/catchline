@@ -1,4 +1,4 @@
-// referral-rewards - grant pending referral rewards (0025) as RevenueCat
+// referral-rewards (deploy with verify_jwt on) - grant pending referral rewards (0025) as RevenueCat
 // promotional `pull` time. Woken by referral_wake_rewards() (pg_net, service key)
 // after a referral qualifies; the app may also call it with the user's JWT to
 // collect that user's own pending rewards. Uses the REVENUECAT_SECRET_KEY
@@ -13,8 +13,19 @@ const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
 const rcKey = Deno.env.get("REVENUECAT_SECRET_KEY") ?? "";
 
+// Deployed with verify_jwt on, so the gateway has checked the signature before
+// this runs; the service role's own JWT (referral_wake_rewards) carries role service_role.
+function jwtRole(token: string): string | null {
+  try {
+    const part = token.split(".")[1] ?? "";
+    return (JSON.parse(atob(part.replace(/-/g, "+").replace(/_/g, "/"))) as { role?: string }).role ?? null;
+  } catch {
+    return null;
+  }
+}
+
 async function callerFor(token: string): Promise<string | null | undefined> {
-  if (token === serviceKey) return null;
+  if (token === serviceKey || jwtRole(token) === "service_role") return null;
   const client = createClient(url, anonKey, {
     global: { headers: { Authorization: `Bearer ${token}` } },
     auth: { persistSession: false },
