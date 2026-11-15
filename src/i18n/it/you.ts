@@ -52,7 +52,7 @@ export const you: Strings<typeof en> = {
   'you.autoDelete.never': "Mai",
   'you.plan.free': "Gratuito",
   'you.plan.pro': "Catchline Pro",
-  'you.plan.videosLeft': "{left} video rimasti su {total} questa settimana",
+  'you.plan.videosLeft': { one: "{left} video rimasto su {total} questa settimana", other: "{left} video rimasti su {total} questa settimana" },
   'you.plan.unlimited': "video illimitati",
   'you.plan.foundingMember': "Membro fondatore",
   'you.account.signedInWith': "Accesso con {provider}",

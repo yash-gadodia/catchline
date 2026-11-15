@@ -5,8 +5,8 @@ import type { paywall as en } from '../en/paywall';
 export const paywall: Strings<typeof en> = {
   'paywall.pro': "Catchline Pro",
   'paywall.title': "動画が無制限に。",
-  'paywall.body': "無料プランは週{count}本まで。Catchline Proは無制限です。",
-  'paywall.cap.title': "今週の無料動画{count}本を使い切りました。",
+  'paywall.body': { one: "無料プランは週{count}本まで。Catchline Proは無制限です。", other: "無料プランは週{count}本まで。Catchline Proは無制限です。" },
+  'paywall.cap.title': { one: "今週の無料動画{count}本を使い切りました。", other: "今週の無料動画{count}本を使い切りました。" },
   'paywall.cap.body': "{date}の月曜日に回復します。Catchline Proは無制限です。",
   'paywall.unlimited': "動画無制限",
   'paywall.monthly': "月額",

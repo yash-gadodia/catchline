@@ -32,7 +32,7 @@ function signInName(s: Account['signIn']): string {
 
 // Free shows this week's videos; every paid tier, old or new, is Catchline Pro.
 export function planLabel(tier: Tier, usage: Usage, now: Date): string {
-  if (tier === 'free') return `${t('you.plan.free')} · ${t('you.plan.videosLeft', { left: freeLeft(usage, now), total: FREE_PER_WEEK })}`;
+  if (tier === 'free') return `${t('you.plan.free')} · ${t('you.plan.videosLeft', { count: FREE_PER_WEEK, left: freeLeft(usage, now), total: FREE_PER_WEEK })}`;
   return `${t('you.plan.pro')} · ${t(tier === 'founding' ? 'you.plan.foundingMember' : 'you.plan.unlimited')}`;
 }
 

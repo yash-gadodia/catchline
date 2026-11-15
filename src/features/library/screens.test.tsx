@@ -321,9 +321,9 @@ describe('LiftsScreen with the backend on', () => {
   afterEach(() => jest.restoreAllMocks());
 
   it('the free-videos chip follows a purchase without a library sync', async () => {
-    useUsage.setState({ usage: { lifetime: 2, week: weekKey(new Date()), thisWeek: 2 } });
+    useUsage.setState({ usage: { lifetime: 2, week: weekKey(new Date()), thisWeek: 0 } });
     const { getByText, queryByTestId } = await render(<LiftsScreen nav={liftsNav()} />);
-    expect(getByText('1 free video left')).toBeOnTheScreen();
+    expect(getByText('1 free video')).toBeOnTheScreen();
     await act(async () => {
       usePurchases.setState({ tier: 'pull' });
     });

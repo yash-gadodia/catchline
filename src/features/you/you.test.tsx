@@ -58,9 +58,9 @@ describe('plan and settings labels', () => {
   it('free shows this week\'s videos; every paid tier, old or new, is Catchline Pro', () => {
     const wed = new Date(2026, 10, 11, 9, 0);
     const one = { lifetime: 9, week: '2026-11-09', thisWeek: 1 };
-    expect(planLabel('free', one, wed)).toBe('Free · 2 of 3 videos left this week');
-    expect(planLabel('free', { lifetime: 9, week: '2026-11-09', thisWeek: 3 }, wed)).toBe('Free · 0 of 3 videos left this week');
-    expect(planLabel('free', one, new Date(2026, 10, 16))).toBe('Free · 3 of 3 videos left this week');
+    expect(planLabel('free', one, wed)).toBe('Free · 0 of 1 video left this week');
+    expect(planLabel('free', { lifetime: 9, week: '2026-11-09', thisWeek: 0 }, wed)).toBe('Free · 1 of 1 video left this week');
+    expect(planLabel('free', one, new Date(2026, 10, 16))).toBe('Free · 1 of 1 video left this week');
     expect(planLabel('hook', one, wed)).toBe('Catchline Pro · unlimited videos');
     expect(planLabel('pull', one, wed)).toBe('Catchline Pro · unlimited videos');
     expect(planLabel('platform', one, wed)).toBe('Catchline Pro · unlimited videos');
@@ -180,7 +180,7 @@ describe('YouScreen with the backend on', () => {
     expect(within(screen.getByTestId('row-profile')).queryByText('Edit')).toBeNull();
     expect(screen.queryByText('Alex')).toBeNull();
     expect(screen.queryByText(/Signed in with/)).toBeNull();
-    expect(within(screen.getByTestId('row-plan')).getByText('Free · 2 of 3 videos left this week')).toBeOnTheScreen();
+    expect(within(screen.getByTestId('row-plan')).getByText('Free · 0 of 1 video left this week')).toBeOnTheScreen();
     expect(screen.queryByTestId('founding-badge')).toBeNull();
     await press(screen.getByTestId('row-plan'));
     expect(nav.onPlan).toHaveBeenCalledTimes(1);
@@ -231,7 +231,7 @@ describe('YouScreen with the backend on', () => {
     const send = jest.fn(() => Promise.resolve());
     const screen = await render(<YouScreen nav={nav} exportData={send} />);
     await press(screen.getByTestId('row-export'));
-    expect(send).toHaveBeenCalledWith(expect.objectContaining({ account: { name: 'Alex Tan', plan: 'Free · 3 of 3 videos left this week' } }));
+    expect(send).toHaveBeenCalledWith(expect.objectContaining({ account: { name: 'Alex Tan', plan: 'Free · 1 of 1 video left this week' } }));
   });
 
   it('shows a live founding member as Catchline Pro with the founding badge', async () => {
@@ -259,7 +259,7 @@ describe('YouScreen with the backend on', () => {
     const screen = await render(<YouScreen nav={nav} exportData={send} />);
     await press(screen.getByTestId('row-export'));
     const bundle = (send.mock.calls[0] as unknown as [DataExport])[0];
-    expect(bundle).toMatchObject({ account: { name: '', plan: 'Free · 3 of 3 videos left this week' }, settings: DEFAULT_SETTINGS });
+    expect(bundle).toMatchObject({ account: { name: '', plan: 'Free · 1 of 1 video left this week' }, settings: DEFAULT_SETTINGS });
     expect(bundle.lifts.map((l) => l.id)).toEqual(['l-snatch-today', 'l-clean', 'l-mu', 'l-jerk', 'l-snatch-queued', 'l-snatch-miss', 'l-snatch-real', 'l-snatch-low']);
     expect(bundle.lifts.every((l) => l.date && l.movement)).toBe(true);
   });

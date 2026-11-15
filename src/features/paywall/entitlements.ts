@@ -2,8 +2,8 @@ export type Tier = 'free' | 'hook' | 'pull' | 'platform' | 'founding';
 export type Period = 'monthly' | 'annual';
 export type StorePlatform = 'ios' | 'android';
 
-// Free: 3 videos a calendar week (Monday start, the phone's local time), every overlay.
-export const FREE_PER_WEEK = 3;
+// Free: 1 video a calendar week (Monday start, the phone's local time), every overlay.
+export const FREE_PER_WEEK = 1;
 
 // Catchline Pro is sold as the Pull products. Hook and Platform are no longer sold;
 // anyone who owns one of them, or a Founding seat, is Pro.

@@ -28,7 +28,7 @@ const renderPaywall = (h: ReturnType<typeof handlers>, extra: Partial<Parameters
 describe('PaywallSheet for a free lifter', () => {
   it('with this week’s videos used, says when they come back and offers Pro annual preselected', async () => {
     const { getByText, getByTestId } = await renderPaywall(handlers());
-    expect(getByText("You've used this week's 3 free videos.")).toBeOnTheScreen();
+    expect(getByText("You've used this week's free video.")).toBeOnTheScreen();
     expect(getByText('They come back on Monday, 16 Nov. Catchline Pro has no limit.')).toBeOnTheScreen();
     expect(getByTestId('plan-pro')).toBeSelected();
     expect(getByTestId('period-annual')).toBeSelected();
@@ -42,7 +42,7 @@ describe('PaywallSheet for a free lifter', () => {
   it('with free videos in hand, sells unlimited videos and claims nothing is used up', async () => {
     const { getByText, queryByText } = await renderPaywall(handlers(), { freeLeft: 2, queued: false });
     expect(getByText('Unlimited videos.')).toBeOnTheScreen();
-    expect(getByText('Free gives you 3 videos a week. Catchline Pro has no limit.')).toBeOnTheScreen();
+    expect(getByText('Free gives you 1 video a week. Catchline Pro has no limit.')).toBeOnTheScreen();
     expect(queryByText(/used this week/)).toBeNull();
     expect(getByText('Charged today, renews yearly, cancel any time.')).toBeOnTheScreen();
   });

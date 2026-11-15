@@ -31,11 +31,10 @@ beforeEach(() => kept.clear());
 afterEach(() => setLanguage('en'));
 
 describe('free videos chip', () => {
-  it('counts down the three lifetime videos', () => {
-    expect(freeVideosLabel(emptyLibrary())).toBe('3 free videos');
-    expect(freeVideosLabel({ plan: 'free', freeVideosUsed: 2 })).toBe('1 free video left');
-    expect(freeVideosLabel({ plan: 'free', freeVideosUsed: 3 })).toBe('Free videos used');
-    expect(freeVideosLabel({ plan: 'paid', freeVideosUsed: 3 })).toBeNull();
+  it('shows the week\'s one free video, then that it is used', () => {
+    expect(freeVideosLabel(emptyLibrary())).toBe('1 free video');
+    expect(freeVideosLabel({ plan: 'free', freeVideosUsed: 1 })).toBe('Free videos used');
+    expect(freeVideosLabel({ plan: 'paid', freeVideosUsed: 1 })).toBeNull();
   });
 });
 

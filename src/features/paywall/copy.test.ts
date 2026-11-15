@@ -41,11 +41,11 @@ describe('the sheet', () => {
   it('sells unlimited videos while free videos are in hand', () => {
     expect(sheetTitle(3)).toBe('Unlimited videos.');
     expect(sheetTitle(1)).toBe('Unlimited videos.');
-    expect(sheetBody(2, WED)).toBe('Free gives you 3 videos a week. Catchline Pro has no limit.');
+    expect(sheetBody(2, WED)).toBe('Free gives you 1 video a week. Catchline Pro has no limit.');
   });
 
   it('with none left, says so and names the Monday they come back', () => {
-    expect(sheetTitle(0)).toBe("You've used this week's 3 free videos.");
+    expect(sheetTitle(0)).toBe("You've used this week's free video.");
     expect(sheetBody(0, WED)).toBe('They come back on Monday, 16 Nov. Catchline Pro has no limit.');
     expect(sheetBody(0, new Date(2026, 10, 15, 23, 0))).toBe('They come back on Monday, 16 Nov. Catchline Pro has no limit.');
     expect(sheetBody(0, new Date(2026, 10, 30))).toBe('They come back on Monday, 7 Dec. Catchline Pro has no limit.');

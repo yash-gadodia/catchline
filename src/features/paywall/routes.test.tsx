@@ -54,7 +54,7 @@ describe('/paywall/cap: the weekly free videos are used and a clip is saved', ()
 
   it('is the paywall leading with the cap', async () => {
     const view = await render(<CapRoute />);
-    expect(view.getByText("You've used this week's 3 free videos.")).toBeOnTheScreen();
+    expect(view.getByText("You've used this week's free video.")).toBeOnTheScreen();
     expect(view.getByText(/^They come back on Monday, /)).toBeOnTheScreen();
     expect(view.getByTestId('plan-pro')).toBeSelected();
   });

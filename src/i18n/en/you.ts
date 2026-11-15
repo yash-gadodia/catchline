@@ -48,7 +48,7 @@ export const you = {
   'you.autoDelete.never': 'Never',
   'you.plan.free': 'Free',
   'you.plan.pro': "Catchline Pro",
-  'you.plan.videosLeft': "{left} of {total} videos left this week",
+  'you.plan.videosLeft': { one: "{left} of {total} video left this week", other: "{left} of {total} videos left this week" },
   'you.plan.unlimited': 'unlimited videos',
   'you.plan.foundingMember': 'Founding member',
   'you.account.signedInWith': 'Signed in with {provider}',

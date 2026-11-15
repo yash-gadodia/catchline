@@ -4,8 +4,8 @@ import type { paywall as en } from '../en/paywall';
 export const paywall: Strings<typeof en> = {
   'paywall.pro': "Catchline Pro",
   'paywall.title': "Vídeos ilimitados.",
-  'paywall.body': "No plano grátis são {count} vídeos por semana. O Catchline Pro não tem limite.",
-  'paywall.cap.title': "Você usou os {count} vídeos grátis desta semana.",
+  'paywall.body': { one: "No plano grátis é {count} vídeo por semana. O Catchline Pro não tem limite.", other: "No plano grátis são {count} vídeos por semana. O Catchline Pro não tem limite." },
+  'paywall.cap.title': { one: "Você usou o vídeo grátis desta semana.", other: "Você usou os {count} vídeos grátis desta semana." },
   'paywall.cap.body': "Eles voltam na segunda, {date}. O Catchline Pro não tem limite.",
   'paywall.unlimited': "Vídeos ilimitados",
   'paywall.monthly': "Mensal",

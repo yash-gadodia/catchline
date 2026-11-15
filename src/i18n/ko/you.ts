@@ -52,7 +52,7 @@ export const you: Strings<typeof en> = {
   'you.autoDelete.never': "안 함",
   'you.plan.free': "무료",
   'you.plan.pro': "Catchline Pro",
-  'you.plan.videosLeft': "이번 주 영상 {total}개 중 {left}개 남음",
+  'you.plan.videosLeft': { one: "이번 주 영상 {total}개 중 {left}개 남음", other: "이번 주 영상 {total}개 중 {left}개 남음" },
   'you.plan.unlimited': "영상 무제한",
   'you.plan.foundingMember': "창립 멤버",
   'you.account.signedInWith': "{provider}(으)로 로그인됨",

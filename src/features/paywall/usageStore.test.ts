@@ -15,12 +15,10 @@ beforeEach(() => {
   usePurchases.setState({ tier: 'free', period: null });
 });
 
-test('the third video of the week goes through, the fourth is capped, Monday resets', () => {
-  useUsage.getState().record('free', WED);
-  useUsage.getState().record('free', WED);
+test('the week\'s one free video goes through, the next is capped, Monday resets', () => {
   expect(nextClipGate(WED)).toBe('ok');
   useUsage.getState().record('free', WED);
-  expect(useUsage.getState().usage).toEqual({ lifetime: 3, week: '2026-11-09', thisWeek: 3 });
+  expect(useUsage.getState().usage).toEqual({ lifetime: 1, week: '2026-11-09', thisWeek: 1 });
   expect(nextClipGate(WED)).toBe('cap');
   expect(nextClipGate(NEXT_MON)).toBe('ok');
 });

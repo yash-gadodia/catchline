@@ -1,8 +1,8 @@
 export const paywall = {
   'paywall.pro': "Catchline Pro",
   'paywall.title': "Unlimited videos.",
-  'paywall.body': "Free gives you {count} videos a week. Catchline Pro has no limit.",
-  'paywall.cap.title': "You've used this week's {count} free videos.",
+  'paywall.body': { one: "Free gives you {count} video a week. Catchline Pro has no limit.", other: "Free gives you {count} videos a week. Catchline Pro has no limit." },
+  'paywall.cap.title': { one: "You've used this week's free video.", other: "You've used this week's {count} free videos." },
   'paywall.cap.body': "They come back on Monday, {date}. Catchline Pro has no limit.",
   'paywall.unlimited': "Unlimited videos",
   'paywall.monthly': "Monthly",

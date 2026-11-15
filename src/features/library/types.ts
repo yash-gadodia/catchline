@@ -65,4 +65,4 @@ export type LibraryState = {
   cues: CueRecord[];
 };
 
-export const FREE_VIDEOS = 3;
+export { FREE_PER_WEEK as FREE_VIDEOS } from '../paywall/entitlements';
