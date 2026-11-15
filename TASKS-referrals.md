@@ -18,7 +18,7 @@ Everything ships as an OTA on the 4.0.3 runtime (no native code). Native end car
 - [ ] A first-run "Have an invite code?" prompt (not built: a link already opens Invite with the code filled in)
 - [ ] Share caption carries the code and link (deferred: the share is a file, iOS drops the text for most targets; the native end card waits for the next store build)
 - [x] After a share: "give a friend a free month" prompt, once
-- [x] Analytics events: invite_shared, referral_claimed, referral_qualified (server), invite_viewed
+- [x] Analytics events: invite_opened, invite_shared, referral_claimed, invite_prompt_tapped (qualified friends are counted in the referrals table, not PostHog)
 - [x] Tests, typecheck on the Mini
 
 ## Web
