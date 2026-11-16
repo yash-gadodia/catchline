@@ -27,4 +27,8 @@ export const share: Strings<typeof en> = {
   'share.graph': "图表",
   'share.dateWeight': "日期和重量",
   'share.date': "日期",
+  'share.rating.title': "帮另一位举重者找到 Catchline",
+  'share.rating.body': "Catchline 由一位举重者独立开发，没有广告预算。评分决定了有人在 App Store 搜索杠铃轨迹应用时能否看到它，所以你的评分会带来下一位举重者。只需几秒，不用离开应用。",
+  'share.rating.rate': "给 Catchline 评分",
+  'share.rating.later': "以后再说",
 };

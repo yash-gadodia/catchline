@@ -27,4 +27,8 @@ export const share: Strings<typeof en> = {
   'share.graph': "그래프",
   'share.dateWeight': "날짜와 무게",
   'share.date': "날짜",
+  'share.rating.title': "다른 리프터가 Catchline을 찾도록 도와주세요",
+  'share.rating.body': "Catchline은 리프터 한 명이 만들고 있고 광고 예산이 없어요. 앱 스토어에서 바 패스 앱을 찾을 때 보이는지는 평점이 정해요. 당신의 평점이 다음 리프터를 데려와요. 몇 초면 되고 앱을 떠나지 않아요.",
+  'share.rating.rate': "Catchline 평가하기",
+  'share.rating.later': "나중에",
 };

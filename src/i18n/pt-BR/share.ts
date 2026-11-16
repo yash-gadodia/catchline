@@ -26,4 +26,8 @@ export const share: Strings<typeof en> = {
   'share.saveToPhotos': "Salvar em Fotos",
   'share.drawing': "Desenhando a trajetória da barra",
   'share.renderFailed': "Não deu para criar. Tente de novo.",
+  'share.rating.title': "Ajude outro atleta a encontrar o Catchline",
+  'share.rating.body': "O Catchline é feito por um único atleta, sem verba para anúncios. As avaliações decidem se ele aparece quando alguém busca na App Store um app de trajetória da barra, então a sua traz o próximo atleta. Leva poucos segundos e você continua no app.",
+  'share.rating.rate': "Avaliar o Catchline",
+  'share.rating.later': "Agora não",
 };

@@ -26,4 +26,8 @@ export const share: Strings<typeof en> = {
   'share.saveToPhotos': "Enregistrer dans Photos",
   'share.drawing': "Tracé de la trajectoire de la barre",
   'share.renderFailed': "Impossible de créer le fichier. Réessaie.",
+  'share.rating.title': "Aide un autre athlète à trouver Catchline",
+  'share.rating.body': "Catchline est fait par un seul haltérophile, sans budget pub. Les notes décident si l'app apparaît quand quelqu'un cherche une app de trajectoire de barre sur l'App Store, donc la tienne amène le prochain athlète. Ça prend quelques secondes et tu restes dans l'app.",
+  'share.rating.rate': "Noter Catchline",
+  'share.rating.later': "Plus tard",
 };

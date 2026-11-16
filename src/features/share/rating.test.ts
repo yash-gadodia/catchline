@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { requireOptionalNativeModule } from 'expo';
 import { usePipeline } from '../../data/pipeline';
-import { askForRatingOnce } from './rating';
+import { askForRatingOnce, declineRating, ratingDue } from './rating';
 
 jest.mock('expo', () => ({ requireOptionalNativeModule: jest.fn() }));
 jest.mock('expo-constants', () => ({ __esModule: true, default: { expoConfig: { version: '4.1.0' } } }));
@@ -58,5 +58,22 @@ describe('askForRatingOnce', () => {
     expect(await askForRatingOnce(true)).toBe('unavailable');
     expect(requestReview).not.toHaveBeenCalled();
     expect(await AsyncStorage.getItem(KEY)).toBeNull();
+  });
+});
+
+describe('ratingDue and declineRating', () => {
+  it('is due once per version for a lift with a bar path, and Not now spends it', async () => {
+    present();
+    expect(await ratingDue(true)).toBe(true);
+    expect(await ratingDue(false)).toBe(false);
+    await declineRating();
+    expect(await AsyncStorage.getItem(KEY)).toBe('4.1.0');
+    expect(await ratingDue(true)).toBe(false);
+    expect(requestReview).not.toHaveBeenCalled();
+  });
+
+  it('is never due without the store review module', async () => {
+    present(false);
+    expect(await ratingDue(true)).toBe(false);
   });
 });

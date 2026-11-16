@@ -23,4 +23,8 @@ export const share = {
   'share.saveToPhotos': "Save to Photos",
   'share.drawing': "Drawing your bar path",
   'share.renderFailed': "Couldn't make that. Try again.",
+  'share.rating.title': "Help another lifter find Catchline",
+  'share.rating.body': "Catchline is built by one lifter, with no ad budget. Ratings decide whether it shows up when someone searches the App Store for a bar path app, so yours brings in the next lifter. It takes a few seconds, and you stay in the app.",
+  'share.rating.rate': "Rate Catchline",
+  'share.rating.later': "Not now",
 } as const;

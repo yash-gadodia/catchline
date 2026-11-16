@@ -26,4 +26,8 @@ export const share: Strings<typeof en> = {
   'share.saveToPhotos': "In Fotos sichern",
   'share.drawing': "Dein Stangenweg wird gezeichnet",
   'share.renderFailed': "Das hat nicht geklappt. Versuch es noch einmal.",
+  'share.rating.title': "Hilf anderen, Catchline zu finden",
+  'share.rating.body': "Catchline baut ein einzelner Gewichtheber, ohne Werbebudget. Bewertungen entscheiden, ob die App erscheint, wenn jemand im App Store nach einer Hantelweg-App sucht. Deine bringt also den nächsten Athleten. Es dauert nur ein paar Sekunden, und du bleibst in der App.",
+  'share.rating.rate': "Catchline bewerten",
+  'share.rating.later': "Nicht jetzt",
 };
