@@ -17,7 +17,8 @@ import TrackOverlay from '../analysis/TrackOverlay';
 import { frameAt, liftRange, timeOf } from '../analysis/tracker';
 import { discardRender, fastShareSupported, renderTrackImage, shareBrandSupported, shareDetailsSupported, renderTrackVideo, shareFile } from './exporter';
 import ShareDetails from './ShareDetails';
-import { askForRatingOnce } from './rating';
+import { askForRatingOnce, declineRating, ratingDue } from './rating';
+import Sheet from '../../components/Sheet';
 import { liftCsv } from './csv';
 import { shareLiftsCsv } from '../you/liftsCsv';
 import { buildTrackSpec, markLayout, shareChart, shareSpeeds, frameCountOf, hasBarPath, type ShareSpeed, type TrackShareOptions } from './trackShare';
@@ -29,6 +30,8 @@ export type TrackShareDeps = {
   share: typeof shareFile;
   discard: typeof discardRender;
   askRating: typeof askForRatingOnce;
+  ratingDue?: typeof ratingDue;
+  declineRating?: typeof declineRating;
   shareCsv: typeof shareLiftsCsv;
   // tests: whether the binary draws the logo lockup (default: ask ClipTranscoder)
   shareBrand?: boolean;
@@ -38,7 +41,7 @@ export type TrackShareDeps = {
   shareDetails?: boolean;
 };
 
-const DEFAULT_DEPS: TrackShareDeps = { renderVideo: renderTrackVideo, renderImage: renderTrackImage, share: shareFile, discard: discardRender, askRating: askForRatingOnce, shareCsv: shareLiftsCsv };
+const DEFAULT_DEPS: TrackShareDeps = { renderVideo: renderTrackVideo, renderImage: renderTrackImage, share: shareFile, discard: discardRender, askRating: askForRatingOnce, ratingDue, declineRating, shareCsv: shareLiftsCsv };
 const LAYERS = ['path', 'lines', 'body'] as const;
 const SCRUB_H = 44;
 
@@ -83,6 +86,7 @@ export default function TrackShareScreen({
   const [making, setMaking] = useState<{ kind: 'video' | 'image'; progress: number } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [invitePrompt, setInvitePrompt] = useState(false);
+  const [ratingAsk, setRatingAsk] = useState<{ barPath: boolean } | null>(null);
   const [lockupW, setLockupW] = useState(120);
   const frameRef = useRef(first);
   const made = useRef<Record<string, string>>({});
@@ -218,7 +222,13 @@ export default function TrackShareScreen({
     try {
       const res = await deps.share(uri);
       track(EVENTS.SHARE_COMPLETED, { kind, activity: res.outcome === 'cancelled' ? 'dismissed' : (res.activity ?? 'unknown') });
-      if (res.outcome === 'shared') void deps.askRating(barPath).catch(() => undefined);
+      if (res.outcome === 'shared' && deps.ratingDue) {
+        void deps.ratingDue(barPath).then((due) => {
+          if (!due) return;
+          track(EVENTS.RATING_ASK_SHOWN, {});
+          setRatingAsk({ barPath });
+        }).catch(() => undefined);
+      }
       if (res.outcome === 'shared' && onInvite && !useInvite.getState().promptedAfterShare) {
         useInvite.getState().markPrompted();
         setInvitePrompt(true);
@@ -329,6 +339,45 @@ export default function TrackShareScreen({
           </Btn>
         ) : null}
       </View>
+      {ratingAsk ? (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} testID="rating-ask">
+          <Pressable
+            onPress={() => {
+              track(EVENTS.RATING_ASK_LATER, {});
+              void deps.declineRating?.().catch(() => undefined);
+              setRatingAsk(null);
+            }}
+            style={{ flex: 1, backgroundColor: colors.scrim }}
+            accessibilityLabel={t('share.rating.later')}
+          />
+          <Sheet gap={space.s3} style={{ paddingBottom: insets.bottom + space.s5 }}>
+            <Text style={{ color: colors.text, ...type.title }}>{t('share.rating.title')}</Text>
+            <Text style={{ color: colors.text2, ...type.body }}>{t('share.rating.body')}</Text>
+            <Btn
+              onPress={() => {
+                track(EVENTS.RATING_ASK_RATE, {});
+                const ask = ratingAsk;
+                setRatingAsk(null);
+                void deps.askRating(ask.barPath).catch(() => undefined);
+              }}
+              testID="rating-rate"
+            >
+              {t('share.rating.rate')}
+            </Btn>
+            <Btn
+              kind="text"
+              onPress={() => {
+                track(EVENTS.RATING_ASK_LATER, {});
+                void deps.declineRating?.().catch(() => undefined);
+                setRatingAsk(null);
+              }}
+              testID="rating-later"
+            >
+              {t('share.rating.later')}
+            </Btn>
+          </Sheet>
+        </View>
+      ) : null}
     </View>
   );
 }

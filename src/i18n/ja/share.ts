@@ -27,4 +27,8 @@ export const share: Strings<typeof en> = {
   'share.graph': "グラフ",
   'share.dateWeight': "日付と重量",
   'share.date': "日付",
+  'share.rating.title': "ほかのリフターにCatchlineを届けてください",
+  'share.rating.body': "Catchlineはひとりのリフターが作っていて、広告費はありません。App Storeでバーパスのアプリを探す人に表示されるかどうかは評価で決まります。あなたの評価が次のリフターを連れてきます。数秒で終わり、アプリから離れません。",
+  'share.rating.rate': "Catchlineを評価する",
+  'share.rating.later': "あとで",
 };

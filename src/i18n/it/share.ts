@@ -27,4 +27,8 @@ export const share: Strings<typeof en> = {
   'share.graph': "grafico",
   'share.dateWeight': "data e peso",
   'share.date': "data",
+  'share.rating.title': "Aiuta un altro atleta a trovare Catchline",
+  'share.rating.body': "Catchline è fatta da un solo atleta, senza budget pubblicitario. Le valutazioni decidono se compare quando qualcuno cerca nell'App Store un'app per la traiettoria del bilanciere, quindi la tua porta il prossimo atleta. Bastano pochi secondi e resti nell'app.",
+  'share.rating.rate': "Valuta Catchline",
+  'share.rating.later': "Non ora",
 };

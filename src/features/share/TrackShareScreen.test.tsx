@@ -31,6 +31,8 @@ function deps(over: Partial<TrackShareDeps> = {}): TrackShareDeps {
     share: jest.fn(async () => ({ outcome: 'shared' as const, activity: 'com.apple.UIKit.activity.SaveToCameraRoll' })),
     discard: jest.fn(),
     askRating: jest.fn(async () => 'asked' as const),
+    ratingDue: jest.fn(async () => true),
+    declineRating: jest.fn(async () => {}),
     shareCsv: jest.fn(async () => {}),
     ...over,
   };
@@ -201,27 +203,53 @@ describe('TrackShareScreen', () => {
   });
 
   describe('what it reports', () => {
-    it('one share_exported and one share_completed per share, with the choices made, then asks for a rating', async () => {
+    it('one share_exported and one share_completed per share, then says why a rating matters before Apple\'s prompt', async () => {
       const d = deps();
-      const { getByTestId, getByText } = await render(<TrackShareScreen analysis={analysis} body={body} clipUri={CLIP} watermark onBack={() => {}} deps={d} />);
+      const { getByTestId, getByText, queryByTestId } = await render(<TrackShareScreen analysis={analysis} body={body} clipUri={CLIP} watermark onBack={() => {}} deps={d} />);
       await press(getByText('0.5×'));
       await press(getByTestId('share-video-btn'));
-      await waitFor(() => expect(d.askRating).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(getByTestId('rating-ask')).toBeOnTheScreen());
+      expect(getByText('Help another lifter find Catchline')).toBeOnTheScreen();
+      expect(d.ratingDue).toHaveBeenCalledWith(true);
+      expect(d.askRating).not.toHaveBeenCalled();
+      await press(getByTestId('rating-rate'));
+      expect(d.askRating).toHaveBeenCalledWith(true);
+      expect(queryByTestId('rating-ask')).toBeNull();
       expect(jest.mocked(track).mock.calls).toEqual([
         // 4 frames at 60 fps, at half speed
         ['share_exported', { kind: 'video', speed: 0.5, overlay_path: true, overlay_lines: true, overlay_body: true, overlay_graph: false, overlay_caption: false, whole_clip: false, has_bar_path: true, duration_s: 0.1, completed: true }],
         ['share_completed', { kind: 'video', activity: 'com.apple.UIKit.activity.SaveToCameraRoll' }],
+        ['rating_ask_shown', {}],
+        ['rating_ask_rate', {}],
       ]);
-      expect(d.askRating).toHaveBeenCalledWith(true);
+    });
+
+    it('Not now spends this version\'s ask and never opens Apple\'s prompt', async () => {
+      const d = deps();
+      const { getByTestId, queryByTestId } = await render(<TrackShareScreen analysis={analysis} body={body} clipUri={CLIP} watermark onBack={() => {}} deps={d} />);
+      await press(getByTestId('share-video-btn'));
+      await waitFor(() => expect(getByTestId('rating-ask')).toBeOnTheScreen());
+      await press(getByTestId('rating-later'));
+      expect(d.declineRating).toHaveBeenCalledTimes(1);
+      expect(d.askRating).not.toHaveBeenCalled();
+      expect(queryByTestId('rating-ask')).toBeNull();
+    });
+
+    it('shows nothing when no rating is due', async () => {
+      const d = deps({ ratingDue: jest.fn(async () => false) });
+      const { getByTestId, queryByTestId } = await render(<TrackShareScreen analysis={analysis} body={body} clipUri={CLIP} watermark onBack={() => {}} deps={d} />);
+      await press(getByTestId('share-video-btn'));
+      await waitFor(() => expect(d.ratingDue).toHaveBeenCalledTimes(1));
+      expect(queryByTestId('rating-ask')).toBeNull();
     });
 
     it('an image has no speed or length, and a lift without a bar path says so', async () => {
-      const d = deps();
+      const d = deps({ ratingDue: jest.fn(async () => false) });
       const noPath: Analysis = { ...analysis, reps: [{ ...analysis.reps[0], path: [] }] };
       const { getByTestId } = await render(<TrackShareScreen analysis={noPath} body={body} clipUri={CLIP} watermark onBack={() => {}} deps={d} />);
       await press(getByTestId('share-toggle-lines'));
       await press(getByTestId('share-image-btn'));
-      await waitFor(() => expect(d.askRating).toHaveBeenCalledWith(false));
+      await waitFor(() => expect(d.ratingDue).toHaveBeenCalledWith(false));
       expect(jest.mocked(track).mock.calls).toEqual([
         ['share_exported', { kind: 'image', speed: 1, overlay_path: true, overlay_lines: false, overlay_body: true, overlay_graph: false, overlay_caption: false, whole_clip: false, has_bar_path: false, duration_s: 0, completed: true }],
         ['share_completed', { kind: 'image', activity: 'com.apple.UIKit.activity.SaveToCameraRoll' }],
@@ -234,6 +262,7 @@ describe('TrackShareScreen', () => {
       await press(getByTestId('share-video-btn'));
       await waitFor(() => expect(track).toHaveBeenCalledTimes(2));
       expect(jest.mocked(track).mock.calls[1]).toEqual(['share_completed', { kind: 'video', activity: 'dismissed' }]);
+      expect(d.ratingDue).not.toHaveBeenCalled();
       expect(d.askRating).not.toHaveBeenCalled();
     });
 
