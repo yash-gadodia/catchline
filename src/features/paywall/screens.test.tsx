@@ -54,6 +54,18 @@ describe('PaywallSheet for a free lifter', () => {
     expect(queryByText(/Hook|Pull|Platform|cue|trial/i)).toBeNull();
   });
 
+  it('sells the first 100 founding seats at the launch price', async () => {
+    const { getByTestId } = await renderPaywall(handlers(), { seats: { total: 500, remaining: 497 } });
+    expect(getByTestId('founding-seats')).toHaveTextContent('97 left at this price');
+  });
+
+  it('offers the free route: invite 1 friend a month', async () => {
+    const onInvite = jest.fn();
+    const { getByText } = await renderPaywall(handlers(), { onInvite });
+    await press(getByText('Or invite 1 friend a month and Pro stays free'));
+    expect(onInvite).toHaveBeenCalledTimes(1);
+  });
+
   it('shows the saving computed from the store prices', async () => {
     const { getByText } = await renderPaywall(handlers(), { savePct: 34 });
     expect(getByText('Annual · save 34%')).toBeOnTheScreen();

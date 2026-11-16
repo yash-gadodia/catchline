@@ -54,6 +54,7 @@ export default function PaywallRoute() {
         if ((await usePurchases.getState().restore()) !== 'free') done();
       }}
       onManage={() => void presentCustomerCenter()}
+      onInvite={() => router.push('/you/invite')}
       onDone={done}
     />
   );

@@ -29,6 +29,7 @@ type Props = {
   onNotNow: () => void;
   onRestore: () => void;
   onManage: () => void;
+  onInvite?: () => void;
   onDone: () => void;
 };
 
@@ -56,6 +57,7 @@ export default function PaywallSheet({
   onNotNow,
   onRestore,
   onManage,
+  onInvite,
   onDone,
 }: Props) {
   const { height } = useWindowDimensions();
@@ -138,6 +140,11 @@ export default function PaywallSheet({
               {continueLabel(plan, priceFor(plan))}
             </Btn>
             <Fine center>{chargeNote(plan, queued)}</Fine>
+            {onInvite ? (
+              <Btn kind="text" onPress={onInvite} testID="invite-free" style={{ alignSelf: 'center' }}>
+                {t('paywall.inviteFree')}
+              </Btn>
+            ) : null}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
               <Btn kind="text" onPress={onNotNow} testID="not-now">
                 {t('paywall.notNow')}

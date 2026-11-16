@@ -19,6 +19,8 @@ export const paywall: Strings<typeof en> = {
   'paywall.takeSeat': "Prendi un posto · {price}",
   'paywall.founding': "Membro fondatore · Pro a vita",
   'paywall.seatsLeft': "Ne restano {remaining} su {total}",
+  'paywall.seatsAtPrice': "Ne restano {remaining} a questo prezzo",
+  'paywall.inviteFree': "Oppure invita 1 amico al mese e Pro resta gratis",
   'paywall.priceOnce': "{price} una volta",
   'paywall.chargeYearly': "Addebito oggi, rinnovo annuale, disdici quando vuoi.",
   'paywall.chargeMonthly': "Addebito oggi, rinnovo mensile, disdici quando vuoi.",
