@@ -15,6 +15,8 @@ export const paywall = {
   'paywall.takeSeat': "Take a seat · {price}",
   'paywall.founding': "Founding member · Pro for life",
   'paywall.seatsLeft': "{remaining} of {total} left",
+  'paywall.seatsAtPrice': "{remaining} left at this price",
+  'paywall.inviteFree': "Or invite 1 friend a month and Pro stays free",
   'paywall.priceOnce': "{price} once",
   'paywall.chargeYearly': "Charged today, renews yearly, cancel any time.",
   'paywall.chargeMonthly': "Charged today, renews monthly, cancel any time.",

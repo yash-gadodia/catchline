@@ -19,6 +19,8 @@ export const paywall: Strings<typeof en> = {
   'paywall.takeSeat': "자리 잡기 · {price}",
   'paywall.founding': "창립 멤버 · 평생 Pro",
   'paywall.seatsLeft': "{total}자리 중 {remaining}자리 남음",
+  'paywall.seatsAtPrice': "이 가격으로 {remaining}자리 남음",
+  'paywall.inviteFree': "또는 매달 친구 1명을 초대하면 Pro가 계속 무료",
   'paywall.priceOnce': "{price} 1회 결제",
   'paywall.chargeYearly': "오늘 결제되고 매년 갱신돼요. 언제든 해지할 수 있어요.",
   'paywall.chargeMonthly': "오늘 결제되고 매월 갱신돼요. 언제든 해지할 수 있어요.",

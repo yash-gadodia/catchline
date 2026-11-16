@@ -19,6 +19,8 @@ export const paywall: Strings<typeof en> = {
   'paywall.takeSeat': "占一个名额 · {price}",
   'paywall.founding': "创始会员 · 终身 Pro",
   'paywall.seatsLeft': "共 {total} 个，还剩 {remaining} 个",
+  'paywall.seatsAtPrice': "此价格还剩 {remaining} 个",
+  'paywall.inviteFree': "或者每月邀请 1 位朋友，Pro 一直免费",
   'paywall.priceOnce': "{price} 一次性",
   'paywall.chargeYearly': "今天扣费，每年续订，随时可取消。",
   'paywall.chargeMonthly': "今天扣费，每月续订，随时可取消。",

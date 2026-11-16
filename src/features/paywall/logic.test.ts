@@ -37,6 +37,9 @@ describe('founding seats', () => {
   });
 
   it('labels the seats left', () => {
+    expect(seatsLeftLabel({ total: 500, remaining: 497 })).toBe('97 left at this price');
+    expect(seatsLeftLabel({ total: 500, remaining: 401 })).toBe('1 left at this price');
+    expect(seatsLeftLabel({ total: 500, remaining: 400 })).toBe('400 of 500 left');
     expect(seatsLeftLabel({ total: 500, remaining: 137 })).toBe('137 of 500 left');
   });
 });

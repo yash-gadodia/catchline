@@ -1,6 +1,6 @@
 export const invite = {
   'invite.row': 'Give a month, get a month',
-  'invite.rowSub': 'Catchline Pro free for you and a friend',
+  'invite.rowSub': "Invite 1 friend a month, Pro stays free",
   'invite.title': 'Give a month, get a month',
   'invite.body': 'When a friend you invite tracks their first lift, you both get a month of Catchline Pro.',
   'invite.milestones': '3 friends add 3 more months. 10 friends add a year and a badge on your profile.',

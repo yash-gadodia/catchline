@@ -1,7 +1,7 @@
 import { backendEnabled } from '../../data/backend';
 import { foundingSeats } from '../../lib/api';
 import { t } from '../../i18n';
-import { FOUNDING_SEATS_TOTAL } from './entitlements';
+import { FOUNDING_LAUNCH_SEATS, FOUNDING_SEATS_TOTAL } from './entitlements';
 
 export type FoundingSeats = { total: number; remaining: number };
 export type FoundingState = 'open' | 'low' | 'soldOut';
@@ -40,5 +40,7 @@ export function foundingState(seats: FoundingSeats): FoundingState {
 }
 
 export function seatsLeftLabel(seats: FoundingSeats): string {
+  const atPrice = FOUNDING_LAUNCH_SEATS - (seats.total - seats.remaining);
+  if (atPrice > 0) return t('paywall.seatsAtPrice', { remaining: atPrice });
   return t('paywall.seatsLeft', { remaining: seats.remaining, total: seats.total });
 }

@@ -22,6 +22,8 @@ export function hasFeature(tier: Tier, _feature: Feature): boolean {
 export const PRICE_CENTS: Record<Period, number> = { monthly: 299, annual: 1999 };
 export const FOUNDING_PRICE_CENTS = 2999;
 export const FOUNDING_SEATS_TOTAL = 500;
+// The first 100 seats sell at the launch price; after that the App Store price goes up.
+export const FOUNDING_LAUNCH_SEATS = 100;
 
 // Only for comparing the server's plan with RevenueCat's.
 export const TIER_RANK: Record<Tier, number> = { free: 0, hook: 1, pull: 2, founding: 2, platform: 3 };

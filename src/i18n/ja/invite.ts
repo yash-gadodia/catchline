@@ -3,7 +3,7 @@ import type { invite as en } from '../en/invite';
 
 export const invite: Strings<typeof en> = {
   'invite.row': "1か月贈って、1か月もらう",
-  'invite.rowSub': "あなたと友達にCatchline Proを無料で",
+  'invite.rowSub': "毎月1人招待で、Proがずっと無料",
   'invite.title': "1か月贈って、1か月もらう",
   'invite.body': "招待した友達が初めてリフトをトラッキングすると、2人ともCatchline Proが1か月もらえます。",
   'invite.milestones': "友達3人でさらに3か月。友達10人で1年分と、プロフィールにバッジが付きます。",
