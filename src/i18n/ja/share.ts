@@ -36,4 +36,10 @@ export const share: Strings<typeof en> = {
   'share.story.by': "バーの軌道 by Catchline。App Storeで無料。",
   'share.story.code': "コード {code} でProが1か月無料。",
   'share.story.chip': "9:16 ストーリー",
+  'share.caption.code': "バーの軌道 by Catchline。コード {code} でProが1か月無料: {link}",
+  'share.caption.plain': "バーの軌道 by Catchline。App Storeで無料: {link}",
+  'share.savedCopied': "写真に保存しました。キャプションをコピーしたので、投稿に貼り付けてください。",
+  'share.captionCopied': "キャプションをコピーしました。投稿に貼り付けてください。",
+  'share.photosDenied': "ビデオを保存するには、設定で写真へのアクセスを許可してください。",
+  'share.save': "保存",
 };

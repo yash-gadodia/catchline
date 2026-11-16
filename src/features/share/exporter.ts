@@ -1,5 +1,6 @@
 import type { RefObject } from 'react';
-import { Share, type View } from 'react-native';
+import { Linking, Share, type View } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { captureRef } from 'react-native-view-shot';
 import { File } from 'expo-file-system';
 import { Asset, requestPermissionsAsync } from 'expo-media-library';
@@ -65,6 +66,29 @@ export async function saveToPhotos(uri: string): Promise<'saved' | 'denied'> {
   if (!perm.granted) return 'denied';
   await Asset.create(uri);
   return 'saved';
+}
+
+// The video saved to Photos for another app to pick up: its Photos id, or null when the lifter refused access.
+export async function saveVideoToPhotos(uri: string): Promise<string | null> {
+  const perm = await requestPermissionsAsync(true);
+  if (!perm.granted) return null;
+  return (await Asset.create(uri)).id;
+}
+
+// Instagram opens its composer on a Photos item (the lifter picks Story, Reel or Post there). TikTok has no such
+// link without its SDK: it opens, and the video is the newest item in Photos.
+export type ShareApp = 'instagram' | 'tiktok';
+const APP_PROBE: Record<ShareApp, string> = { instagram: 'instagram://app', tiktok: 'snssdk1233://' };
+export async function installedShareApps(): Promise<ShareApp[]> {
+  const found = await Promise.all((Object.keys(APP_PROBE) as ShareApp[]).map(async (app) => ((await Linking.canOpenURL(APP_PROBE[app]).catch(() => false)) ? app : null)));
+  return found.filter((a): a is ShareApp => a !== null);
+}
+export function openShareApp(app: ShareApp, photosId: string): Promise<void> {
+  return Linking.openURL(app === 'instagram' ? `instagram://library?LocalIdentifier=${encodeURIComponent(photosId)}` : APP_PROBE.tiktok).then(() => undefined);
+}
+
+export function copyText(text: string): Promise<void> {
+  return Clipboard.setStringAsync(text).then(() => undefined);
 }
 
 export function discardRender(uri: string): void {

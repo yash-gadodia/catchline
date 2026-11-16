@@ -36,4 +36,10 @@ export const share: Strings<typeof en> = {
   'share.story.by': "Catchline의 바벨 궤적. App Store에서 무료.",
   'share.story.code': "코드 {code} 입력 시 Pro 한 달 무료.",
   'share.story.chip': "9:16 스토리",
+  'share.caption.code': "Catchline의 바벨 궤적. 코드 {code} 입력 시 Pro 한 달 무료: {link}",
+  'share.caption.plain': "Catchline의 바벨 궤적, App Store에서 무료: {link}",
+  'share.savedCopied': "사진에 저장했어요. 캡션을 복사했으니 게시물에 붙여 넣으세요.",
+  'share.captionCopied': "캡션을 복사했어요. 게시물에 붙여 넣으세요.",
+  'share.photosDenied': "영상을 저장하려면 설정에서 사진 접근을 허용하세요.",
+  'share.save': "저장",
 };

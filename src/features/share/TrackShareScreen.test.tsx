@@ -35,6 +35,10 @@ function deps(over: Partial<TrackShareDeps> = {}): TrackShareDeps {
     declineRating: jest.fn(async () => {}),
     shareCsv: jest.fn(async () => {}),
     inviteCode: jest.fn(async () => null),
+    saveVideo: jest.fn(async () => 'PHOTOS-1'),
+    installedApps: jest.fn(async () => []),
+    openApp: jest.fn(async () => {}),
+    copy: jest.fn(async () => {}),
     ...over,
   };
 }

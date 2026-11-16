@@ -36,4 +36,10 @@ export const share: Strings<typeof en> = {
   'share.story.by': "杠铃轨迹由 Catchline 绘制。App Store 免费下载。",
   'share.story.code': "使用邀请码 {code}，免费获得一个月 Pro。",
   'share.story.chip': "9:16 竖版",
+  'share.caption.code': "杠铃轨迹由 Catchline 绘制。使用邀请码 {code}，免费获得一个月 Pro：{link}",
+  'share.caption.plain': "杠铃轨迹由 Catchline 绘制，App Store 免费下载：{link}",
+  'share.savedCopied': "已存入照片。文案已拷贝，粘贴到你的帖子里。",
+  'share.captionCopied': "文案已拷贝。粘贴到你的帖子里。",
+  'share.photosDenied': "请在设置中允许访问照片以保存视频。",
+  'share.save': "保存",
 };

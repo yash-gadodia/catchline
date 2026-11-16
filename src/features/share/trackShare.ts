@@ -145,6 +145,47 @@ export function buildStory(analysis: Analysis, story: NonNullable<TrackShareOpti
   };
 }
 
+// Where the clip sits on the 9:16 canvas, as StoryRenderer.swift storyPlacement places it (fractions of the canvas).
+// A tall clip covers the canvas, centred on the bar path and lowered until the top of the path clears the apps'
+// header; a wide one fits the width under the header.
+export const STORY_ASPECT = 9 / 16;
+export function storyPlacement(video: Size, focusX: number, pathTop: number | null): { x: number; y: number; width: number; height: number; wide: boolean } {
+  const clip = video.width / video.height;
+  const wide = clip > 0.8;
+  // sizes as fractions of the canvas width and height
+  const cover = Math.max(1, clip / STORY_ASPECT);
+  const width = wide ? 1 : cover;
+  const height = wide ? STORY_ASPECT / clip : (cover * STORY_ASPECT) / clip;
+  const x = Math.min(0, Math.max(1 - width, 0.5 - focusX * width));
+  let y = (1 - height) / 2;
+  if (wide) y = 0.16;
+  else {
+    const top = pathTop ?? 0.5;
+    if (top * height + y < 0.2) y = 0.2 - top * height;
+    y = Math.min(0, Math.max(1 - height, y));
+  }
+  return { x: r3(x), y: r3(y), width: r3(width), height: r3(height), wide };
+}
+
+// The number on a frame: 0 at the lift's first frame, eased up to the peak (StoryRenderer.swift storyValue).
+export function storyValue(hero: { value: number; peakFrame: number }, frame: number, first: number): number {
+  if (hero.peakFrame <= first) return hero.value;
+  const p = Math.min(1, Math.max(0, (frame - first) / (hero.peakFrame - first)));
+  return hero.value * (1 - (1 - p) ** 3);
+}
+
+// The caption copied for the lifter to paste under their post: what the video shows, where it came from, their code.
+export const SHARE_TAGS = '#catchline #barpath #weightlifting';
+export function shareCaption(story: Pick<NonNullable<TrackSpec['story']>, 'hero' | 'end'> | null, code: string | null, link: string): string {
+  const hero = story?.hero;
+  const number = hero ? `${hero.value.toFixed(2)} ${hero.unit}` : null;
+  // the end card's title is the weight when the lifter gave one; otherwise it repeats the number or says "Bar path"
+  const weight = story && story.end.title !== number && story.end.title !== t('share.story.path') ? story.end.title : null;
+  const stats = [weight, hero ? `${number} ${hero.label}` : null].filter(Boolean).join(' · ') || null;
+  const from = code ? t('share.caption.code', { code, link }) : t('share.caption.plain', { link });
+  return [stats, from, SHARE_TAGS].filter(Boolean).join('\n');
+}
+
 export function frameCountOf(analysis: Analysis, body: Body | null): number {
   return Math.max(analysis.video.frameCount, body?.frames.length ?? 0, 1);
 }

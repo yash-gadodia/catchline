@@ -35,4 +35,10 @@ export const share: Strings<typeof en> = {
   'share.story.by': "Trayectoria de la barra con Catchline. Gratis en el App Store.",
   'share.story.code': "Con el código {code} tienes un mes de Pro.",
   'share.story.chip': "Historia 9:16",
+  'share.caption.code': "Trayectoria de la barra con Catchline. Con el código {code} tienes un mes de Pro gratis: {link}",
+  'share.caption.plain': "Trayectoria de la barra con Catchline, gratis en el App Store: {link}",
+  'share.savedCopied': "Guardado en Fotos. Texto copiado, pégalo en tu publicación.",
+  'share.captionCopied': "Texto copiado. Pégalo en tu publicación.",
+  'share.photosDenied': "Permite el acceso a Fotos en Ajustes para guardar el vídeo.",
+  'share.save': "Guardar",
 };

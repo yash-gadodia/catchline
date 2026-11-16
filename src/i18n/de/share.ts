@@ -35,4 +35,10 @@ export const share: Strings<typeof en> = {
   'share.story.by': "Hantelweg von Catchline. Kostenlos im App Store.",
   'share.story.code': "Mit dem Code {code} bekommst du einen Monat Pro.",
   'share.story.chip': "9:16-Story",
+  'share.caption.code': "Hantelweg von Catchline. Mit dem Code {code} bekommst du einen Monat Pro gratis: {link}",
+  'share.caption.plain': "Hantelweg von Catchline, kostenlos im App Store: {link}",
+  'share.savedCopied': "In Fotos gesichert. Text kopiert, füge ihn in deinen Beitrag ein.",
+  'share.captionCopied': "Text kopiert. Füge ihn in deinen Beitrag ein.",
+  'share.photosDenied': "Erlaube in den Einstellungen den Zugriff auf Fotos, um das Video zu sichern.",
+  'share.save': "Sichern",
 };

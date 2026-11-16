@@ -32,4 +32,10 @@ export const share = {
   'share.story.by': "Bar path by Catchline. Free on the App Store.",
   'share.story.code': "Code {code} gets you a month of Pro.",
   'share.story.chip': "9:16 story",
+  'share.caption.code': "Bar path by Catchline. Code {code} gets you a month of Pro free: {link}",
+  'share.caption.plain': "Bar path by Catchline, free on the App Store: {link}",
+  'share.savedCopied': "Saved to Photos. Caption copied, paste it in your post.",
+  'share.captionCopied': "Caption copied. Paste it in your post.",
+  'share.photosDenied': "Allow Photos access in Settings to save the video.",
+  'share.save': "Save",
 } as const;

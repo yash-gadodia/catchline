@@ -12,17 +12,18 @@ import Segmented from '../../components/Segmented';
 import TopBar from '../../components/TopBar';
 import { colors, shade, shape, space } from '../../design/tokens';
 import Mark from '../../components/Mark';
-import { display, type } from '../../design/typography';
+import { display, fontFamily, type } from '../../design/typography';
+import { APP_STORE_URL } from '../../lib/links';
 import TrackOverlay from '../analysis/TrackOverlay';
 import { frameAt, liftRange, timeOf } from '../analysis/tracker';
-import { discardRender, fastShareSupported, renderTrackImage, shareBrandSupported, shareDetailsSupported, shareStorySupported, renderTrackVideo, shareFile } from './exporter';
-import { fetchMyReferral } from '../referrals/api';
+import { copyText, discardRender, fastShareSupported, installedShareApps, openShareApp, renderTrackImage, saveVideoToPhotos, shareBrandSupported, shareDetailsSupported, shareStorySupported, renderTrackVideo, shareFile, type ShareApp } from './exporter';
+import { fetchMyReferral, inviteLink } from '../referrals/api';
 import ShareDetails from './ShareDetails';
 import { askForRatingOnce, declineRating, ratingDue } from './rating';
 import Sheet from '../../components/Sheet';
 import { liftCsv } from './csv';
 import { shareLiftsCsv } from '../you/liftsCsv';
-import { buildTrackSpec, markLayout, shareChart, shareSpeeds, frameCountOf, hasBarPath, type ShareSpeed, type TrackShareOptions } from './trackShare';
+import { STORY_ASPECT, buildStory, buildTrackSpec, markLayout, shareCaption, shareChart, shareSpeeds, storyPlacement, storyValue, frameCountOf, hasBarPath, type ShareSpeed, type TrackShareOptions } from './trackShare';
 import { Chip } from './ui';
 
 export type TrackShareDeps = {
@@ -34,6 +35,11 @@ export type TrackShareDeps = {
   ratingDue?: typeof ratingDue;
   declineRating?: typeof declineRating;
   shareCsv: typeof shareLiftsCsv;
+  // straight to an app or to Photos, with the caption on the clipboard
+  saveVideo: typeof saveVideoToPhotos;
+  installedApps: typeof installedShareApps;
+  openApp: typeof openShareApp;
+  copy: typeof copyText;
   // tests: whether the binary draws the logo lockup (default: ask ClipTranscoder)
   shareBrand?: boolean;
   // tests: whether the binary renders 2x / 4x (default: ask ClipTranscoder)
@@ -47,7 +53,7 @@ export type TrackShareDeps = {
 };
 
 const myInviteCode = () => fetchMyReferral().then((r) => r.code, () => null);
-const DEFAULT_DEPS: TrackShareDeps = { inviteCode: myInviteCode, renderVideo: renderTrackVideo, renderImage: renderTrackImage, share: shareFile, discard: discardRender, askRating: askForRatingOnce, ratingDue, declineRating, shareCsv: shareLiftsCsv };
+const DEFAULT_DEPS: TrackShareDeps = { inviteCode: myInviteCode, saveVideo: saveVideoToPhotos, installedApps: installedShareApps, openApp: openShareApp, copy: copyText, renderVideo: renderTrackVideo, renderImage: renderTrackImage, share: shareFile, discard: discardRender, askRating: askForRatingOnce, ratingDue, declineRating, shareCsv: shareLiftsCsv };
 const LAYERS = ['path', 'lines', 'body'] as const;
 const SCRUB_H = 44;
 
@@ -98,6 +104,14 @@ export default function TrackShareScreen({
       live = false;
     };
   }, [storyOk, deps]);
+  const [apps, setApps] = useState<ShareApp[]>([]);
+  useEffect(() => {
+    let live = true;
+    void deps.installedApps().then((a) => live && setApps(a), () => undefined);
+    return () => {
+      live = false;
+    };
+  }, [deps]);
   const { first, last } = liftRange(analysis.lift, count, whole);
   const [frame, setFrameState] = useState(first);
   const [making, setMaking] = useState<{ kind: 'video' | 'image'; progress: number } | null>(null);
@@ -171,8 +185,18 @@ export default function TrackShareScreen({
   // the preview takes what the controls and buttons leave (they have grown: speeds, CSV), so nothing overlaps on an SE
   const [room, setRoom] = useState<number | null>(null);
   const maxH = room ?? Math.max(240, height - insets.top - insets.bottom - 380);
+  const lockup = watermark && (deps.shareBrand ?? shareBrandSupported());
+  const chart = details && graph ? shareChart(analysis, first, last) : undefined;
+  const options: TrackShareOptions = { ...layers, body: layers.body && body !== null, watermark, speed, whole, ...(details ? { details: { graph, caption: captioned ? caption : null } } : {}), ...(storyOk && story ? { story: { kicker: captioned ? caption : null, title: analysis.loadKg != null ? `${analysis.loadKg} kg` : null, code } } : {}) };
+  // the story as the video will carry it: the preview is the 9:16 canvas with the clip placed as StoryRenderer places it
+  const storySpec = options.story ? buildStory(analysis, options.story, first, last, speed) : null;
+  const canvasW = Math.min(width, Math.round(maxH * STORY_ASPECT));
+  const canvas = storySpec ? { width: canvasW, height: Math.round(canvasW / STORY_ASPECT) } : null;
+  const ys = (analysis.reps[0]?.path ?? []).map((pt) => pt.y);
+  const place = storySpec ? storyPlacement(src, storySpec.focusX, layers.path && ys.length ? Math.min(...ys) : null) : null;
   const boxW = Math.min(width, Math.round((maxH * src.width) / src.height));
-  const box = { width: boxW, height: Math.round((boxW * src.height) / src.width) };
+  const box = canvas && place ? { width: Math.round(place.width * canvas.width), height: Math.round(place.height * canvas.height) } : { width: boxW, height: Math.round((boxW * src.height) / src.width) };
+  const frameBox = canvas ?? box;
   const mark = markLayout(src);
   const markScale = box.width / mark.widthPt;
 
@@ -185,22 +209,20 @@ export default function TrackShareScreen({
     player.currentTime = timeOf(next.first, fps);
   };
 
-  const lockup = watermark && (deps.shareBrand ?? shareBrandSupported());
-  const chart = details && graph ? shareChart(analysis, first, last) : undefined;
-  const options: TrackShareOptions = { ...layers, body: layers.body && body !== null, watermark, speed, whole, ...(details ? { details: { graph, caption: captioned ? caption : null } } : {}), ...(storyOk && story ? { story: { kicker: captioned ? caption : null, title: analysis.loadKg != null ? `${analysis.loadKg} kg` : null, code } } : {}) };
-
   // Renders once per set of choices; the same choices share the file already made.
-  const send = async (kind: 'video' | 'image') => {
+  // Where a made video goes: the iOS share sheet, Photos, or Photos and then straight into an app.
+  type Target = 'sheet' | 'save' | ShareApp;
+  const send = async (kind: 'video' | 'image', target: Target = 'sheet') => {
     // a ref: two taps in one frame both read the same `making`
     if (busy.current) return;
     busy.current = true;
     try {
-      await sendOnce(kind);
+      await sendOnce(kind, target);
     } finally {
       busy.current = false;
     }
   };
-  const sendOnce = async (kind: 'video' | 'image') => {
+  const sendOnce = async (kind: 'video' | 'image', target: Target) => {
     setNotice(null);
     player.pause();
     const key = kind === 'video' ? JSON.stringify(options) : JSON.stringify({ ...options, speed: 1, frame: frameRef.current });
@@ -236,20 +258,35 @@ export default function TrackShareScreen({
       duration_s: kind === 'video' ? Number(((last - first + 1) / fps / speed).toFixed(1)) : 0,
       completed: true,
     });
-    try {
-      const res = await deps.share(uri);
-      track(EVENTS.SHARE_COMPLETED, { kind, activity: res.outcome === 'cancelled' ? 'dismissed' : (res.activity ?? 'unknown') });
-      if (res.outcome === 'shared' && deps.ratingDue) {
+    const after = () => {
+      if (deps.ratingDue) {
         void deps.ratingDue(barPath).then((due) => {
           if (!due) return;
           track(EVENTS.RATING_ASK_SHOWN, {});
           setRatingAsk({ barPath });
         }).catch(() => undefined);
       }
-      if (res.outcome === 'shared' && onInvite && !useInvite.getState().promptedAfterShare) {
+      if (onInvite && !useInvite.getState().promptedAfterShare) {
         useInvite.getState().markPrompted();
         setInvitePrompt(true);
       }
+    };
+    // a video goes with a caption to paste: what it shows, where it came from, the lifter's code
+    const copied = kind === 'video' ? await deps.copy(shareCaption(storySpec, code, code ? inviteLink(code) : APP_STORE_URL)).then(() => true, () => false) : false;
+    try {
+      if (target === 'sheet') {
+        const res = await deps.share(uri);
+        track(EVENTS.SHARE_COMPLETED, { kind, activity: res.outcome === 'cancelled' ? 'dismissed' : (res.activity ?? 'unknown') });
+        if (res.outcome !== 'shared') return;
+        if (copied) setNotice(t('share.captionCopied'));
+        return after();
+      }
+      const photosId = await deps.saveVideo(uri);
+      if (photosId === null) return void setNotice(t('share.photosDenied'));
+      track(EVENTS.SHARE_COMPLETED, { kind, activity: target });
+      setNotice(t(copied ? 'share.savedCopied' : 'share.saved'));
+      if (target !== 'save') await deps.openApp(target, photosId);
+      after();
     } catch {
       setNotice(t('share.shareFailed'));
     }
@@ -264,11 +301,36 @@ export default function TrackShareScreen({
           accessibilityRole="button"
           accessibilityLabel={t('analysis.player.play')}
           onPress={() => (player.playing ? player.pause() : player.play())}
-          style={{ width: box.width, height: box.height, overflow: 'hidden' }}
+          style={{ width: frameBox.width, height: frameBox.height, overflow: 'hidden', backgroundColor: colors.bg }}
         >
-          <VideoView player={player} style={{ width: box.width, height: box.height }} contentFit="fill" nativeControls={false} allowsVideoFrameAnalysis={false} />
-          <TrackOverlay analysis={analysis} body={body} frame={frame} box={box} show={options} whole={details} />
-          {lockup || details ? (
+          <View style={canvas && place ? { position: 'absolute', left: place.x * canvas.width, top: place.y * canvas.height, width: box.width, height: box.height } : { width: box.width, height: box.height }}>
+            <VideoView player={player} style={{ width: box.width, height: box.height }} contentFit="fill" nativeControls={false} allowsVideoFrameAnalysis={false} />
+            <TrackOverlay analysis={analysis} body={body} frame={frame} box={box} show={options} whole={details} />
+          </View>
+          {canvas && storySpec ? (
+            // what StoryRenderer draws on the canvas: the mark under the apps' header, the number in the lower third
+            <View pointerEvents="none" testID="share-story" style={{ position: 'absolute', left: 0, top: 0, width: canvas.width, height: canvas.height }}>
+              <View style={{ position: 'absolute', left: 0, right: 0, top: canvas.height * 0.5, height: canvas.height * 0.15, backgroundColor: shade(0.3) }} />
+              <View style={{ position: 'absolute', left: 0, right: 0, top: canvas.height * 0.65, bottom: 0, backgroundColor: shade(0.6) }} />
+              <View style={{ position: 'absolute', left: canvas.width * 0.067, top: canvas.height * 0.15, flexDirection: 'row', alignItems: 'center', gap: canvas.width * 0.014 }}>
+                <Mark size={canvas.width * 0.04} />
+                {/* i18n-ok: the brand wordmark, as drawn on the video */}
+                <Text style={[display(canvas.width * 0.042), { color: colors.text }]}>catchline</Text>
+              </View>
+              {storySpec.hero ? (
+                <View style={{ position: 'absolute', left: canvas.width * 0.067, top: canvas.height * 0.56 }}>
+                  {/* design-ok: sizes follow the canvas, as the video draws them */}
+                  <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: canvas.width * 0.031, lineHeight: canvas.width * 0.045 }}>{storySpec.hero.kicker}</Text>
+                  <Text testID="share-story-number" style={[display(canvas.width * 0.2), { color: colors.text }]}>
+                    {storyValue(storySpec.hero, frame, first).toFixed(2)}
+                    <Text style={[display(canvas.width * 0.07), { color: colors.flare }]}> {storySpec.hero.unit}</Text>
+                  </Text>
+                  {/* design-ok: sizes follow the canvas, as the video draws them */}
+                  <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: canvas.width * 0.031, lineHeight: canvas.width * 0.045 }}>{storySpec.hero.label}</Text>
+                </View>
+              ) : null}
+            </View>
+          ) : lockup || details ? (
             // the column the video carries (TrackRenderer drawLockup, drawDetails): the lockup on a dark plate, then the lifter's line and the graph
             <View pointerEvents="none" style={{ position: 'absolute', left: box.width * 0.045, top: box.height * 0.12, gap: mark.size * markScale * 0.2, alignItems: 'flex-start' }}>
               {lockup ? (
@@ -288,7 +350,7 @@ export default function TrackShareScreen({
               {details ? <ShareDetails unit={mark.size * markScale} width={lockup ? lockupW : mark.size * markScale * 8} caption={captioned ? caption : null} chart={chart} frame={frame} first={first} last={last} /> : null}
             </View>
           ) : null}
-          {watermark && !lockup ? (
+          {watermark && !lockup && !canvas ? (
             <Text testID="share-watermark" style={[display(mark.size * markScale), { position: 'absolute', right: mark.inset * markScale, bottom: mark.inset * markScale, color: colors.text }]}>
               {t('share.mark')}
             </Text>
@@ -343,6 +405,17 @@ export default function TrackShareScreen({
         <Btn onPress={() => void send('video')} testID="share-video-btn">
           {making?.kind === 'video' ? t('share.making', { pct: Math.round(making.progress * 100) }) : t('share.shareVideo')}
         </Btn>
+        <View style={{ flexDirection: 'row', gap: space.s2 }}>
+          {apps.map((app) => (
+            // i18n-ok: the apps' own names
+            <Btn key={app} kind="secondary" compact style={{ flex: 1 }} onPress={() => void send('video', app)} testID={`share-to-${app}`}>
+              {app === 'instagram' ? 'Instagram' : 'TikTok'}
+            </Btn>
+          ))}
+          <Btn kind="secondary" compact style={{ flex: 1 }} onPress={() => void send('video', 'save')} testID="share-save-btn">
+            {t('share.save')}
+          </Btn>
+        </View>
         <Btn kind="secondary" onPress={() => void send('image')} testID="share-image-btn">
           {t('share.shareImage')}
         </Btn>
