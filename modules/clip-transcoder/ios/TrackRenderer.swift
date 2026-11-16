@@ -57,6 +57,8 @@ struct TrackSpec: Decodable {
   var repStarts: [Double]?
   var chart: TrackChart?
   var caption: String?
+  // 4.0.5 on: a 9:16 story with the lift's number, a slow replay and the path as the end card (StoryRenderer.swift)
+  var story: TrackStory?
   var style: TrackStyle
 }
 
@@ -98,7 +100,7 @@ func orientation(_ t: CGAffineTransform) -> CGImagePropertyOrientation {
   return .up
 }
 
-private func cgColor(_ hex: String, _ alpha: CGFloat = 1) -> CGColor {
+func cgColor(_ hex: String, _ alpha: CGFloat = 1) -> CGColor {
   let v = UInt64(hex.replacingOccurrences(of: "#", with: ""), radix: 16) ?? 0
   return CGColor(
     srgbRed: CGFloat((v >> 16) & 0xFF) / 255, green: CGFloat((v >> 8) & 0xFF) / 255, blue: CGFloat(v & 0xFF) / 255, alpha: alpha
@@ -106,7 +108,7 @@ private func cgColor(_ hex: String, _ alpha: CGFloat = 1) -> CGColor {
 }
 
 // src/analysis/timeline.ts pointAt: the traced point on a frame, interpolated between its neighbours.
-private func pointAt(_ path: [[Double]], _ frame: Double) -> (x: Double, y: Double)? {
+func pointAt(_ path: [[Double]], _ frame: Double) -> (x: Double, y: Double)? {
   guard let first = path.first, let last = path.last else { return nil }
   if frame <= first[0] { return (first[1], first[2]) }
   if frame >= last[0] { return (last[1], last[2]) }
@@ -317,7 +319,7 @@ private func drawDetails(_ ctx: CGContext, _ spec: TrackSpec, frame f: Double, a
 }
 
 // The clip decoded in order as BGRA, so the nth buffer is trace frame n.
-private struct TrackSource {
+struct TrackSource {
   let reader: AVAssetReader
   let output: AVAssetReaderTrackOutput
   let width: Int
@@ -325,7 +327,7 @@ private struct TrackSource {
   let orientation: CGImagePropertyOrientation
 }
 
-private func openTrackSource(_ url: URL) async throws -> TrackSource {
+func openTrackSource(_ url: URL) async throws -> TrackSource {
   let asset = AVURLAsset(url: url)
   guard let track = try await asset.loadTracks(withMediaType: .video).first else { throw TrackRenderError(message: "the clip has no video track") }
   let (natural, transform) = try await track.load(.naturalSize, .preferredTransform)
@@ -347,13 +349,13 @@ private func openTrackSource(_ url: URL) async throws -> TrackSource {
   )
 }
 
-private let bgra: [String: Any] = [
+let bgra: [String: Any] = [
   kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
   kCVPixelBufferCGBitmapContextCompatibilityKey as String: true,
   kCVPixelBufferIOSurfacePropertiesKey as String: [String: Any](),
 ]
 
-private func bitmap(_ buffer: CVPixelBuffer) -> CGContext? {
+func bitmap(_ buffer: CVPixelBuffer) -> CGContext? {
   CGContext(
     data: CVPixelBufferGetBaseAddress(buffer),
     width: CVPixelBufferGetWidth(buffer),
@@ -383,7 +385,7 @@ private func compose(_ sample: CMSampleBuffer, _ src: TrackSource, into out: CVP
   drawTrack(ctx, spec: spec, frame: frame, size: size, fullPath: fullPath)
 }
 
-private func onQueue<T>(_ work: @escaping () throws -> T) async throws -> T {
+func onQueue<T>(_ work: @escaping () throws -> T) async throws -> T {
   try await withCheckedThrowingContinuation { cont in
     DispatchQueue.global(qos: .userInitiated).async {
       do {
@@ -407,6 +409,7 @@ struct TrackVideoResult {
 // frame is written 2 or 4 times, one frame length apart: slower, at the same frame rate, with nothing dropped. At 2x or 4x
 // only every 2nd or 4th frame is written, its time divided by 2 or 4: faster, at the same frame rate.
 func renderTrackVideo(source: URL, to url: URL, spec: TrackSpec, onProgress: @escaping (Double) -> Void) async throws -> TrackVideoResult {
+  if spec.story != nil { return try await renderStoryVideo(source: source, to: url, spec: spec, onProgress: onProgress) }
   let src = try await openTrackSource(source)
   return try await onQueue {
     let writer = try AVAssetWriter(outputURL: url, fileType: .mp4)
@@ -595,7 +598,7 @@ func renderTrackImage(source: URL, to url: URL, spec: TrackSpec) async throws ->
 
 // The Catchline monogram (brand/mark.svg, viewBox 160): a bone C with the flare dot on its top tip, `size` across,
 // its top-left at o. ctx has its origin top-left.
-private func drawMonogram(_ ctx: CGContext, _ st: TrackStyle, size: Double, at o: CGPoint) {
+func drawMonogram(_ ctx: CGContext, _ st: TrackStyle, size: Double, at o: CGPoint) {
   let k = size / 160
   let a = atan2(32.0, 38.0)
   ctx.saveGState()
@@ -623,7 +626,7 @@ private func markLine(_ text: String, _ st: TrackStyle, size: Double, kern: Doub
   return (line, width, Double(ascent), Double(descent))
 }
 
-private func drawText(_ ctx: CGContext, _ l: (line: CTLine, width: Double, ascent: Double, descent: Double), baseline: CGPoint) {
+func drawText(_ ctx: CGContext, _ l: (line: CTLine, width: Double, ascent: Double, descent: Double), baseline: CGPoint) {
   ctx.saveGState()
   ctx.textMatrix = CGAffineTransform(scaleX: 1, y: -1)
   ctx.textPosition = baseline

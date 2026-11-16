@@ -31,4 +31,9 @@ export const share: Strings<typeof en> = {
   'share.rating.body': "Catchline은 리프터 한 명이 만들고 있고 광고 예산이 없어요. 앱 스토어에서 바 패스 앱을 찾을 때 보이는지는 평점이 정해요. 당신의 평점이 다음 리프터를 데려와요. 몇 초면 되고 앱을 떠나지 않아요.",
   'share.rating.rate': "Catchline 평가하기",
   'share.rating.later': "나중에",
+  'share.story.peak': "바벨 최고 속도",
+  'share.story.path': "바벨 궤적",
+  'share.story.by': "Catchline의 바벨 궤적. App Store에서 무료.",
+  'share.story.code': "코드 {code} 입력 시 Pro 한 달 무료.",
+  'share.story.chip': "9:16 스토리",
 };

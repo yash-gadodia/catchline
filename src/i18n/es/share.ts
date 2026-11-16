@@ -30,4 +30,9 @@ export const share: Strings<typeof en> = {
   'share.rating.body': "Catchline lo hace un solo levantador, sin presupuesto para anuncios. Las valoraciones deciden si aparece cuando alguien busca en el App Store una app de trayectoria de barra, así que la tuya trae al siguiente levantador. Son unos segundos y no sales de la app.",
   'share.rating.rate': "Valorar Catchline",
   'share.rating.later': "Ahora no",
+  'share.story.peak': "velocidad máxima de la barra",
+  'share.story.path': "Trayectoria de la barra",
+  'share.story.by': "Trayectoria de la barra con Catchline. Gratis en el App Store.",
+  'share.story.code': "Con el código {code} tienes un mes de Pro.",
+  'share.story.chip': "Historia 9:16",
 };

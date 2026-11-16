@@ -30,4 +30,9 @@ export const share: Strings<typeof en> = {
   'share.rating.body': "Catchline est fait par un seul haltérophile, sans budget pub. Les notes décident si l'app apparaît quand quelqu'un cherche une app de trajectoire de barre sur l'App Store, donc la tienne amène le prochain athlète. Ça prend quelques secondes et tu restes dans l'app.",
   'share.rating.rate': "Noter Catchline",
   'share.rating.later': "Plus tard",
+  'share.story.peak': "vitesse max de la barre",
+  'share.story.path': "Trajectoire de barre",
+  'share.story.by': "Trajectoire de barre par Catchline. Gratuit sur l'App Store.",
+  'share.story.code': "Le code {code} t'offre un mois de Pro.",
+  'share.story.chip': "Story 9:16",
 };

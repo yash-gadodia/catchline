@@ -183,3 +183,45 @@ describe('what a 4.0.3 binary draws', () => {
     expect(shareChart(lift(), 0, 2)).toBeUndefined();
   });
 });
+
+describe('the 9:16 story a 4.0.5 binary renders', () => {
+  const rising = lift({
+    video: { uri: '', width: 1080, height: 1920, fps: 30, frameCount: 12 },
+    reps: [{ ...snatchMock.reps[0], path: Array.from({ length: 12 }, (_, f) => ({ frame: f, x: 0.4 + f * 0.01, y: 0.8 - f * 0.04, src: 'plate' as const, r: 0.1 })) }],
+  });
+  const STORY = { kicker: '14 Nov 2026 · 62.5 kg', title: '62.5 kg', code: 'YASH42' };
+
+  it('makes the peak bar speed the number, replays around it at half speed and ends on the weight and the code', () => {
+    const spec = buildTrackSpec(rising, null, { ...ALL, speed: 1, details: { graph: true, caption: null }, story: STORY });
+    const peak = spec.chart!.values.reduce((a, b) => (b[1] > a[1] ? b : a));
+    expect(spec.story).toEqual({
+      width: 1080,
+      height: 1920,
+      focusX: 0.455,
+      hero: { value: peak[1], unit: 'm/s', label: 'peak bar speed', kicker: '14 Nov 2026 · 62.5 kg', peakFrame: peak[0] },
+      replay: { from: 0, to: 11, speed: 0.5 },
+      end: { title: '62.5 kg', lines: ['Bar path by Catchline. Free on the App Store.', 'Code YASH42 gets you a month of Pro.'], s: 2 },
+      mark: 'catchline',
+      displayFonts: ['BigShouldersDisplay_700Bold', 'BigShouldersDisplay-Bold'],
+      bodyFonts: ['SchibstedGrotesk_400Regular', 'SchibstedGrotesk-Regular'],
+    });
+  });
+
+  it('has no replay when the lifter already slowed the video, and no code line without a code', () => {
+    const spec = buildTrackSpec(rising, null, { ...ALL, speed: 0.5, story: { ...STORY, code: null } });
+    expect(spec.story?.replay).toBeUndefined();
+    expect(spec.story?.end.lines).toEqual(['Bar path by Catchline. Free on the App Store.']);
+  });
+
+  it('with no bar speed has no number; the end card is titled by the weight, or "Bar path" without one', () => {
+    const spec = buildTrackSpec(lift(), null, { ...ALL, speed: 1, story: { kicker: null, title: null, code: null } });
+    expect(spec.story?.hero).toBeUndefined();
+    expect(spec.story?.replay).toBeUndefined();
+    expect(spec.story?.end.title).toBe('Bar path');
+    expect(spec.story?.focusX).toBe(0.425);
+  });
+
+  it('is left out unless asked for', () => {
+    expect(buildTrackSpec(rising, null, ALL).story).toBeUndefined();
+  });
+});

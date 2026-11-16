@@ -34,6 +34,7 @@ function deps(over: Partial<TrackShareDeps> = {}): TrackShareDeps {
     ratingDue: jest.fn(async () => true),
     declineRating: jest.fn(async () => {}),
     shareCsv: jest.fn(async () => {}),
+    inviteCode: jest.fn(async () => null),
     ...over,
   };
 }
@@ -108,6 +109,29 @@ describe('TrackShareScreen', () => {
     await press(getByTestId('share-image-btn'));
     await waitFor(() => expect(d.share).toHaveBeenCalledWith(IMAGE));
     expect(queryByTestId('share-invite')).toBeNull();
+  });
+
+  it('on a binary that renders it, the video is a 9:16 story with the invite code until switched off', async () => {
+    const d = deps({ shareStory: true, inviteCode: jest.fn(async () => 'YASH42') });
+    const { getByTestId } = await render(<TrackShareScreen analysis={{ ...analysis, loadKg: 62.5 }} body={body} clipUri={CLIP} watermark caption="14 Nov 2026 · 62.5 kg" onBack={() => {}} deps={d} />);
+    await waitFor(() => expect(d.inviteCode).toHaveBeenCalledTimes(1));
+    await press(getByTestId('share-video-btn'));
+    await waitFor(() => expect(d.share).toHaveBeenCalledWith(VIDEO));
+    expect(specOf(d.renderVideo).story?.end).toEqual({ title: '62.5 kg', lines: ['Bar path by Catchline. Free on the App Store.', 'Code YASH42 gets you a month of Pro.'], s: 2 });
+    await press(getByTestId('share-toggle-story'));
+    await press(getByTestId('share-video-btn'));
+    await waitFor(() => expect(d.renderVideo).toHaveBeenCalledTimes(2));
+    expect(specOf(d.renderVideo, 1).story).toBeUndefined();
+  });
+
+  it('an older binary has no story chip and no story in the spec', async () => {
+    const d = deps();
+    const { getByTestId, queryByTestId } = await render(<TrackShareScreen analysis={analysis} body={body} clipUri={CLIP} watermark onBack={() => {}} deps={d} />);
+    expect(queryByTestId('share-toggle-story')).toBeNull();
+    expect(d.inviteCode).not.toHaveBeenCalled();
+    await press(getByTestId('share-video-btn'));
+    await waitFor(() => expect(d.share).toHaveBeenCalledWith(VIDEO));
+    expect(specOf(d.renderVideo).story).toBeUndefined();
   });
 
   it('has no whole-clip chip when tracking marked no lift, and shares every frame', async () => {

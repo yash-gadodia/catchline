@@ -15,7 +15,8 @@ import Mark from '../../components/Mark';
 import { display, type } from '../../design/typography';
 import TrackOverlay from '../analysis/TrackOverlay';
 import { frameAt, liftRange, timeOf } from '../analysis/tracker';
-import { discardRender, fastShareSupported, renderTrackImage, shareBrandSupported, shareDetailsSupported, renderTrackVideo, shareFile } from './exporter';
+import { discardRender, fastShareSupported, renderTrackImage, shareBrandSupported, shareDetailsSupported, shareStorySupported, renderTrackVideo, shareFile } from './exporter';
+import { fetchMyReferral } from '../referrals/api';
 import ShareDetails from './ShareDetails';
 import { askForRatingOnce, declineRating, ratingDue } from './rating';
 import Sheet from '../../components/Sheet';
@@ -37,11 +38,16 @@ export type TrackShareDeps = {
   shareBrand?: boolean;
   // tests: whether the binary renders 2x / 4x (default: ask ClipTranscoder)
   fastShare?: boolean;
+  // tests: whether the binary renders the 9:16 story (default: ask ClipTranscoder)
+  shareStory?: boolean;
+  // the lifter's invite code for the story's end card; null when they have none (not signed in)
+  inviteCode: () => Promise<string | null>;
   // tests: whether the binary draws the whole path, the graph and the caption (default: ask ClipTranscoder)
   shareDetails?: boolean;
 };
 
-const DEFAULT_DEPS: TrackShareDeps = { renderVideo: renderTrackVideo, renderImage: renderTrackImage, share: shareFile, discard: discardRender, askRating: askForRatingOnce, ratingDue, declineRating, shareCsv: shareLiftsCsv };
+const myInviteCode = () => fetchMyReferral().then((r) => r.code, () => null);
+const DEFAULT_DEPS: TrackShareDeps = { inviteCode: myInviteCode, renderVideo: renderTrackVideo, renderImage: renderTrackImage, share: shareFile, discard: discardRender, askRating: askForRatingOnce, ratingDue, declineRating, shareCsv: shareLiftsCsv };
 const LAYERS = ['path', 'lines', 'body'] as const;
 const SCRUB_H = 44;
 
@@ -81,6 +87,17 @@ export default function TrackShareScreen({
   const details = deps.shareDetails ?? shareDetailsSupported();
   const [graph, setGraph] = useState(true);
   const [captioned, setCaptioned] = useState(analysis.loadKg != null);
+  // 4.0.5 on: the video as a 9:16 story (the number, a slow replay, the path as the end card), on unless switched off
+  const storyOk = deps.shareStory ?? shareStorySupported();
+  const [story, setStory] = useState(true);
+  const [code, setCode] = useState<string | null>(null);
+  useEffect(() => {
+    let live = true;
+    if (storyOk) void deps.inviteCode().then((c) => live && setCode(c));
+    return () => {
+      live = false;
+    };
+  }, [storyOk, deps]);
   const { first, last } = liftRange(analysis.lift, count, whole);
   const [frame, setFrameState] = useState(first);
   const [making, setMaking] = useState<{ kind: 'video' | 'image'; progress: number } | null>(null);
@@ -170,7 +187,7 @@ export default function TrackShareScreen({
 
   const lockup = watermark && (deps.shareBrand ?? shareBrandSupported());
   const chart = details && graph ? shareChart(analysis, first, last) : undefined;
-  const options: TrackShareOptions = { ...layers, body: layers.body && body !== null, watermark, speed, whole, ...(details ? { details: { graph, caption: captioned ? caption : null } } : {}) };
+  const options: TrackShareOptions = { ...layers, body: layers.body && body !== null, watermark, speed, whole, ...(details ? { details: { graph, caption: captioned ? caption : null } } : {}), ...(storyOk && story ? { story: { kicker: captioned ? caption : null, title: analysis.loadKg != null ? `${analysis.loadKg} kg` : null, code } } : {}) };
 
   // Renders once per set of choices; the same choices share the file already made.
   const send = async (kind: 'video' | 'image') => {
@@ -288,6 +305,7 @@ export default function TrackShareScreen({
           {LAYERS.filter((k) => k !== 'body' || body !== null).map((k) => (
             <Chip key={k} testID={`share-toggle-${k}`} label={t(`analysis.tracker.overlay.${k}`)} on={layers[k]} mono onPress={() => setLayers((l) => ({ ...l, [k]: !l[k] }))} />
           ))}
+          {storyOk ? <Chip testID="share-toggle-story" label={t('share.story.chip')} on={story} mono onPress={() => setStory((v) => !v)} /> : null}
           {hasLift ? <Chip testID="share-toggle-whole" label={t('analysis.tracker.wholeClip')} on={whole} mono onPress={toggleWhole} /> : null}
           {details && shareChart(analysis, first, last) ? <Chip testID="share-toggle-graph" label={t('share.graph')} on={graph} mono onPress={() => setGraph((g) => !g)} /> : null}
           {details && caption ? <Chip testID="share-toggle-caption" label={analysis.loadKg != null ? t('share.dateWeight') : t('share.date')} on={captioned} mono onPress={() => setCaptioned((c) => !c)} /> : null}

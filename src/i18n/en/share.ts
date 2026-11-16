@@ -27,4 +27,9 @@ export const share = {
   'share.rating.body': "Catchline is built by one lifter, with no ad budget. Ratings decide whether it shows up when someone searches the App Store for a bar path app, so yours brings in the next lifter. It takes a few seconds, and you stay in the app.",
   'share.rating.rate': "Rate Catchline",
   'share.rating.later': "Not now",
+  'share.story.peak': "peak bar speed",
+  'share.story.path': "Bar path",
+  'share.story.by': "Bar path by Catchline. Free on the App Store.",
+  'share.story.code': "Code {code} gets you a month of Pro.",
+  'share.story.chip': "9:16 story",
 } as const;

@@ -15,7 +15,9 @@ export const shareSpeeds = (fast: boolean): ShareSpeed[] => (fast ? FAST_SHARE_S
 // `whole` shares every frame of the clip; off, a lift that tracking marked is shared from its first frame to its last.
 // `details` is given only on a binary that draws them (4.0.3 on): each rep's path over the whole set's, drawn faint,
 // with the bar speed graph (`graph`) and the lifter's own line, its date and weight (`caption`), where asked for.
-export type TrackShareOptions = { path: boolean; lines: boolean; body: boolean; watermark: boolean; speed: ShareSpeed; whole?: boolean; details?: { graph: boolean; caption: string | null } };
+// `story` (a binary that draws it, 4.0.5 on): the 9:16 video for Stories, Reels and TikTok. `kicker` is the lifter's
+// line (date, weight), `title` the end card's headline, `code` their invite code if they have one.
+export type TrackShareOptions = { path: boolean; lines: boolean; body: boolean; watermark: boolean; speed: ShareSpeed; whole?: boolean; details?: { graph: boolean; caption: string | null }; story?: { kicker: string | null; title: string | null; code: string | null } };
 
 // What modules/clip-transcoder TrackRenderer.swift draws on the lift's kept clip. Positions are 0..1 of the frame,
 // sizes are output pixels; a layer that is off is empty (or null), so the native side only draws what it is given.
@@ -47,6 +49,19 @@ export type TrackSpec = {
   repStarts?: number[];
   chart?: { values: [number, number][]; min: number; max: number; unit: string };
   caption?: string;
+  // 4.0.5 on (StoryRenderer.swift): a 9:16 canvas, the lift's number counting up to its peak, the lift again at half
+  // speed, and the bar path alone as the end card.
+  story?: {
+    width: number;
+    height: number;
+    focusX: number;
+    hero?: { value: number; unit: string; label: string; kicker: string; peakFrame: number };
+    replay?: { from: number; to: number; speed: number };
+    end: { title: string; lines: string[]; s: number };
+    mark: string;
+    displayFonts: string[];
+    bodyFonts: string[];
+  };
   style: {
     flare: string;
     halo: string;
@@ -104,6 +119,32 @@ export function markLayout(video: Size): { size: number; inset: number; widthPt:
   return { size: MARK_SIZE, inset: Math.max(12, Math.min(Math.round(heightPt * 0.2), Math.round(widthPt - MARK_WIDTH - 12))), widthPt };
 }
 
+// The story: the peak of the bar speed is its number, and the second and a bit around the peak plays again at half
+// speed (not when the lifter already slowed the whole video). A lift with no bar speed has no number and no replay.
+const REPLAY_BEFORE_S = 1.2;
+const REPLAY_AFTER_S = 0.8;
+export function buildStory(analysis: Analysis, story: NonNullable<TrackShareOptions['story']>, first: number, last: number, speed: ShareSpeed): NonNullable<TrackSpec['story']> {
+  const chart = shareChart(analysis, first, last);
+  const peak = chart?.values.reduce((a, b) => (b[1] > a[1] ? b : a));
+  const hero = peak && peak[1] > 0 ? { value: peak[1], unit: chart!.unit, label: t('share.story.peak'), kicker: story.kicker ?? '', peakFrame: peak[0] } : undefined;
+  const fps = analysis.video.fps || 30;
+  const xs = (analysis.reps[0]?.path ?? []).map((p) => p.x);
+  const title = story.title ?? (hero ? `${hero.value.toFixed(2)} ${hero.unit}` : t('share.story.path'));
+  return {
+    width: 1080,
+    height: 1920,
+    focusX: xs.length ? r3((Math.min(...xs) + Math.max(...xs)) / 2) : 0.5,
+    ...(hero ? { hero } : {}),
+    ...(hero && speed === 1
+      ? { replay: { from: Math.max(first, Math.round(hero.peakFrame - REPLAY_BEFORE_S * fps)), to: Math.min(last, Math.round(hero.peakFrame + REPLAY_AFTER_S * fps)), speed: 0.5 } }
+      : {}),
+    end: { title, lines: [t('share.story.by'), ...(story.code ? [t('share.story.code', { code: story.code })] : [])], s: 2 },
+    mark: 'catchline',
+    displayFonts: ['BigShouldersDisplay_700Bold', 'BigShouldersDisplay-Bold'],
+    bodyFonts: ['SchibstedGrotesk_400Regular', 'SchibstedGrotesk-Regular'],
+  };
+}
+
 export function frameCountOf(analysis: Analysis, body: Body | null): number {
   return Math.max(analysis.video.frameCount, body?.frames.length ?? 0, 1);
 }
@@ -139,6 +180,7 @@ export function buildTrackSpec(analysis: Analysis, body: Body | null, options: T
       : {}),
     ...(options.details?.graph ? (() => { const chart = shareChart(analysis, range.first, range.last); return chart ? { chart } : {}; })() : {}),
     ...(options.details?.caption ? { caption: options.details.caption } : {}),
+    ...(options.story ? { story: buildStory(analysis, options.story, range.first, range.last, options.speed) } : {}),
     style: {
       flare: dark.flare,
       halo: dark.halo,

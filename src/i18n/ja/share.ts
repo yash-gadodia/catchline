@@ -31,4 +31,9 @@ export const share: Strings<typeof en> = {
   'share.rating.body': "Catchlineはひとりのリフターが作っていて、広告費はありません。App Storeでバーパスのアプリを探す人に表示されるかどうかは評価で決まります。あなたの評価が次のリフターを連れてきます。数秒で終わり、アプリから離れません。",
   'share.rating.rate': "Catchlineを評価する",
   'share.rating.later': "あとで",
+  'share.story.peak': "バーの最高速度",
+  'share.story.path': "バーの軌道",
+  'share.story.by': "バーの軌道 by Catchline。App Storeで無料。",
+  'share.story.code': "コード {code} でProが1か月無料。",
+  'share.story.chip': "9:16 ストーリー",
 };

@@ -67,7 +67,8 @@ public class ClipTranscoderModule: Module {
     // TrackRenderer writes spec.speed 2 and 4 (every 2nd / 4th frame); the share screen offers them only where this is true
     // supportsShareBrand: spec.brand draws the logo lockup and the end card (4.0.2 on)
     // supportsShareDetails: spec.ghost, repStarts, chart and caption are drawn (4.0.3 on)
-    Constants(["supportsFastShare": true, "supportsShareBrand": true, "supportsShareDetails": true])
+    // supportsShareStory: spec.story renders the 9:16 story (4.0.5 on)
+    Constants(["supportsFastShare": true, "supportsShareBrand": true, "supportsShareDetails": true, "supportsShareStory": true])
 
     Events("onProgress")
 

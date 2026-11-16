@@ -31,4 +31,9 @@ export const share: Strings<typeof en> = {
   'share.rating.body': "Catchline è fatta da un solo atleta, senza budget pubblicitario. Le valutazioni decidono se compare quando qualcuno cerca nell'App Store un'app per la traiettoria del bilanciere, quindi la tua porta il prossimo atleta. Bastano pochi secondi e resti nell'app.",
   'share.rating.rate': "Valuta Catchline",
   'share.rating.later': "Non ora",
+  'share.story.peak': "velocità massima del bilanciere",
+  'share.story.path': "Traiettoria del bilanciere",
+  'share.story.by': "Traiettoria del bilanciere con Catchline. Gratis sull'App Store.",
+  'share.story.code': "Il codice {code} ti dà un mese di Pro.",
+  'share.story.chip': "Storia 9:16",
 };

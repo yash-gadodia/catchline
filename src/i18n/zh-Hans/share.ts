@@ -31,4 +31,9 @@ export const share: Strings<typeof en> = {
   'share.rating.body': "Catchline 由一位举重者独立开发，没有广告预算。评分决定了有人在 App Store 搜索杠铃轨迹应用时能否看到它，所以你的评分会带来下一位举重者。只需几秒，不用离开应用。",
   'share.rating.rate': "给 Catchline 评分",
   'share.rating.later': "以后再说",
+  'share.story.peak': "杠铃最高速度",
+  'share.story.path': "杠铃轨迹",
+  'share.story.by': "杠铃轨迹由 Catchline 绘制。App Store 免费下载。",
+  'share.story.code': "使用邀请码 {code}，免费获得一个月 Pro。",
+  'share.story.chip': "9:16 竖版",
 };

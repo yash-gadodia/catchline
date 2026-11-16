@@ -30,4 +30,9 @@ export const share: Strings<typeof en> = {
   'share.rating.body': "Catchline baut ein einzelner Gewichtheber, ohne Werbebudget. Bewertungen entscheiden, ob die App erscheint, wenn jemand im App Store nach einer Hantelweg-App sucht. Deine bringt also den nächsten Athleten. Es dauert nur ein paar Sekunden, und du bleibst in der App.",
   'share.rating.rate': "Catchline bewerten",
   'share.rating.later': "Nicht jetzt",
+  'share.story.peak': "höchste Hantelgeschwindigkeit",
+  'share.story.path': "Hantelweg",
+  'share.story.by': "Hantelweg von Catchline. Kostenlos im App Store.",
+  'share.story.code': "Mit dem Code {code} bekommst du einen Monat Pro.",
+  'share.story.chip': "9:16-Story",
 };

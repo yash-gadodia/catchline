@@ -30,6 +30,8 @@ export const fastShareSupported = () => (Transcoder as { supportsFastShare?: boo
 export const shareBrandSupported = () => (Transcoder as { supportsShareBrand?: boolean } | null)?.supportsShareBrand === true;
 // the whole path under each rep, the speed graph and the lifter's line: only a binary that draws them (4.0.3 on)
 export const shareDetailsSupported = () => (Transcoder as { supportsShareDetails?: boolean } | null)?.supportsShareDetails === true;
+// the 9:16 story (the number, the slow replay, the path as the end card): only a binary with StoryRenderer (4.0.5 on)
+export const shareStorySupported = () => (Transcoder as { supportsShareStory?: boolean } | null)?.supportsShareStory === true;
 
 // 4.0: the lift's kept clip with the tracker's overlay burned in, and one frame of it as an image.
 export async function renderTrackVideo(clipUri: string, spec: TrackSpec, onProgress: (p: number) => void): Promise<string> {
