@@ -1,6 +1,6 @@
 // App Store assets: the share spec the app would build for a tracked lift, so the
 // macOS track-share harness renders exactly what the app exports.
-//   npx tsx scripts/store/spec.ts <dir with analysis.json + body.json> <out.json> [graph|story] [frame]
+//   npx tsx scripts/store/build-spec.ts <dir with analysis.json + body.json> <out.json> [graph|story] [frame]
 // story: the 9:16 story, with STORY_KICKER, STORY_TITLE and STORY_CODE from the environment
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
