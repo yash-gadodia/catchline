@@ -1,7 +1,7 @@
 import type { Analysis } from '../../analysis/types';
 import type { Body } from '../../analysis/device/tracking';
 import { snatchMock } from '../../analysis/fixtures';
-import { buildTrackSpec, frameCountOf, pxPerPt, shareChart, type TrackShareOptions } from './trackShare';
+import { buildTrackSpec, frameCountOf, pxPerPt, shareCaption, shareChart, storyPlacement, storyValue, type TrackShareOptions } from './trackShare';
 
 // shoulder, elbow, wrist, hip, knee, ankle, heel, toe; left then right.
 const row = (pts: Record<number, [number, number]>): (number | null)[] => {
@@ -223,5 +223,48 @@ describe('the 9:16 story a 4.0.5 binary renders', () => {
 
   it('is left out unless asked for', () => {
     expect(buildTrackSpec(rising, null, ALL).story).toBeUndefined();
+  });
+});
+
+describe('where the clip sits on the 9:16 canvas', () => {
+  it('a 9:16 clip fills it; the bar path cannot be lowered when there is no room', () => {
+    expect(storyPlacement({ width: 1080, height: 1920 }, 0.5, 0.05)).toEqual({ x: 0, y: 0, width: 1, height: 1, wide: false });
+  });
+
+  it('a 3:4 clip covers the height and is cropped around the bar path', () => {
+    expect(storyPlacement({ width: 810, height: 1080 }, 0.5, 0.4)).toEqual({ x: -0.167, y: 0, width: 1.333, height: 1, wide: false });
+    // a path at the left edge: the crop stops at the clip's own edge
+    expect(storyPlacement({ width: 810, height: 1080 }, 0.1, 0.4).x).toBe(0);
+    expect(storyPlacement({ width: 810, height: 1080 }, 0.95, 0.4).x).toBe(-0.333);
+  });
+
+  it('a wide clip fits the width under the header instead of being cropped to a sliver', () => {
+    expect(storyPlacement({ width: 1920, height: 1080 }, 0.5, 0.3)).toEqual({ x: 0, y: 0.16, width: 1, height: 0.316, wide: true });
+  });
+});
+
+describe('the number on the story', () => {
+  const hero = { value: 2, peakFrame: 110 };
+  it('counts up from the first frame of the lift and holds at its peak', () => {
+    expect(storyValue(hero, 10, 10)).toBe(0);
+    expect(storyValue(hero, 60, 10)).toBeCloseTo(1.75, 5);
+    expect(storyValue(hero, 110, 10)).toBe(2);
+    expect(storyValue(hero, 300, 10)).toBe(2);
+    expect(storyValue({ value: 2, peakFrame: 5 }, 10, 10)).toBe(2);
+  });
+});
+
+describe('the caption copied for the post', () => {
+  const end = { title: '62.5 kg', lines: [], s: 2 };
+  const hero = { value: 1.82, unit: 'm/s', label: 'peak bar speed', kicker: '', peakFrame: 40 };
+  it('says the weight and the speed, where the path came from, the code and the tags', () => {
+    expect(shareCaption({ hero, end }, 'YASH42', 'https://x/i/?c=YASH42')).toBe(
+      '62.5 kg · 1.82 m/s peak bar speed\nBar path by Catchline. Code YASH42 gets you a month of Pro free: https://x/i/?c=YASH42\n#catchline #barpath #weightlifting',
+    );
+  });
+  it('without a weight, a code or a story says only what is true', () => {
+    expect(shareCaption({ hero, end: { ...end, title: '1.82 m/s' } }, null, 'https://store')).toBe('1.82 m/s peak bar speed\nBar path by Catchline, free on the App Store: https://store\n#catchline #barpath #weightlifting');
+    expect(shareCaption({ end: { ...end, title: 'Bar path' } }, null, 'https://store')).toBe('Bar path by Catchline, free on the App Store: https://store\n#catchline #barpath #weightlifting');
+    expect(shareCaption(null, null, 'https://store')).toBe('Bar path by Catchline, free on the App Store: https://store\n#catchline #barpath #weightlifting');
   });
 });

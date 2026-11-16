@@ -407,9 +407,8 @@ export default function TrackShareScreen({
         </Btn>
         <View style={{ flexDirection: 'row', gap: space.s2 }}>
           {apps.map((app) => (
-            // i18n-ok: the apps' own names
             <Btn key={app} kind="secondary" compact style={{ flex: 1 }} onPress={() => void send('video', app)} testID={`share-to-${app}`}>
-              {app === 'instagram' ? 'Instagram' : 'TikTok'}
+              {app === 'instagram' ? 'Instagram' : 'TikTok' /* i18n-ok: the apps' own names */}
             </Btn>
           ))}
           <Btn kind="secondary" compact style={{ flex: 1 }} onPress={() => void send('video', 'save')} testID="share-save-btn">

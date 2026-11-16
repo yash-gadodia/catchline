@@ -128,6 +128,49 @@ describe('TrackShareScreen', () => {
     expect(specOf(d.renderVideo, 1).story).toBeUndefined();
   });
 
+  it('previews the story: the mark and no old lockup; the number only for a lift with a bar speed', async () => {
+    const { getByTestId, queryByTestId, getByText } = await render(<TrackShareScreen analysis={analysis} body={body} clipUri={CLIP} watermark onBack={() => {}} deps={deps({ shareStory: true })} />);
+    expect(getByTestId('share-story')).toBeOnTheScreen();
+    expect(getByText('catchline')).toBeOnTheScreen();
+    expect(queryByTestId('share-lockup')).toBeNull();
+    expect(queryByTestId('share-story-number')).toBeNull();
+    await press(getByTestId('share-toggle-story'));
+    expect(queryByTestId('share-story')).toBeNull();
+    expect(getByTestId('share-lockup')).toBeOnTheScreen();
+  });
+
+  it('copies the caption with every shared video and says so', async () => {
+    const d = deps({ inviteCode: jest.fn(async () => 'YASH42'), shareStory: true });
+    const { getByTestId } = await render(<TrackShareScreen analysis={analysis} body={body} clipUri={CLIP} watermark onBack={() => {}} deps={d} />);
+    await waitFor(() => expect(d.inviteCode).toHaveBeenCalledTimes(1));
+    await press(getByTestId('share-video-btn'));
+    await waitFor(() => expect(getByTestId('share-notice')).toHaveTextContent('Caption copied. Paste it in your post.'));
+    expect(d.copy).toHaveBeenCalledWith('Bar path by Catchline. Code YASH42 gets you a month of Pro free: https://yash-gadodia.github.io/catchline/i/?c=YASH42\n#catchline #barpath #weightlifting');
+  });
+
+  it('sends the video to Instagram through Photos, only when Instagram is installed', async () => {
+    const d = deps({ installedApps: jest.fn(async () => ['instagram' as const]) });
+    const { getByTestId, queryByTestId, findByTestId } = await render(<TrackShareScreen analysis={analysis} body={body} clipUri={CLIP} watermark onBack={() => {}} deps={d} />);
+    await press(await findByTestId('share-to-instagram'));
+    expect(queryByTestId('share-to-tiktok')).toBeNull();
+    await waitFor(() => expect(d.openApp).toHaveBeenCalledWith('instagram', 'PHOTOS-1'));
+    expect(d.saveVideo).toHaveBeenCalledWith(VIDEO);
+    expect(d.share).not.toHaveBeenCalled();
+    expect(track).toHaveBeenCalledWith('share_completed', { kind: 'video', activity: 'instagram' });
+    expect(getByTestId('share-notice')).toHaveTextContent('Saved to Photos. Caption copied, paste it in your post.');
+  });
+
+  it('Save puts the video in Photos; refused access says how to allow it and opens nothing', async () => {
+    const d = deps();
+    const { getByTestId } = await render(<TrackShareScreen analysis={analysis} body={body} clipUri={CLIP} watermark onBack={() => {}} deps={d} />);
+    await press(getByTestId('share-save-btn'));
+    await waitFor(() => expect(getByTestId('share-notice')).toHaveTextContent('Saved to Photos. Caption copied, paste it in your post.'));
+    (d.saveVideo as jest.Mock).mockResolvedValueOnce(null);
+    await press(getByTestId('share-save-btn'));
+    await waitFor(() => expect(getByTestId('share-notice')).toHaveTextContent('Allow Photos access in Settings to save the video.'));
+    expect(d.openApp).not.toHaveBeenCalled();
+  });
+
   it('an older binary has no story chip and no story in the spec', async () => {
     const d = deps();
     const { getByTestId, queryByTestId } = await render(<TrackShareScreen analysis={analysis} body={body} clipUri={CLIP} watermark onBack={() => {}} deps={d} />);
