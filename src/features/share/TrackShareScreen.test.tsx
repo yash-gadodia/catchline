@@ -129,7 +129,7 @@ describe('TrackShareScreen', () => {
   });
 
   it('previews the story: the mark and no old lockup; the number only for a lift with a bar speed', async () => {
-    const { getByTestId, queryByTestId, getByText } = await render(<TrackShareScreen analysis={analysis} body={body} clipUri={CLIP} watermark onBack={() => {}} deps={deps({ shareStory: true })} />);
+    const { getByTestId, queryByTestId, getByText } = await render(<TrackShareScreen analysis={analysis} body={body} clipUri={CLIP} watermark onBack={() => {}} deps={deps({ shareStory: true, shareBrand: true })} />);
     expect(getByTestId('share-story')).toBeOnTheScreen();
     expect(getByText('catchline')).toBeOnTheScreen();
     expect(queryByTestId('share-lockup')).toBeNull();
@@ -145,7 +145,7 @@ describe('TrackShareScreen', () => {
     await waitFor(() => expect(d.inviteCode).toHaveBeenCalledTimes(1));
     await press(getByTestId('share-video-btn'));
     await waitFor(() => expect(getByTestId('share-notice')).toHaveTextContent('Caption copied. Paste it in your post.'));
-    expect(d.copy).toHaveBeenCalledWith('Bar path by Catchline. Code YASH42 gets you a month of Pro free: https://yash-gadodia.github.io/catchline/i/?c=YASH42\n#catchline #barpath #weightlifting');
+    expect(d.copy).toHaveBeenCalledWith('62.5 kg\nBar path by Catchline. Code YASH42 gets you a month of Pro free: https://yash-gadodia.github.io/catchline/i/?c=YASH42\n#catchline #barpath #weightlifting');
   });
 
   it('sends the video to Instagram through Photos, only when Instagram is installed', async () => {
