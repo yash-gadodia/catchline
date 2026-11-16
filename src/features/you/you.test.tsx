@@ -177,7 +177,7 @@ describe('YouScreen with the backend on', () => {
     const onInvite = jest.fn();
     const screen = await render(<YouScreen nav={{ ...nav, onInvite }} />);
     expect(within(screen.getByTestId('row-invite')).getByText('Give a month, get a month')).toBeOnTheScreen();
-    expect(within(screen.getByTestId('row-invite')).getByText('Catchline Pro free for you and a friend')).toBeOnTheScreen();
+    expect(within(screen.getByTestId('row-invite')).getByText('Invite 1 friend a month, Pro stays free')).toBeOnTheScreen();
     await act(async () => {
       fireEvent.press(screen.getByTestId('row-invite'));
     });
