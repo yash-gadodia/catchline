@@ -140,6 +140,7 @@ export const analysis: Strings<typeof en> = {
   'analysis.tracker.barSpeed': "{now} m/s · 최고 {peak}",
   'analysis.tracker.comparing': "점선: {when}",
   'analysis.reveal.first': "첫 번째 바벨 궤적",
+  'analysis.reveal.peak': "바벨 최고 속도",
   'analysis.reveal.detail': "자세히 보기",
   'analysis.reveal.another': "다른 리프팅 분석하기",
   'analysis.reveal.none.title': "이 영상에서는 바벨 궤적을 그리지 못했어요",
