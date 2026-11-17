@@ -1,7 +1,7 @@
 import { EVENTS, track } from '../../src/lib/analytics';
 import { useEffect, useState } from 'react';
 import { Alert, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { demoClip } from '../../src/features/capture/demo';
 import ImportEmpty from '../../src/features/capture/ImportEmpty';
 import { pickClip } from '../../src/features/capture/pick';
@@ -51,6 +51,6 @@ export default function ImportRoute() {
     pick();
   }, [hydrated]);
 
-  if (empty) return <ImportEmpty onPick={pick} onRecord={() => router.replace('/capture')} onCancel={leave} onSample={() => router.push('/analysis/sample?from=import')} />;
+  if (empty) return <ImportEmpty onPick={pick} onRecord={() => router.replace('/capture')} onCancel={leave} onSample={() => router.push('/analysis/sample?from=import' as Href)} />;
   return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
 }
