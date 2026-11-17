@@ -43,4 +43,5 @@ export const onboarding: Strings<typeof en> = {
   'onboarding.privacy.terms': "Nutzungsbedingungen",
   'onboarding.welcome.pick': "Einen deiner Lifts auswählen",
   'onboarding.welcome.film': "Jetzt einen Lift filmen",
+  'onboarding.welcome.sample': "Mit einem Beispiel-Lift ausprobieren",
 };

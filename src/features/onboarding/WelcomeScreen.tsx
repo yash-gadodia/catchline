@@ -11,7 +11,7 @@ import SampleLift from './SampleLift';
 
 // All of onboarding: a tracked lift playing, the promise, and the two ways to a lift of the lifter's own. Going on
 // accepts the terms named under the buttons.
-export default function WelcomeScreen({ onPick, onFilm, reduceMotion }: { onPick: () => void; onFilm: () => void; reduceMotion?: boolean }) {
+export default function WelcomeScreen({ onPick, onFilm, onSample, reduceMotion }: { onPick: () => void; onFilm: () => void; onSample?: () => void; reduceMotion?: boolean }) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const systemReduce = useReducedMotion();
@@ -40,6 +40,12 @@ export default function WelcomeScreen({ onPick, onFilm, reduceMotion }: { onPick
           <Btn kind="secondary" compact onPress={onFilm} testID="welcome-film">
             {t('onboarding.welcome.film')}
           </Btn>
+          {onSample ? (
+            // no lift on the phone yet: the bundled one opens in the player
+            <Btn kind="text" onPress={onSample} testID="welcome-sample">
+              {t('onboarding.welcome.sample')}
+            </Btn>
+          ) : null}
         </View>
         <Text style={{ color: colors.text2, ...type.small, textAlign: 'center' }}>
           {t('onboarding.welcome.agree')}

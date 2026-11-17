@@ -44,4 +44,5 @@ export const onboarding: Strings<typeof en> = {
   'onboarding.privacy.terms': "termini",
   'onboarding.welcome.pick': "Scegli una tua alzata",
   'onboarding.welcome.film': "Filma un'alzata ora",
+  'onboarding.welcome.sample': "Provalo su un sollevamento di esempio",
 };

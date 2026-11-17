@@ -26,6 +26,22 @@ export const EVENTS = {
   // first-lift reminders: set at first launch, and an app open that came from tapping one
   NUDGES_SCHEDULED: 'nudges_scheduled',
   NUDGE_OPENED: 'nudge_opened',
+  // the first run, step by step: where a new lifter stops before a tracked lift
+  WELCOME_VIEWED: 'welcome_viewed',
+  WELCOME_CHOICE: 'welcome_choice',
+  VIDEO_PICKED: 'video_picked',
+  IMPORT_CANCELLED: 'import_cancelled',
+  PLATE_CHECK_SHOWN: 'plate_check_shown',
+  PLATE_CHECK_RESULT: 'plate_check_result',
+  TRACK_CANCELLED: 'track_cancelled',
+  SAMPLE_OPENED: 'sample_opened',
+  // the result card a new lift opens on, and what was chosen from it
+  RESULT_VIEWED: 'result_viewed',
+  RESULT_ACTION: 'result_action',
+  // the paywall between seeing it and paying
+  PAYWALL_PLAN_SELECTED: 'paywall_plan_selected',
+  PURCHASE_STARTED: 'purchase_started',
+  PURCHASE_NOT_COMPLETED: 'purchase_not_completed',
   RATING_ASK_SHOWN: 'rating_ask_shown',
   RATING_ASK_RATE: 'rating_ask_rate',
   RATING_ASK_LATER: 'rating_ask_later',

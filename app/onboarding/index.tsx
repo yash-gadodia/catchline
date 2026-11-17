@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+import { EVENTS, track } from '../../src/lib/analytics';
 import { useRouter, type Href } from 'expo-router';
 import { backendEnabled, syncConsent } from '../../src/data/backend';
 import { useCameraPermission } from '../../src/features/capture/camera';
@@ -17,13 +19,22 @@ export default function WelcomeRoute() {
     useOnboarding.getState().complete();
     router.replace(href);
   };
+  useEffect(() => {
+    track(EVENTS.WELCOME_VIEWED, {});
+  }, []);
   return (
     <WelcomeScreen
+      onSample={() => {
+        track(EVENTS.WELCOME_CHOICE, { choice: 'sample' });
+        router.push('/analysis/sample?from=welcome');
+      }}
       onPick={() => {
+        track(EVENTS.WELCOME_CHOICE, { choice: 'pick' });
         accept();
         start('/capture/import');
       }}
       onFilm={async () => {
+        track(EVENTS.WELCOME_CHOICE, { choice: 'film' });
         accept();
         if ((await camera.request()) === 'granted') start('/capture');
         else router.push('/onboarding/camera?state=denied');

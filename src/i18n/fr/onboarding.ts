@@ -43,4 +43,5 @@ export const onboarding: Strings<typeof en> = {
   'onboarding.privacy.terms': "conditions",
   'onboarding.welcome.pick': "Choisir un de tes mouvements",
   'onboarding.welcome.film': "Filmer un mouvement maintenant",
+  'onboarding.welcome.sample': "Essayer sur un mouvement d'exemple",
 };

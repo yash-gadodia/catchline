@@ -1,9 +1,10 @@
+import { EVENTS, track } from '../../src/lib/analytics';
 import { useEffect, useRef, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { putLiveAnalysis } from '../../src/analysis/live';
 import { useAnalysis } from '../../src/analysis/useAnalysis';
 import type { Analysis, Failure } from '../../src/analysis/types';
-import ProcessingSheet, { EXPECTED_ANALYSIS_S, type ProcessingState } from '../../src/features/analysis/ProcessingSheet';
+import ProcessingSheet, { EXPECTED_ANALYSIS_S, type ProcessingState, type WaitStep } from '../../src/features/analysis/ProcessingSheet';
 import { etaSeconds, type Sample } from '../../src/features/analysis/eta';
 import { overallProgress } from '../../src/features/analysis/progress';
 import { formatWait } from '../../src/analysis/format';
@@ -98,6 +99,16 @@ function deviceStep(job: Job): number {
   return 1 + Math.min(3, Math.floor((job.fraction ?? 0) * 4));
 }
 
+// What the phone is doing, in the order it does it: the clip is prepared, the first pass finds the body on every frame
+// (most of the wait, PASS_WEIGHTS), and the passes after it follow the bar.
+const BODY_SHARE = 0.8;
+export function waitSteps(job: Job | null | undefined): WaitStep[] | undefined {
+  if (!job || (job.status !== 'preparing' && job.status !== 'analysing')) return undefined;
+  const at = job.status === 'preparing' ? 0 : (job.fraction ?? 0) < BODY_SHARE ? 1 : 2;
+  const labels = [t('analysis.processing.step.clip'), t('analysis.processing.step.body'), t('analysis.processing.step.bar')];
+  return labels.map((label, i) => ({ label, state: i < at ? 'done' : i === at ? 'active' : 'pending' }));
+}
+
 // A real lift: tracked on the phone, so the job carries its progress and then the
 // result. Nothing is uploaded and nothing arrives over the network.
 function LiveProcessing() {
@@ -157,6 +168,7 @@ function LiveProcessing() {
       clipUri={job?.uri ?? null}
       meta={timeLeft(eta, elapsed)}
       doing={job?.status === 'preparing' ? t('analysis.processing.preparing') : t('analysis.processing.tracking')}
+      steps={waitSteps(job)}
       progress={overallProgress(job)}
       maxS={job?.maxS ?? undefined}
       state={state}
@@ -164,6 +176,7 @@ function LiveProcessing() {
       elapsed={elapsed}
       onHide={home}
       onCancel={analysis ? undefined : () => {
+        track(EVENTS.TRACK_CANCELLED, { pct: Math.round((overallProgress(job) ?? 0) * 100), seconds: elapsed });
         cancelDeviceLift();
         home();
       }}
