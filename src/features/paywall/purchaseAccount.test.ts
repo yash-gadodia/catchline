@@ -1,6 +1,9 @@
 import { purchasePlan } from './hooks';
 import { usePurchases } from '../purchases/usePurchases';
 import type { Plan } from './products';
+import { track } from '../../lib/analytics';
+
+jest.mock('../../lib/analytics', () => ({ ...jest.requireActual('../../lib/analytics'), track: jest.fn() }));
 
 jest.mock('../../data/backend', () => ({ backendEnabled: () => true }));
 jest.mock('../../lib/supabase', () => ({ supabase: { auth: { getSession: jest.fn() } } }));
@@ -55,5 +58,20 @@ describe('sign in with Apple before any purchase (3.1)', () => {
     session(false);
     expect(await purchasePlan(PLAN)).toBe('success');
     expect(signInWithApple).not.toHaveBeenCalled();
+  });
+
+  it('reports where a purchase stops: started, then completed, cancelled at sign-in or stopped at the store', async () => {
+    session(false);
+    expect(await purchasePlan(PLAN)).toBe('success');
+    expect(jest.mocked(track).mock.calls).toEqual([['purchase_started', { plan: 'pull_annual' }], ['purchase_completed', { plan: 'pull_annual' }]]);
+    jest.mocked(track).mockClear();
+    purchase.mockResolvedValueOnce('cancelled');
+    expect(await purchasePlan({ kind: 'founding' })).toBe('cancelled');
+    expect(jest.mocked(track).mock.calls).toEqual([['purchase_started', { plan: 'founding' }], ['purchase_not_completed', { plan: 'founding', outcome: 'cancelled' }]]);
+    jest.mocked(track).mockClear();
+    session(null);
+    signInWithApple.mockResolvedValue({ cancelled: true });
+    await purchasePlan(PLAN);
+    expect(jest.mocked(track).mock.calls).toEqual([['purchase_started', { plan: 'pull_annual' }], ['purchase_not_completed', { plan: 'pull_annual', outcome: 'sign_in_cancelled' }]]);
   });
 });
