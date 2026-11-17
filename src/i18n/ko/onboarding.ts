@@ -44,4 +44,5 @@ export const onboarding: Strings<typeof en> = {
   'onboarding.privacy.terms': "이용약관",
   'onboarding.welcome.pick': "내 리프트 영상 고르기",
   'onboarding.welcome.film': "지금 리프트 촬영",
+  'onboarding.welcome.sample': "샘플 리프팅으로 해 보기",
 };

@@ -46,10 +46,17 @@ export async function ensureAccountForPurchase(): Promise<PurchaseStatus | null>
 
 // The store purchase plus the analytics the paywall reports.
 export async function purchasePlan(plan: Plan): Promise<PurchaseStatus> {
+  const id = packageIdFor(plan);
+  track(EVENTS.PURCHASE_STARTED, { plan: id });
   const blocked = await ensureAccountForPurchase();
-  if (blocked) return blocked;
+  if (blocked) {
+    // the Apple sign-in a purchase asks for was cancelled or failed
+    track(EVENTS.PURCHASE_NOT_COMPLETED, { plan: id, outcome: `sign_in_${blocked}` });
+    return blocked;
+  }
   const status = await usePurchases.getState().purchase(plan);
-  if (status === 'success') track(EVENTS.PURCHASE_COMPLETED, { plan: packageIdFor(plan) });
+  if (status === 'success') track(EVENTS.PURCHASE_COMPLETED, { plan: id });
+  else track(EVENTS.PURCHASE_NOT_COMPLETED, { plan: id, outcome: status });
   return status;
 }
 

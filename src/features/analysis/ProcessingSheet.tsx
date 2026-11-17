@@ -21,6 +21,9 @@ import Stage from './Stage';
 import ProcessingPath from './ProcessingPath';
 import { t } from '../../i18n';
 
+// One line of the wait: what the phone has done, is doing, or will do next.
+export type WaitStep = { label: string; state: 'done' | 'active' | 'pending' };
+
 export type ProcessingState = 'progress' | 'long' | 'done' | 'too_long' | 'offline';
 
 // One analysis on the single production worker takes about this long; jobs are serial.
@@ -35,6 +38,8 @@ type Props = {
   meta?: string;
   // What the phone is doing right now, in plain words, and how far through it is (0..1) when that is known.
   doing?: string;
+  // the steps of an on-device run, in order, in place of the single line (LiveProcessing)
+  steps?: WaitStep[];
   progress?: number | null;
   maxS?: number;
   state: ProcessingState;
@@ -54,7 +59,7 @@ type Props = {
   onRetry?: () => void;
 };
 
-export default function ProcessingSheet({ analysis, clipUri, reduceMotion, meta, doing, progress, maxS, state, step, elapsed, etaSeconds = EXPECTED_ANALYSIS_S, onServer, ahead, ...on }: Props) {
+export default function ProcessingSheet({ analysis, clipUri, reduceMotion, meta, doing, steps, progress, maxS, state, step, elapsed, etaSeconds = EXPECTED_ANALYSIS_S, onServer, ahead, ...on }: Props) {
   const { width, height } = useWindowDimensions();
   const box = { width, height };
   const systemReduce = useReducedMotion();
@@ -74,6 +79,7 @@ export default function ProcessingSheet({ analysis, clipUri, reduceMotion, meta,
       {state === 'progress' ? (
         <InProgress
           doing={doing}
+          steps={steps}
           progress={progress}
           meta={meta ?? formatWait(etaSeconds)}
           note={onServer ? <Queue etaSeconds={etaSeconds} ahead={ahead} /> : null}
@@ -234,6 +240,7 @@ function Queue({ etaSeconds, ahead }: { etaSeconds: number; ahead?: number }) {
 
 function InProgress({
   doing,
+  steps,
   progress,
   meta,
   note,
@@ -241,6 +248,7 @@ function InProgress({
   onCancel,
 }: {
   doing?: string;
+  steps?: WaitStep[];
   progress?: number | null;
   meta: string;
   note: ReactNode;
@@ -260,12 +268,26 @@ function InProgress({
           </View>
         </View>
       )}
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s3 }}>
-        <Pulse />
-        <Text testID="processing-doing" style={{ flex: 1, color: colors.text, ...type.body }}>
-          {doing ?? t('analysis.processing.tracking')}
-        </Text>
-      </View>
+      {steps ? (
+        <View testID="processing-steps" style={{ gap: space.s2 }}>
+          {steps.map((step) => (
+            <View key={step.label} style={{ flexDirection: 'row', alignItems: 'center', gap: space.s3 }}>
+              {step.state === 'active' ? <Pulse /> : <View style={{ width: 9, height: 9, backgroundColor: step.state === 'done' ? colors.text : colors.hairline }} />}
+              <Text testID={`processing-step-${step.state}`} style={{ flex: 1, color: step.state === 'pending' ? colors.text3 : colors.text, ...type.body }}>
+                {step.label}
+              </Text>
+            </View>
+          ))}
+          <Text style={{ color: colors.text2, ...type.callout }}>{t('analysis.processing.step.then')}</Text>
+        </View>
+      ) : (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s3 }}>
+          <Pulse />
+          <Text testID="processing-doing" style={{ flex: 1, color: colors.text, ...type.body }}>
+            {doing ?? t('analysis.processing.tracking')}
+          </Text>
+        </View>
+      )}
       <View style={{ alignItems: 'center', gap: 2 }}>
         <TextLink onPress={onCancel ?? onHide} testID={onCancel ? 'cancel' : 'hide'}>
           {onCancel ? t('analysis.processing.cancel') : t('analysis.processing.hide')}

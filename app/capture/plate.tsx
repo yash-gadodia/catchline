@@ -1,3 +1,4 @@
+import { EVENTS, track as trackEvent } from '../../src/lib/analytics';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -47,6 +48,9 @@ export default function PlateRoute() {
       live = false;
     };
   }, [ready, uri, at, end]);
+  useEffect(() => {
+    if (found) trackEvent(EVENTS.PLATE_CHECK_SHOWN, { found: found.mark !== null });
+  }, [found]);
   if (!draft || !ready || !uri || !found) {
     return (
       <View testID="plate-finding" style={{ flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center', gap: space.s4 }}>
@@ -56,6 +60,7 @@ export default function PlateRoute() {
     );
   }
   const track = (plateMark: PlateMark | null) => {
+    trackEvent(EVENTS.PLATE_CHECK_RESULT, { action: plateMark === null ? 'skipped' : plateMark === found?.mark ? 'confirmed' : 'moved' });
     updateDraft({ plateMark: plateMark && found.atS > 0 ? { ...plateMark, atS: found.atS } : plateMark });
     submitDraft({ replace: true });
   };
