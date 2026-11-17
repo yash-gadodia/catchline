@@ -140,6 +140,7 @@ export const analysis: Strings<typeof en> = {
   'analysis.tracker.barSpeed': "{now} m/s · 最大 {peak}",
   'analysis.tracker.comparing': "点線: {when}",
   'analysis.reveal.first': "はじめてのバーの軌道",
+  'analysis.reveal.peak': "バーの最高速度",
   'analysis.reveal.detail': "詳細を見る",
   'analysis.reveal.another': "別のリフトを解析",
   'analysis.reveal.none.title': "この動画ではバーの軌道を描けませんでした",

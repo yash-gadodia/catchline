@@ -142,6 +142,7 @@ export const analysis: Strings<typeof en> = {
   'analysis.tracker.barSpeed': "{now} m/s · pico {peak}",
   'analysis.tracker.comparing': "Línea de puntos: {when}",
   'analysis.reveal.first': "Tu primera trayectoria de barra",
+  'analysis.reveal.peak': "velocidad máxima de la barra",
   'analysis.reveal.detail': "Ver el detalle",
   'analysis.reveal.another': "Analizar otro levantamiento",
   'analysis.reveal.none.title': "Sin trayectoria de barra en este vídeo",

@@ -140,6 +140,7 @@ export const analysis: Strings<typeof en> = {
   'analysis.tracker.barSpeed': "{now} m/s · 峰值 {peak}",
   'analysis.tracker.comparing': "虚线：{when}",
   'analysis.reveal.first': "你的第一条杠铃轨迹",
+  'analysis.reveal.peak': "杠铃最高速度",
   'analysis.reveal.detail': "查看详情",
   'analysis.reveal.another': "分析另一次举重",
   'analysis.reveal.none.title': "这段视频没有杠铃轨迹",

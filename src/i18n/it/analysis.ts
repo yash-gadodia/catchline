@@ -140,6 +140,7 @@ export const analysis: Strings<typeof en> = {
   'analysis.tracker.barSpeed': "{now} m/s · picco {peak}",
   'analysis.tracker.comparing': "Linea tratteggiata: {when}",
   'analysis.reveal.first': "La tua prima traiettoria del bilanciere",
+  'analysis.reveal.peak': "velocità massima del bilanciere",
   'analysis.reveal.detail': "Vedi il dettaglio",
   'analysis.reveal.another': "Analizza un altro sollevamento",
   'analysis.reveal.none.title': "Niente traiettoria in questo video",
