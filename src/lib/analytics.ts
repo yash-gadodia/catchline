@@ -23,6 +23,9 @@ export const EVENTS = {
   INVITE_SHARED: 'invite_shared',
   REFERRAL_CLAIMED: 'referral_claimed',
   INVITE_PROMPT_TAPPED: 'invite_prompt_tapped',
+  // first-lift reminders: set at first launch, and an app open that came from tapping one
+  NUDGES_SCHEDULED: 'nudges_scheduled',
+  NUDGE_OPENED: 'nudge_opened',
   RATING_ASK_SHOWN: 'rating_ask_shown',
   RATING_ASK_RATE: 'rating_ask_rate',
   RATING_ASK_LATER: 'rating_ask_later',

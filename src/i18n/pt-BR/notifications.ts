@@ -26,4 +26,10 @@ export const notifications: Strings<typeof en> = {
   'notifications.ready.failedTitle': "Não conseguimos rastrear seu vídeo",
   // REVIEW
   'notifications.ready.failedBody': "Toque para ver o porquê e o que tentar em seguida.",
+  'notifications.nudge1.title': "Sua primeira trajetória da barra leva um minuto",
+  'notifications.nudge1.body': "Escolha um vídeo de um levantamento do seu rolo. O Catchline desenha a trajetória da barra no seu telefone.",
+  'notifications.nudge2.title': "Tem um levantamento em vídeo?",
+  'notifications.nudge2.body': "Abra o Catchline para ver a trajetória e a velocidade da barra. O vídeo fica no seu telefone.",
+  'notifications.nudge3.title': "Um vídeo já basta",
+  'notifications.nudge3.body': "Filme seu próximo levantamento de lado e veja a trajetória da barra desenhada nele.",
 };

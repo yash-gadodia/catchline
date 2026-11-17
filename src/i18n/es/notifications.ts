@@ -26,4 +26,10 @@ export const notifications: Strings<typeof en> = {
   'notifications.ready.failedTitle': "No pudimos seguir tu vídeo",
   // REVIEW
   'notifications.ready.failedBody': "Toca para ver por qué y qué probar después.",
+  'notifications.nudge1.title': "Tu primera trayectoria de barra tarda un minuto",
+  'notifications.nudge1.body': "Elige un vídeo de un levantamiento de tu carrete. Catchline dibuja la trayectoria de la barra en tu teléfono.",
+  'notifications.nudge2.title': "¿Tienes un levantamiento en vídeo?",
+  'notifications.nudge2.body': "Abre Catchline para ver su trayectoria y la velocidad de la barra. El vídeo no sale de tu teléfono.",
+  'notifications.nudge3.title': "Con un vídeo basta",
+  'notifications.nudge3.body': "Graba tu próximo levantamiento de lado y mira la trayectoria de la barra dibujada encima.",
 };
