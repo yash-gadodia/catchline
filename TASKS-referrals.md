@@ -90,6 +90,7 @@ Seen walking a fresh install on the simulator (17-11): picking a video is follow
 - [x] The reveal (live 17-11): after the first look the lift opens on a result card (FirstLook.tsx): "Your first bar path", peak bar speed, Share, See the detail, Track another. A tap during the first look skips the card
 - [x] A sample lift (the bundled one) from the welcome screen and from a cancelled picker, in the real player (app/analysis/sample.tsx)
 - [ ] (Claude) Read on 20-11: welcome_choice split, sample_opened then video_picked, result_action split; then fix the largest step
+- [ ] (Claude, after the 20-11 read) The software factory: a weekly job that reads the funnel in PostHog, names the biggest drop and opens a proposed fix for Yash to approve. Worth building only if the 17-11 changes moved the numbers; if they did not, find out why first. The parts exist: step-level events and dashboard 2365960, the clip gate and tests, ota.sh to every runtime, catchline-bot on the Mini. Yash stays the approver for price, what users are promised, and anything sent to Apple
 - [x] No bar path: the card says so, gives three filming tips, says the free video was kept, and offers another video (live 17-11; seen in tests, not yet on a simulator)
 - [ ] (Claude) Say the actual cause per lift (angle, plate cut off, too dark) instead of three general tips
 - [x] The wait lists its three real steps and what comes next (live 17-11)
