@@ -15,4 +15,10 @@ export const notifications: Strings<typeof en> = {
   'notifications.ready.body': "탭해서 영상 위의 바 궤적을 확인하세요.",
   'notifications.ready.failedTitle': "영상을 트래킹하지 못했어요",
   'notifications.ready.failedBody': "탭해서 이유와 다음에 해볼 것을 확인하세요.",
+  'notifications.nudge1.title': "첫 바벨 궤적은 1분이면 됩니다",
+  'notifications.nudge1.body': "카메라 롤에서 리프팅 영상을 고르세요. Catchline이 휴대폰 안에서 바벨 궤적을 그려 줍니다.",
+  'notifications.nudge2.title': "리프팅 영상이 있나요?",
+  'notifications.nudge2.body': "Catchline을 열어 바벨 궤적과 속도를 확인해 보세요. 영상은 휴대폰 밖으로 나가지 않아요.",
+  'notifications.nudge3.title': "영상 하나면 충분해요",
+  'notifications.nudge3.body': "다음 리프팅을 옆에서 촬영하고 그 위에 그려지는 바벨 궤적을 확인하세요.",
 };

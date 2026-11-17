@@ -26,4 +26,10 @@ export const notifications: Strings<typeof en> = {
   'notifications.ready.failedTitle': "Nous n'avons pas pu suivre ta vidéo",
   // REVIEW
   'notifications.ready.failedBody': "Touche pour voir pourquoi, et quoi essayer ensuite.",
+  'notifications.nudge1.title': "Ta première trajectoire de barre prend une minute",
+  'notifications.nudge1.body': "Choisis une vidéo d'un mouvement dans ta pellicule. Catchline y trace la trajectoire de la barre, sur ton téléphone.",
+  'notifications.nudge2.title': "Tu as un mouvement en vidéo ?",
+  'notifications.nudge2.body': "Ouvre Catchline pour voir sa trajectoire et la vitesse de la barre. La vidéo reste sur ton téléphone.",
+  'notifications.nudge3.title': "Une vidéo suffit",
+  'notifications.nudge3.body': "Filme ton prochain mouvement de profil et vois la trajectoire de la barre tracée dessus.",
 };

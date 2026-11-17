@@ -13,6 +13,8 @@ export type PushStatus = 'granted' | 'undetermined' | 'denied';
 export async function pushStatus(): Promise<PushStatus> {
   try {
     const p = await Notifications.getPermissionsAsync();
+    // quiet (provisional) permission came without a prompt, for the first-lift reminders: the lifter has not been asked
+    if (p.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL) return 'undetermined';
     if (p.status === 'granted') return 'granted';
     return p.canAskAgain ? 'undetermined' : 'denied';
   } catch {

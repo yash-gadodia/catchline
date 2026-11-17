@@ -15,4 +15,10 @@ export const notifications: Strings<typeof en> = {
   'notifications.ready.body': "Tocca per vedere la traiettoria del bilanciere sul tuo video.",
   'notifications.ready.failedTitle': "Non siamo riusciti a tracciare il tuo video",
   'notifications.ready.failedBody': "Tocca per vedere perché e cosa provare.",
+  'notifications.nudge1.title': "La tua prima traiettoria richiede un minuto",
+  'notifications.nudge1.body': "Scegli il video di un sollevamento dal rullino. Catchline disegna la traiettoria del bilanciere sul tuo telefono.",
+  'notifications.nudge2.title': "Hai un sollevamento in video?",
+  'notifications.nudge2.body': "Apri Catchline per vedere traiettoria e velocità del bilanciere. Il video resta sul tuo telefono.",
+  'notifications.nudge3.title': "Basta un video",
+  'notifications.nudge3.body': "Filma il prossimo sollevamento di lato e guarda la traiettoria del bilanciere disegnata sopra.",
 };

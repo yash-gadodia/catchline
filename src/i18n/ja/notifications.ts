@@ -15,4 +15,10 @@ export const notifications: Strings<typeof en> = {
   'notifications.ready.body': "タップして、動画の上でバーの軌道を見ましょう。",
   'notifications.ready.failedTitle': "動画をトラッキングできませんでした",
   'notifications.ready.failedBody': "タップして、原因と次に試せることを確認できます。",
+  'notifications.nudge1.title': "最初のバーの軌道は約1分でできます",
+  'notifications.nudge1.body': "カメラロールからリフトの動画を選ぶだけ。Catchlineがこのスマホの中でバーの軌道を描きます。",
+  'notifications.nudge2.title': "リフトの動画はありますか？",
+  'notifications.nudge2.body': "Catchlineを開いて、バーの軌道とスピードを見てみましょう。動画はスマホの外に出ません。",
+  'notifications.nudge3.title': "動画1本で十分です",
+  'notifications.nudge3.body': "次のリフトを真横から撮って、バーの軌道が描かれるのを見てみましょう。",
 };

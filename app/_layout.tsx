@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { isNudge, scheduleFirstLiftNudges } from '../src/features/notifications/nudges';
+import { listLocalAnalyses } from '../src/data/localLifts';
 import * as SplashScreen from 'expo-splash-screen';
 import { LaunchOverlay } from '../src/components/Mark';
 import * as Notifications from 'expo-notifications';
@@ -51,6 +53,8 @@ export default function RootLayout() {
   // the last response).
   useEffect(() => {
     const open = (response: Notifications.NotificationResponse | null) => {
+      // a first-lift reminder was tapped: the app opens on the first screen, which is where the lift starts
+      if (response && isNudge(response.notification.request.identifier)) track(EVENTS.NUDGE_OPENED, { n: Number(response.notification.request.content.data?.nudge ?? 0) });
       const liftId = response && liftIdFromResponse(response);
       if (!liftId) return;
       routeForLift(liftId)
@@ -65,6 +69,8 @@ export default function RootLayout() {
   useEffect(() => {
     initAnalytics();
     track(EVENTS.APP_OPEN);
+    // a phone with no lift yet gets its three reminders set, once
+    void listLocalAnalyses().then((lifts) => scheduleFirstLiftNudges(lifts.length > 0)).catch(() => undefined);
 
     // Initialise RevenueCat once (real SDK in a dev build; no-op in Expo Go).
     usePurchases.getState().configure();

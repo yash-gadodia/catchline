@@ -15,4 +15,10 @@ export const notifications: Strings<typeof en> = {
   'notifications.ready.body': "点按查看视频上的杠铃轨迹。",
   'notifications.ready.failedTitle': "我们没能追踪你的视频",
   'notifications.ready.failedBody': "点按查看原因，以及接下来可以怎么做。",
+  'notifications.nudge1.title': "你的第一条杠铃轨迹只需约一分钟",
+  'notifications.nudge1.body': "从相册里选一段举重视频，Catchline 会在你的手机上画出杠铃轨迹。",
+  'notifications.nudge2.title': "有举重视频吗？",
+  'notifications.nudge2.body': "打开 Catchline，看看杠铃轨迹和杠铃速度。视频不会离开你的手机。",
+  'notifications.nudge3.title': "一段视频就够了",
+  'notifications.nudge3.body': "下次从侧面拍一段举重，看看画在上面的杠铃轨迹。",
 };

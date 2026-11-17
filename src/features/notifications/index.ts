@@ -33,8 +33,9 @@ export function installForegroundHandler(): void {
 export async function requestPermissions(): Promise<boolean> {
   if (!isAvailable()) return false;
   try {
-    const { status: existing } = await Notifications.getPermissionsAsync();
-    if (existing === 'granted') return true;
+    const now = await Notifications.getPermissionsAsync();
+    // quiet (provisional) permission is not the lifter's answer: ask properly
+    if (now.status === 'granted' && now.ios?.status !== Notifications.IosAuthorizationStatus.PROVISIONAL) return true;
     const { status } = await Notifications.requestPermissionsAsync();
     return status === 'granted';
   } catch {
