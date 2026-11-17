@@ -91,6 +91,10 @@ export default function TrackerScreen({
   const insets = useSafeAreaInsets();
   // a free lifter is told that a lift with no bar path left their weekly video untouched
   const free = !isPro(usePurchases((st) => st.tier));
+  const systemReduce = useReducedMotion();
+  const reduce = reduceMotion ?? systemReduce;
+  const [look, setLook] = useState(true);
+  const [revealing, setRevealing] = useState<'playing' | 'done' | null>(reveal ? (reduce ? 'done' : 'playing') : null);
   // Frames are spread over the clip's real length: the recorded rate is one over the shortest frame gap, which runs
   // fast on a clip with uneven frame timing and would slide the overlay off the picture.
   const [duration, setDuration] = useState(0);
@@ -105,7 +109,9 @@ export default function TrackerScreen({
   // a lift with bar speed gives the picture a little less height, for the speed chart under the controls; the lifter
   // drags the divider between them to give either one more
   const [videoH, setVideoH] = useState<number | null>(null);
-  const maxH = videoH ?? Math.round(height * (barSpeedOf ? 0.5 : 0.6));
+  // while the result card is up the video gives it room: every button of the card is on screen
+  const cardUp = !!reveal && revealing === 'done' && look;
+  const maxH = cardUp ? Math.round(height * 0.42) : (videoH ?? Math.round(height * (barSpeedOf ? 0.5 : 0.6)));
   const boxW = Math.min(width, Math.round((maxH * src.width) / src.height));
   const box = { width: boxW, height: Math.round((boxW * src.height) / src.width) };
   const fit: Fit = { x: 0, y: 0, width: box.width, height: box.height };
@@ -119,10 +125,6 @@ export default function TrackerScreen({
   const { cropped, first, last } = liftRange(analysis.lift, count, whole);
   // It opens on the lift's first frame: the readout and the overlay from the first paint, the picture as soon as
   // the clip can seek.
-  const systemReduce = useReducedMotion();
-  const reduce = reduceMotion ?? systemReduce;
-  const [look, setLook] = useState(true);
-  const [revealing, setRevealing] = useState<'playing' | 'done' | null>(reveal ? (reduce ? 'done' : 'playing') : null);
   const revealRef = useRef(revealing);
   // `taken`: the lifter touched the player while the first look played, so they get its controls, not the result card
   const endReveal = (taken = false) => {
