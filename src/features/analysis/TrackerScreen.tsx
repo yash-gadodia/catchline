@@ -121,12 +121,15 @@ export default function TrackerScreen({
   // the clip can seek.
   const systemReduce = useReducedMotion();
   const reduce = reduceMotion ?? systemReduce;
+  const [look, setLook] = useState(true);
   const [revealing, setRevealing] = useState<'playing' | 'done' | null>(reveal ? (reduce ? 'done' : 'playing') : null);
   const revealRef = useRef(revealing);
-  const endReveal = () => {
+  // `taken`: the lifter touched the player while the first look played, so they get its controls, not the result card
+  const endReveal = (taken = false) => {
     if (revealRef.current !== 'playing') return;
     revealRef.current = 'done';
     setRevealing('done');
+    if (taken) setLook(false);
   };
   const opensOn = reveal && reduce ? last : first;
   const [frame, setFrameState] = useState(opensOn);
@@ -137,7 +140,6 @@ export default function TrackerScreen({
   useEffect(openLiftOverlays, []);
   const overlays = revealing === 'playing' ? { ...prefs, path: true, body: true } : prefs;
   // Once the first look has played, the lift opens on its result card; "See the detail" gives the player's controls.
-  const [look, setLook] = useState(true);
   const lookKind: FirstLookKind = sample ? 'sample' : analysis.traceKind === 'hip' ? 'trail' : (analysis.reps[0]?.path.length ?? 0) > 0 ? 'path' : 'none';
   const showLook = !!reveal && revealing === 'done' && look;
   useEffect(() => {
@@ -232,7 +234,7 @@ export default function TrackerScreen({
 
   const seek = (next: number) => {
     const f = Math.min(Math.max(first, Math.round(next)), last);
-    endReveal();
+    endReveal(true);
     restarting.current = null;
     player.pause();
     if (f === frameRef.current) return;
@@ -248,7 +250,7 @@ export default function TrackerScreen({
 
   const togglePlay = () => {
     impact('light');
-    endReveal();
+    endReveal(true);
     if (playing) return player.pause();
     exitDraw();
     const from = zoom ?? { first, last };
