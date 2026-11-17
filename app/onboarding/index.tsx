@@ -26,7 +26,7 @@ export default function WelcomeRoute() {
     <WelcomeScreen
       onSample={() => {
         track(EVENTS.WELCOME_CHOICE, { choice: 'sample' });
-        router.push('/analysis/sample?from=welcome');
+        router.push('/analysis/sample?from=welcome' as Href);
       }}
       onPick={() => {
         track(EVENTS.WELCOME_CHOICE, { choice: 'pick' });
