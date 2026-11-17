@@ -209,7 +209,7 @@ describe('TrackerScreen first look (reveal)', () => {
 
   it('ticks once at the top of the lift, stops on the last frame and offers Share', async () => {
     const onShare = jest.fn();
-    const { getByTestId } = await show(lifted, body, { reveal: true, onShare });
+    const { getByTestId, queryByTestId } = await show(lifted, body, { reveal: true, onShare });
     const taps = () => jest.mocked(Haptics.impactAsync).mock.calls.length;
     const before = taps();
     await at(199);
@@ -220,8 +220,14 @@ describe('TrackerScreen first look (reveal)', () => {
     await at(240);
     expect(player?.pause).toHaveBeenCalledTimes(1);
     expect(getByTestId('tracker-readout')).toHaveTextContent('2.50 s · 241 / 300');
-    await press(getByTestId('tracker-share'));
+    // the lift opens on its result card: Share first, the player's controls behind "See the detail"
+    expect(queryByTestId('tracker-controls')).toBeNull();
+    await press(getByTestId('first-look-share'));
     expect(onShare).toHaveBeenCalledTimes(1);
+    await press(getByTestId('first-look-detail'));
+    expect(queryByTestId('first-look')).toBeNull();
+    expect(getByTestId('tracker-controls')).toBeOnTheScreen();
+    expect(getByTestId('tracker-share')).toBeOnTheScreen();
   });
 
   it('with Reduce Motion opens on the last frame with the whole path and Share, and does not play', async () => {
@@ -230,7 +236,29 @@ describe('TrackerScreen first look (reveal)', () => {
     expect(player?.currentTime).toBeCloseTo(240.5 / 60, 6);
     expect(getByTestId('tracker-readout')).toHaveTextContent('2.50 s · 241 / 300');
     expect(getByTestId('path-done')).toBeOnTheScreen();
-    expect(getByTestId('tracker-share')).toBeOnTheScreen();
+    expect(getByTestId('first-look-share')).toBeOnTheScreen();
+  });
+
+  it('names the first lift, and a lift with no bar path says how to film the next one and offers another video', async () => {
+    const first = await show(lifted, body, { reveal: true, reduceMotion: true, firstLift: true, onShare: () => {} });
+    expect(first.getByTestId('first-look-first')).toHaveTextContent('Your first bar path');
+    first.unmount();
+    const onAnother = jest.fn();
+    const none = await show({ ...lifted, reps: [{ ...lifted.reps[0], path: [] }] }, body, { reveal: true, reduceMotion: true, onShare: () => {}, onAnother });
+    expect(none.getByText('No bar path on this one')).toBeOnTheScreen();
+    expect(none.getByText('Film from the side, not from the front.')).toBeOnTheScreen();
+    expect(none.queryByTestId('first-look-share')).toBeNull();
+    await press(none.getByTestId('first-look-another'));
+    expect(onAnother).toHaveBeenCalledTimes(1);
+    expect(none.getByTestId('first-look-detail')).toHaveTextContent('See the body lines');
+  });
+
+  it('the sample lift offers the lifter their own lift, not a share', async () => {
+    const onAnother = jest.fn();
+    const { getByText, getByTestId, queryByTestId } = await show(lifted, body, { reveal: true, reduceMotion: true, sample: true, onAnother });
+    expect(getByText('This is a sample lift')).toBeOnTheScreen();
+    expect(queryByTestId('first-look-share')).toBeNull();
+    expect(getByTestId('first-look-another')).toHaveTextContent('Now try your own lift');
   });
 
   it('a tap while it plays hands the player back to the lifter', async () => {

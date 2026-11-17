@@ -50,7 +50,7 @@ export default function FirstLook({
           <Text style={{ ...type.callout, color: colors.text2 }}>{t('analysis.reveal.none.why')}</Text>
           {([1, 2, 3] as const).map((n) => (
             <View key={n} style={{ flexDirection: 'row', gap: space.s3 }}>
-              <Text style={{ ...type.caption, color: colors.flare, paddingTop: 3 }}>{n}</Text>
+              <Text style={{ ...type.callout, color: colors.flare }}>{n}</Text>
               <Text style={{ ...type.callout, color: colors.text, flex: 1 }}>{t(`analysis.reveal.none.tip${n}`)}</Text>
             </View>
           ))}
