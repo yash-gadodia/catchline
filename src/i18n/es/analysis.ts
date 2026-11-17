@@ -53,6 +53,7 @@ export const analysis: Strings<typeof en> = {
   'analysis.tracker.nextFrame': "Fotograma siguiente",
   'analysis.tracker.scrub': "Recorrer el vídeo",
   'analysis.tracker.fromHands': "Sin trayectoria de la barra en este clip: el disco no se veía claro. Graba de lado, con el disco entero en el encuadre.",
+  'analysis.tracker.notCounted': "No ha gastado tu vídeo gratis.",
   'analysis.tracker.anglesSideOn': "Los ángulos de las articulaciones aparecen cuando el clip está grabado de lado.",
   'analysis.processing.ahead': { one: '{count} antes que tú', other: '{count} antes que tú' },
   'analysis.processing.background': 'Sigue funcionando en segundo plano.',

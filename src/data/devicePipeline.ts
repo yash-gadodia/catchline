@@ -252,7 +252,9 @@ async function runDeviceLift(sub: ClipSubmission & { uri: string }, liftId: stri
     if (!local.failure) rememberLiftShape(liftId, { analysis: local, body: loop.body ?? null });
     prepared = null;
     const now = new Date();
-    if (!local.failure) await countLift(now);
+    // A free video is used only when the lifter got what they came for: a path drawn on the lift (the bar's, or the
+    // hip trail of a hanging movement). A result with the body alone leaves the week's video for another try.
+    if (!local.failure && (local.reps[0]?.path.length ?? 0) > 0) await countLift(now);
     const record = syncRecord(local, sub, now);
     void queueLiftSync({ id: liftId, lift: record });
     if (local.failure) {
@@ -321,7 +323,7 @@ async function runRetrack(liftId: string, uri: string, movement: Movement, plate
   }
 }
 
-// A lift that got a result uses one of the free lifts (or this month's fair use):
+// A lift that got its path uses one of the free lifts (or this month's fair use):
 // the local count, and the Keychain copy that outlives a reinstall.
 async function countLift(now: Date): Promise<void> {
   useUsage.getState().record(usePurchases.getState().tier, now);

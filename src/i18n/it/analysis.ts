@@ -51,6 +51,7 @@ export const analysis: Strings<typeof en> = {
   'analysis.tracker.nextFrame': "Fotogramma successivo",
   'analysis.tracker.scrub': "Scorri il video",
   'analysis.tracker.fromHands': "Niente traiettoria in questo video: il disco non si vedeva bene. Filma di lato, con tutto il disco nell'inquadratura.",
+  'analysis.tracker.notCounted': "Non ha usato il tuo video gratuito.",
   'analysis.tracker.anglesSideOn': "Gli angoli delle articolazioni compaiono quando il video è filmato di lato.",
   'analysis.processing.ahead': { one: "{count} prima di te", other: "{count} prima di te" },
   'analysis.processing.background': "Continua a lavorare in background.",
