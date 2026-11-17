@@ -51,6 +51,7 @@ export const analysis: Strings<typeof en> = {
   'analysis.tracker.nextFrame': "次のフレーム",
   'analysis.tracker.scrub': "動画をスクラブ",
   'analysis.tracker.fromHands': "この動画ではバーの軌道を描けません。プレートがはっきり映っていませんでした。プレート全体が入るように真横から撮影してください。",
+  'analysis.tracker.notCounted': "無料の動画枠は消費していません。",
   'analysis.tracker.anglesSideOn': "関節角度は、真横から撮影した動画で表示されます。",
   'analysis.processing.ahead': { one: "あと{count}件待ち", other: "あと{count}件待ち" },
   'analysis.processing.background': "バックグラウンドでも処理を続けます。",

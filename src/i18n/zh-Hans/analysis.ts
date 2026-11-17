@@ -51,6 +51,7 @@ export const analysis: Strings<typeof en> = {
   'analysis.tracker.nextFrame': "下一帧",
   'analysis.tracker.scrub': "拖动浏览视频",
   'analysis.tracker.fromHands': "这段视频没有杠铃轨迹：杠铃片不够清晰。请从侧面拍摄，让整个杠铃片都在画面里。",
+  'analysis.tracker.notCounted': "这次没有占用你的免费视频额度。",
   'analysis.tracker.anglesSideOn': "从侧面拍摄的视频才会显示关节角度。",
   'analysis.processing.ahead': { one: "前面还有 {count} 个", other: "前面还有 {count} 个" },
   'analysis.processing.background': "会在后台继续处理。",

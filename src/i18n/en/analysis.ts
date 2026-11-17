@@ -47,6 +47,7 @@ export const analysis = {
   'analysis.tracker.nextFrame': 'Next frame',
   'analysis.tracker.scrub': 'Scrub through the video',
   'analysis.tracker.fromHands': "No bar path on this one: the plate was not clear. Film from the side with the whole plate in frame.",
+  'analysis.tracker.notCounted': "It did not use your free video.",
   'analysis.tracker.anglesSideOn': 'Joint angles show when the clip is filmed from the side.',
   'analysis.processing.ahead': { one: '{count} ahead of you', other: '{count} ahead of you' },
   'analysis.processing.background': 'Keeps working in the background.',
