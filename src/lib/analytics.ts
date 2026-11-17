@@ -125,7 +125,10 @@ export function identify(id: string): void {
   userId = id;
   if (!enabled) return;
   getOrCreateAnonId().then((anon) => {
+    // distinct_id is the account and $anon_distinct_id the phone's id before it: PostHog joins the two into one
+    // person. Without distinct_id the event is dropped, and every lifter counts twice (17-11-2026).
     sendEvent('$identify', {
+      distinct_id: id,
       $anon_distinct_id: anon,
       $set: { user_id: id },
     });
