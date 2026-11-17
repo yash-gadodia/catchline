@@ -43,4 +43,5 @@ export const onboarding: Strings<typeof en> = {
   'onboarding.privacy.terms': "termos",
   'onboarding.welcome.pick': "Escolher um dos seus levantamentos",
   'onboarding.welcome.film': "Filmar um levantamento agora",
+  'onboarding.welcome.sample': "Teste com um levantamento de exemplo",
 };

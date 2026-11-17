@@ -44,4 +44,5 @@ export const onboarding: Strings<typeof en> = {
   'onboarding.privacy.terms': "条款",
   'onboarding.welcome.pick': "选一段你的试举",
   'onboarding.welcome.film': "现在拍一次试举",
+  'onboarding.welcome.sample': "用示例举重试试",
 };

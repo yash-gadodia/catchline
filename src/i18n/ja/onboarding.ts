@@ -44,4 +44,5 @@ export const onboarding: Strings<typeof en> = {
   'onboarding.privacy.terms': "利用規約",
   'onboarding.welcome.pick': "自分のリフトを選ぶ",
   'onboarding.welcome.film': "今すぐリフトを撮影",
+  'onboarding.welcome.sample': "サンプルのリフトで試す",
 };

@@ -1,3 +1,4 @@
+import { EVENTS, track } from '../../src/lib/analytics';
 import { useEffect, useState } from 'react';
 import { Alert, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -23,7 +24,11 @@ export default function ImportRoute() {
   const pick = () => {
     setEmpty(false);
     pickClip().then((clip) => {
-      if (!clip) return setEmpty(true);
+      if (!clip) {
+        track(EVENTS.IMPORT_CANCELLED, {});
+        return setEmpty(true);
+      }
+      track(EVENTS.VIDEO_PICKED, { source: 'library', seconds: Math.round(clip.durationS ?? 0) });
       setDraft(clip);
       router.replace('/capture/trim');
     }, () => {
@@ -46,6 +51,6 @@ export default function ImportRoute() {
     pick();
   }, [hydrated]);
 
-  if (empty) return <ImportEmpty onPick={pick} onRecord={() => router.replace('/capture')} onCancel={leave} />;
+  if (empty) return <ImportEmpty onPick={pick} onRecord={() => router.replace('/capture')} onCancel={leave} onSample={() => router.push('/analysis/sample?from=import')} />;
   return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
 }

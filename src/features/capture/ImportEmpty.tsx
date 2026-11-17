@@ -7,7 +7,7 @@ import { Header, Underlined } from './hud';
 import { t } from '../../i18n';
 
 // The picker was cancelled (or failed): pick again, or record instead.
-export default function ImportEmpty({ onPick, onRecord, onCancel }: { onPick: () => void; onRecord: () => void; onCancel: () => void }) {
+export default function ImportEmpty({ onPick, onRecord, onCancel, onSample }: { onPick: () => void; onRecord: () => void; onCancel: () => void; onSample?: () => void }) {
   const insets = useSafeAreaInsets();
   return (
     <View testID="import-empty" style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }}>
@@ -29,6 +29,12 @@ export default function ImportEmpty({ onPick, onRecord, onCancel }: { onPick: ()
         <Btn kind="secondary" onPress={onRecord} testID="import-record">
           {t('capture.import.record')}
         </Btn>
+        {onSample ? (
+          // nothing picked: perhaps there is no lift on this phone yet
+          <Btn kind="text" onPress={onSample} testID="import-sample">
+            {t('onboarding.welcome.sample')}
+          </Btn>
+        ) : null}
       </View>
     </View>
   );

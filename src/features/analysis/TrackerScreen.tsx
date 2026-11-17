@@ -30,6 +30,8 @@ import { dragged, NO_ZOOM, pinched, type PictureZoom } from './videoZoom';
 import { t } from '../../i18n';
 import { usePurchases } from '../purchases/usePurchases';
 import { isPro } from '../paywall/entitlements';
+import { EVENTS, track } from '../../lib/analytics';
+import FirstLook, { type FirstLookKind } from './FirstLook';
 
 type Speed = 0.25 | 0.5 | 1 | 2 | 4;
 const SPEEDS: Speed[] = [0.25, 0.5, 1, 2, 4];
@@ -50,6 +52,9 @@ export default function TrackerScreen({
   onShare,
   onMore,
   reveal,
+  firstLift = false,
+  sample = false,
+  onAnother,
   lastLift,
   onSideBySide,
   onAdjustPlate,
@@ -57,7 +62,8 @@ export default function TrackerScreen({
   reduceMotion,
 }: {
   analysis: Analysis;
-  clipUri: string;
+  // the lift's kept clip, or a bundled one (the sample lift)
+  clipUri: string | number;
   body: Body | null;
   title: string;
   onBack: () => void;
@@ -66,6 +72,11 @@ export default function TrackerScreen({
   // The first look at a lift just tracked: it plays itself once at half speed, the path drawing and the body on,
   // and stops on the last frame with the next action. With Reduce Motion it opens on that last frame.
   reveal?: boolean;
+  // the result card the first look ends on: whether this is the lifter's first lift, the bundled sample, and where
+  // "track another" goes
+  firstLift?: boolean;
+  sample?: boolean;
+  onAnother?: () => void;
   // The lifter's last lift before this one, to lay its bar path on this video.
   lastLift?: LastLift | null;
   // Opens this lift next to the last lift of the same kind (two videos in step).
@@ -125,6 +136,18 @@ export default function TrackerScreen({
   const prefs = useOverlays();
   useEffect(openLiftOverlays, []);
   const overlays = revealing === 'playing' ? { ...prefs, path: true, body: true } : prefs;
+  // Once the first look has played, the lift opens on its result card; "See the detail" gives the player's controls.
+  const [look, setLook] = useState(true);
+  const lookKind: FirstLookKind = sample ? 'sample' : analysis.traceKind === 'hip' ? 'trail' : (analysis.reps[0]?.path.length ?? 0) > 0 ? 'path' : 'none';
+  const showLook = !!reveal && revealing === 'done' && look;
+  useEffect(() => {
+    if (showLook) track(EVENTS.RESULT_VIEWED, { kind: lookKind, first: firstLift });
+  }, [showLook]);
+  const lookAction = (action: 'share' | 'detail' | 'another', then?: () => void) => () => {
+    track(EVENTS.RESULT_ACTION, { action, kind: lookKind });
+    if (action === 'detail') setLook(false);
+    then?.();
+  };
   const [drawing, setDrawing] = useState(false);
   const [shapes, setShapes] = useState<Shape[]>([]);
   // the reference tools last for this look at the lift only
@@ -391,6 +414,19 @@ export default function TrackerScreen({
           <View style={{ height: 3, width: `${(Math.min(Math.max(frame - first, 0), last - first) / Math.max(last - first, 1)) * 100}%`, backgroundColor: colors.text }} />
         </View>
       </View>
+      {showLook ? (
+        <FirstLook
+          kind={lookKind}
+          first={firstLift}
+          peak={barSpeedOf?.peak?.v ?? null}
+          free={free}
+          bottomInset={insets.bottom}
+          onShare={onShare ? lookAction('share', onShare) : undefined}
+          onDetail={lookAction('detail')}
+          onAnother={onAnother ? lookAction('another', onAnother) : undefined}
+        />
+      ) : (
+      <>
       <View style={{ borderBottomWidth: stroke.hairline, borderBottomColor: colors.hairline }}>
         <FadeRow testID="tracker-controls" contentContainerStyle={{ gap: space.s2, paddingHorizontal: space.gutter, paddingBottom: space.s2, alignItems: 'center' }}>
           <Chip testID="step-back" label={t('analysis.tracker.prevFrame')} on onPress={() => step(-1)}>
@@ -553,6 +589,8 @@ export default function TrackerScreen({
           </Btn>
         ) : null}
       </View>
+      </>
+      )}
     </View>
   );
 }

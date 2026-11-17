@@ -40,4 +40,5 @@ export const onboarding = {
   'onboarding.privacy.terms': "terms",
   'onboarding.welcome.pick': "Pick one of your lifts",
   'onboarding.welcome.film': "Film a lift now",
+  'onboarding.welcome.sample': "Try it on a sample lift",
 } as const;

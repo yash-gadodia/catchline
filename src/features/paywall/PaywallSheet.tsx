@@ -1,3 +1,4 @@
+import { EVENTS, track } from '../../lib/analytics';
 import { useState } from 'react';
 import { ScrollView, Text, View, useWindowDimensions } from 'react-native';
 import Btn from '../../components/Btn';
@@ -123,7 +124,7 @@ export default function PaywallSheet({
                 <Price amount={priceFor(planOf('pro', period))} suffix={t(period === 'annual' ? 'paywall.perYr' : 'paywall.perMo')} />
               </OptionCard>
               {seats && foundingState(seats) !== 'soldOut' ? (
-                <OptionCard selected={choice === 'founding'} onPress={() => setChoice('founding')} testID="plan-founding">
+                <OptionCard selected={choice === 'founding'} onPress={() => { track(EVENTS.PAYWALL_PLAN_SELECTED, { plan: 'founding' }); setChoice('founding'); }} testID="plan-founding">
                   <View style={{ flex: 1 }}>
                     <Text style={{ color: colors.text, ...type.label, fontFamily: fontFamily.body }}>{t('paywall.founding')}</Text>
                     <Text testID="founding-seats" style={{ color: colors.text, ...type.readout }}>
