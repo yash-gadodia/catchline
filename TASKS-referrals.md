@@ -65,6 +65,29 @@ Done on feat/referrals: StoryRenderer.swift (9:16, peak bar speed counting up, h
 - [ ] (Claude) Home-screen widget; win-back offers (deferred)
 - [ ] (Yash) Mini: decide on an external SSD for builds, Docker and worktrees (the disk watchdog only buys headroom)
 
+## First lift is the product (Yash, 17-11-2026)
+
+The first lift after download has to be the "wow". Judge product work by whether a new lifter reaches a tracked bar path fast and finds it impressive. Measured in PostHog project 686264 (dashboard 2365960).
+
+Baseline, 12 to 17 Nov, not filtered for Yash's own devices:
+- 58 phones opened the app; 39 of them opened it exactly once.
+- 38 accounts started a track, 32 finished one (6 started and never finished).
+- Of the 32, 24 got a bar path; 8 tracked lifts and never got one.
+- First track took 60 s at the median, 150 s at the 90th percentile.
+- 14 did a second lift; 4 lifted on a second day; 7 exported a share; 18 saw the paywall.
+- Opens and tracks cannot be joined per person until the identity fix (1b0e946) reaches phones.
+
+Seen walking a fresh install on the simulator (17-11): picking a video is followed by iOS asking for full Photos access; a "Check the plate" confirmation; about a minute of waiting; the result opens on the full player with every control, no reveal; a lift with no bar path still uses the week's one free video (devicePipeline.ts countLift skips only failures).
+
+- [ ] (Claude) OTA the identity fix to 4.0.3 (needs Yash's go), then re-read the funnel per person after 3 days
+- [ ] (Yash/Dani) Decide: a first lift with no bar path should not use the free video (or the first 3 lifts are free, then 1 a week)
+- [ ] (Claude) Events for the gaps: onboarding step seen, video picked, plate check shown / confirmed / skipped, track cancelled, result seen for 5 s; purchase started and plan tapped
+- [ ] (Claude) Why 34% of phones never start a track: read the new events, then fix the largest step
+- [ ] (Claude) The reveal: the first result plays the path drawing over the lift with the peak speed, then offers Share, before the full player
+- [ ] (Claude) The 8 with no bar path: say why (angle, plate out of frame) and offer a free retry with a filming tip
+- [ ] (Claude) The wait: show the frames being tracked and what the lifter is about to see
+- [ ] (Claude) Why Photos full access is asked after the private picker already returned the video; remove it if it is not needed
+
 ## Notes
 - 0025 was numbered past flywheel's unapplied 0024; pushing 0024 later needs `supabase db push --include-all`.
 - Free tier 1 a week changes behaviour for live users the moment the OTA lands.
