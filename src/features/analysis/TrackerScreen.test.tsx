@@ -203,7 +203,8 @@ describe('TrackerScreen first look (reveal)', () => {
     await at(150);
     expect(getByTestId('path-done')).toBeOnTheScreen();
     expect(getByTestId('tracker-body')).toBeOnTheScreen();
-    expect(queryByTestId('tracker-share')).toBeNull();
+    // Share is there from the first frame, not only once the first look has played
+    expect(getByTestId('tracker-share')).toBeOnTheScreen();
     expect(useOverlays.getState()).toMatchObject({ path: true, body: true });
   });
 

@@ -587,8 +587,9 @@ export default function TrackerScreen({
           ) : null}
         </View>
         {barSpeedOf && charted ? <SpeedChart at={barSpeedOf.at} frame={frame} first={first} last={last} rep={repAt(starts, frame)} onSeek={seek} fps={fps} zoom={zoom} onZoom={setZoom} /> : null}
-        {onShare && revealing !== 'playing' ? (
-          <Btn kind={revealing === 'done' ? 'primary' : 'secondary'} compact={revealing !== 'done'} onPress={onShare} testID="tracker-share">
+        {/* always there: hidden while the first look played, the space under the video looked broken (17-11-2026) */}
+        {onShare ? (
+          <Btn kind={revealing ? 'primary' : 'secondary'} compact={!revealing} onPress={onShare} testID="tracker-share">
             {t('analysis.player.share')}
           </Btn>
         ) : null}
