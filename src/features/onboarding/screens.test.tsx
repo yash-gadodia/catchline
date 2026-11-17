@@ -37,6 +37,14 @@ describe('Welcome', () => {
     expect(onFilm).toHaveBeenCalledTimes(1);
   });
 
+  it('offers the bundled sample lift to someone with no video of their own, when the screen is given it', async () => {
+    const onSample = jest.fn();
+    const screen = await render(<WelcomeScreen onPick={jest.fn()} onFilm={jest.fn()} onSample={onSample} />);
+    fireEvent.press(screen.getByText('Try it on a sample lift'));
+    expect(onSample).toHaveBeenCalledTimes(1);
+    screen.unmount();
+  });
+
   it('with Reduce Motion shows one still of the sample with its whole bar path', async () => {
     const screen = await render(<WelcomeScreen onPick={jest.fn()} onFilm={jest.fn()} reduceMotion />);
     const player = (useVideoPlayer as jest.Mock).mock.results[0].value;
