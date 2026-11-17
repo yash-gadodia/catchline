@@ -85,11 +85,15 @@ Seen walking a fresh install on the simulator (17-11): picking a video is follow
 - [x] A lift with no path drawn does not use the free video, and the player says so (2731309, live on all three runtimes 17-11)
 - [x] Three quiet reminders (1, 3 and 7 days) for a phone that never tracked a lift; the first lift cancels them (edd611b, live 17-11). Only reaches phones that open the app after the update
 - [ ] (Claude) Measure the reminders: `nudges_scheduled`, `nudge_opened`, then a track within a day
-- [ ] (Claude) Events for the gaps: onboarding step seen, video picked, plate check shown / confirmed / skipped, track cancelled, result seen for 5 s; purchase started and plan tapped
+- [x] Events for the gaps (7fd143d, live 17-11): welcome_viewed, welcome_choice, video_picked, import_cancelled, plate_check_shown / _result, track_cancelled, sample_opened, result_viewed, result_action, paywall_plan_selected, purchase_started, purchase_not_completed
 - [ ] (Claude) Why 34% of phones never start a track: read the new events, then fix the largest step
-- [ ] (Claude) The reveal: the first result plays the path drawing over the lift with the peak speed, then offers Share, before the full player
-- [ ] (Claude) The 8 with no bar path: say why (angle, plate out of frame) and offer a free retry with a filming tip
-- [ ] (Claude) The wait: show the frames being tracked and what the lifter is about to see
+- [x] The reveal (live 17-11): after the first look the lift opens on a result card (FirstLook.tsx): "Your first bar path", peak bar speed, Share, See the detail, Track another. A tap during the first look skips the card
+- [x] A sample lift (the bundled one) from the welcome screen and from a cancelled picker, in the real player (app/analysis/sample.tsx)
+- [ ] (Claude) Read on 20-11: welcome_choice split, sample_opened then video_picked, result_action split; then fix the largest step
+- [x] No bar path: the card says so, gives three filming tips, says the free video was kept, and offers another video (live 17-11; seen in tests, not yet on a simulator)
+- [ ] (Claude) Say the actual cause per lift (angle, plate cut off, too dark) instead of three general tips
+- [x] The wait lists its three real steps and what comes next (live 17-11)
+- [ ] (Claude) Draw the plate and joints on the clip as they are found: needs the native pass to report them, so a store build
 - [ ] (Claude) Why Photos full access is asked after the private picker already returned the video; remove it if it is not needed
 
 ## Notes
