@@ -28,6 +28,8 @@ import type { LastLift } from './useLastLift';
 import { ANGLE_MAX_OFF_SIDE_DEG, drawnSide, frameAt, jointAngles, joints, liftRange, repAt, repStarts, spread, startLineX, timeOf } from './tracker';
 import { dragged, NO_ZOOM, pinched, type PictureZoom } from './videoZoom';
 import { t } from '../../i18n';
+import { usePurchases } from '../purchases/usePurchases';
+import { isPro } from '../paywall/entitlements';
 
 type Speed = 0.25 | 0.5 | 1 | 2 | 4;
 const SPEEDS: Speed[] = [0.25, 0.5, 1, 2, 4];
@@ -76,6 +78,8 @@ export default function TrackerScreen({
 }) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  // a free lifter is told that a lift with no bar path left their weekly video untouched
+  const free = !isPro(usePurchases((st) => st.tier));
   // Frames are spread over the clip's real length: the recorded rate is one over the shortest frame gap, which runs
   // fast on a clip with uneven frame timing and would slide the overlay off the picture.
   const [duration, setDuration] = useState(0);
@@ -533,6 +537,7 @@ export default function TrackerScreen({
           {!path.length && analysis.traceKind === 'bar' ? (
             <Text testID="tracker-note-hands" style={{ ...type.caption, color: colors.text2 }}>
               {t('analysis.tracker.fromHands')}
+              {free ? ` ${t('analysis.tracker.notCounted')}` : ''}
             </Text>
           ) : null}
           {body !== null && !anglesOk ? (

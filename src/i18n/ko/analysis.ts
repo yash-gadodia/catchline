@@ -51,6 +51,7 @@ export const analysis: Strings<typeof en> = {
   'analysis.tracker.nextFrame': "다음 프레임",
   'analysis.tracker.scrub': "영상 탐색",
   'analysis.tracker.fromHands': "이 영상에서는 바 궤적을 그릴 수 없어요. 원판이 선명하게 보이지 않았어요. 원판 전체가 나오도록 옆에서 촬영해 주세요.",
+  'analysis.tracker.notCounted': "무료 영상 횟수는 차감되지 않았어요.",
   'analysis.tracker.anglesSideOn': "관절 각도는 옆에서 촬영한 영상에서 표시돼요.",
   'analysis.processing.ahead': { one: "앞에 {count}개 대기 중", other: "앞에 {count}개 대기 중" },
   'analysis.processing.background': "백그라운드에서도 계속 진행돼요.",

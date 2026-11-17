@@ -314,6 +314,17 @@ describe('startDeviceLift on a path-only result (a gate after "person found" fai
   });
 });
 
+describe('startDeviceLift on a result with no path (the plate was not clear)', () => {
+  it('is a lift the lifter keeps, and it does not use a free video', async () => {
+    mockTrace.mockReturnValue({ ...snatchMock, reps: [{ ...snatchMock.reps[0], path: [] }] });
+    await startDeviceLift(SUB);
+    expect(usePipeline.getState().job?.status).toBe('done');
+    expect(useUsage.getState().usage.lifetime).toBe(0);
+    expect(writeFreeUsed).not.toHaveBeenCalled();
+    expect(track).toHaveBeenCalledWith('track_completed', expect.objectContaining({ has_bar_path: false }));
+  });
+});
+
 describe('startDeviceLift when the analysis fails', () => {
   it('records the failure code without counting the lift, keeps the failed analysis for the failure screen', async () => {
     mockTrace.mockReturnValue({ ...snatchMock, failure: { reason: 'clip_cut_off', message: 'm', code: 'no_reps' } });
