@@ -42,10 +42,11 @@ Done on feat/referrals: StoryRenderer.swift (9:16, peak bar speed counting up, h
 - [ ] (Claude) "Founding member #N" on a founding member's end card
 - [ ] (Claude) Story render watched in the real app on the simulator (the Mini has a dev client: sim udid in ~/scratch/sim-udid, build in ~/scratch/simbuild)
 - [ ] (Claude) Full clip gate (`scripts/eval31/gate.sh --check`, native code changed), version 4.0.5, store build, scripts/store-build.json
-- [ ] (Yash) Phone pass on TestFlight, then the go to submit 4.0.5
+- [x] 4.0.5 (build 50) submitted for review 17-11 on Yash's go, manual release, before a phone pass
+- [ ] (Yash) Phone pass on TestFlight before releasing 4.0.5: track a clip, share as a story, try the Instagram and TikTok buttons
 
 ### After Apple approves 4.0.4 (WAITING_FOR_REVIEW since 15-11, manual release; both custom product pages too)
-- [ ] (Yash) Release 4.0.4
+- [x] 4.0.4 released 17-11
 - [ ] (Claude) OTA to runtime 4.0.4: the rating explanation sheet (70fa37d), the founding seat line and "invite 1 friend a month" (4c442a2, 340a7d9). 4.0.3 already has the last two (update group c6167837)
 - [ ] (Claude) Read the App Store analytics reports for traffic sources (ONE_TIME_SNAPSHOT f8635a8e, ONGOING 3ca2b793)
 
@@ -79,8 +80,11 @@ Baseline, 12 to 17 Nov, not filtered for Yash's own devices:
 
 Seen walking a fresh install on the simulator (17-11): picking a video is followed by iOS asking for full Photos access; a "Check the plate" confirmation; about a minute of waiting; the result opens on the full player with every control, no reveal; a lift with no bar path still uses the week's one free video (devicePipeline.ts countLift skips only failures).
 
-- [ ] (Claude) OTA the identity fix to 4.0.3 (needs Yash's go), then re-read the funnel per person after 3 days
-- [ ] (Yash/Dani) Decide: a first lift with no bar path should not use the free video (or the first 3 lifts are free, then 1 a week)
+- [x] (Claude) Identity fix live on 4.0.3, 4.0.4 and 4.0.5 (17-11)
+- [ ] (Claude) Re-read the funnel per person on 20-11, once phones have the fix
+- [x] A lift with no path drawn does not use the free video, and the player says so (2731309, live on all three runtimes 17-11)
+- [x] Three quiet reminders (1, 3 and 7 days) for a phone that never tracked a lift; the first lift cancels them (edd611b, live 17-11). Only reaches phones that open the app after the update
+- [ ] (Claude) Measure the reminders: `nudges_scheduled`, `nudge_opened`, then a track within a day
 - [ ] (Claude) Events for the gaps: onboarding step seen, video picked, plate check shown / confirmed / skipped, track cancelled, result seen for 5 s; purchase started and plan tapped
 - [ ] (Claude) Why 34% of phones never start a track: read the new events, then fix the largest step
 - [ ] (Claude) The reveal: the first result plays the path drawing over the lift with the peak speed, then offers Share, before the full player
