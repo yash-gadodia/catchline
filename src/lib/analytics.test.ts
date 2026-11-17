@@ -148,6 +148,10 @@ describe('analytics — enabled mode (key set)', () => {
     const body = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
     expect(body.event).toBe('$identify');
     expect(body.properties.$set.user_id).toBe('uid-abc');
+    // the account, joined to the phone's anonymous id: without both PostHog keeps them as two people
+    expect(body.properties.distinct_id).toBe('uid-abc');
+    expect(typeof body.properties.$anon_distinct_id).toBe('string');
+    expect(body.properties.$anon_distinct_id).not.toBe('uid-abc');
   });
 
   it('fetch errors are swallowed and do not throw', async () => {
