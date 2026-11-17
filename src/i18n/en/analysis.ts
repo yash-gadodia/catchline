@@ -136,6 +136,7 @@ export const analysis = {
   'analysis.tracker.barSpeed': "{now} m/s · peak {peak}",
   'analysis.tracker.comparing': "Dotted line: {when}",
   'analysis.reveal.first': "Your first bar path",
+  'analysis.reveal.peak': "peak bar speed",
   'analysis.reveal.detail': "See the detail",
   'analysis.reveal.another': "Track another lift",
   'analysis.reveal.none.title': "No bar path on this one",

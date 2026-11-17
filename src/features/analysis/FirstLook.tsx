@@ -39,7 +39,7 @@ export default function FirstLook({
           {peak.toFixed(2)}
           <Text style={[display(28), { color: colors.flare }]}> m/s</Text>
         </Text>
-        <Text style={{ ...type.callout, color: colors.text2 }}>{t('share.story.peak')}</Text>
+        <Text style={{ ...type.callout, color: colors.text2 }}>{t('analysis.reveal.peak')}</Text>
       </View>
     );
   return (

@@ -142,6 +142,7 @@ export const analysis: Strings<typeof en> = {
   'analysis.tracker.barSpeed': "{now} m/s · Spitze {peak}",
   'analysis.tracker.comparing': "Gepunktete Linie: {when}",
   'analysis.reveal.first': "Dein erster Hantelweg",
+  'analysis.reveal.peak': "höchste Hantelgeschwindigkeit",
   'analysis.reveal.detail': "Details ansehen",
   'analysis.reveal.another': "Weiteren Lift tracken",
   'analysis.reveal.none.title': "Kein Hantelweg in diesem Video",
