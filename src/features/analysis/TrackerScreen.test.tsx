@@ -239,18 +239,20 @@ describe('TrackerScreen first look (reveal)', () => {
     expect(getByTestId('first-look-share')).toBeOnTheScreen();
   });
 
-  it('names the first lift, and a lift with no bar path says how to film the next one and offers another video', async () => {
-    const first = await show(lifted, body, { reveal: true, reduceMotion: true, firstLift: true, onShare: () => {} });
-    expect(first.getByTestId('first-look-first')).toHaveTextContent('Your first bar path');
-    first.unmount();
+  it('names the first lift on its result card', async () => {
+    const { getByTestId } = await show(lifted, body, { reveal: true, reduceMotion: true, firstLift: true, onShare: () => {} });
+    expect(getByTestId('first-look-first')).toHaveTextContent('Your first bar path');
+  });
+
+  it('a lift with no bar path says how to film the next one and offers another video', async () => {
     const onAnother = jest.fn();
-    const none = await show({ ...lifted, reps: [{ ...lifted.reps[0], path: [] }] }, body, { reveal: true, reduceMotion: true, onShare: () => {}, onAnother });
-    expect(none.getByText('No bar path on this one')).toBeOnTheScreen();
-    expect(none.getByText('Film from the side, not from the front.')).toBeOnTheScreen();
-    expect(none.queryByTestId('first-look-share')).toBeNull();
-    await press(none.getByTestId('first-look-another'));
+    const { getByText, getByTestId, queryByTestId } = await show({ ...lifted, reps: [{ ...lifted.reps[0], path: [] }] }, body, { reveal: true, reduceMotion: true, onShare: () => {}, onAnother });
+    expect(getByText('No bar path on this one')).toBeOnTheScreen();
+    expect(getByText('Film from the side, not from the front.')).toBeOnTheScreen();
+    expect(queryByTestId('first-look-share')).toBeNull();
+    expect(getByTestId('first-look-detail')).toHaveTextContent('See the body lines');
+    await press(getByTestId('first-look-another'));
     expect(onAnother).toHaveBeenCalledTimes(1);
-    expect(none.getByTestId('first-look-detail')).toHaveTextContent('See the body lines');
   });
 
   it('the sample lift offers the lifter their own lift, not a share', async () => {
