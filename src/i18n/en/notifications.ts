@@ -11,4 +11,10 @@ export const notifications = {
   'notifications.ready.body': "Tap to see the bar path on your video.",
   'notifications.ready.failedTitle': "We couldn't track your clip",
   'notifications.ready.failedBody': "Tap to see why, and what to try next.",
+  'notifications.nudge1.title': "Your first bar path takes about a minute",
+  'notifications.nudge1.body': "Pick any lift video from your camera roll. Catchline draws the bar path on it, on your phone.",
+  'notifications.nudge2.title': "Got a lift on video?",
+  'notifications.nudge2.body': "Open Catchline to see its bar path and bar speed. The video stays on your phone.",
+  'notifications.nudge3.title': "One video is all it takes",
+  'notifications.nudge3.body': "Film your next lift from the side, and see the bar path drawn on it.",
 } as const;

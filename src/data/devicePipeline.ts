@@ -1,4 +1,5 @@
 import { AppState } from 'react-native';
+import { cancelFirstLiftNudges } from '../features/notifications/nudges';
 import { File } from 'expo-file-system';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { gunzipSync, strFromU8 } from 'fflate';
@@ -261,6 +262,7 @@ async function runDeviceLift(sub: ClipSubmission & { uri: string }, liftId: stri
       track(EVENTS.ANALYSIS_FAILED, { movement: sub.movement, code: record.failureCode ?? 'unknown' });
       patch({ status: 'failed', error: 'analysis_failed', result: local });
     } else {
+      void cancelFirstLiftNudges().catch(() => undefined);
       track(EVENTS.TRACK_COMPLETED, { seconds: Math.round((Date.now() - startedAt) / 1000), frames: local.video.frameCount, has_bar_path: hasBarPath(local), mark });
       track(EVENTS.ANALYSIS_COMPLETED, { movement: sub.movement, cue_confidence: local.cue?.confidence ?? 'none', no_cue_code: record.noCueCode ?? 'none', made: record.made ?? 'unknown' });
       patch({ status: 'done', result: local });

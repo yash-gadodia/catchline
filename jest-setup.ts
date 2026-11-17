@@ -319,7 +319,8 @@ jest.mock('expo-notifications', () => ({
   getExpoPushTokenAsync: jest.fn(() => Promise.resolve({ data: 'ExponentPushToken[test-token]', type: 'expo' })),
   getLastNotificationResponseAsync: jest.fn(() => Promise.resolve(null)),
   addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
-  SchedulableTriggerInputTypes: { DAILY: 'daily' },
+  SchedulableTriggerInputTypes: { DAILY: 'daily', TIME_INTERVAL: 'timeInterval' },
+  IosAuthorizationStatus: { NOT_DETERMINED: 0, DENIED: 1, AUTHORIZED: 2, PROVISIONAL: 3, EPHEMERAL: 4 },
   setNotificationHandler: jest.fn(),
 }));
 
