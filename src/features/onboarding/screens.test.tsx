@@ -40,9 +40,8 @@ describe('Welcome', () => {
   it('offers the bundled sample lift to someone with no video of their own, when the screen is given it', async () => {
     const onSample = jest.fn();
     const screen = await render(<WelcomeScreen onPick={jest.fn()} onFilm={jest.fn()} onSample={onSample} />);
-    fireEvent.press(screen.getByText('Try it on a sample lift'));
+    await press(screen.getByText('Try it on a sample lift'));
     expect(onSample).toHaveBeenCalledTimes(1);
-    screen.unmount();
   });
 
   it('with Reduce Motion shows one still of the sample with its whole bar path', async () => {
