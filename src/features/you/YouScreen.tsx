@@ -156,10 +156,12 @@ export default function YouScreen({
         />
         <Row title={t('you.whatsNew')} right={<Value>›</Value>} onPress={nav.onWhatsNew} last testID="row-whats-new" />
         <BuildLine />
-        <Text style={{ color: colors.text2, ...type.readout }} testID="you-made-by">
+        <Text style={{ color: colors.text2, ...type.readout, paddingTop: space.s5 }} testID="you-made-by">
           {t('you.madeBy')}
         </Text>
       </ScrollView>
+      {/* rows scroll under the clock and the battery otherwise */}
+      <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: insets.top, backgroundColor: colors.bg }} testID="you-status-cover" />
 
       {picker === 'name' && account?.name && !live ? (
         <NameSheet
