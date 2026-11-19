@@ -51,6 +51,9 @@ export const EVENTS = {
   FEEDBACK_ASK_LATER: 'feedback_ask_later',
   FEEDBACK_NOTIFICATION_OPENED: 'feedback_notification_opened',
   FEEDBACK_SENT: 'feedback_sent',
+  // the kind of lift: the lifter's pick on a lift, and the Lifts list switched between days and kinds
+  LIFT_KIND_SET: 'lift_kind_set',
+  LIFTS_GROUPED: 'lifts_grouped',
 } as const;
 
 export type EventName = (typeof EVENTS)[keyof typeof EVENTS];

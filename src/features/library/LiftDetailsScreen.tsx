@@ -6,6 +6,8 @@ import TopBar from '../../components/TopBar';
 import { colors, control, shape, space, stroke } from '../../design/tokens';
 import { type } from '../../design/typography';
 import { t } from '../../i18n';
+import { KINDS, KIND_MAX, kindLabel, setLiftKind } from './liftNames';
+import { EVENTS, track } from '../../lib/analytics';
 import { NAME_MAX, NOTE_MAX, TAGS_MAX, TAG_MAX, addLiftTag, detailsOf, removeLiftTag, setLiftDetails, tagSuggestions, useLiftDetails } from './liftDetails';
 
 // A TextInput takes the face and size of a type style but no lineHeight: on iOS a lineHeight shifts the caret and the text.
@@ -33,6 +35,9 @@ const chip = {
 export default function LiftDetailsScreen({
   id,
   kind,
+  kindId = null,
+  picked = false,
+  own = [],
   title,
   back,
   onBack,
@@ -40,6 +45,10 @@ export default function LiftDetailsScreen({
   id: string;
   // What the app read the lift as (Snatch): shown while the lifter has not named it.
   kind: string | null;
+  // The kind as stored (a KINDS id or the lifter's own words), whether the lifter picked it, and their own kinds so far.
+  kindId?: string | null;
+  picked?: boolean;
+  own?: string[];
   title: string;
   back: string;
   onBack: () => void;
@@ -50,6 +59,11 @@ export default function LiftDetailsScreen({
   const [name, setName] = useState(saved.name);
   const [note, setNote] = useState(saved.note);
   const [tag, setTag] = useState('');
+  const [ownKind, setOwnKind] = useState('');
+  const pick = (k: string | null) => {
+    setLiftKind(id, k);
+    track(EVENTS.LIFT_KIND_SET, { kind: !k ? 'cleared' : (KINDS as readonly string[]).includes(k) ? k : 'own' });
+  };
   const full = saved.tags.length >= TAGS_MAX;
   const suggestions = full ? [] : tagSuggestions(all, id, tag);
   const add = (raw: string) => {
@@ -69,6 +83,46 @@ export default function LiftDetailsScreen({
         testID="details-scroll"
         contentContainerStyle={{ paddingHorizontal: space.gutter, paddingTop: space.s4, paddingBottom: Math.max(insets.bottom, space.s4) + space.s5, gap: space.s5 }}
       >
+        <View style={{ gap: space.s2 }}>
+          <SmallCaps>{t('library.details.kind')}</SmallCaps>
+          <View testID="details-kinds" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.s2 }}>
+            {[...KINDS, ...own.filter((k) => !(KINDS as readonly string[]).includes(k))].map((k) => {
+              const on = kindId === k;
+              return (
+                <Pressable
+                  key={k}
+                  // a second tap on the lifter's own pick clears it, back to what the app read
+                  onPress={() => pick(on && picked ? null : k)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: on }}
+                  hitSlop={2}
+                  testID={`details-kind-${k}`}
+                  style={[chip, { borderColor: on ? colors.text : colors.hairline }]}
+                >
+                  <Text style={{ ...type.caption, color: on ? colors.text : colors.text2 }}>{kindLabel(k)}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <TextInput
+            value={ownKind}
+            onChangeText={setOwnKind}
+            onSubmitEditing={() => {
+              if (ownKind.trim()) pick(ownKind);
+              setOwnKind('');
+            }}
+            submitBehavior="submit"
+            maxLength={KIND_MAX}
+            autoCorrect={false}
+            placeholder={t('library.details.kindPlaceholder')}
+            placeholderTextColor={colors.text3}
+            returnKeyType="done"
+            accessibilityLabel={t('library.details.kindPlaceholder')}
+            testID="details-kind-input"
+            style={[input, { height: control.height }]}
+          />
+        </View>
+
         <View style={{ gap: space.s2 }}>
           <SmallCaps>{t('library.details.name')}</SmallCaps>
           <TextInput

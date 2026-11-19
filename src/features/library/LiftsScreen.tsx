@@ -11,10 +11,11 @@ import Row from '../../components/Row';
 import SmallCaps from '../../components/SmallCaps';
 import { colors, control, shape, space, stroke } from '../../design/tokens';
 import { display, fontFamily, type } from '../../design/typography';
-import { byDay, freeVideosLabel, liftDetail, liftTime } from './derive';
+import { byDay, byKind, freeVideosLabel, liftDetail, liftTime, liftTitle } from './derive';
 import { fmt } from '../../analysis/format';
 import { detailsOf, matchesSearch, useLiftDetails } from './liftDetails';
-import { kindsOf, liftKind, useLiftNames } from './liftNames';
+import { kindsOf, liftKind, useLiftNames, useLiftsView } from './liftNames';
+import { EVENTS, track } from '../../lib/analytics';
 import FadeRow from '../analysis/FadeRow';
 import { t } from '../../i18n';
 import { useLibrary } from './repository';
@@ -42,20 +43,24 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
   // the kinds of lift in the list (Snatch, Clean and jerk): one tap keeps the list to a kind
   const shapes = useLiftNames((n) => n.shapes);
   const idOf = (l: Lift) => l.analysisId ?? l.id;
-  const kinds = kindsOf(shapes, lib.lifts.filter((l) => l.status === 'done').map(idOf));
+  const chosen = useLiftNames((n) => n.chosen);
+  const kindOf = (l: Lift) => (l.status === 'done' ? liftKind(shapes, idOf(l), chosen) : null);
+  const kinds = kindsOf(shapes, lib.lifts.filter((l) => l.status === 'done').map(idOf), chosen);
+  // one group per kind of lift, once any lift has a kind; the history by day otherwise
+  const grouped = useLiftsView((v) => v.by) === 'kind' && kinds.length > 0;
   const [only, setOnly] = useState<string | null>(null);
-  const kind = only && kinds.includes(only) ? only : null;
+  const kind = !grouped && only && kinds.includes(only) ? only : null;
   const details = useLiftDetails((d) => d.details);
   const [query, setQuery] = useState('');
   const searchable = lib.lifts.length >= SEARCH_MIN;
   const q = searchable ? query.trim() : '';
-  const ofKind = kind ? lib.lifts.filter((l) => l.status === 'done' && liftKind(shapes, idOf(l)) === kind) : lib.lifts;
+  const ofKind = kind ? lib.lifts.filter((l) => kindOf(l) === kind) : lib.lifts;
   // the search reads what the row shows (name, kind, tags, note, load), with and without the unit
   const shown = q
     ? ofKind.filter((l) => {
         const d = detailsOf(details, idOf(l));
         const load = l.loadKg != null ? [`${fmt(l.loadKg)} kg`, `${fmt(l.loadKg)}kg`, `${l.loadKg}kg`] : [];
-        return matchesSearch(q, [d.name, l.status === 'done' ? liftKind(shapes, idOf(l)) : null, ...d.tags, d.note, liftDetail(l), ...load]);
+        return matchesSearch(q, [d.name, kindOf(l), ...d.tags, d.note, liftDetail(l), ...load]);
       })
     : ofKind;
   const chip = freeVideosLabel(backendEnabled() ? { plan: tier === 'free' ? 'free' : 'paid', freeVideosUsed: used } : lib);
@@ -130,7 +135,26 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
           ) : null}
         </View>
       ) : null}
-      {kinds.length > 1 ? (
+      {kinds.length > 0 ? (
+        <View testID="lifts-view" style={{ flexDirection: 'row', gap: space.s2 }}>
+          {(['day', 'kind'] as const).map((by) => (
+            <Pressable
+              key={by}
+              testID={`lifts-by-${by}`}
+              accessibilityRole="button"
+              accessibilityState={{ selected: grouped === (by === 'kind') }}
+              onPress={() => {
+                useLiftsView.setState({ by });
+                track(EVENTS.LIFTS_GROUPED, { by });
+              }}
+              style={{ height: control.chipHeight, paddingHorizontal: space.s3, justifyContent: 'center', borderWidth: stroke.hairline, borderColor: grouped === (by === 'kind') ? colors.text : colors.hairline, ...shape.control }}
+            >
+              <Text style={{ ...type.caption, color: grouped === (by === 'kind') ? colors.text : colors.text2 }}>{t(by === 'day' ? 'library.lifts.byDate' : 'library.lifts.byKind')}</Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
+      {!grouped && kinds.length > 1 ? (
         <View style={{ marginHorizontal: -space.gutter }}>
           <FadeRow testID="kind-filter" contentContainerStyle={{ gap: space.s2, paddingHorizontal: space.gutter }}>
             {[null, ...kinds].map((k) => (
@@ -155,28 +179,41 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
           <Underlined onPress={() => setQuery('')} testID="lifts-no-match-clear">{t('library.search.clear')}</Underlined>
         </View>
       ) : null}
-      {byDay(shown).map((g) => (
-        <View key={g.day} testID={`day-${g.day}`} style={{ gap: space.s2 }}>
-          <SmallCaps>{g.label}</SmallCaps>
-          <View>
-            {g.lifts.map((l) => (
-              <LiftRow key={l.id} lift={l} nav={nav} />
-            ))}
-          </View>
-        </View>
-      ))}
+      {grouped
+        ? byKind(shown, kindOf).map((g) => (
+            <View key={g.kind ?? 'none'} testID={`kind-group-${g.kind ?? 'none'}`} style={{ gap: space.s2 }}>
+              <SmallCaps>{`${g.label} · ${g.lifts.length}`}</SmallCaps>
+              <View>
+                {g.lifts.map((l) => (
+                  <LiftRow key={l.id} lift={l} nav={nav} dated />
+                ))}
+              </View>
+            </View>
+          ))
+        : byDay(shown).map((g) => (
+            <View key={g.day} testID={`day-${g.day}`} style={{ gap: space.s2 }}>
+              <SmallCaps>{g.label}</SmallCaps>
+              <View>
+                {g.lifts.map((l) => (
+                  <LiftRow key={l.id} lift={l} nav={nav} />
+                ))}
+              </View>
+            </View>
+          ))}
     </ScrollView>
   );
 }
 
-function LiftRow({ lift, nav }: { lift: Lift; nav: LiftsNav }) {
+// `dated`: the row sits under its kind, not its day, so it is titled by its date.
+function LiftRow({ lift, nav, dated = false }: { lift: Lift; nav: LiftsNav; dated?: boolean }) {
   const muted = lift.status === 'queued';
   // a tracked lift whose kind was read is titled by it, with the time moved to the line under
-  const kind = useLiftNames((n) => (lift.status === 'done' ? liftKind(n.shapes, lift.analysisId ?? lift.id) : null));
+  const kind = useLiftNames((n) => (lift.status === 'done' ? liftKind(n.shapes, lift.analysisId ?? lift.id, n.chosen) : null));
   // the lifter's own name for it comes first; tags and the start of the note sit under the row's own lines
   const mine = useLiftDetails((d) => detailsOf(d.details, lift.analysisId ?? lift.id));
-  const name = mine.name || kind;
-  const detail = name ? [liftTime(lift), liftDetail(lift)].filter(Boolean).join(' · ') : liftDetail(lift);
+  const name = mine.name || (dated ? null : kind);
+  const when = dated ? liftTitle(lift) : liftTime(lift);
+  const detail = name ? [when, liftDetail(lift)].filter(Boolean).join(' · ') : liftDetail(lift);
   const thumb =
     lift.status === 'processing' ? (
       <Pulse>
@@ -194,7 +231,7 @@ function LiftRow({ lift, nav }: { lift: Lift; nav: LiftsNav }) {
       {thumb}
       <View style={{ flex: 1, gap: 2 }}>
         <Text testID={`lift-title-${lift.id}`} style={{ color: muted ? colors.text2 : colors.text, ...type.button }}>
-          {name ?? liftTime(lift)}
+          {name ?? when}
         </Text>
         {detail ? (
           <Text testID={`lift-detail-${lift.id}`} numberOfLines={1} style={{ color: colors.text2, ...type.readout }}>
