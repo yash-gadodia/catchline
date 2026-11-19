@@ -45,6 +45,12 @@ export const EVENTS = {
   RATING_ASK_SHOWN: 'rating_ask_shown',
   RATING_ASK_RATE: 'rating_ask_rate',
   RATING_ASK_LATER: 'rating_ask_later',
+  // the feedback ask: the sheet after two lifts, and the one notification for a lifter who did not come back
+  FEEDBACK_ASK_SHOWN: 'feedback_ask_shown',
+  FEEDBACK_ASK_GIVE: 'feedback_ask_give',
+  FEEDBACK_ASK_LATER: 'feedback_ask_later',
+  FEEDBACK_NOTIFICATION_OPENED: 'feedback_notification_opened',
+  FEEDBACK_SENT: 'feedback_sent',
 } as const;
 
 export type EventName = (typeof EVENTS)[keyof typeof EVENTS];

@@ -26,6 +26,8 @@ export const notifications: Strings<typeof en> = {
   'notifications.ready.failedTitle': "Wir konnten dein Video nicht erfassen",
   // REVIEW
   'notifications.ready.failedBody': "Tippe, um zu sehen, warum und was du als Nächstes versuchen kannst.",
+  'notifications.feedback.title': "Wie läuft es mit Catchline?",
+  'notifications.feedback.body': "Sag uns, was besser werden soll oder was fehlt. Es dauert eine Minute.",
   'notifications.nudge1.title': "Dein erster Hantelweg dauert etwa eine Minute",
   'notifications.nudge1.body': "Wähle ein Video eines Lifts aus deinen Aufnahmen. Catchline zeichnet den Hantelweg ein, auf deinem iPhone.",
   'notifications.nudge2.title': "Hast du einen Lift auf Video?",

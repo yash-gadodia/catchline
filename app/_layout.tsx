@@ -30,6 +30,8 @@ import { useLocale } from '../src/i18n';
 import { initSentry } from '../src/lib/sentry';
 import { markLaunched, startLaunchWatchdog } from '../src/lib/launch';
 import { LaunchRecovery } from '../src/components/LaunchRecovery';
+import FeedbackSheet from '../src/features/feedback/FeedbackSheet';
+import { FEEDBACK_CONTEXT, feedbackNotificationOpened, isFeedbackAsk, offerFeedback } from '../src/features/feedback/ask';
 import ScreenshotSheet from '../src/features/feedback/ScreenshotSheet';
 import { watchScreenshots } from '../src/features/feedback/screenshot';
 
@@ -55,6 +57,11 @@ export default function RootLayout() {
     const open = (response: Notifications.NotificationResponse | null) => {
       // a first-lift reminder was tapped: the app opens on the first screen, which is where the lift starts
       if (response && isNudge(response.notification.request.identifier)) track(EVENTS.NUDGE_OPENED, { n: Number(response.notification.request.content.data?.nudge ?? 0) });
+      if (response && isFeedbackAsk(response.notification.request.identifier)) {
+        feedbackNotificationOpened();
+        router.push({ pathname: '/report', params: { context: FEEDBACK_CONTEXT } });
+        return;
+      }
       const liftId = response && liftIdFromResponse(response);
       if (!liftId) return;
       routeForLift(liftId)
@@ -70,7 +77,13 @@ export default function RootLayout() {
     initAnalytics();
     track(EVENTS.APP_OPEN);
     // a phone with no lift yet gets its three reminders set, once
-    void listLocalAnalyses().then((lifts) => scheduleFirstLiftNudges(lifts.length > 0)).catch(() => undefined);
+    // and a phone with two lifts is asked, once, how Catchline is working
+    void listLocalAnalyses()
+      .then((lifts) => {
+        offerFeedback(lifts.length);
+        return scheduleFirstLiftNudges(lifts.length > 0);
+      })
+      .catch(() => undefined);
 
     // Initialise RevenueCat once (real SDK in a dev build; no-op in Expo Go).
     usePurchases.getState().configure();
@@ -149,6 +162,7 @@ export default function RootLayout() {
               <LaunchOverlay onShown={() => SplashScreen.hideAsync().catch(() => undefined)} onDone={() => setLaunched(true)} />
             )}
             <ScreenshotSheet />
+            <FeedbackSheet />
             <LaunchRecovery />
           </AppErrorBoundary>
         </QueryClientProvider>
