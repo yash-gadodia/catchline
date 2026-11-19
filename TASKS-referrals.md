@@ -85,6 +85,15 @@ Seen walking a fresh install on the simulator (17-11): picking a video is follow
 - [ ] (Yash) Feedback ask (19-11, live on runtime 4.0.5 only, update 554dc4af): open the app twice on 4.0.5 and confirm the "How is Catchline working for you?" sheet. Not seen on a simulator (the Mini's disk guard wipes the build folder)
 - [ ] (Claude, after that) Feedback ask to runtimes 4.0.3, 4.0.4 and 4.0.6 (cherry-pick 1c8de44 f8a2fdb); a Telegram alert on the Mini for each new `problem_reports` row, nothing reads them today
 - [ ] (Claude) Store builds on the Mini with `eas build --local`: the Expo free plan allows 15 iOS builds a month and 13 are used (19-11); needs the Mini's disk fixed first (10 GB free)
+- [x] 19-11: lift kinds (pick per lift, own kinds, Lifts list "By date / By lift"), Report a problem always opens the form (Intercom unused in JS), made-by line on You. Live on runtimes 4.0.5 (9a804f96) and 4.0.6 (3525e8b5); seen on the Mini simulator except the emoji
+- [x] 19-11: store screenshot 5 is the real story of Yash's Ubud snatch (launch/screenshots/4.0.6); 4.0.6 resubmitted with it
+- [ ] (Yash) On the phone: the made-by line's heart and flag (the simulator draws no colour emoji in any font, so it showed boxes); the feedback sheet
+- [ ] (Claude) Next store build: remove @intercom/intercom-react-native, its config plugin and plugins/withoutIntercomPush from the binary; then drop Intercom from the privacy policy and the App Store privacy answers
+- [ ] (Claude) Player says peak 2.50 m/s, the story says 2.65 m/s for the same lift (IMG_1101, 19-11): find which is right and make them agree
+- [ ] (Claude) "Check the plate" shows an HDR (HLG) clip blown out on the simulator; check on a phone before treating it as a bug
+- [ ] (Claude) You screen: rows scroll under the status bar with nothing behind it
+- [ ] (Claude) Ask the kind when a lift is tracked (one tap on the result) so gymnastics lifts do not sit in "Not sorted yet"; today it is set from the lift's "..." screen
+- [ ] (Claude) Lift kinds, feedback ask and form-only reports to runtimes 4.0.3 and 4.0.4 once Yash has seen them on 4.0.5
 - [ ] (Claude) Re-read the funnel per person on 20-11, once phones have the fix
 - [x] A lift with no path drawn does not use the free video, and the player says so (2731309, live on all three runtimes 17-11)
 - [x] Three quiet reminders (1, 3 and 7 days) for a phone that never tracked a lift; the first lift cancels them (edd611b, live 17-11). Only reaches phones that open the app after the update
