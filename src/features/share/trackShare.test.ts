@@ -1,7 +1,7 @@
 import type { Analysis } from '../../analysis/types';
 import type { Body } from '../../analysis/device/tracking';
 import { snatchMock } from '../../analysis/fixtures';
-import { buildTrackSpec, frameCountOf, pxPerPt, shareCaption, shareChart, storyPlacement, storyValue, type TrackShareOptions } from './trackShare';
+import { buildStory, buildTrackSpec, frameCountOf, pxPerPt, shareCaption, shareChart, storyPlacement, storyValue, type TrackShareOptions } from './trackShare';
 
 // shoulder, elbow, wrist, hip, knee, ankle, heel, toe; left then right.
 const row = (pts: Record<number, [number, number]>): (number | null)[] => {
@@ -266,5 +266,24 @@ describe('the caption copied for the post', () => {
     expect(shareCaption({ hero, end: { ...end, title: '1.82 m/s' } }, null, 'https://store')).toBe('1.82 m/s peak bar speed\nBar path by Catchline, free on the App Store: https://store\n#catchline #barpath #weightlifting');
     expect(shareCaption({ end: { ...end, title: 'Bar path' } }, null, 'https://store')).toBe('Bar path by Catchline, free on the App Store: https://store\n#catchline #barpath #weightlifting');
     expect(shareCaption(null, null, 'https://store')).toBe('Bar path by Catchline, free on the App Store: https://store\n#catchline #barpath #weightlifting');
+  });
+});
+
+describe('the story number is the player\'s number', () => {
+  const path = Array.from({ length: 61 }, (_, f) => ({ frame: f, x: 0.5, y: f <= 30 ? 0.8 - f * 0.012 : f <= 45 ? 0.44 : 0.44 - (f - 45) * 0.03, r: 0.05 }));
+  const analysis = { video: { uri: 'x', width: 1080, height: 1920, fps: 30, frameCount: 61 }, traceKind: 'bar', reps: [{ path }], lift: { startFrame: 0, endFrame: 40 } } as unknown as Parameters<typeof buildStory>[0];
+  const story = { kicker: null, title: null, code: null };
+
+  it('is the peak inside the lift, not a faster reading after it', () => {
+    const after = Math.max(...shareChart(analysis, 0, 60)!.values.map(([, v]) => v));
+    const hero = buildStory(analysis, story, 0, 60, 1).hero!;
+    expect(hero.peakFrame).toBeLessThanOrEqual(40);
+    expect(hero.value).toBeLessThan(after);
+  });
+
+  it("is measured at the clip's real rate when the screen knows it", () => {
+    const recorded = buildStory(analysis, story, 0, 60, 1).hero!.value;
+    const real = buildStory(analysis, story, 0, 60, 1, 28.3).hero!.value;
+    expect(real / recorded).toBeCloseTo(28.3 / 30, 1);
   });
 });
