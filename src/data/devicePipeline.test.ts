@@ -273,7 +273,8 @@ describe('analyseLoop', () => {
 describe('startDeviceLift when the lifter has left the app', () => {
   it('posts one local notification that opens the lift, when notifications are allowed', async () => {
     appState.currentState = 'background';
-    mockPermissions.mockResolvedValueOnce({ status: 'granted' });
+    // asked twice: once for the Monday reminder (the week's free video is used), once for this notification
+    mockPermissions.mockResolvedValueOnce({ status: 'granted' }).mockResolvedValueOnce({ status: 'granted' });
     await startDeviceLift(SUB);
     expect(usePipeline.getState().job?.status).toBe('done');
     expect(mockSchedule).toHaveBeenCalledTimes(1);
