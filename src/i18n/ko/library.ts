@@ -44,6 +44,8 @@ export const library: Strings<typeof en> = {
   'library.lifts.deleteCancel': "취소",
   'library.lifts.deleteFailed': "삭제하지 못했어요. 연결을 확인하고 다시 시도해 주세요.",
   'library.lifts.unlock': "잠금 해제",
+  'library.lifts.elsewhereTitle': "이 리프트는 다른 iPhone에 있습니다",
+  'library.lifts.elsewhereBody': "다른 iPhone에서, 또는 앱을 다시 설치하기 전에 분석되었습니다. 영상은 분석한 iPhone에 남아 있습니다.",
   'library.search.placeholder': "리프트 검색",
   'library.search.clear': "검색 지우기",
   'library.search.noneTitle': "리프트를 찾지 못했어요",

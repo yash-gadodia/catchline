@@ -4,6 +4,7 @@ import FailureScreen, { type Share } from '../../src/features/library/FailureScr
 import { FAILURE_COPY, failureMessage, type FailureAction, type FailureReason } from '../../src/features/library/failures';
 import { liftTitle } from '../../src/features/library/derive';
 import { useLift } from '../../src/features/library/repository';
+import { removeLift } from '../../src/data/library';
 import { submitDraft } from '../../src/features/capture/submit';
 import { localClipUri } from '../../src/data/localLifts';
 import { shareFailedClip } from '../../src/data/shareClip';
@@ -25,6 +26,8 @@ export default function FailureRoute() {
     if (a === 'retake') router.push('/capture' as Href);
     else if (a === 'import') router.push('/capture/import' as Href);
     else if (a === 'pickA' || a === 'pickB' || a === 'reanalyse') {
+      // the failed lift goes: the new run is the same clip again, and two rows for one attempt read as two lifts (#103)
+      if (lift && lift.status === 'failed') void removeLift(lift.id).catch(() => undefined);
       if (!submitDraft({ replace: true })) router.replace('/capture');
     } else if (a === 'partial' && partial) router.replace({ pathname: '/analysis/player', params: { fixture: partial } });
     else back();

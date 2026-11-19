@@ -45,6 +45,8 @@ export const library: Strings<typeof en> = {
   'library.lifts.deleteCancel': "Cancelar",
   'library.lifts.deleteFailed': "Não deu para apagar. Confira sua conexão e tente de novo.",
   'library.lifts.unlock': "Desbloquear",
+  'library.lifts.elsewhereTitle': "Este levantamento está em outro iPhone",
+  'library.lifts.elsewhereBody': "Ele foi analisado em outro iPhone, ou antes de reinstalar o app. O vídeo fica no iPhone que o analisou.",
   'library.search.placeholder': "Buscar levantamentos",
   'library.search.clear': "Limpar busca",
   'library.search.noneTitle': "Nenhum levantamento encontrado",
