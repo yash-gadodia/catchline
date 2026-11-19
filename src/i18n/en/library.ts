@@ -40,6 +40,8 @@ export const library = {
   'library.lifts.deleteCancel': "Cancel",
   'library.lifts.deleteFailed': "Couldn't delete it. Check your connection and try again.",
   'library.lifts.unlock': 'Unlock',
+  'library.lifts.elsewhereTitle': "This lift is on another phone",
+  'library.lifts.elsewhereBody': "It was tracked on a different phone, or before the app was reinstalled. The video stays on the phone that tracked it.",
   'library.search.placeholder': "Search lifts",
   'library.search.clear': "Clear search",
   'library.search.noneTitle': "No lifts found",

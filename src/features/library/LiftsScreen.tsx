@@ -65,7 +65,7 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
     : ofKind;
   const chip = freeVideosLabel(backendEnabled() ? { plan: tier === 'free' ? 'free' : 'paid', freeVideosUsed: used } : lib);
   const header = (
-    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', columnGap: space.s3 }}>
       <Title>{t('library.tabs.lifts')}</Title>
       {chip ? (
         <Pressable onPress={nav.onUnlock} testID="free-chip" hitSlop={8} style={{ height: 44, justifyContent: 'center' }}>

@@ -15,10 +15,12 @@ export default function TabsLayout() {
   const hydrated = useHydrated();
   const completed = useOnboarding((s) => s.completed);
   const job = usePipeline((s) => s.job);
-  // The upload just landed: list the lift so its row replaces the in-flight bar.
+  // The lift got its id, and later its result: list it both times, so its row replaces the in-flight bar and a
+  // lift that finished while the wait was hidden shows up without a relaunch (#101).
+  const ended = job?.status === 'done' || job?.status === 'failed';
   useEffect(() => {
     if (job?.liftId) syncLibrary().catch(() => undefined);
-  }, [job?.liftId]);
+  }, [job?.liftId, ended]);
   // Once after an update, What's new opens over the library.
   useEffect(() => {
     if (!hydrated) return;
