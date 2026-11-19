@@ -29,4 +29,4 @@ this folder (the repository is public).
 3. **Consumer subscriptions alone do not reach the revenue goal.** The addressable base of iPhone lifters who film is
    roughly 0.3 to 0.6 million; a coach tier is the lever (04, 11).
 
-The ranked plan that follows from these is in `00-plan.md` once the last two reports are in.
+The ranked plan that follows from these is in [00-plan.md](00-plan.md).
