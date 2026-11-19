@@ -13,7 +13,6 @@ import { localClipUri } from '../../src/data/localLifts';
 import { liftTitle } from '../../src/features/library/derive';
 import { useLibrary, useLift } from '../../src/features/library/repository';
 import { openLiftActions, reportHref } from '../../src/features/analysis/liftActions';
-import { openReportInIntercom } from '../../src/data/intercom';
 import { captureHref } from '../../src/features/paywall/hooks';
 
 export default function PlayerRoute() {
@@ -68,10 +67,7 @@ export default function PlayerRoute() {
         openLiftActions(analysis, {
           onShare: share,
           onFilmAnother: () => router.push(captureHref('/capture') as Href),
-          onReport: () =>
-            void openReportInIntercom(analysis.id).then((opened) => {
-              if (!opened) router.push(reportHref(analysis));
-            }),
+          onReport: () => router.push(reportHref(analysis)),
         })
       }
     />
