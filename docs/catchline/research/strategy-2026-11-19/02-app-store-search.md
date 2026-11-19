@@ -136,4 +136,4 @@ The lookup API does not expose subtitles, so they were read from the US web prod
 4. Put keyword captions on the first three screenshots, and create custom product pages linked to "vbt"/"velocity" and "squat"/"deadlift form".
 5. Submit a Featuring Nomination 3 or more weeks before the next significant release, paired with an in-app event whose name carries a target keyword.
 
-Raw data: `/private/tmp/claude-501/-Users-yash/67703cb5-c947-4909-86c5-ddd300e384f6/scratchpad/aso/res.jsonl` (searches) and `lk_us.json`, `lk_gb.json`, `lk_sg.json` (lookups) in the same folder. The scratchpad is temporary.
+Raw data: `(private research folder) strategy-2026-11-19/aso/res.jsonl` (searches) and `lk_us.json`, `lk_gb.json`, `lk_sg.json` (lookups) in the same folder. The scratchpad is temporary.

@@ -99,7 +99,7 @@ Single mentions: importing data from other sensors, diagnostics explaining why t
 - **Free-tier risk:** WL Analysis and Qwik are praised specifically for being usable free; 1 video a week is the likeliest source of 1-star reviews.
 - **Android:** almost no demand shows in iOS reviews, as expected, but the Play listing for WL Analysis shows 100K+ downloads.
 
-Files are in /private/tmp/claude-501/-Users-yash/67703cb5-c947-4909-86c5-ddd300e384f6/scratchpad/reviews/
+Files are in (private research folder) strategy-2026-11-19/reviews/
 - raw2/ (raw JSON)
 - play/ (Play pages)
 - scripts/analyse.py
