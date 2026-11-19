@@ -2,9 +2,10 @@ import type { ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { colors, space } from '../design/tokens';
 import { fontFamily } from '../design/typography';
+import { t } from '../i18n';
 
 export default function TopBar({
-  back = 'Lifts',
+  back = t('library.tabs.lifts'),
   onBack,
   title,
   center,

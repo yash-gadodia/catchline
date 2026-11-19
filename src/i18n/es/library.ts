@@ -45,6 +45,8 @@ export const library: Strings<typeof en> = {
   'library.lifts.deleteCancel': "Cancelar",
   'library.lifts.deleteFailed': "No se pudo borrar. Revisa tu conexión e inténtalo de nuevo.",
   'library.lifts.unlock': "Desbloquear",
+  'library.lifts.elsewhereTitle': "Este levantamiento está en otro iPhone",
+  'library.lifts.elsewhereBody': "Se analizó en otro iPhone, o antes de reinstalar la app. El vídeo se queda en el iPhone que lo analizó.",
   'library.search.placeholder': "Buscar levantamientos",
   'library.search.clear': "Borrar búsqueda",
   'library.search.noneTitle': "No se encontraron levantamientos",

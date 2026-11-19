@@ -29,6 +29,8 @@ import { useLocale } from '../src/i18n';
 import { initSentry } from '../src/lib/sentry';
 import { markLaunched, startLaunchWatchdog } from '../src/lib/launch';
 import { LaunchRecovery } from '../src/components/LaunchRecovery';
+// the settings store sets the saved language as it loads: imported here so that happens at launch (#92)
+import '../src/features/you/settings';
 import FeedbackSheet from '../src/features/feedback/FeedbackSheet';
 import { FEEDBACK_CONTEXT, feedbackNotificationOpened, isFeedbackAsk, offerFeedback } from '../src/features/feedback/ask';
 import ScreenshotSheet from '../src/features/feedback/ScreenshotSheet';

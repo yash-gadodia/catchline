@@ -15,7 +15,9 @@ export default function LiftsRoute() {
         onOpen: (lift) => {
           const link = liftLink(lift);
           if (link) router.push(link);
-          else unlock();
+          else if (lift.status === 'queued') unlock();
+          // tracked on another phone (or before a reinstall): its video is not here, and paying would not bring it (#158)
+          else Alert.alert(t('library.lifts.elsewhereTitle'), t('library.lifts.elsewhereBody'));
         },
         onUnlock: unlock,
         onRecord: () => router.push(captureHref('/capture') as Href),

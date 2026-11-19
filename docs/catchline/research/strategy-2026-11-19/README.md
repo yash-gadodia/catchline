@@ -8,10 +8,10 @@ this folder (the repository is public).
 | File | Question | Status |
 |---|---|---|
 | [01-competitors.md](01-competitors.md) | Who holds the category today, on which platform, and where they are weak | done |
-| 02-app-store-search.md | Where Catchline ranks in App Store search, and what to change | running |
+| [02-app-store-search.md](02-app-store-search.md) | Where Catchline ranks in App Store search, and what to change | done |
 | [03-distribution.md](03-distribution.md) | Where lifters gather, which accounts matter, the 2027 calendar, playbooks that worked | done |
 | [04-market-and-pricing.md](04-market-and-pricing.md) | Market size, subscription benchmarks, comparable pricing, coach tier pricing | done |
-| 05-competitor-reviews.md | What lifters complain about and ask for in competitors' reviews | running |
+| [05-competitor-reviews.md](05-competitor-reviews.md) | What lifters complain about and ask for in competitors' reviews (1,126 reviews, 21 apps) | done |
 | [06-speed-validation.md](06-speed-validation.md) | How to validate bar speed against a criterion device, and what may be claimed | done |
 | [07-content-and-footage-rights.md](07-content-and-footage-rights.md) | Footage rights, eight repeatable video formats, a 30-day calendar | done |
 | [08-countries-and-languages.md](08-countries-and-languages.md) | Mainland China rules, iPhone share by country, languages worth adding | done |
