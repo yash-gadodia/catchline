@@ -7,7 +7,6 @@
       "Bash(git push origin HEAD:catchline*)",
       "Bash(git push --force*)",
       "Bash(git push -f*)",
-      "Bash(gh pr merge*)",
       "Bash(gh repo*)",
       "Bash(gh release*)",
       "Bash(supabase db push*)",
@@ -19,7 +18,10 @@
       "Bash(launchctl*)",
       "Bash(docker volume*)",
       "Bash(rm -rf ~*)",
-      "Bash(rm -rf /*)"
+      "Bash(rm -rf /*)",
+      "Bash(scripts/ota.sh*)",
+      "Bash(*scripts/ota.sh publish*)",
+      "Bash(gh pr merge*--admin*)"
     ]
   }
 }
