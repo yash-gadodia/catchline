@@ -9,6 +9,7 @@ import { File } from 'expo-file-system';
 import { ensureSession, sendProblemReport, uploadProblemShot, type ProblemReport } from '../lib/api';
 import { backendEnabled } from './backend';
 import { readClip } from './readClip';
+import { EVENTS, track } from '../lib/analytics';
 
 // A queued report may carry the screenshot it was started from (a file on this phone);
 // it goes up under the report's id just before the row.
@@ -32,7 +33,13 @@ export function reportDetails(): Pick<ProblemReport, 'appVersion' | 'updateId' |
 
 let flushing: Promise<number> | null = null;
 
-// Sends what is waiting, oldest first; stops at the first failure and keeps the rest for next time.
+function failureCause(e: unknown): string {
+  const err = e as { code?: string; message?: string } | null;
+  return [err?.code, err?.message].filter(Boolean).join(': ').slice(0, 160) || 'unknown';
+}
+
+// Sends what is waiting, oldest first. A report that fails stays queued for next time and does not hold back the
+// ones behind it; each failure is counted with its cause (`report_send_failed`), never with the report's words.
 export function flushProblemReports(): Promise<number> {
   if (!backendEnabled()) return Promise.resolve(0);
   if (flushing) return flushing;
@@ -42,15 +49,21 @@ export function flushProblemReports(): Promise<number> {
       if (useProblemReports.getState().items.length === 0) return 0;
       await ensureSession();
       for (const item of useProblemReports.getState().items) {
-        // iOS clears the cache a screenshot sits in; a report whose picture is gone goes without it, or it
-        // would fail every flush and hold back every report behind it.
-        if (item.shot && new File(item.shot).exists) await uploadProblemShot(item.id, readClip(item.shot));
-        await sendProblemReport(item);
-        useProblemReports.setState((s) => ({ items: s.items.filter((i) => i.id !== item.id) }));
-        sent++;
+        let step = 'shot';
+        try {
+          // iOS clears the cache a screenshot sits in; a report whose picture is gone goes without it.
+          if (item.shot && new File(item.shot).exists) await uploadProblemShot(item.id, readClip(item.shot));
+          step = 'row';
+          await sendProblemReport(item);
+          useProblemReports.setState((s) => ({ items: s.items.filter((i) => i.id !== item.id) }));
+          sent++;
+        } catch (e) {
+          track(EVENTS.REPORT_SEND_FAILED, { step, cause: failureCause(e), queued: useProblemReports.getState().items.length });
+        }
       }
-    } catch {
-      // offline or not deployed yet: the rest stay queued
+    } catch (e) {
+      // no session: offline, or sign-in failed; everything stays queued
+      track(EVENTS.REPORT_SEND_FAILED, { step: 'session', cause: failureCause(e), queued: useProblemReports.getState().items.length });
     } finally {
       flushing = null;
     }

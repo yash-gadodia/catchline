@@ -99,6 +99,7 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
   }
 
   return (
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
     <ScrollView
       style={{ flex: 1, backgroundColor: colors.bg }}
       contentContainerStyle={{ paddingTop: insets.top + space.s3, paddingHorizontal: space.gutter, paddingBottom: space.s6, gap: space.s4 }}
@@ -201,6 +202,9 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
             </View>
           ))}
     </ScrollView>
+      {/* rows scroll under the clock and the battery otherwise */}
+      <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: insets.top, backgroundColor: colors.bg }} testID="lifts-status-cover" />
+    </View>
   );
 }
 
