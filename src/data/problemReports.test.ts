@@ -1,6 +1,8 @@
+import { track } from '../lib/analytics';
 import { flushProblemReports, queueProblemReport, reportDetails, useProblemReports } from './problemReports';
 
 jest.mock('./backend', () => ({ backendEnabled: () => true }));
+jest.mock('../lib/analytics', () => ({ ...jest.requireActual('../lib/analytics'), track: jest.fn() }));
 jest.mock('../lib/api', () => ({ ensureSession: jest.fn(), sendProblemReport: jest.fn(), uploadProblemShot: jest.fn() }));
 const mockMissing = new Set<string>();
 jest.mock('expo-file-system', () => ({ File: jest.fn().mockImplementation((uri: string) => ({ exists: !mockMissing.has(uri) })) }));
@@ -72,13 +74,22 @@ describe('problem reports', () => {
     expect(useProblemReports.getState().items).toEqual([]);
   });
 
-  it('stops at the first failed send and keeps the rest in order', async () => {
+  it('a report that fails stays queued and does not hold back the ones behind it; the cause is counted', async () => {
     useProblemReports.setState({
       items: ['a', 'b', 'c'].map((id) => ({ id, body: id, appVersion: '3.1', updateId: 'x', device: 'd', liftId: null, context: null, reportedAt: '2026-10-23T00:00:00.000Z' })),
     });
-    api.sendProblemReport.mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error('offline'));
-    expect(await flushProblemReports()).toBe(1);
-    expect(useProblemReports.getState().items.map((i) => i.id)).toEqual(['b', 'c']);
+    api.sendProblemReport.mockResolvedValueOnce(undefined).mockRejectedValueOnce(Object.assign(new Error('row refused'), { code: '42501' })).mockResolvedValueOnce(undefined);
+    expect(await flushProblemReports()).toBe(2);
+    expect(useProblemReports.getState().items.map((i) => i.id)).toEqual(['b']);
+    expect(track).toHaveBeenCalledWith('report_send_failed', { step: 'row', cause: '42501: row refused', queued: 2 });
+  });
+
+  it('with no session everything stays queued, and that is counted too', async () => {
+    useProblemReports.setState({ items: [{ id: 'a', body: 'a', appVersion: '3.1', updateId: 'x', device: 'd', liftId: null, context: null, reportedAt: '2026-10-23T00:00:00.000Z' }] });
+    api.ensureSession.mockRejectedValueOnce(new Error('Network request failed'));
+    expect(await flushProblemReports()).toBe(0);
+    expect(useProblemReports.getState().items).toHaveLength(1);
+    expect(track).toHaveBeenCalledWith('report_send_failed', { step: 'session', cause: 'Network request failed', queued: 1 });
   });
 
   it('does not open a session when nothing is waiting', async () => {
