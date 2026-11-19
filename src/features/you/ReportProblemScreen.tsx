@@ -7,6 +7,7 @@ import { colors, shape, space } from '../../design/tokens';
 import { fontFamily, type } from '../../design/typography';
 import { queueProblemReport, reportDetails } from '../../data/problemReports';
 import { t } from '../../i18n';
+import { EVENTS, track } from '../../lib/analytics';
 
 export const REPORT_MAX = 4000;
 
@@ -27,9 +28,11 @@ export default function ReportProblemScreen({
   const [text, setText] = useState('');
   const [result, setResult] = useState<'sent' | 'queued' | null>(null);
   const details = reportDetails();
+  const feedback = context === 'feedback';
   const send = async () => {
     const sent = await queueProblemReport({ body: text, liftId, context, ...(shot ? { shot } : {}) });
     setResult(sent > 0 ? 'sent' : 'queued');
+    if (feedback) track(EVENTS.FEEDBACK_SENT, { chars: text.trim().length });
   };
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }} testID="report-problem">
@@ -37,7 +40,7 @@ export default function ReportProblemScreen({
         back={back}
         onBack={onBack}
         more={false}
-        center={<Text style={{ color: colors.text, ...type.button }}>{t('you.reportProblem')}</Text>}
+        center={<Text style={{ color: colors.text, ...type.button }}>{t(feedback ? 'you.shot.give' : 'you.reportProblem')}</Text>}
       />
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: space.gutter, gap: space.s4 }}>
         {result ? (
@@ -57,7 +60,7 @@ export default function ReportProblemScreen({
               multiline
               autoFocus
               maxLength={REPORT_MAX}
-              placeholder={t('you.report.placeholder')}
+              placeholder={t(feedback ? 'you.feedback.placeholder' : 'you.report.placeholder')}
               placeholderTextColor={colors.text3}
               testID="report-input"
               style={{

@@ -127,6 +127,9 @@ export const you: Strings<typeof en> = {
   // REVIEW
   'you.shot.toggleSub': "Desactívalo para que no vuelva a aparecer",
   // REVIEW
+  'you.feedback.title': "¿Qué tal te va con Catchline?",
+  'you.feedback.body': "Cuéntanos qué arreglar o qué falta. Leemos cada mensaje, y decide lo próximo que construimos.",
+  'you.feedback.placeholder': "¿Qué debería hacer mejor Catchline? ¿Qué falta?",
   'you.report.send': "Enviar",
   // REVIEW
   'you.report.sent': "Enviado. Gracias, leemos todos.",
