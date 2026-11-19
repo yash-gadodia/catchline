@@ -157,12 +157,7 @@ export default function YouScreen({
         <Row title={t('you.whatsNew')} right={<Value>›</Value>} onPress={nav.onWhatsNew} last testID="row-whats-new" />
         <BuildLine />
         <Text style={{ color: colors.text2, ...type.readout }} testID="you-made-by">
-          {/* the mono face has no emoji and does not fall back: the heart and the flag are drawn in the system font.
-              Code points spelled out: Hermes does not match \p{Extended_Pictographic}. */}
-          {t('you.madeBy')
-            .split(/(\u2764\uFE0F?|\uD83C[\uDDE6-\uDDFF]\uD83C[\uDDE6-\uDDFF])/)
-            // design-ok: emoji need the system font, no type token carries it
-            .map((part, i) => (i % 2 ? <Text key={i} style={{ fontFamily: 'System' }}>{part}</Text> : part))}
+          {t('you.madeBy')}
         </Text>
       </ScrollView>
 
