@@ -43,7 +43,7 @@ export const capture: Strings<typeof en> = {
   'capture.mark.cancel': "Cancelar",
   'capture.mark.check': "O círculo está na sua anilha? Arraste para mover ou arraste a borda para mudar o tamanho.",
   'capture.mark.go': "Rastrear",
-  'capture.mark.skip': "Sem anilha? Pular",
+  'capture.mark.skip': "Meu levantamento não tem barra",
   'capture.mark.checkTitle': "Confira a anilha",
   'capture.mark.finding': "Procurando a anilha",
   'capture.mark.stage': "O quadro em que a anilha foi encontrada. Arraste o círculo para mover ou a borda para mudar o tamanho.",

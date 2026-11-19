@@ -1,5 +1,6 @@
 import { AppState } from 'react-native';
-import { cancelFirstLiftNudges } from '../features/notifications/nudges';
+import { cancelFirstLiftNudges, scheduleFreeVideoBack } from '../features/notifications/nudges';
+import { freeLeft, nextWeekStart } from '../features/paywall/entitlements';
 import { scheduleFeedbackNotification } from '../features/feedback/ask';
 import { File } from 'expo-file-system';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
@@ -264,7 +265,7 @@ async function runDeviceLift(sub: ClipSubmission & { uri: string }, liftId: stri
       track(EVENTS.ANALYSIS_FAILED, { movement: sub.movement, code: record.failureCode ?? 'unknown' });
       patch({ status: 'failed', error: 'analysis_failed', result: local });
     } else {
-      void cancelFirstLiftNudges().catch(() => undefined);
+      if ((local.reps[0]?.path.length ?? 0) > 0) void cancelFirstLiftNudges().catch(() => undefined);
       track(EVENTS.TRACK_COMPLETED, { seconds: Math.round((Date.now() - startedAt) / 1000), frames: local.video.frameCount, has_bar_path: hasBarPath(local), mark });
       track(EVENTS.ANALYSIS_COMPLETED, { movement: sub.movement, cue_confidence: local.cue?.confidence ?? 'none', no_cue_code: record.noCueCode ?? 'none', made: record.made ?? 'unknown' });
       patch({ status: 'done', result: local });
@@ -331,5 +332,7 @@ async function runRetrack(liftId: string, uri: string, movement: Movement, plate
 // the local count, and the Keychain copy that outlives a reinstall.
 async function countLift(now: Date): Promise<void> {
   useUsage.getState().record(usePurchases.getState().tier, now);
+  // the week's last free video: tell the lifter on Monday that it is back
+  if (usePurchases.getState().tier === 'free' && freeLeft(useUsage.getState().usage, now) <= 0) void scheduleFreeVideoBack(nextWeekStart(now));
   await writeFreeUsed(useUsage.getState().usage.lifetime);
 }

@@ -61,7 +61,7 @@ export const capture: Strings<typeof en> = {
   'capture.trim.weightA11y': "重量（{units}）",
   'capture.mark.check': "円はプレートに重なっていますか？円をドラッグして移動、ふちをドラッグしてサイズを変更できます。",
   'capture.mark.go': "トラッキング",
-  'capture.mark.skip': "プレートなし？スキップ",
+  'capture.mark.skip': "バーベルを使わない種目です",
   'capture.mark.checkTitle': "プレートを確認",
   'capture.mark.finding': "プレートを探しています",
 };

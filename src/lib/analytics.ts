@@ -26,6 +26,7 @@ export const EVENTS = {
   // first-lift reminders: set at first launch, and an app open that came from tapping one
   NUDGES_SCHEDULED: 'nudges_scheduled',
   NUDGE_OPENED: 'nudge_opened',
+  FREE_BACK_SCHEDULED: 'free_back_scheduled',
   // the first run, step by step: where a new lifter stops before a tracked lift
   WELCOME_VIEWED: 'welcome_viewed',
   WELCOME_CHOICE: 'welcome_choice',

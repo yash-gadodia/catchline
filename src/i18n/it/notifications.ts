@@ -17,6 +17,8 @@ export const notifications: Strings<typeof en> = {
   'notifications.ready.failedBody': "Tocca per vedere perché e cosa provare.",
   'notifications.feedback.title': "Come ti trovi con Catchline?",
   'notifications.feedback.body': "Dicci cosa sistemare o cosa manca. Basta un minuto.",
+  'notifications.freeBack.title': "Il tuo video gratuito è tornato",
+  'notifications.freeBack.body': "Nuova settimana: analizza un'alzata gratis. Scegli un video e guarda la traiettoria del bilanciere.",
   'notifications.nudge1.title': "La tua prima traiettoria richiede un minuto",
   'notifications.nudge1.body': "Scegli il video di un sollevamento dal rullino. Catchline disegna la traiettoria del bilanciere sul tuo telefono.",
   'notifications.nudge2.title': "Hai un sollevamento in video?",

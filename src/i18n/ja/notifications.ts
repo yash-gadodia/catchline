@@ -17,6 +17,8 @@ export const notifications: Strings<typeof en> = {
   'notifications.ready.failedBody': "タップして、原因と次に試せることを確認できます。",
   'notifications.feedback.title': "Catchlineの使い心地はいかがですか？",
   'notifications.feedback.body': "直してほしい点や足りない機能を教えてください。1分で済みます。",
+  'notifications.freeBack.title': "無料の動画が戻りました",
+  'notifications.freeBack.body': "新しい週です。1本無料で解析できます。動画を選んでバーの軌道を見ましょう。",
   'notifications.nudge1.title': "最初のバーの軌道は約1分でできます",
   'notifications.nudge1.body': "カメラロールからリフトの動画を選ぶだけ。Catchlineがこのスマホの中でバーの軌道を描きます。",
   'notifications.nudge2.title': "リフトの動画はありますか？",

@@ -28,6 +28,8 @@ export const notifications: Strings<typeof en> = {
   'notifications.ready.failedBody': "Toca para ver por qué y qué probar después.",
   'notifications.feedback.title': "¿Qué tal te va con Catchline?",
   'notifications.feedback.body': "Cuéntanos qué arreglar o qué falta. Lleva un minuto.",
+  'notifications.freeBack.title': "Tu vídeo gratis ha vuelto",
+  'notifications.freeBack.body': "Nueva semana: analiza un levantamiento gratis. Elige un vídeo y mira la trayectoria de la barra.",
   'notifications.nudge1.title': "Tu primera trayectoria de barra tarda un minuto",
   'notifications.nudge1.body': "Elige un vídeo de un levantamiento de tu carrete. Catchline dibuja la trayectoria de la barra en tu teléfono.",
   'notifications.nudge2.title': "¿Tienes un levantamiento en vídeo?",

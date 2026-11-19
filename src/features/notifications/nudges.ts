@@ -55,3 +55,28 @@ export async function cancelFirstLiftNudges(): Promise<void> {
   useNudges.setState({ lifted: true });
   await Promise.all(NUDGE_AFTER_S.map((_, i) => Notifications.cancelScheduledNotificationAsync(nudgeId(i + 1)).catch(() => undefined)));
 }
+
+// The week's free video is used: one quiet reminder on the Monday it comes back, at nine in the morning. It is about
+// the lifter's own allowance, not an offer. Replaced each time, and cancelled by a purchase.
+export const FREE_BACK_ID = 'catchline-free-video-back';
+export async function scheduleFreeVideoBack(monday: Date): Promise<'scheduled' | 'refused'> {
+  try {
+    let p = await Notifications.getPermissionsAsync();
+    if (!p.granted && p.canAskAgain) p = await Notifications.requestPermissionsAsync({ ios: { allowProvisional: true } });
+    if (!p.granted) return 'refused';
+    const at = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate(), 9, 0, 0);
+    await Notifications.scheduleNotificationAsync({
+      identifier: FREE_BACK_ID,
+      content: { title: t('notifications.freeBack.title'), body: t('notifications.freeBack.body') },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: at },
+    });
+    track(EVENTS.FREE_BACK_SCHEDULED, {});
+    return 'scheduled';
+  } catch {
+    return 'refused';
+  }
+}
+
+export async function cancelFreeVideoBack(): Promise<void> {
+  await Notifications.cancelScheduledNotificationAsync(FREE_BACK_ID).catch(() => undefined);
+}
