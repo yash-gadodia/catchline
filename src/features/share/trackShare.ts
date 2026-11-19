@@ -17,7 +17,7 @@ export const shareSpeeds = (fast: boolean): ShareSpeed[] => (fast ? FAST_SHARE_S
 // with the bar speed graph (`graph`) and the lifter's own line, its date and weight (`caption`), where asked for.
 // `story` (a binary that draws it, 4.0.5 on): the 9:16 video for Stories, Reels and TikTok. `kicker` is the lifter's
 // line (date, weight), `title` the end card's headline, `code` their invite code if they have one.
-export type TrackShareOptions = { path: boolean; lines: boolean; body: boolean; watermark: boolean; speed: ShareSpeed; whole?: boolean; details?: { graph: boolean; caption: string | null }; story?: { kicker: string | null; title: string | null; code: string | null } };
+export type TrackShareOptions = { path: boolean; lines: boolean; body: boolean; watermark: boolean; speed: ShareSpeed; whole?: boolean; details?: { graph: boolean; caption: string | null }; story?: { kicker: string | null; title: string | null; code: string | null }; clipFps?: number };
 
 // What modules/clip-transcoder TrackRenderer.swift draws on the lift's kept clip. Positions are 0..1 of the frame,
 // sizes are output pixels; a layer that is off is empty (or null), so the native side only draws what it is given.
@@ -97,9 +97,11 @@ export function hasBarPath(analysis: Analysis): boolean {
 const px = (pt: number, unit: number) => Number((pt * unit).toFixed(2));
 const r3 = (v: number) => Number(v.toFixed(3));
 
-// The bar speed graph for the frames the video holds: nothing for a lift with no bar speed.
-export function shareChart(analysis: Analysis, first: number, last: number): TrackSpec['chart'] | undefined {
-  const speed = hasBarPath(analysis) ? barSpeed(analysis.reps[0].path, analysis.video.fps, analysis.lift) : null;
+// The bar speed graph for the frames the video holds: nothing for a lift with no bar speed. `clipFps` is the clip's
+// real rate (its frames over its length), the one the player measures speed at; the recorded rate reads a clip with
+// uneven frame timing fast, so the share would show a different number from the player.
+export function shareChart(analysis: Analysis, first: number, last: number, clipFps?: number): TrackSpec['chart'] | undefined {
+  const speed = hasBarPath(analysis) ? barSpeed(analysis.reps[0].path, clipFps || analysis.video.fps, analysis.lift) : null;
   if (!speed) return undefined;
   const values = [...speed.at].filter(([f]) => f >= first && f <= last).sort((a, b) => a[0] - b[0]).map(([f, v]): [number, number] => [f, r3(v)]);
   if (values.length < 2) return undefined;
@@ -123,9 +125,11 @@ export function markLayout(video: Size): { size: number; inset: number; widthPt:
 // speed (not when the lifter already slowed the whole video). A lift with no bar speed has no number and no replay.
 const REPLAY_BEFORE_S = 1.2;
 const REPLAY_AFTER_S = 0.8;
-export function buildStory(analysis: Analysis, story: NonNullable<TrackShareOptions['story']>, first: number, last: number, speed: ShareSpeed): NonNullable<TrackSpec['story']> {
-  const chart = shareChart(analysis, first, last);
-  const peak = chart?.values.reduce((a, b) => (b[1] > a[1] ? b : a));
+export function buildStory(analysis: Analysis, story: NonNullable<TrackShareOptions['story']>, first: number, last: number, speed: ShareSpeed, clipFps?: number): NonNullable<TrackSpec['story']> {
+  const chart = shareChart(analysis, first, last, clipFps);
+  // the peak of the lift itself, as the player shows it: not the bar bouncing after it is dropped
+  const inLift = chart?.values.filter(([f]) => !analysis.lift || (f >= analysis.lift.startFrame && f <= analysis.lift.endFrame));
+  const peak = (inLift?.length ? inLift : chart?.values)?.reduce((a, b) => (b[1] > a[1] ? b : a));
   const hero = peak && peak[1] > 0 ? { value: peak[1], unit: chart!.unit, label: t('share.story.peak'), kicker: story.kicker ?? '', peakFrame: peak[0] } : undefined;
   const fps = analysis.video.fps || 30;
   const xs = (analysis.reps[0]?.path ?? []).map((p) => p.x);
@@ -219,9 +223,9 @@ export function buildTrackSpec(analysis: Analysis, body: Body | null, options: T
     ...(options.details && options.path && hasBarPath(analysis)
       ? { ghost: drawnPaths(analysis, range.last).whole.map((seg) => seg.map((p): [number, number] => [p.x, p.y])), repStarts: repStarts(rep.path, analysis.video.fps || 30) }
       : {}),
-    ...(options.details?.graph ? (() => { const chart = shareChart(analysis, range.first, range.last); return chart ? { chart } : {}; })() : {}),
+    ...(options.details?.graph ? (() => { const chart = shareChart(analysis, range.first, range.last, options.clipFps); return chart ? { chart } : {}; })() : {}),
     ...(options.details?.caption ? { caption: options.details.caption } : {}),
-    ...(options.story ? { story: buildStory(analysis, options.story, range.first, range.last, options.speed) } : {}),
+    ...(options.story ? { story: buildStory(analysis, options.story, range.first, range.last, options.speed, options.clipFps) } : {}),
     style: {
       flare: dark.flare,
       halo: dark.halo,

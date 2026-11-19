@@ -83,6 +83,9 @@ export default function TrackShareScreen({
   const { width, height } = useWindowDimensions();
   const fps = analysis.video.fps;
   const count = frameCountOf(analysis, body);
+  // the clip's real rate, as the player has it: bar speed is measured at it, so the share shows the player's number
+  const [clipS, setClipS] = useState(0);
+  const clipFps = clipS > 0 ? count / clipS : undefined;
   const [layers, setLayers] = useState({ path: true, lines: true, body: true });
   const speeds = shareSpeeds(deps.fastShare ?? fastShareSupported());
   const [speed, setSpeed] = useState<ShareSpeed>(1);
@@ -143,7 +146,8 @@ export default function TrackShareScreen({
       frameRef.current = f;
       setFrameState(f);
     });
-    const loaded = player.addListener('sourceLoad', () => {
+    const loaded = player.addListener('sourceLoad', (e) => {
+      if (e.duration > 0) setClipS(e.duration);
       if (first > 0 && frameRef.current === first) player.currentTime = timeOf(first, fps);
     });
     return () => {
@@ -186,10 +190,10 @@ export default function TrackShareScreen({
   const [room, setRoom] = useState<number | null>(null);
   const maxH = room ?? Math.max(240, height - insets.top - insets.bottom - 380);
   const lockup = watermark && (deps.shareBrand ?? shareBrandSupported());
-  const chart = details && graph ? shareChart(analysis, first, last) : undefined;
-  const options: TrackShareOptions = { ...layers, body: layers.body && body !== null, watermark, speed, whole, ...(details ? { details: { graph, caption: captioned ? caption : null } } : {}), ...(storyOk && story ? { story: { kicker: captioned ? caption : null, title: analysis.loadKg != null ? `${analysis.loadKg} kg` : null, code } } : {}) };
+  const chart = details && graph ? shareChart(analysis, first, last, clipFps) : undefined;
+  const options: TrackShareOptions = { ...layers, body: layers.body && body !== null, watermark, speed, whole, ...(details ? { details: { graph, caption: captioned ? caption : null } } : {}), ...(storyOk && story ? { story: { kicker: captioned ? caption : null, title: analysis.loadKg != null ? `${analysis.loadKg} kg` : null, code } } : {}), ...(clipFps ? { clipFps } : {}) };
   // the story as the video will carry it: the preview is the 9:16 canvas with the clip placed as StoryRenderer places it
-  const storySpec = options.story ? buildStory(analysis, options.story, first, last, speed) : null;
+  const storySpec = options.story ? buildStory(analysis, options.story, first, last, speed, clipFps) : null;
   const canvasW = Math.min(width, Math.round(maxH * STORY_ASPECT));
   const canvas = storySpec ? { width: canvasW, height: Math.round(canvasW / STORY_ASPECT) } : null;
   const ys = (analysis.reps[0]?.path ?? []).map((pt) => pt.y);
