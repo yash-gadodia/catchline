@@ -152,7 +152,9 @@ describe('catalogues', () => {
   it.each(LOCALES.filter((l) => l !== 'en'))('%s has no emoji, em dash or banned claim', (locale) => {
     for (const [key, value] of Object.entries(CATALOGUES[locale])) {
       const text = typeof value === 'string' ? value : `${value.one} ${value.other}`;
-      expect(`${key}: ${/[\u2014\u2015]|\p{Extended_Pictographic}/u.test(text)}`).toBe(`${key}: false`);
+      // the one line with emoji: the owner's sign-off on You (Yash, 19-11-2026)
+      const plain = key === 'you.madeBy' ? text.replace(/\p{Extended_Pictographic}|\p{Regional_Indicator}|\uFE0F/gu, '') : text;
+      expect(`${key}: ${/[\u2014\u2015]|\p{Extended_Pictographic}/u.test(plain)}`).toBe(`${key}: false`);
       expect(`${key}: ${/prevent injur|diagnos|診断|怪我を防|진단|부상 방지|诊断|预防受伤|infortun/i.test(text)}`).toBe(`${key}: false`);
     }
   });
