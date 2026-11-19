@@ -140,7 +140,9 @@ describe('startDeviceLift, the happy path', () => {
     // this binary looks for the plate first, and this clip came without one: the lifter skipped it
     expect(track).toHaveBeenCalledWith('track_started', { source: 'camera', mark: 'skipped' });
     expect(track).toHaveBeenCalledWith('track_completed', { seconds: 0, frames: snatchMock.video.frameCount, has_bar_path: true, mark: 'skipped' });
-    expect(track).toHaveBeenCalledTimes(3);
+    // the week's one free video is now used: the Monday reminder is set
+    expect(track).toHaveBeenCalledWith('free_back_scheduled', {});
+    expect(track).toHaveBeenCalledTimes(4);
   });
 
   it('says the plate was marked when the clip came with a mark', async () => {
