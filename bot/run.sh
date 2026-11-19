@@ -123,6 +123,15 @@ cp "$HOME/.config/catchline-bot/env.local" .env.local
 SHA=$(git rev-parse --short HEAD)
 say "start at $SHA, log $LOG"
 
+# The fixer never builds the app, so nothing else refreshes its packages: reinstall when the lockfile changed.
+if [ "$ROLE" = fixer ]; then
+  LOCKSHA=$(shasum package-lock.json | cut -c1-12)
+  if [ "$(cat node_modules/.lock-sha 2>/dev/null)" != "$LOCKSHA" ]; then
+    say "packages changed, installing"
+    npm install --legacy-peer-deps --no-audit --no-fund >>"$LOG" 2>&1 && echo "$LOCKSHA" > node_modules/.lock-sha
+  fi
+fi
+
 if [ "$ROLE" = tester ]; then
   "$BOT_DIR/build-sim.sh" >>"$LOG" 2>&1
   BUILD=$?
