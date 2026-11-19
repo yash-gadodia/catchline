@@ -17,6 +17,8 @@ export const notifications: Strings<typeof en> = {
   'notifications.ready.failedBody': "탭해서 이유와 다음에 해볼 것을 확인하세요.",
   'notifications.feedback.title': "Catchline, 잘 쓰고 계신가요?",
   'notifications.feedback.body': "고칠 점이나 부족한 점을 알려 주세요. 1분이면 됩니다.",
+  'notifications.freeBack.title': "무료 영상이 돌아왔습니다",
+  'notifications.freeBack.body': "새로운 한 주입니다. 리프트 하나를 무료로 분석하세요. 영상을 골라 바 궤적을 확인하세요.",
   'notifications.nudge1.title': "첫 바벨 궤적은 1분이면 됩니다",
   'notifications.nudge1.body': "카메라 롤에서 리프팅 영상을 고르세요. Catchline이 휴대폰 안에서 바벨 궤적을 그려 줍니다.",
   'notifications.nudge2.title': "리프팅 영상이 있나요?",

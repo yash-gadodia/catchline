@@ -42,7 +42,7 @@ export default function WelcomeScreen({ onPick, onFilm, onSample, reduceMotion }
           </Btn>
           {onSample ? (
             // no lift on the phone yet: the bundled one opens in the player
-            <Btn kind="text" onPress={onSample} testID="welcome-sample">
+            <Btn kind="secondary" compact onPress={onSample} testID="welcome-sample">
               {t('onboarding.welcome.sample')}
             </Btn>
           ) : null}
