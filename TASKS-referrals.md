@@ -81,6 +81,7 @@ Baseline, 12 to 17 Nov, not filtered for Yash's own devices:
 Seen walking a fresh install on the simulator (17-11): picking a video is followed by iOS asking for full Photos access; a "Check the plate" confirmation; about a minute of waiting; the result opens on the full player with every control, no reveal; a lift with no bar path still uses the week's one free video (devicePipeline.ts countLift skips only failures).
 
 - [x] (Claude) Identity fix live on 4.0.3, 4.0.4 and 4.0.5 (17-11)
+- [ ] (Claude, needs Yash's go to submit) 4.0.6 store build that embeds the current JS. Found 19-11: OTA never reaches a new install's first launch (`fallbackToCacheTimeout: 0`), so the sample lift, the welcome events and the first-lift reminders shipped on 17-11 have zero events. Build 50 (4.0.5) predates them
 - [ ] (Claude) Re-read the funnel per person on 20-11, once phones have the fix
 - [x] A lift with no path drawn does not use the free video, and the player says so (2731309, live on all three runtimes 17-11)
 - [x] Three quiet reminders (1, 3 and 7 days) for a phone that never tracked a lift; the first lift cancels them (edd611b, live 17-11). Only reaches phones that open the app after the update
