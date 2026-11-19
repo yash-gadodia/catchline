@@ -69,6 +69,20 @@ export function byDay(lifts: Lift[], now: Date = new Date()): DayGroup[] {
   return out;
 }
 
+export type KindGroup = { kind: string | null; label: string; lifts: Lift[] };
+
+// The lifts by kind: the kind with most lifts first, each newest first, and the lifts with no kind last.
+export function byKind(lifts: Lift[], kindOf: (l: Lift) => string | null): KindGroup[] {
+  const groups = new Map<string | null, Lift[]>();
+  for (const l of newestFirst(lifts)) {
+    const kind = kindOf(l);
+    groups.set(kind, [...(groups.get(kind) ?? []), l]);
+  }
+  return [...groups]
+    .sort((a, b) => Number(a[0] === null) - Number(b[0] === null) || b[1].length - a[1].length)
+    .map(([kind, list]) => ({ kind, label: kind ?? t('library.lifts.noKind'), lifts: list }));
+}
+
 export function freeVideosLabel(s: Pick<LibraryState, 'plan' | 'freeVideosUsed'>): string | null {
   if (s.plan !== 'free') return null;
   const left = Math.max(0, FREE_VIDEOS - s.freeVideosUsed);

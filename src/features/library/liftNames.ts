@@ -5,20 +5,51 @@ import { t, type Key } from '../../i18n';
 import { liftShape, type TrackedLift } from '../analysis/compare';
 import { forgetLiftDetails } from './liftDetails';
 
-// What kind of lift each tracked lift is, read from the bar's path against the body (compare.ts liftShape) when the
-// lift is tracked, or the first time an older one is opened. Kept on the phone only, beside the lift it names.
-export const useLiftNames = create<{ shapes: Record<string, string> }>()(
-  persist(() => ({ shapes: {} as Record<string, string> }), { name: 'catchline-lift-names', storage: createJSONStorage(() => AsyncStorage) })
+// What kind of lift each tracked lift is. `shapes` is read from the bar's path against the body (compare.ts liftShape)
+// when the lift is tracked, or the first time an older one is opened. `chosen` is what the lifter picked on the lift's
+// details, and wins: a kind from KINDS, or their own words ("Ring dip"). Kept on the phone only, beside the lift.
+type Names = { shapes: Record<string, string>; chosen: Record<string, string> };
+export const useLiftNames = create<Names>()(
+  persist((): Names => ({ shapes: {}, chosen: {} }), { name: 'catchline-lift-names', storage: createJSONStorage(() => AsyncStorage) })
 );
 
+// The kinds a lifter can pick, in the order they are offered.
+export const KINDS = ['snatch', 'clean', 'cleanJerk', 'jerk', 'squat', 'deadlift', 'pull', 'overhead', 'pullUp', 'butterflyPullUp', 'muscleUp', 'handstandPushUp'] as const;
+export const KIND_MAX = 24;
+const isKind = (k: string) => (KINDS as readonly string[]).includes(k);
+export const kindLabel = (kind: string): string => (isKind(kind) ? t(`library.kind.${kind}` as Key) : kind);
+
 // Only the shapes that name one kind of lift; a bar taken from a rack to the shoulders or the hips could be several.
-const NAMES: Record<string, Key> = {
-  'floor-overhead': 'library.kind.snatch',
-  'floor-overhead-jerk': 'library.kind.cleanJerk',
-  'floor-shoulders': 'library.kind.clean',
-  'floor-hips': 'library.kind.pull',
-  'rack-overhead': 'library.kind.overhead',
+const SHAPE_KIND: Record<string, string> = {
+  'floor-overhead': 'snatch',
+  'floor-overhead-jerk': 'cleanJerk',
+  'floor-shoulders': 'clean',
+  'floor-hips': 'pull',
+  'rack-overhead': 'overhead',
 };
+
+// The lift's kind as stored: the lifter's pick, else what the app read, else null.
+export function kindIdOf(names: Names, liftId: string): string | null {
+  return names.chosen[liftId] ?? SHAPE_KIND[names.shapes[liftId] ?? ''] ?? null;
+}
+
+// The lifter picks a kind, or types their own (words that match a listed kind become that kind). Empty clears the
+// pick, and the lift goes back to what the app read.
+export function setLiftKind(liftId: string, raw: string | null): void {
+  const typed = (raw ?? '').replace(/\s+/g, ' ').trim().slice(0, KIND_MAX).trim();
+  const kind = KINDS.find((k) => k === typed || kindLabel(k).toLowerCase() === typed.toLowerCase()) ?? typed;
+  useLiftNames.setState((s) => {
+    const { [liftId]: _was, ...chosen } = s.chosen;
+    return { chosen: kind ? { ...chosen, [liftId]: kind } : chosen };
+  });
+}
+
+// The lifter's own kinds (not in KINDS), most used first: offered again on the next lift.
+export function ownKinds(chosen: Record<string, string>): string[] {
+  const count = new Map<string, number>();
+  for (const k of Object.values(chosen)) if (!isKind(k)) count.set(k, (count.get(k) ?? 0) + 1);
+  return [...count].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([k]) => k);
+}
 
 export function rememberLiftShape(liftId: string, lift: TrackedLift): void {
   if (useLiftNames.getState().shapes[liftId] !== undefined) return;
@@ -30,22 +61,28 @@ export function rememberLiftShape(liftId: string, lift: TrackedLift): void {
 export function forgetLiftName(liftId: string): void {
   useLiftNames.setState((s) => {
     const { [liftId]: _gone, ...shapes } = s.shapes;
-    return { shapes };
+    const { [liftId]: _pick, ...chosen } = s.chosen;
+    return { shapes, chosen };
   });
   forgetLiftDetails(liftId);
 }
 
-export function liftKind(shapes: Record<string, string>, liftId: string): string | null {
-  const key = NAMES[shapes[liftId] ?? ''];
-  return key ? t(key) : null;
+export function liftKind(shapes: Record<string, string>, liftId: string, chosen: Record<string, string> = {}): string | null {
+  const kind = kindIdOf({ shapes, chosen }, liftId);
+  return kind ? kindLabel(kind) : null;
 }
 
-// The kinds among these lifts, most lifts first: the Lifts list filters by them once there is more than one.
-export function kindsOf(shapes: Record<string, string>, liftIds: string[]): string[] {
+// The kinds among these lifts, most lifts first: the Lifts list filters and groups by them.
+export function kindsOf(shapes: Record<string, string>, liftIds: string[], chosen: Record<string, string> = {}): string[] {
   const count = new Map<string, number>();
   for (const id of liftIds) {
-    const kind = liftKind(shapes, id);
+    const kind = liftKind(shapes, id, chosen);
     if (kind) count.set(kind, (count.get(kind) ?? 0) + 1);
   }
   return [...count].sort((a, b) => b[1] - a[1]).map(([kind]) => kind);
 }
+
+// How the Lifts list is laid out: a history by day, or one group per kind of lift.
+export const useLiftsView = create<{ by: 'day' | 'kind' }>()(
+  persist((): { by: 'day' | 'kind' } => ({ by: 'day' }), { name: 'catchline-lifts-view', storage: createJSONStorage(() => AsyncStorage) })
+);

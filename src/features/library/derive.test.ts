@@ -1,6 +1,6 @@
 import { File } from 'expo-file-system';
 import { setLanguage } from '../../i18n';
-import { byDay, freeVideosLabel, isTracked, liftTime, liftDetail, liftCaption, liftLink, liftTitle, liftWhen, newestFirst, sessionsDone } from './derive';
+import { byDay, byKind, freeVideosLabel, isTracked, liftTime, liftDetail, liftCaption, liftLink, liftTitle, liftWhen, newestFirst, sessionsDone } from './derive';
 import { emptyLibrary } from './seed';
 import type { CueRecord, Lift, Session } from './types';
 
@@ -133,5 +133,18 @@ describe('sessionsDone (the paywall proof rows)', () => {
     const sessions = [session('2026-09-30'), session('2026-10-02'), session('2026-10-04'), session('2026-10-05', 'clean'), session('2026-10-20')];
     expect(sessionsDone(cue, sessions)).toBe(3);
     expect(sessionsDone({ ...cue, endedAt: '2026-10-04' }, sessions)).toBe(2);
+  });
+});
+
+describe('byKind', () => {
+  it('groups by kind, the biggest group first, lifts with no kind last', () => {
+    const lift = (id: string, date: string) => ({ id, date, status: 'done' }) as unknown as Parameters<typeof byKind>[0][number];
+    const kinds: Record<string, string | null> = { a: 'Snatch', b: null, c: 'Pull-up', d: 'Pull-up' };
+    const groups = byKind([lift('a', '2026-11-01'), lift('b', '2026-11-02'), lift('c', '2026-11-03'), lift('d', '2026-11-04')], (l) => kinds[l.id]);
+    expect(groups.map((g) => [g.label, g.lifts.map((l) => l.id)])).toEqual([
+      ['Pull-up', ['d', 'c']],
+      ['Snatch', ['a']],
+      ['Not sorted yet', ['b']],
+    ]);
   });
 });
