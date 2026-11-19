@@ -1,5 +1,6 @@
 import { AppState } from 'react-native';
 import { cancelFirstLiftNudges } from '../features/notifications/nudges';
+import { scheduleFeedbackNotification } from '../features/feedback/ask';
 import { File } from 'expo-file-system';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { gunzipSync, strFromU8 } from 'fflate';
@@ -257,6 +258,7 @@ async function runDeviceLift(sub: ClipSubmission & { uri: string }, liftId: stri
     // hip trail of a hanging movement). A result with the body alone leaves the week's video for another try.
     if (!local.failure && (local.reps[0]?.path.length ?? 0) > 0) await countLift(now);
     const record = syncRecord(local, sub, now);
+    void scheduleFeedbackNotification();
     void queueLiftSync({ id: liftId, lift: record });
     if (local.failure) {
       track(EVENTS.ANALYSIS_FAILED, { movement: sub.movement, code: record.failureCode ?? 'unknown' });
