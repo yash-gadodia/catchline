@@ -81,7 +81,10 @@ Baseline, 12 to 17 Nov, not filtered for Yash's own devices:
 Seen walking a fresh install on the simulator (17-11): picking a video is followed by iOS asking for full Photos access; a "Check the plate" confirmation; about a minute of waiting; the result opens on the full player with every control, no reveal; a lift with no bar path still uses the week's one free video (devicePipeline.ts countLift skips only failures).
 
 - [x] (Claude) Identity fix live on 4.0.3, 4.0.4 and 4.0.5 (17-11)
-- [ ] (Claude, needs Yash's go to submit) 4.0.6 store build that embeds the current JS. Found 19-11: OTA never reaches a new install's first launch (`fallbackToCacheTimeout: 0`), so the sample lift, the welcome events and the first-lift reminders shipped on 17-11 have zero events. Build 50 (4.0.5) predates them
+- [x] (submitted 19-11, build 51, WAITING_FOR_REVIEW, manual release) 4.0.6 store build that embeds the current JS. Found 19-11: OTA never reaches a new install's first launch (`fallbackToCacheTimeout: 0`), so the sample lift, the welcome events and the first-lift reminders shipped on 17-11 have zero events. Build 50 (4.0.5) predates them
+- [ ] (Yash) Feedback ask (19-11, live on runtime 4.0.5 only, update 554dc4af): open the app twice on 4.0.5 and confirm the "How is Catchline working for you?" sheet. Not seen on a simulator (the Mini's disk guard wipes the build folder)
+- [ ] (Claude, after that) Feedback ask to runtimes 4.0.3, 4.0.4 and 4.0.6 (cherry-pick 1c8de44 f8a2fdb); a Telegram alert on the Mini for each new `problem_reports` row, nothing reads them today
+- [ ] (Claude) Store builds on the Mini with `eas build --local`: the Expo free plan allows 15 iOS builds a month and 13 are used (19-11); needs the Mini's disk fixed first (10 GB free)
 - [ ] (Claude) Re-read the funnel per person on 20-11, once phones have the fix
 - [x] A lift with no path drawn does not use the free video, and the player says so (2731309, live on all three runtimes 17-11)
 - [x] Three quiet reminders (1, 3 and 7 days) for a phone that never tracked a lift; the first lift cancels them (edd611b, live 17-11). Only reaches phones that open the app after the update
