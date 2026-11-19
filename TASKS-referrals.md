@@ -101,6 +101,9 @@ Seen walking a fresh install on the simulator (17-11): picking a video is follow
 - [ ] (Claude) Feed the loop the weekly funnel read and new feedback rows as `bot` issues
 - [ ] (Yash) Decide from docs/catchline/research/strategy-2026-11-19/00-plan.md: store subtitle and keywords, free tier test (3 in week one), price ($4.99 / $29.99), 20 coach conversations, the accuracy check with a borrowed GymAware
 - [ ] (Yash) Five older PRs aimed at release/3.1 (#154 #160 #179 #181 #232): close or keep
+- [x] 19-11, live on all four runtimes: paywall before the picker when no free video is left; Monday "free video is back" reminder; first-lift reminders stop only after a bar path; sample lift is a button; plate skip reads "My lift has no barbell"
+- [ ] (Claude) Say the real cause when no bar path is found: 4.0 tracking records none (`pathOnly(ctx, 'no_reps')` always), so tracking.ts must record plate never read / plate skipped / filmed off side-on first
+- [ ] (Claude, next store build) Embed today's JavaScript so a first launch gets it: build 51 (4.0.6) predates the first-run batch, the eight issue fixes and lift kinds
 - [ ] (Claude) Re-read the funnel per person on 20-11, once phones have the fix
 - [x] A lift with no path drawn does not use the free video, and the player says so (2731309, live on all three runtimes 17-11)
 - [x] Three quiet reminders (1, 3 and 7 days) for a phone that never tracked a lift; the first lift cancels them (edd611b, live 17-11). Only reaches phones that open the app after the update
