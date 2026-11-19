@@ -61,7 +61,7 @@ export const capture: Strings<typeof en> = {
   'capture.trim.weightA11y': "重量（{units}）",
   'capture.mark.check': "圆圈在你的杠铃片上吗？拖动圆圈可以移动，拖动圆边可以调整大小。",
   'capture.mark.go': "追踪",
-  'capture.mark.skip': "没有杠铃片？跳过",
+  'capture.mark.skip': "这个动作不用杠铃",
   'capture.mark.checkTitle': "检查杠铃片",
   'capture.mark.finding': "正在寻找杠铃片",
 };

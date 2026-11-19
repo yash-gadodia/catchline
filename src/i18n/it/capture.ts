@@ -61,7 +61,7 @@ export const capture: Strings<typeof en> = {
   'capture.trim.weightA11y': "Peso in {units}",
   'capture.mark.check': "Il cerchio è sul tuo disco? Trascinalo per spostarlo, o trascina il bordo per ridimensionarlo.",
   'capture.mark.go': "Traccia",
-  'capture.mark.skip': "Nessun disco? Salta",
+  'capture.mark.skip': "La mia alzata è senza bilanciere",
   'capture.mark.checkTitle': "Controlla il disco",
   'capture.mark.finding': "Cerco il disco",
 };

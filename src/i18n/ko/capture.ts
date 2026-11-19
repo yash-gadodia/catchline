@@ -61,7 +61,7 @@ export const capture: Strings<typeof en> = {
   'capture.trim.weightA11y': "무게({units})",
   'capture.mark.check': "원이 원판 위에 있나요? 원을 드래그해 옮기거나 테두리를 드래그해 크기를 바꾸세요.",
   'capture.mark.go': "트래킹",
-  'capture.mark.skip': "원판이 없나요? 건너뛰기",
+  'capture.mark.skip': "바벨이 없는 동작입니다",
   'capture.mark.checkTitle': "원판 확인",
   'capture.mark.finding': "원판을 찾는 중",
 };
