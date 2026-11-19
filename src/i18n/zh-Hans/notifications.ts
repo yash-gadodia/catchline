@@ -17,6 +17,8 @@ export const notifications: Strings<typeof en> = {
   'notifications.ready.failedBody': "点按查看原因，以及接下来可以怎么做。",
   'notifications.feedback.title': "Catchline 用得怎么样？",
   'notifications.feedback.body': "告诉我们哪里需要改进、还缺什么。只需一分钟。",
+  'notifications.freeBack.title': "免费视频回来了",
+  'notifications.freeBack.body': "新的一周：可免费分析一次举重。选一个视频，看看杠铃轨迹。",
   'notifications.nudge1.title': "你的第一条杠铃轨迹只需约一分钟",
   'notifications.nudge1.body': "从相册里选一段举重视频，Catchline 会在你的手机上画出杠铃轨迹。",
   'notifications.nudge2.title': "有举重视频吗？",

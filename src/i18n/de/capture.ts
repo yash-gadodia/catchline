@@ -43,7 +43,7 @@ export const capture: Strings<typeof en> = {
   'capture.mark.cancel': "Abbrechen",
   'capture.mark.check': "Liegt der Kreis auf deiner Scheibe? Zieh ihn, um ihn zu verschieben, oder seinen Rand, um die Größe zu ändern.",
   'capture.mark.go': "Tracken",
-  'capture.mark.skip': "Keine Scheibe? Überspringen",
+  'capture.mark.skip': "Mein Lift hat keine Langhantel",
   'capture.mark.checkTitle': "Scheibe prüfen",
   'capture.mark.finding': "Scheibe wird gesucht",
   'capture.mark.stage': "Das Bild, auf dem die Scheibe gefunden wurde. Zieh den Kreis, um ihn zu verschieben, oder seinen Rand, um die Größe zu ändern.",

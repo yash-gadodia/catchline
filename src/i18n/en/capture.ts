@@ -41,7 +41,7 @@ export const capture = {
   'capture.mark.cancel': "Cancel",
   'capture.mark.check': "Is the circle on your plate? Drag it to move it, or drag its rim to resize it.",
   'capture.mark.go': "Track",
-  'capture.mark.skip': "No plate? Skip",
+  'capture.mark.skip': "My lift has no barbell",
   'capture.mark.checkTitle': "Check the plate",
   'capture.mark.finding': "Finding the plate",
   'capture.mark.stage': "The frame where the plate was found. Drag the circle to move it, or its rim to resize it.",

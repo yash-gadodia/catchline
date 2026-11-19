@@ -43,7 +43,7 @@ export const capture: Strings<typeof en> = {
   'capture.mark.cancel': "Annuler",
   'capture.mark.check': "Le cercle est-il sur ton disque ? Fais-le glisser pour le déplacer, ou son bord pour changer sa taille.",
   'capture.mark.go': "Suivre",
-  'capture.mark.skip': "Pas de disque ? Passer",
+  'capture.mark.skip': "Mon mouvement est sans barre",
   'capture.mark.checkTitle': "Vérifie le disque",
   'capture.mark.finding': "Recherche du disque",
   'capture.mark.stage': "L'image où le disque a été trouvé. Fais glisser le cercle pour le déplacer, ou son bord pour changer sa taille.",

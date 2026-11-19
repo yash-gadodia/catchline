@@ -10,6 +10,7 @@ import { backendEnabled } from '../../data/backend';
 import { supabase } from '../../lib/supabase';
 import { readFreeWeek } from '../../data/freeLifts';
 import { signInWithApple } from '../auth/appleSignIn';
+import { cancelFreeVideoBack } from '../notifications/nudges';
 
 export function storePlatform(): StorePlatform {
   return Platform.OS === 'android' ? 'android' : 'ios';
@@ -55,7 +56,10 @@ export async function purchasePlan(plan: Plan): Promise<PurchaseStatus> {
     return blocked;
   }
   const status = await usePurchases.getState().purchase(plan);
-  if (status === 'success') track(EVENTS.PURCHASE_COMPLETED, { plan: id });
+  if (status === 'success') {
+    track(EVENTS.PURCHASE_COMPLETED, { plan: id });
+    void cancelFreeVideoBack();
+  }
   else track(EVENTS.PURCHASE_NOT_COMPLETED, { plan: id, outcome: status });
   return status;
 }
@@ -86,6 +90,9 @@ export function routeAfterAnalysis(): null {
   return null;
 }
 
-export function captureHref(next: string): string {
-  return next;
+// A free lifter with no video left this week goes to the paywall before picking or filming, not after the picker,
+// the trim and the plate check (19-11: 18 of 58 new phones met the paywall that late).
+export function captureHref(next: string, now: Date = new Date()): string {
+  const free = usePurchases.getState().tier === 'free';
+  return free && freeLeft(useUsage.getState().usage, now) <= 0 ? '/paywall' : next;
 }

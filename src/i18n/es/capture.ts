@@ -43,7 +43,7 @@ export const capture: Strings<typeof en> = {
   'capture.mark.cancel': "Cancelar",
   'capture.mark.check': "¿El círculo está sobre tu disco? Arrástralo para moverlo o arrastra su borde para cambiar el tamaño.",
   'capture.mark.go': "Rastrear",
-  'capture.mark.skip': "¿Sin disco? Omitir",
+  'capture.mark.skip': "Mi levantamiento no lleva barra",
   'capture.mark.checkTitle': "Revisa el disco",
   'capture.mark.finding': "Buscando el disco",
   'capture.mark.stage': "El fotograma donde se encontró el disco. Arrastra el círculo para moverlo o su borde para cambiar el tamaño.",

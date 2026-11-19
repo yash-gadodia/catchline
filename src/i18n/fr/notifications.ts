@@ -28,6 +28,8 @@ export const notifications: Strings<typeof en> = {
   'notifications.ready.failedBody': "Touche pour voir pourquoi, et quoi essayer ensuite.",
   'notifications.feedback.title': "Comment ça se passe avec Catchline ?",
   'notifications.feedback.body': "Dites-nous ce qu'il faut corriger ou ce qui manque. Cela prend une minute.",
+  'notifications.freeBack.title': "Ta vidéo gratuite est de retour",
+  'notifications.freeBack.body': "Nouvelle semaine : analyse un mouvement gratuitement. Choisis une vidéo et vois la trajectoire de la barre.",
   'notifications.nudge1.title': "Ta première trajectoire de barre prend une minute",
   'notifications.nudge1.body': "Choisis une vidéo d'un mouvement dans ta pellicule. Catchline y trace la trajectoire de la barre, sur ton téléphone.",
   'notifications.nudge2.title': "Tu as un mouvement en vidéo ?",
