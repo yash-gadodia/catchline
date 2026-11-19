@@ -94,7 +94,7 @@ describe('marking the plate', () => {
       fireEvent.press(view.getByTestId('mark-track'));
     });
     expect(onTrack).toHaveBeenCalledWith(found);
-    expect(view.getByTestId('mark-skip')).toHaveTextContent('No plate? Skip');
+    expect(view.getByTestId('mark-skip')).toHaveTextContent('My lift has no barbell');
     await act(async () => {
       fireEvent.press(view.getByTestId('mark-skip'));
     });
