@@ -1,4 +1,4 @@
-import { forgetLiftName, kindsOf, liftKind, rememberLiftShape, useLiftNames } from './liftNames';
+import { forgetLiftName, kindIdOf, kindsOf, liftKind, ownKinds, rememberLiftShape, setLiftKind, useLiftNames } from './liftNames';
 import * as compare from '../analysis/compare';
 
 const lift = {} as compare.TrackedLift;
@@ -36,5 +36,35 @@ describe('lift names', () => {
     useLiftNames.setState({ shapes: { l1: 'floor-overhead', l2: 'floor-shoulders' } });
     forgetLiftName('l1');
     expect(useLiftNames.getState().shapes).toEqual({ l2: 'floor-shoulders' });
+  });
+});
+
+describe('the kind a lifter picks', () => {
+  beforeEach(() => useLiftNames.setState({ shapes: {}, chosen: {} }));
+
+  it('wins over what the app read, and clearing it gives the read kind back', () => {
+    useLiftNames.setState({ shapes: { a: 'floor-overhead' } });
+    setLiftKind('a', 'butterflyPullUp');
+    const n = () => useLiftNames.getState();
+    expect(liftKind(n().shapes, 'a', n().chosen)).toBe('Butterfly pull-up');
+    setLiftKind('a', null);
+    expect(liftKind(n().shapes, 'a', n().chosen)).toBe('Snatch');
+  });
+
+  it("keeps the lifter's own words, and reads a listed kind typed out as that kind", () => {
+    setLiftKind('a', '  Ring   dip ');
+    setLiftKind('b', 'ring dip'.replace('r', 'R'));
+    setLiftKind('c', 'deadlift');
+    const { chosen, shapes } = useLiftNames.getState();
+    expect(chosen).toEqual({ a: 'Ring dip', b: 'Ring dip', c: 'deadlift' });
+    expect(ownKinds(chosen)).toEqual(['Ring dip']);
+    expect(kindsOf(shapes, ['a', 'b', 'c'], chosen)).toEqual(['Ring dip', 'Deadlift']);
+    expect(kindIdOf({ shapes, chosen }, 'zzz')).toBeNull();
+  });
+
+  it('goes when the lift is deleted', () => {
+    setLiftKind('a', 'squat');
+    forgetLiftName('a');
+    expect(useLiftNames.getState().chosen).toEqual({});
   });
 });

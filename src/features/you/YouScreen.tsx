@@ -156,6 +156,9 @@ export default function YouScreen({
         />
         <Row title={t('you.whatsNew')} right={<Value>›</Value>} onPress={nav.onWhatsNew} last testID="row-whats-new" />
         <BuildLine />
+        <Text style={{ color: colors.text2, ...type.readout }} testID="you-made-by">
+          {t('you.madeBy')}
+        </Text>
       </ScrollView>
 
       {picker === 'name' && account?.name && !live ? (

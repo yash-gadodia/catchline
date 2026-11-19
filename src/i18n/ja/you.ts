@@ -32,6 +32,7 @@ export const you: Strings<typeof en> = {
   'you.help': "ヘルプ",
   'you.about': "このアプリについて · {version}",
   'you.build': "Catchline {version} · アップデート {update} · {device}",
+  'you.madeBy': "シンガポールのYashが❤️を込めて作りました 🇸🇬",
   'you.founding': "創設メンバー",
   'you.close': "閉じる",
   'you.done': "完了",

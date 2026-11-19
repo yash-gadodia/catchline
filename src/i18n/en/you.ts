@@ -28,6 +28,7 @@ export const you = {
   'you.help': 'Help',
   'you.about': 'About · {version}',
   'you.build': 'Catchline {version} · update {update} · {device}',
+  'you.madeBy': "Made with ❤️ by Yash from Singapore 🇸🇬",
   'you.founding': 'Founding',
   'you.close': 'Close',
   'you.done': 'Done',

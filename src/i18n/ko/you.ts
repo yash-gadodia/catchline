@@ -32,6 +32,7 @@ export const you: Strings<typeof en> = {
   'you.help': "도움말",
   'you.about': "정보 · {version}",
   'you.build': "Catchline {version} · 업데이트 {update} · {device}",
+  'you.madeBy': "싱가포르에서 Yash가 ❤️를 담아 만들었습니다 🇸🇬",
   'you.founding': "창립 멤버",
   'you.close': "닫기",
   'you.done': "완료",
