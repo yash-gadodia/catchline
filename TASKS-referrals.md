@@ -96,6 +96,11 @@ Seen walking a fresh install on the simulator (17-11): picking a video is follow
 - [ ] (Claude) Lift kinds, feedback ask and form-only reports to runtimes 4.0.3 and 4.0.4 once Yash has seen them on 4.0.5
 - [x] 19-11: Telegram alert for every new `problem_reports` row (Mini: ~/bin/catchline-feedback-alert.sh, launchd ai.yash.catchline-feedback-alert, every 10 min)
 - [ ] (Claude) Why a report can sit on the phone: Yash's 19-11 feedback (sent 09:49 UTC) only reached the server at 10:03 on a later launch, and a launch at 10:00 did not send it. Cause unknown. `report_send_failed` (step, cause) is live from update 01a1f33c: read it in PostHog when it next fires
+- [x] 19-11: issues cleaned (108 open to 20: 79 closed as removed or fixed, 9 fixed and shipped); default branch `catchline` now carries the shipping code; the bot fixer merges and ships low-risk fixes (10%, everyone after 24 h)
+- [ ] (Claude) 20-11: read ~/.catchline-bot/logs/loop.log after the first tester and fixer runs on 4.0 code (does the simulator build, do packages install, does a PR merge and publish)
+- [ ] (Claude) Feed the loop the weekly funnel read and new feedback rows as `bot` issues
+- [ ] (Yash) Decide from docs/catchline/research/strategy-2026-11-19/00-plan.md: store subtitle and keywords, free tier test (3 in week one), price ($4.99 / $29.99), 20 coach conversations, the accuracy check with a borrowed GymAware
+- [ ] (Yash) Five older PRs aimed at release/3.1 (#154 #160 #179 #181 #232): close or keep
 - [ ] (Claude) Re-read the funnel per person on 20-11, once phones have the fix
 - [x] A lift with no path drawn does not use the free video, and the player says so (2731309, live on all three runtimes 17-11)
 - [x] Three quiet reminders (1, 3 and 7 days) for a phone that never tracked a lift; the first lift cancels them (edd611b, live 17-11). Only reaches phones that open the app after the update
