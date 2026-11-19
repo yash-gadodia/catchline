@@ -39,28 +39,28 @@ describe('the feedback ask', () => {
     expect(offerFeedback(5)).toBe(false);
   });
 
-  it('the sheet opens the report screen as feedback', () => {
+  it('the sheet opens the report screen as feedback', async () => {
     offerFeedback(2);
-    const { getByTestId, queryByTestId } = render(<FeedbackSheet />);
-    fireEvent.press(getByTestId('feedback-give'));
+    const { getByTestId, queryByTestId } = await render(<FeedbackSheet />);
+    await fireEvent.press(getByTestId('feedback-give'));
     expect(router.router.push).toHaveBeenCalledWith({ pathname: '/report', params: { context: 'feedback' } });
     expect(track).toHaveBeenCalledWith('feedback_ask_give', {});
     expect(queryByTestId('feedback-sheet')).toBeNull();
   });
 
-  it('"Not now" closes it for good', () => {
+  it('"Not now" closes it for good', async () => {
     offerFeedback(3);
-    const { getByTestId, queryByTestId } = render(<FeedbackSheet />);
-    fireEvent.press(getByTestId('feedback-later'));
+    const { getByTestId, queryByTestId } = await render(<FeedbackSheet />);
+    await fireEvent.press(getByTestId('feedback-later'));
     expect(track).toHaveBeenCalledWith('feedback_ask_later', {});
     expect(queryByTestId('feedback-sheet')).toBeNull();
     expect(router.router.push).not.toHaveBeenCalled();
   });
 
-  it('shows on the first screen only', () => {
+  it('shows on the first screen only', async () => {
     mockPath = '/analysis/player';
     offerFeedback(2);
-    expect(render(<FeedbackSheet />).queryByTestId('feedback-sheet')).toBeNull();
+    expect((await render(<FeedbackSheet />)).queryByTestId('feedback-sheet')).toBeNull();
   });
 
   it('one quiet notification three days after a tracked lift, once', async () => {
