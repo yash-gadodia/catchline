@@ -102,7 +102,7 @@ export default function YouScreen({
       <ScrollView contentContainerStyle={{ paddingTop: insets.top + space.s7, paddingHorizontal: space.gutter, paddingBottom: 120 }}>
         <Text style={[display(36), { color: colors.text, marginBottom: space.s2 }]}>{t('you.title')}</Text>
         {account && live && account.anonymous ? (
-          <Row title={account.line} bold right={<Value>{t('you.signInWithApple')}</Value>} onPress={doSignIn} testID="row-profile" />
+          <Row title={account.line} bold sub={t('you.signInWithApple')} right={<Value>›</Value>} onPress={doSignIn} testID="row-profile" />
         ) : account && live ? (
           <Row title={account.name ?? account.line} bold sub={account.name ? account.line : undefined} right={null} testID="row-profile" />
         ) : account?.name ? (

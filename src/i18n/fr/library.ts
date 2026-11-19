@@ -45,6 +45,8 @@ export const library: Strings<typeof en> = {
   'library.lifts.deleteCancel': "Annuler",
   'library.lifts.deleteFailed': "Suppression impossible. Vérifie ta connexion et réessaie.",
   'library.lifts.unlock': "Débloquer",
+  'library.lifts.elsewhereTitle': "Ce mouvement est sur un autre iPhone",
+  'library.lifts.elsewhereBody': "Il a été analysé sur un autre iPhone, ou avant la réinstallation de l'app. La vidéo reste sur l'iPhone qui l'a analysé.",
   'library.search.placeholder': "Rechercher un mouvement",
   'library.search.clear': "Effacer la recherche",
   'library.search.noneTitle': "Aucun mouvement trouvé",

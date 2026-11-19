@@ -45,6 +45,8 @@ export const library: Strings<typeof en> = {
   'library.lifts.deleteCancel': "Abbrechen",
   'library.lifts.deleteFailed': "Löschen hat nicht geklappt. Prüfe deine Verbindung und versuch es noch mal.",
   'library.lifts.unlock': "Freischalten",
+  'library.lifts.elsewhereTitle': "Dieser Lift ist auf einem anderen iPhone",
+  'library.lifts.elsewhereBody': "Er wurde auf einem anderen iPhone getrackt oder bevor die App neu installiert wurde. Das Video bleibt auf dem iPhone, das ihn getrackt hat.",
   'library.search.placeholder': "Lifts durchsuchen",
   'library.search.clear': "Suche löschen",
   'library.search.noneTitle': "Keine Lifts gefunden",

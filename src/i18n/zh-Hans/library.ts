@@ -44,6 +44,8 @@ export const library: Strings<typeof en> = {
   'library.lifts.deleteCancel': "取消",
   'library.lifts.deleteFailed': "无法删除。检查网络后再试一次。",
   'library.lifts.unlock': "解锁",
+  'library.lifts.elsewhereTitle': "这次举重在另一部 iPhone 上",
+  'library.lifts.elsewhereBody': "它是在另一部 iPhone 上分析的，或是在重新安装 App 之前分析的。视频保留在分析它的那部 iPhone 上。",
   'library.search.placeholder': "搜索试举",
   'library.search.clear': "清除搜索",
   'library.search.noneTitle': "没有找到试举",

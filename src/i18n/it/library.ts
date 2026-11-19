@@ -44,6 +44,8 @@ export const library: Strings<typeof en> = {
   'library.lifts.deleteCancel': "Annulla",
   'library.lifts.deleteFailed': "Impossibile eliminarla. Controlla la connessione e riprova.",
   'library.lifts.unlock': "Sblocca",
+  'library.lifts.elsewhereTitle': "Questa alzata è su un altro iPhone",
+  'library.lifts.elsewhereBody': "È stata analizzata su un altro iPhone, o prima di reinstallare l'app. Il video resta sull'iPhone che l'ha analizzata.",
   'library.search.placeholder': "Cerca alzate",
   'library.search.clear': "Cancella la ricerca",
   'library.search.noneTitle': "Nessuna alzata trovata",
