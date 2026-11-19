@@ -157,7 +157,10 @@ export default function YouScreen({
         <Row title={t('you.whatsNew')} right={<Value>›</Value>} onPress={nav.onWhatsNew} last testID="row-whats-new" />
         <BuildLine />
         <Text style={{ color: colors.text2, ...type.readout }} testID="you-made-by">
-          {t('you.madeBy')}
+          {/* the mono face has no emoji and does not fall back: the heart and the flag are drawn in the system font */}
+          {t('you.madeBy')
+            .split(/(\p{Extended_Pictographic}\uFE0F?|\p{Regional_Indicator}{2})/u)
+            .map((part, i) => (i % 2 ? <Text key={i} style={{ fontFamily: 'System' }}>{part}</Text> : part))}
         </Text>
       </ScrollView>
 
