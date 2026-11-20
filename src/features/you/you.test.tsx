@@ -13,6 +13,8 @@ import { DEFAULT_SETTINGS, reminderLabel, settingLabels, useSettings } from './s
 import { accountLine, createLocalAccountRepository, planLabel, useAccountStore, type DataExport } from './account';
 import { ANALYSES } from '../../analysis/fixtures';
 import { useLibraryStore } from '../library/store';
+import { setLiftKind, useLiftNames } from '../library/liftNames';
+import { setLiftDetails, useLiftDetails } from '../library/liftDetails';
 import { backendEnabled } from '../../data/backend';
 import { useOnboarding } from '../onboarding/store';
 import { useUsage } from '../paywall/usageStore';
@@ -287,6 +289,19 @@ describe('exportMyData', () => {
     expect(bundle.lifts[0]).toMatchObject({ id: 'l1', date: '2026-10-11', movement: 'snatch', loadKg: 60, cue: analysis.cue?.text });
     expect(bundle.lifts[0].measurements).toEqual(seen.map((m) => ({ id: m.id, label: m.label, value: m.value, unit: m.unit })));
     expect(seen.length).toBeGreaterThan(0);
+  });
+
+  it('carries the kind the lifter picked and the name, tags and note they typed (#242)', async () => {
+    useLiftNames.setState({ shapes: { a1: 'floor-overhead' }, chosen: { a1: 'clean' } });
+    useLiftDetails.setState({ details: {} });
+    setLiftDetails('a1', { name: 'Comp day opener', tags: ['pr'], note: 'Felt fast off the floor' });
+    const lift = { id: 'l1', movement: 'snatch' as const, date: '2026-11-20', status: 'done' as const, analysisId: 'a1' };
+    const plain = { id: 'l2', movement: 'snatch' as const, date: '2026-11-20', status: 'done' as const, analysisId: 'a2' };
+    const bundle = await createLocalAccountRepository().exportAllData(DEFAULT_SETTINGS, [{ lift: lift as never }, { lift: plain as never }]);
+    expect(bundle.lifts[0]).toEqual({ id: 'l1', date: '2026-11-20', movement: 'clean', status: 'done', name: 'Comp day opener', tags: ['pr'], note: 'Felt fast off the floor', measurements: [] });
+    expect(bundle.lifts[1]).toEqual({ id: 'l2', date: '2026-11-20', movement: 'snatch', status: 'done', measurements: [] });
+    setLiftKind('a1', null);
+    useLiftDetails.setState({ details: {} });
   });
 
   it('stamps the export time from the repository clock', async () => {
