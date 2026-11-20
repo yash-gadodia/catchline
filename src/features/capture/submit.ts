@@ -9,6 +9,7 @@ import { nextClipGate, syncKeychainUsage } from '../paywall/hooks';
 import { onDeviceAnalysisEnabled } from '../../data/onDeviceAnalysis';
 import { startLift } from '../../data/pipeline';
 import { deviceLiftInFlight } from '../../data/devicePipeline';
+import { usePendingLifts } from '../../data/pendingLifts';
 
 export type ClipSubmission = {
   uri: string | null;
@@ -67,15 +68,18 @@ export async function submitClip(clip: ClipSubmission, opts: { replace?: boolean
 
 async function submitOnce(clip: ClipSubmission, opts: { replace?: boolean }): Promise<void> {
   const go = opts.replace ? router.replace : router.push;
-  // One lift at a time: one the lifter hid is shown again rather than run alongside, and one they cancelled
-  // finishes its last pass first (both share the phone's models).
-  const busy = deviceLiftInFlight();
-  if (busy && !busy.cancelled) return go({ pathname: '/analysis/processing', params: { live: '1' } });
-  if (busy) await busy.done;
+  // One lift tracks at a time (they share the phone's models): one the lifter cancelled finishes its last pass
+  // first, and a clip tracked while another still is waits behind it (#252).
+  const cancelled = deviceLiftInFlight();
+  if (cancelled?.cancelled) await cancelled.done;
+  // the same clip again (a second Track on the same draft) is the lift already on its way, not another one
+  const same = (s: ClipSubmission) => s.uri === clip.uri && s.trim.start === clip.trim.start && s.trim.end === clip.trim.end;
+  if (clip.uri && usePendingLifts.getState().items.some((i) => !i.held && same(i.sub))) return go({ pathname: '/analysis/processing', params: { live: '1' } });
   // The Keychain count first (a reinstall must not hand the free lifts back); the
   // gate itself is local and works offline. The server mirror is read at launch.
   await syncKeychainUsage();
-  const gate = nextClipGate();
+  // the lifts already tracking or waiting spend a free lifter's videos first
+  const gate = nextClipGate(new Date(), usePendingLifts.getState().items.filter((i) => !i.held).length);
   const params = { clip: `clip-${Date.now()}`, movement: clip.movement };
   if (gate === 'paywall') return go({ pathname: '/paywall', params });
   if (gate === 'cap') return go({ pathname: '/paywall/cap', params });
@@ -84,7 +88,10 @@ async function submitOnce(clip: ClipSubmission, opts: { replace?: boolean }): Pr
     go({ pathname: '/analysis/processing', params: { fixture: 'snatch-mock', count: '1' } });
     return;
   }
+  const busy = deviceLiftInFlight();
   startLift({ ...clip, uri: clip.uri });
+  // it waits for the one tracking: Lifts lists it as waiting, the in-flight bar above it follows the other
+  if (busy) return router.dismissTo('/');
   go({ pathname: '/analysis/processing', params: { live: '1' } });
 }
 

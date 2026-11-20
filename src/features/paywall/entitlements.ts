@@ -83,9 +83,10 @@ export function recordAnalysis(usage: Usage, tier: Tier, now: Date): Usage {
 // 'paywall' and 'trial' are never returned; capture's submit still names them.
 export type Gate = 'ok' | 'paywall' | 'trial' | 'cap';
 
-// What happens when the lifter submits the next clip. The clip is always saved first.
-export function gateFor(tier: Tier, usage: Usage, now: Date): Gate {
-  return canAnalyse(tier, usage, now) ? 'ok' : 'cap';
+// What happens when the lifter submits the next clip. The clip is always saved first. `ahead`: the lifts already
+// tracking or waiting on this phone, which a free lifter's videos are spent on first (#252).
+export function gateFor(tier: Tier, usage: Usage, now: Date, ahead = 0): Gate {
+  return isPro(tier) || freeLeft(usage, now) > ahead ? 'ok' : 'cap';
 }
 
 // ── money ────────────────────────────────────────────────────────────────────

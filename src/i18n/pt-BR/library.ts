@@ -9,6 +9,7 @@ export const library: Strings<typeof en> = {
   'library.free.used': "Vídeos grátis usados",
   'library.free.left': { one: "Resta {count} vídeo grátis", other: "Restam {count} vídeos grátis" },
   'library.detail.processing': "rastreando",
+  'library.detail.waiting': "na espera · rastreado depois do levantamento em andamento",
   'library.detail.uploadStuck': "O envio não terminou · grave ou importe de novo",
   'library.inFlight.title': "Rastreando seu levantamento",
   'library.detail.queued': "Na fila · vídeos grátis usados",

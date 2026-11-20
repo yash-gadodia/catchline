@@ -6,6 +6,8 @@ import { deleteLift, ensureSession, listLifts } from '../lib/api';
 import { deleteLocalLift, listLocalAnalyses } from './localLifts';
 import { forgetLiftName } from '../features/library/liftNames';
 import { flushLiftOutbox, useLiftOutbox, type OutboxItem } from './liftOutbox';
+import { usePendingLifts, type PendingLift } from './pendingLifts';
+import { usePipeline } from './pipeline';
 import type { Lift as LiftRow } from '../types/db';
 import { FAILURE_COPY } from '../features/library/failures';
 import { useLibraryStore } from '../features/library/store';
@@ -103,6 +105,12 @@ export function localRow(item: OutboxItem): LiftRow {
   };
 }
 
+// A lift the lifter pressed Track on that waits for the one tracking (#252).
+export function pendingLift(item: PendingLift): Lift {
+  const { sub, at } = item;
+  return { id: item.liftId, movement: sub.movement, date: dayOf(at), at, loadKg: sub.loadKg ?? undefined, status: 'processing', waiting: true };
+}
+
 // Offline first: the lifts are the analyses in Documents plus the rows the server
 // knows (lifts made on another phone). Offline, only this phone's lifts are listed.
 export async function syncLibrary(now: Date = new Date()): Promise<void> {
@@ -120,12 +128,15 @@ export async function syncLibrary(now: Date = new Date()): Promise<void> {
   const onServer = new Set(serverLifts.map((l) => l.id));
   const pending = useLiftOutbox.getState().items.filter((i) => !onServer.has(i.id) && byLift.has(i.id)).map(localRow);
   const lifts = [...pending, ...serverLifts].sort((a, b) => b.created_at.localeCompare(a.created_at));
+  // the lifts on their way, newest first; the one tracking has the in-flight bar instead of a row
+  const tracking = usePipeline.getState().job?.liftId;
+  const onTheirWay = usePendingLifts.getState().items.filter((i) => i.liftId !== tracking && !i.held).reverse().map(pendingLift);
   useLibraryStore.getState().load({
     today: dayOf(now.toISOString()),
     synced: true,
     plan: usePurchases.getState().tier === 'free' ? 'free' : 'paid',
     freeVideosUsed: useUsage.getState().usage.lifetime,
-    lifts: lifts.map((l) => toLift(l, byLift.get(l.id))),
+    lifts: [...onTheirWay, ...lifts.map((l) => toLift(l, byLift.get(l.id)))],
     sessions: [],
     cues: [],
   });
@@ -134,6 +145,8 @@ export async function syncLibrary(now: Date = new Date()): Promise<void> {
 // Deletes a lift everywhere. A lift the server holds goes there first, so a failed
 // delete (offline) leaves it whole rather than half gone.
 export async function removeLift(liftId: string): Promise<void> {
+  // one still waiting to be tracked exists only in the queue
+  if (usePendingLifts.getState().items.some((i) => i.liftId === liftId)) return usePendingLifts.getState().remove(liftId);
   const item = useLiftOutbox.getState().items.find((i) => i.id === liftId);
   if (!item || item.synced) await deleteLift(liftId);
   deleteLocalLift(liftId);

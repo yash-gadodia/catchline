@@ -10,6 +10,7 @@ export const library: Strings<typeof en> = {
   'library.free.used': "無料動画を使い切りました",
   'library.free.left': { one: "無料動画 残り{count}本", other: "無料動画 残り{count}本" },
   'library.detail.processing': "トラッキング中",
+  'library.detail.waiting': "待機中 · トラッキング中のリフトの後に処理",
   'library.detail.uploadStuck': "アップロード未完了 · もう一度撮影するか読み込んでください",
   'library.inFlight.title': "リフトをトラッキング中",
   'library.detail.queued': "順番待ち · 無料動画を使い切りました",

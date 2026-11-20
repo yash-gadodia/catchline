@@ -16,6 +16,8 @@ export default function LiftsRoute() {
           const link = liftLink(lift);
           if (link) router.push(link);
           else if (lift.status === 'queued') unlock();
+          // waiting for the lift tracking now: its row says so, and the in-flight bar opens the one tracking
+          else if (lift.waiting) return;
           // tracked on another phone (or before a reinstall): its video is not here, and paying would not bring it (#158)
           else Alert.alert(t('library.lifts.elsewhereTitle'), t('library.lifts.elsewhereBody'));
         },

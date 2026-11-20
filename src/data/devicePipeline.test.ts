@@ -547,3 +547,23 @@ describe('a lift the app is killed in the middle of (#250)', () => {
     await before;
   });
 });
+
+describe('a second lift started while one is tracking (#252)', () => {
+  it('waits for the first and is tracked after it, never dropped', async () => {
+    (randomUUID as jest.Mock).mockReturnValueOnce('lift-a').mockReturnValueOnce('lift-b');
+    const pass = deferred<typeof PASS>();
+    mockAnalyse.mockReturnValueOnce(pass.promise);
+    const a = startDeviceLift(SUB);
+    const b = startDeviceLift({ ...SUB, uri: 'file:///b.mov' });
+    await flush();
+    expect(mockAnalyse).toHaveBeenCalledTimes(1);
+    expect(usePendingLifts.getState().items.map((i) => i.liftId)).toEqual(['lift-a', 'lift-b']);
+
+    pass.resolve(PASS);
+    await a;
+    await b;
+    expect(mockAnalyse.mock.calls.map((c) => c[0])).toEqual(['file:///clip.mov.mp4', 'file:///b.mov.mp4']);
+    expect((saveLocalLift as jest.Mock).mock.calls.map((c) => c[0])).toEqual(['lift-a', 'lift-b']);
+    expect(usePendingLifts.getState().items).toEqual([]);
+  });
+});

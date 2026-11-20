@@ -102,6 +102,7 @@ export function newestFirst(lifts: Lift[]): Lift[] {
 // The line under a row's title: what is happening to the lift, what a tracked lift has, or (a 3.x lift) the movement
 // the lifter picked.
 export function liftDetail(l: Lift): string | null {
+  if (l.waiting) return t('library.detail.waiting');
   if (l.status === 'processing') return t('library.detail.processing');
   if (l.status === 'queued') return t('library.detail.queued');
   if (l.status === 'failed') return l.failure ? failureMessage(l.failure) : t('library.detail.failed');
