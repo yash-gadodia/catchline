@@ -53,6 +53,15 @@ beforeEach(() => {
 });
 
 describe('TrimScreen', () => {
+  it('says a clip is too short to track and holds Track back (#249)', async () => {
+    const onTrack = jest.fn();
+    const short = { ...clip, durationS: 1.2, trim: { start: 0, end: 1.2 } };
+    const screen = await render(<TrimScreen clip={short} units="kg" weight="" onWeight={jest.fn()} onCancel={jest.fn()} onTrack={onTrack} />);
+    expect(screen.getByTestId('trim-problem')).toHaveTextContent('Too short to track. A clip needs at least 1.5 s with the whole lift in it.');
+    await act(async () => fireEvent.press(screen.getByTestId('trim-track')));
+    expect(onTrack).not.toHaveBeenCalled();
+  });
+
   it('asks for filmstrip frames once the clip has loaded, and shows them', async () => {
     const screen = await render(<TrimScreen clip={clip} units="kg" weight="" onWeight={jest.fn()} onCancel={jest.fn()} onTrack={jest.fn()} />);
     const thumbs = mockPlayers.find((p) => p.listeners.statusChange)!;

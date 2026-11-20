@@ -4,6 +4,7 @@ import Btn from '../../components/Btn';
 import { colors, control, shape, space, stroke } from '../../design/tokens';
 import { display, type } from '../../design/typography';
 import { t } from '../../i18n';
+import type { NoPathCause } from '../../analysis/types';
 import { kindChoices, kindIdOf, kindLabel, ownKinds, pickLiftKind, useLiftNames } from '../library/liftNames';
 import FadeRow from './FadeRow';
 
@@ -15,6 +16,7 @@ export type FirstLookKind = 'path' | 'trail' | 'none' | 'sample';
 // controls and chart are under "See the detail". A lift with no bar path says why and how to film the next one.
 export default function FirstLook({
   kind,
+  cause,
   first,
   peak,
   free,
@@ -28,6 +30,9 @@ export default function FirstLook({
   onNeed,
 }: {
   kind: FirstLookKind;
+  // why a lift with no bar path has none, when the tracker recorded it: that cause and its one fix in place of the
+  // general tips
+  cause?: NoPathCause;
   // the lifter's first lift: said once
   first: boolean;
   // peak bar speed in m/s, when the lift has one
@@ -67,13 +72,24 @@ export default function FirstLook({
       {kind === 'none' ? (
         <View style={{ gap: space.s2 }}>
           <Text style={{ ...type.title, color: colors.text }}>{t('analysis.reveal.none.title')}</Text>
-          <Text style={{ ...type.callout, color: colors.text2 }}>{t('analysis.reveal.none.why')}</Text>
-          {([1, 2, 3] as const).map((n) => (
-            <View key={n} style={{ flexDirection: 'row', gap: space.s3 }}>
-              <Text style={{ ...type.callout, color: colors.flare }}>{n}</Text>
-              <Text style={{ ...type.callout, color: colors.text, flex: 1 }}>{t(`analysis.reveal.none.tip${n}`)}</Text>
-            </View>
-          ))}
+          {cause ? (
+            <>
+              <Text testID="first-look-why" style={{ ...type.callout, color: colors.text2 }}>
+                {t(`analysis.reveal.none.${cause.cause}.why`, { deg: cause.offSideDeg ?? '' })}
+              </Text>
+              <Text testID="first-look-fix" style={{ ...type.callout, color: colors.text }}>{t(`analysis.reveal.none.${cause.cause}.fix`)}</Text>
+            </>
+          ) : (
+            <>
+              <Text style={{ ...type.callout, color: colors.text2 }}>{t('analysis.reveal.none.why')}</Text>
+              {([1, 2, 3] as const).map((n) => (
+                <View key={n} style={{ flexDirection: 'row', gap: space.s3 }}>
+                  <Text style={{ ...type.callout, color: colors.flare }}>{n}</Text>
+                  <Text style={{ ...type.callout, color: colors.text, flex: 1 }}>{t(`analysis.reveal.none.tip${n}`)}</Text>
+                </View>
+              ))}
+            </>
+          )}
           {free ? <Text testID="first-look-not-counted" style={{ ...type.callout, color: colors.text2 }}>{t('analysis.tracker.notCounted')}</Text> : null}
         </View>
       ) : kind === 'sample' ? (

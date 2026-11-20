@@ -57,6 +57,7 @@ export const capture: Strings<typeof en> = {
   'capture.trim.pause': "一時停止",
   'capture.trim.long': "長い動画です。リフトの部分だけにすると速くトラッキングできます。",
   'capture.trim.tooLong': "長すぎてトラッキングできません。{max}秒以下にトリミングしてください。",
+  'capture.trim.tooShort': "短すぎてトラッキングできません。リフト全体が入った{min}秒以上の動画にしてください。",
   'capture.trim.track': "トラッキング",
   'capture.trim.weightA11y': "重量（{units}）",
   'capture.mark.check': "円はプレートに重なっていますか？円をドラッグして移動、ふちをドラッグしてサイズを変更できます。",

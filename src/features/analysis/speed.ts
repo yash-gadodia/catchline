@@ -13,11 +13,24 @@ const MAX_MS = 3.5;
 
 export type BarSpeed = { at: Map<number, number>; peak: { frame: number; v: number } | null };
 
-// The fastest upward speed between two frames (a rep of a set), or null where nothing was measured.
-export function peakIn(at: Map<number, number>, from: number, to: number): number | null {
-  let best: number | null = null;
-  for (const [frame, v] of at) if (frame >= from && frame < to && (best === null || v > best)) best = v;
+// The fastest upward speed of the pull between two frames (a rep of a set, or the lift), or null where nothing was
+// measured: only up to the bar's highest point between them (the catch, or the top of the jerk), so the bar dropped
+// after the lift and bouncing off the floor never gives the number (#253: a 2.2 m/s bounce headlined a 2.0 pull).
+function pullPeak(at: Map<number, number>, path: TracePoint[], from: number, to: number): { frame: number; v: number } | null {
+  const y = new Map(path.map((p) => [p.frame, p.y]));
+  let top = -1;
+  let topY = Infinity;
+  for (const frame of at.keys()) {
+    const h = y.get(frame);
+    if (frame >= from && frame < to && h !== undefined && h < topY) [top, topY] = [frame, h];
+  }
+  let best: { frame: number; v: number } | null = null;
+  for (const [frame, v] of at) if (frame >= from && frame <= top && v > 0 && (best === null || v > best.v)) best = { frame, v };
   return best;
+}
+
+export function peakIn(at: Map<number, number>, path: TracePoint[], from: number, to: number): number | null {
+  return pullPeak(at, path, from, to)?.v ?? null;
 }
 
 // The rep on screen in numbers: the mean of its upward speeds (the pull, not the drop), and its slowest and fastest.
@@ -50,10 +63,5 @@ export function barSpeed(path: TracePoint[], fps: number, window?: { startFrame:
     if (Math.abs(v) <= MAX_MS) at.set(p.frame, Math.round(v * 100) / 100);
   }
   if (!at.size) return null;
-  let peak: { frame: number; v: number } | null = null;
-  for (const [frame, v] of at) {
-    if (window && (frame < window.startFrame || frame > window.endFrame)) continue;
-    if (!peak || v > peak.v) peak = { frame, v };
-  }
-  return { at, peak };
+  return { at, peak: pullPeak(at, path, window?.startFrame ?? -Infinity, (window?.endFrame ?? Infinity) + 1) };
 }

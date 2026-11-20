@@ -1,5 +1,5 @@
 import type { TracePoint } from '../../analysis/types';
-import { speedStats, barSpeed } from './speed';
+import { speedStats, barSpeed, peakIn } from './speed';
 
 // A plate 0.05 of the picture's height in radius: 0.225 m is 0.05 of the height, so 1 picture height is 4.5 m.
 const pt = (frame: number, y: number, r: number | undefined = 0.05): TracePoint => ({ frame, x: 0.5, y, src: 'plate', ...(r ? { r } : {}) });
@@ -36,6 +36,49 @@ describe('barSpeed', () => {
 
   it('is nothing without plate readings (a body-only result, a lift from before 4.0)', () => {
     expect(barSpeed(Array.from({ length: 10 }, (_, f) => pt(f, 0.8 - 0.01 * f, 0)), 30)).toBeNull();
+  });
+});
+
+// #253: a snatch at 30 fps whose pull peaks at 2.0 m/s, caught overhead, then dropped (down 2.0 m/s) and bouncing
+// back up off the floor at 2.2 m/s, all inside the lift window (put-down plus a second). Each entry is the bar's
+// speed over one frame step, integrated into the plate's height (a picture height is 4.5 m).
+const dropped = (): TracePoint[] => {
+  const steps = [
+    ...new Array<number>(10).fill(0),
+    ...Array.from({ length: 20 }, (_, i) => 2.0 * (1 - Math.abs(i - 9.5) / 10.5)),
+    ...new Array<number>(10).fill(0),
+    ...new Array<number>(15).fill(-2.0),
+    ...new Array<number>(6).fill(2.2),
+    ...new Array<number>(10).fill(0),
+  ];
+  let y = 0.8;
+  const path = [pt(0, y)];
+  steps.forEach((v, f) => {
+    y -= v / 4.5 / 30;
+    path.push(pt(f + 1, y));
+  });
+  return path;
+};
+
+describe('the peak is the pull, never the dropped bar bouncing (#253)', () => {
+  it('reads the bounce faster than the pull, and still peaks on the pull', () => {
+    // the pull's fastest four steps either side of frame 20 average 1.81 m/s; the bounce reads 2.2
+    const path = dropped();
+    const s = barSpeed(path, 30, { startFrame: 0, endFrame: path.length - 1 })!;
+    expect(s.at.get(59)).toBeCloseTo(2.2, 2);
+    expect(s.peak).toEqual({ frame: 20, v: 1.81 });
+  });
+
+  it('is the same with no lift window (the whole clip is the lift)', () => {
+    expect(barSpeed(dropped(), 30)!.peak).toEqual({ frame: 20, v: 1.81 });
+  });
+
+  it('peaks each rep of a set on its own pull', () => {
+    const path = dropped();
+    const s = barSpeed(path, 30)!;
+    expect(peakIn(s.at, path, 0, Infinity)).toBe(1.81);
+    // a stretch that starts after the catch has no pull in it: no number, not the bounce
+    expect(peakIn(s.at, path, 41, Infinity)).toBeNull();
   });
 });
 

@@ -1,6 +1,7 @@
 import { JOINTS, L_ANK, L_HIP, L_KNEE, L_SHO, L_WRI, R_ANK, R_HIP, R_KNEE, R_SHO, R_WRI } from './movement';
 import { Pt } from './num';
 import { DeviceInput } from './source';
+import { MIN_TRIM_S } from '../../features/capture/trim';
 import { BODY_JOINTS, track } from './tracking';
 import * as movement from './movement';
 
@@ -131,6 +132,54 @@ describe('track (4.0: tracking only)', () => {
     const path = (track(withNet()).analysis as { reps: { path: { x: number }[] }[] }).reps[0].path;
     expect(path.length).toBeGreaterThan(60);
     expect(path.every((p) => Math.abs(p.x - 400 / 720) < 0.002)).toBe(true);
+  });
+
+  // #249: the trim screen let a lifter go down to 1.0 s, and the tracker needs a second of frames with the torso
+  // seen, so the shortest trim failed as "no person" on the first frame the pose missed. The shortest trim keeps
+  // the lifter found with one frame in ten missed.
+  it('finds the lifter in the shortest trim the trim screen allows, with a few poses missed', () => {
+    const n = Math.round(MIN_TRIM_S * 30);
+    const input = clip(n);
+    for (let f = 0; f < n; f += 10) input.lifter.k[f] = input.lifter.k[f].map((): Pt => [NaN, NaN]);
+    const { analysis, body } = track(input);
+    expect((analysis as { failure: unknown }).failure).toBeNull();
+    expect(body?.frames).toHaveLength(n);
+  });
+
+  // Why a barbell clip has no bar path, so the result card can say the real cause and its one fix.
+  it('records that the plate was never read when it was looked for and not found', () => {
+    const a = track(clip()).analysis as { reps: { path: unknown[] }[]; noPathCause?: unknown };
+    expect([a.reps[0].path, a.noPathCause]).toEqual([[], { cause: 'plate_unread' }]);
+  });
+
+  it('records that the lifter said the lift has no barbell', () => {
+    const a = track(clip(), { plateSkipped: true }).analysis as { noPathCause?: unknown };
+    expect(a.noPathCause).toEqual({ cause: 'no_barbell' });
+  });
+
+  // shoulders and hips `apart` px either side across the picture: the lifter is turned towards the camera
+  const turned = (apart: number) => {
+    const input = clip();
+    input.lifter.k = input.lifter.k.map((row) => row.map((p, j): Pt => (j === L_SHO || j === L_HIP ? [p[0] - apart, p[1]] : j === R_SHO || j === R_HIP ? [p[0] + apart, p[1]] : p)));
+    return track(input).analysis as { noCueReason: { offSideDeg: number }; noPathCause?: unknown };
+  };
+
+  it('records a clip filmed well off side-on, with how far off', () => {
+    const a = turned(45);
+    expect(a.noCueReason.offSideDeg).toBe(45);
+    expect(a.noPathCause).toEqual({ cause: 'off_side', offSideDeg: 45 });
+  });
+
+  it('puts a clip less than 30 degrees off side-on down to the plate, not the angle', () => {
+    const a = turned(30);
+    expect(a.noCueReason.offSideDeg).toBe(28);
+    expect(a.noPathCause).toEqual({ cause: 'plate_unread' });
+  });
+
+  it('records no cause when the bar path is drawn', () => {
+    const a = track(followed(0.8, 0.9)).analysis as { reps: { path: unknown[] }[]; noPathCause?: unknown };
+    expect(a.reps[0].path).toHaveLength(90);
+    expect(a.noPathCause).toBeUndefined();
   });
 
   it('fails as no person when the pose saw nobody', () => {

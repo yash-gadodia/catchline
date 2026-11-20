@@ -57,6 +57,7 @@ export const capture: Strings<typeof en> = {
   'capture.trim.pause': "暂停",
   'capture.trim.long': "视频较长。裁剪到只剩试举部分，追踪会更快。",
   'capture.trim.tooLong': "视频太长，无法追踪。请裁剪到 {max} 秒以内。",
+  'capture.trim.tooShort': "视频太短，无法追踪。需要至少 {min} 秒，并包含完整的试举。",
   'capture.trim.track': "追踪",
   'capture.trim.weightA11y': "重量（{units}）",
   'capture.mark.check': "圆圈在你的杠铃片上吗？拖动圆圈可以移动，拖动圆边可以调整大小。",
