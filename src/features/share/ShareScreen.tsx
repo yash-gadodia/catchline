@@ -55,6 +55,7 @@ export default function ShareScreen({
   const [notice, setNotice] = useState<string | null>(null);
   const cardRef = useRef<View>(null);
   const made = useRef<string[]>([]);
+  const saving = useRef(false);
 
   const render = renders[aspect];
 
@@ -100,6 +101,9 @@ export default function ShareScreen({
   };
 
   const onSave = async () => {
+    // a double tap saved two copies (#151)
+    if (saving.current) return;
+    saving.current = true;
     setNotice(null);
     try {
       const uri = await fileToSend();
@@ -108,6 +112,8 @@ export default function ShareScreen({
       setNotice(r === 'saved' ? t('share.saved') : t('share.allowPhotos'));
     } catch {
       setNotice(t('share.saveFailed'));
+    } finally {
+      saving.current = false;
     }
   };
 
