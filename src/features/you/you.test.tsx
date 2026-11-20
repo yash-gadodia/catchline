@@ -23,7 +23,7 @@ import { NO_USER, useAuthUser } from '../auth/authUser';
 
 jest.mock('expo-file-system', () => {
   const File = jest.fn().mockImplementation(() => ({ uri: 'file:///cache/catchline-data.json', create: jest.fn(), write: jest.fn() }));
-  return { File, Paths: { cache: { uri: 'file:///cache/' } } };
+  return { File, Directory: jest.fn(), Paths: { cache: { uri: 'file:///cache/' }, document: { uri: 'file:///docs/' } } };
 });
 jest.mock('../../data/backend', () => ({ backendEnabled: jest.fn(() => false) }));
 jest.mock('../../lib/api', () => ({
@@ -302,6 +302,35 @@ describe('exportMyData', () => {
     expect(bundle.lifts[1]).toEqual({ id: 'l2', date: '2026-11-20', movement: 'snatch', status: 'done', measurements: [] });
     setLiftKind('a1', null);
     useLiftDetails.setState({ details: {} });
+  });
+
+  // #81: a 4.0 lift's tracking is the lifter's data: the bar path, the body on every frame and the stills it keeps
+  it('carries the bar path, the joint tracks, the body on every frame and the stills of each rep', async () => {
+    const rep = {
+      index: 1, startFrame: 0, endFrame: 2, made: true, phases: [{ name: 'setup' as const, startFrame: 0, endFrame: 2 }],
+      keyFrames: [{ phase: 'setup' as const, frame: 0, image: 'file:///docs/lifts/a1/stills/r1-1-setup.jpg' }, { phase: 'peak' as const, frame: 2, image: 'file:///docs/lifts/a1/stills/r1-2-peak.jpg' }],
+      path: [{ frame: 0, x: 0.5, y: 0.8, src: 'plate' as const }, { frame: 2, x: 0.51, y: 0.4 }],
+      tracks: { hips: [{ frame: 0, x: 0.45, y: 0.6 }] },
+    };
+    const analysis = { ...ANALYSES['snatch-mock'], video: { ...ANALYSES['snatch-mock'].video, fps: 60 }, traceKind: 'bar' as const, reps: [rep] };
+    const frames = [Array(32).fill(0.5), Array(32).fill(null)];
+    const readBody = jest.fn(async (id: string) => (id === 'a1' ? { version: 1 as const, frames } : null));
+    const lift = { id: 'l1', movement: 'snatch' as const, date: '2026-11-20', status: 'done' as const, analysisId: 'a1' };
+    const bundle = await createLocalAccountRepository(undefined, readBody).exportAllData(DEFAULT_SETTINGS, [{ lift: lift as never, analysis }]);
+    expect(readBody).toHaveBeenCalledWith('a1');
+    expect(bundle.lifts[0]).toMatchObject({
+      reps: 1,
+      tracking: {
+        fps: 60,
+        traceKind: 'bar',
+        reps: [{ index: 1, startFrame: 0, endFrame: 2, made: true, phases: rep.phases, path: rep.path, tracks: rep.tracks, stills: ['r1-1-setup.jpg', 'r1-2-peak.jpg'] }],
+      },
+      body: { frames },
+    });
+    expect(bundle.lifts[0].body?.joints).toEqual([
+      'left_shoulder', 'right_shoulder', 'left_elbow', 'right_elbow', 'left_wrist', 'right_wrist', 'left_hip', 'right_hip',
+      'left_knee', 'right_knee', 'left_ankle', 'right_ankle', 'left_heel', 'right_heel', 'left_big_toe', 'right_big_toe',
+    ]);
   });
 
   // #108: the export carries the unit the You row shows (the onboarding store), not a stale copy
