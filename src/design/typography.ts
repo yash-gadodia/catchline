@@ -44,3 +44,10 @@ export function display(size: number, black = false): TextStyle {
     letterSpacing: tracked(size, -0.02),
   };
 }
+
+// An uppercase display heading. Big Shoulders' accents sit above its cap height (É tops out at 0.97 em, the cap at
+// 0.8), so at the display leading iOS cut them off: ÜBERGANG read UBERGANG, RÉCEPTION read RECEPTION. 1.2 em is the
+// font's own line height (ascender 0.98 + descender 0.21) and leaves the accents their room.
+export function displayCaps(size: number): TextStyle {
+  return { ...display(size), lineHeight: Math.round(size * 1.2), textTransform: 'uppercase' };
+}

@@ -24,7 +24,7 @@ import Readout from '../../components/Readout';
 import TopBar from '../../components/TopBar';
 import { impact } from '../../lib/haptics';
 import { colors, control, opacity, shape, space, stroke } from '../../design/tokens';
-import { display, fontFamily, type } from '../../design/typography';
+import { display, displayCaps, fontFamily, type } from '../../design/typography';
 import Stage, { type StageLayer } from './Stage';
 import { CurrentDot, FlarePath, Guides, KeyDots, OverlaySvg, RefLine } from './overlays';
 import Filmstrip, { type PhaseMark } from './Filmstrip';
@@ -329,7 +329,7 @@ function PhaseHead({ phase, fps }: { phase: Phase; fps: number }) {
   const meta = UNTIMED.includes(phase.name) ? range : `${range} · ${seconds(phaseSeconds(phase, fps))} s`;
   return (
     <View testID="phase-head" style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: space.s3 }}>
-      <Text testID="phase-name" style={[display(30), { color: colors.text, textTransform: 'uppercase', flexShrink: 1 }]}>
+      <Text testID="phase-name" style={[displayCaps(30), { color: colors.text, flexShrink: 1 }]}>
         {phaseLabel(phase.name)}
       </Text>
       <Text style={{ ...type.caption, color: colors.text2 }}>{meta}</Text>

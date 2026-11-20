@@ -197,6 +197,20 @@ describe('PlayerScreen', () => {
     expect(Haptics.impactAsync).toHaveBeenCalledWith('rigid');
   });
 
+  it('gives uppercase phase headings room for accented capitals (ÜBERGANG, RÉCEPTION)', async () => {
+    const { setLanguage } = require('../../i18n');
+    setLanguage('de');
+    try {
+      const { getByTestId } = await render(<PlayerScreen analysis={snatchMock} initialFrame={snatchMock.cue!.evidence.frame} {...props} />);
+      await press(getByTestId('frame-transition'));
+      expect(getByTestId('phase-name')).toHaveTextContent('Übergang');
+      expect(getByTestId('phase-name')).toHaveStyle({ fontSize: 30, lineHeight: 36, textTransform: 'uppercase' });
+      expect(getByTestId('frame-label-transition')).toHaveStyle({ fontSize: 19, lineHeight: 23, textTransform: 'uppercase' });
+    } finally {
+      setLanguage('en');
+    }
+  });
+
   it('steps phase to phase from the chevrons and stops at the ends', async () => {
     const { getByTestId } = await render(<PlayerScreen analysis={snatchMock} initialFrame={snatchMock.cue!.evidence.frame} {...props} />);
     await press(getByTestId('phase-next'));

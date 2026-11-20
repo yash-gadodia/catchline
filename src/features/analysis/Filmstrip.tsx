@@ -5,7 +5,7 @@ import { phaseLabel, seconds } from '../../analysis/format';
 import { frameSource } from '../../analysis/frames';
 import { keyFrameForPhase, phaseFrame } from '../../analysis/timeline';
 import { colors, opacity, shape, space, stroke } from '../../design/tokens';
-import { display, type } from '../../design/typography';
+import { displayCaps, type } from '../../design/typography';
 import { t, type Key } from '../../i18n';
 
 const THUMB = { width: 72, height: 96 };
@@ -101,7 +101,7 @@ export default function Filmstrip({
                 />
               ) : null}
             </View>
-            <Text numberOfLines={1} style={{ ...display(19), color: on ? colors.text : colors.text2, textTransform: 'uppercase', marginTop: space.s1 }}>
+            <Text numberOfLines={1} testID={`frame-label-${p.name}`} style={{ ...displayCaps(19), color: on ? colors.text : colors.text2, marginTop: space.s1 }}>
               {chipLabel(p.name)}
             </Text>
             <Text style={{ ...type.caption, color: colors.text3 }}>{`${at} s`}</Text>
