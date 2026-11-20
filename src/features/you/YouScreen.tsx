@@ -46,7 +46,9 @@ export async function shareExport(bundle: DataExport): Promise<void> {
 }
 
 export async function exportMyData(send: (bundle: DataExport) => Promise<void> = shareExport): Promise<void> {
-  await send(await accountRepository.exportAllData(settingsOf(useSettings.getState()), libraryLifts()));
+  // units: the onboarding store is the one the You row and the weight on a lift read
+  const settings = { ...settingsOf(useSettings.getState()), units: useOnboarding.getState().units };
+  await send(await accountRepository.exportAllData(settings, libraryLifts()));
 }
 
 export default function YouScreen({

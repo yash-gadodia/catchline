@@ -95,7 +95,7 @@ export const you: Strings<typeof en> = {
   'you.stored.positions.body': "몸의 위치와 바 궤적을 영상이 아닌 숫자로 보관해요. 분석이 좋아지면 기록도 함께 좋아지게 하기 위해서예요. 얼굴 포인트는 없고, 머리 키포인트는 저장 전에 버려요. 계정과 함께 삭제돼요.",
   'you.stored.originals.onDevice': "휴대폰에 있어요. iPhone에서 분석하고, 업로드하지 않아요.",
   'you.stored.positions.onDevice': "몸의 위치와 바 궤적을 영상이 아닌 숫자로 휴대폰(과 본인의 iCloud 백업)에 보관해요. 분석이 좋아지면 기록도 함께 좋아지게 하기 위해서예요. 저희 서버에는 저장하지 않아요.",
-  'you.stored.frames.onDevice': "스트로브와 근거 화면용으로 리프트당 정지 화면 5장. 휴대폰에만 저장돼요.",
+  'you.stored.frames.onDevice': "영상당 정지 화면 2장(시작과 가장 높은 지점). 휴대폰에만 저장돼요.",
   'you.stored.frames.title': "주요 프레임",
   'you.stored.frames.body': "스트로브와 근거 화면용으로 리프트당 정지 화면 5장.",
   'you.stored.cues.title': "큐와 정착 여부",

@@ -103,7 +103,7 @@ export const you: Strings<typeof en> = {
   'you.notify.queuedAnalysed': 'Deine Lifts aus der Warteschlange sind analysiert',
   'you.stored.originals.onDevice': "Auf deinem Handy. Auf deinem iPhone analysiert, nie hochgeladen.",
   'you.stored.positions.onDevice': "Körperpositionen und Hantelweg als Zahlen, kein Video, auf deinem Handy (und in deinem eigenen iCloud-Backup) gespeichert, damit dein Verlauf mit der Analyse besser wird. Nie auf unseren Servern.",
-  'you.stored.frames.onDevice': "Fünf Standbilder pro Lift für die Stroboskop-Ansicht und den Beweisausschnitt, nur auf deinem Handy.",
+  'you.stored.frames.onDevice': "Zwei Standbilder pro Video, der Start und der höchste Punkt, nur auf deinem Handy.",
   // REVIEW
   'you.reportProblem': "Problem melden",
   'you.helpSupport': 'Hilfe & Support',

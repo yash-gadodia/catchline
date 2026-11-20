@@ -128,6 +128,19 @@ describe('ShareScreen', () => {
     expect(screen.getByTestId('share-notice')).toHaveTextContent('Saved to Photos.');
   });
 
+  // #151: a double tap on Save to Photos saved two copies
+  it('saves one copy when Save to Photos is tapped twice while the first save runs', async () => {
+    let finish: (r: 'saved') => void = () => undefined;
+    const d = deps({ save: jest.fn(() => new Promise<'saved'>((resolve) => (finish = resolve))) });
+    const screen = await render(<ShareScreen analysis={snatchReal} pro={false} clip={null} onBack={jest.fn()} deps={d} />);
+    await press(screen.getByTestId('share-save'));
+    await press(screen.getByTestId('share-save'));
+    await act(async () => finish('saved'));
+    expect(d.renderStill).toHaveBeenCalledTimes(1);
+    expect(d.save).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('share-notice')).toHaveTextContent('Saved to Photos.');
+  });
+
   it('renders 4:5 once on switch and discards both renders on close', async () => {
     const d = deps({ renderVideo: jest.fn(async (_u: string, spec: OverlaySpec) => `file:///cache/share-video/${spec.height}.mp4`) });
     const screen = await render(<ShareScreen analysis={snatchReal} pro={false} clip={CLIP} onBack={jest.fn()} deps={d} />);
