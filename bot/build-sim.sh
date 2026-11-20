@@ -35,6 +35,8 @@ if [ "$(cat "$BUILT" 2>/dev/null)" = "$SHA" ] && xcrun simctl get_app_container 
   exit 0
 fi
 
+# a simulator build has no Sentry token: the upload step fails the whole build without this (20-11, first 4.0 build)
+export SENTRY_DISABLE_AUTO_UPLOAD=true
 npm install --legacy-peer-deps --no-audit --no-fund
 npx expo prebuild -p ios --no-install
 (cd ios && pod install)
