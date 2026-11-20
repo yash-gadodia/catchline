@@ -9,9 +9,9 @@ import type { Units } from '../onboarding/store';
 import { Header, Underlined, WeightField } from './hud';
 import type { Clip } from './store';
 import Trimmer from './Trimmer';
-import { clampToTrim, trimProblem, type Trim } from './trim';
+import { MIN_TRIM_S, clampToTrim, trimProblem, type Trim } from './trim';
 import { maxDurationS } from './compress';
-import { t } from '../../i18n';
+import { formatNumber, t } from '../../i18n';
 
 export default function TrimScreen({
   clip,
@@ -86,14 +86,18 @@ export default function TrimScreen({
           onDrag={(handle, at) => setDrag(handle ? at : undefined)}
         />
         {problem ? (
-          <Text testID="trim-problem" style={{ color: problem === 'too_long' ? colors.flare : colors.text2, ...type.callout, paddingTop: space.s3 }}>
-            {problem === 'too_long' ? t('capture.trim.tooLong', { max: maxDurationS() }) : t('capture.trim.long')}
+          <Text testID="trim-problem" style={{ color: problem === 'long' ? colors.text2 : colors.flare, ...type.callout, paddingTop: space.s3 }}>
+            {problem === 'too_long'
+              ? t('capture.trim.tooLong', { max: maxDurationS() })
+              : problem === 'too_short'
+                ? t('capture.trim.tooShort', { min: formatNumber(MIN_TRIM_S) })
+                : t('capture.trim.long')}
           </Text>
         ) : null}
       </View>
       <Text style={{ color: colors.text2, ...type.callout, paddingHorizontal: space.gutter }}>{t('capture.trim.help')}</Text>
       <View style={{ paddingHorizontal: space.gutter, paddingTop: space.s5, paddingBottom: Math.max(insets.bottom, space.s4) + space.s2 }}>
-        <Btn onPress={() => onTrack(trim)} disabled={problem === 'too_long'} testID="trim-track">
+        <Btn onPress={() => onTrack(trim)} disabled={problem === 'too_long' || problem === 'too_short'} testID="trim-track">
           {t('capture.trim.track')}
         </Btn>
       </View>

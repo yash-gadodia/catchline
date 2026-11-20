@@ -2,7 +2,9 @@ import { maxDurationS } from './compress';
 
 export type Trim = { start: number; end: number };
 
-export const MIN_TRIM_S = 1;
+// The tracker needs a second of frames with the lifter's torso seen (signals in src/analysis/device/movement.ts); a
+// 1.0 s trim held a second at most, so one missed pose failed it as "no person" (#249). Half a second spare.
+export const MIN_TRIM_S = 1.5;
 // One tap of ‹ or ›: about three frames at 30 fps.
 export const NUDGE_S = 0.1;
 // Past this a clip is more than one lift: still analysable, just slower and less sharp.
@@ -30,9 +32,11 @@ export function nudgeHandle(trim: Trim, handle: 'start' | 'end', direction: 1 | 
   return { start: round2(next.start), end: round2(next.end) };
 }
 
-// too_long would fail after preparing (prepareClip's ClipTooLongError), so it is caught here instead.
-export function trimProblem(trim: Trim, maxS: number = maxDurationS()): 'too_long' | 'long' | null {
+// too_long would fail after preparing (prepareClip's ClipTooLongError), and too_short (a whole clip under MIN_TRIM_S)
+// after tracking, so both are caught here instead.
+export function trimProblem(trim: Trim, maxS: number = maxDurationS()): 'too_long' | 'too_short' | 'long' | null {
   const len = trimLength(trim);
+  if (len < MIN_TRIM_S - 0.005) return 'too_short';
   if (len > maxS) return 'too_long';
   return len > LONG_FOR_ONE_LIFT_S ? 'long' : null;
 }

@@ -1,6 +1,7 @@
 import { JOINTS, L_ANK, L_HIP, L_KNEE, L_SHO, L_WRI, R_ANK, R_HIP, R_KNEE, R_SHO, R_WRI } from './movement';
 import { Pt } from './num';
 import { DeviceInput } from './source';
+import { MIN_TRIM_S } from '../../features/capture/trim';
 import { BODY_JOINTS, track } from './tracking';
 
 // A side-on lifter standing still at 30 fps (inference px, 1280 x 720) whose hands go from the hips to overhead and
@@ -130,6 +131,18 @@ describe('track (4.0: tracking only)', () => {
     const path = (track(withNet()).analysis as { reps: { path: { x: number }[] }[] }).reps[0].path;
     expect(path.length).toBeGreaterThan(60);
     expect(path.every((p) => Math.abs(p.x - 400 / 720) < 0.002)).toBe(true);
+  });
+
+  // #249: the trim screen let a lifter go down to 1.0 s, and the tracker needs a second of frames with the torso
+  // seen, so the shortest trim failed as "no person" on the first frame the pose missed. The shortest trim keeps
+  // the lifter found with one frame in ten missed.
+  it('finds the lifter in the shortest trim the trim screen allows, with a few poses missed', () => {
+    const n = Math.round(MIN_TRIM_S * 30);
+    const input = clip(n);
+    for (let f = 0; f < n; f += 10) input.lifter.k[f] = input.lifter.k[f].map((): Pt => [NaN, NaN]);
+    const { analysis, body } = track(input);
+    expect((analysis as { failure: unknown }).failure).toBeNull();
+    expect(body?.frames).toHaveLength(n);
   });
 
   it('fails as no person when the pose saw nobody', () => {

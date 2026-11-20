@@ -57,6 +57,7 @@ export const capture: Strings<typeof en> = {
   'capture.trim.pause': "일시정지",
   'capture.trim.long': "긴 영상이에요. 리프트 부분만 남기면 트래킹이 빨라져요.",
   'capture.trim.tooLong': "트래킹하기엔 너무 길어요. {max}초 이하로 잘라 주세요.",
+  'capture.trim.tooShort': "트래킹하기엔 너무 짧아요. 리프트 전체가 담긴 {min}초 이상의 영상이 필요해요.",
   'capture.trim.track': "트래킹",
   'capture.trim.weightA11y': "무게({units})",
   'capture.mark.check': "원이 원판 위에 있나요? 원을 드래그해 옮기거나 테두리를 드래그해 크기를 바꾸세요.",
