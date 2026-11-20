@@ -9,8 +9,8 @@ import { NO_USER, useAuthUser, type AuthUser } from '../auth/authUser';
 import { useCapture } from '../capture/store';
 import { emptyLibrary } from '../library/seed';
 import { useLibraryStore } from '../library/store';
-import { useLiftNames } from '../library/liftNames';
-import { useLiftDetails } from '../library/liftDetails';
+import { kindIdOf, useLiftNames } from '../library/liftNames';
+import { detailsOf, useLiftDetails } from '../library/liftDetails';
 import { useOnboarding } from '../onboarding/store';
 import { FREE_PER_WEEK, freeLeft, type Tier, type Usage } from '../paywall/entitlements';
 import { useUsage } from '../paywall/usageStore';
@@ -88,6 +88,9 @@ export type ExportedLift = {
   loadKg?: number;
   reps?: number;
   status: string;
+  name?: string;
+  tags?: string[];
+  note?: string;
   cue?: string;
   measurements: { id: string; label: string; value: number; unit: string }[];
   analysisVersion?: string;
@@ -100,14 +103,20 @@ export type DataExport = {
   lifts: ExportedLift[];
 };
 
-// Each lift as the lifter saw it: what, when, the cue, and every measurement the clip could see (as the CSV export).
+// Each lift as the lifter saw it: what (the kind Lifts shows), when, what they wrote about it, the cue, and every
+// measurement the clip could see (as the CSV export).
 export function exportedLift({ lift, analysis }: CsvLift): ExportedLift {
+  const key = lift.analysisId ?? lift.id;
+  const { name, tags, note } = detailsOf(useLiftDetails.getState().details, key);
   return {
     id: lift.id,
     date: lift.date,
-    movement: lift.movement,
+    movement: kindIdOf(useLiftNames.getState(), key) ?? lift.movement,
     loadKg: lift.loadKg,
     status: lift.status,
+    ...(name ? { name } : {}),
+    ...(tags.length > 0 ? { tags } : {}),
+    ...(note ? { note } : {}),
     cue: analysis?.cue?.text,
     measurements: (analysis?.measurements ?? [])
       .filter((m) => m.status !== 'not_seen')
