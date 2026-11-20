@@ -154,7 +154,7 @@ export function createLocalAccountRepository(now: () => Date = () => new Date())
 export function leaveAccount(): void {
   useAuthUser.setState(NO_USER);
   resetConsentSync();
-  useUsage.getState().reset();
+  useUsage.getState().forgetAccount();
   useCapture.setState({ draft: null, lastWeight: '', originals: [] });
   usePurchases.getState().signOut();
   clearLiveAnalyses();

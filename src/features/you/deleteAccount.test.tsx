@@ -6,6 +6,8 @@ import { newClip, useCapture } from '../capture/store';
 import { useLibraryStore } from '../library/store';
 import { useOnboarding } from '../onboarding/store';
 import { useUsage } from '../paywall/usageStore';
+import { weekKey } from '../paywall/entitlements';
+import { captureHref } from '../paywall/hooks';
 import { usePurchases } from '../purchases/usePurchases';
 import { createAccountRepository, useAccountStore } from './account';
 import DeleteAccountSheet from './DeleteAccountSheet';
@@ -77,6 +79,14 @@ describe('DeleteAccountSheet against the backend', () => {
     expect(useLibraryStore.getState().sessions).toEqual([]);
     expect(useLibraryStore.getState().cues).toEqual([]);
     expect(useLibraryStore.getState().freeVideosUsed).toBe(0);
+  });
+
+  // #234: the week's free video belongs to the phone, so deleting the account must not hand it back
+  it('keeps this week\'s free video used, so the next pick still goes to the paywall', async () => {
+    await confirmDelete(jest.fn());
+
+    expect(useUsage.getState().usage).toEqual({ lifetime: 0, week: weekKey(new Date('2026-10-02T00:00:00.000Z')), thisWeek: 1 });
+    expect(captureHref('/capture/import', new Date('2026-10-02T12:00:00.000Z'))).toBe('/paywall');
   });
 
   it('shows the failure in the sheet and keeps everything when the server says no', async () => {
