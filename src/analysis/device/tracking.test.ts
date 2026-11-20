@@ -145,6 +145,42 @@ describe('track (4.0: tracking only)', () => {
     expect(body?.frames).toHaveLength(n);
   });
 
+  // Why a barbell clip has no bar path, so the result card can say the real cause and its one fix.
+  it('records that the plate was never read when it was looked for and not found', () => {
+    const a = track(clip()).analysis as { reps: { path: unknown[] }[]; noPathCause?: unknown };
+    expect([a.reps[0].path, a.noPathCause]).toEqual([[], { cause: 'plate_unread' }]);
+  });
+
+  it('records that the lifter said the lift has no barbell', () => {
+    const a = track(clip(), { plateSkipped: true }).analysis as { noPathCause?: unknown };
+    expect(a.noPathCause).toEqual({ cause: 'no_barbell' });
+  });
+
+  // shoulders and hips `apart` px either side across the picture: the lifter is turned towards the camera
+  const turned = (apart: number) => {
+    const input = clip();
+    input.lifter.k = input.lifter.k.map((row) => row.map((p, j): Pt => (j === L_SHO || j === L_HIP ? [p[0] - apart, p[1]] : j === R_SHO || j === R_HIP ? [p[0] + apart, p[1]] : p)));
+    return track(input).analysis as { noCueReason: { offSideDeg: number }; noPathCause?: unknown };
+  };
+
+  it('records a clip filmed well off side-on, with how far off', () => {
+    const a = turned(45);
+    expect(a.noCueReason.offSideDeg).toBe(45);
+    expect(a.noPathCause).toEqual({ cause: 'off_side', offSideDeg: 45 });
+  });
+
+  it('puts a clip less than 30 degrees off side-on down to the plate, not the angle', () => {
+    const a = turned(30);
+    expect(a.noCueReason.offSideDeg).toBe(28);
+    expect(a.noPathCause).toEqual({ cause: 'plate_unread' });
+  });
+
+  it('records no cause when the bar path is drawn', () => {
+    const a = track(followed(0.8, 0.9)).analysis as { reps: { path: unknown[] }[]; noPathCause?: unknown };
+    expect(a.reps[0].path).toHaveLength(90);
+    expect(a.noPathCause).toBeUndefined();
+  });
+
   it('fails as no person when the pose saw nobody', () => {
     const { analysis, body } = track(clip(90, false));
     expect((analysis as { failure: { code: string } }).failure.code).toBe('no_person');

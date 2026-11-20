@@ -277,6 +277,18 @@ describe('TrackerScreen first look (reveal)', () => {
     expect(onAnother).toHaveBeenCalledTimes(1);
   });
 
+  // the tracker recorded why: one cause and its one fix in place of the three general tips
+  it.each([
+    [{ cause: 'no_barbell' as const }, 'You said this lift has no barbell, so only the body is drawn.', 'For a barbell lift, put the circle on the plate before you track.'],
+    [{ cause: 'off_side' as const, offSideDeg: 45 }, 'This video was filmed about 45° off side-on, so the plate was too edge-on to follow.', 'Film from straight side-on, so the plate faces the camera as a circle.'],
+    [{ cause: 'plate_unread' as const }, 'The plate was not found on any frame of this video.', 'Keep the whole plate in the frame from start to finish, with nothing in front of it.'],
+  ])('a lift with no bar path says its recorded cause (%j) and its one fix', async (noPathCause, why, fix) => {
+    const { getByTestId, queryByText } = await show({ ...lifted, reps: [{ ...lifted.reps[0], path: [] }], noPathCause }, body, { reveal: true, reduceMotion: true, onShare: () => {} });
+    expect(getByTestId('first-look-why')).toHaveTextContent(why);
+    expect(getByTestId('first-look-fix')).toHaveTextContent(fix);
+    expect(queryByText('Film from the side, not from the front.')).toBeNull();
+  });
+
   it('a hip trail (a hanging movement) says what is drawn instead of leaving the space empty (#239)', async () => {
     const { getByTestId, getByText, queryByTestId } = await show({ ...lifted, traceKind: 'hip' }, body, { reveal: true, reduceMotion: true, onShare: () => {} });
     expect(getByTestId('first-look-trail')).toBeOnTheScreen();

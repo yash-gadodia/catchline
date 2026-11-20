@@ -21,6 +21,8 @@ export type ClipSubmission = {
   fps: number | null;
   overridden: CheckId[];
   plateMark?: PlateMark | null;
+  // the lifter skipped the plate check ("My lift has no barbell"), not just a lift that was never asked
+  plateSkipped?: boolean;
 };
 
 const LB_TO_KG = 0.45359237;
@@ -44,6 +46,7 @@ export function toSubmission(clip: Clip, weight: string, units: Units): ClipSubm
     fps: clip.fps,
     overridden: clip.overridden,
     plateMark: clip.plateMark ?? null,
+    ...(clip.plateMark === null ? { plateSkipped: true } : {}),
   };
 }
 

@@ -152,6 +152,11 @@ describe('startDeviceLift, the happy path', () => {
     expect(mockPlan.mock.calls.at(-1)?.[2]).toEqual({ analysisId: expect.any(String), assetPrefix: expect.any(String), plateMark: { frame: 0, x: 0.5, y: 0.6, r: 0.1 } });
   });
 
+  it('tells the tracker the lifter skipped the plate check ("My lift has no barbell")', async () => {
+    await startDeviceLift({ ...SUB, plateSkipped: true });
+    expect(mockPlan.mock.calls.at(-1)?.[2]).toEqual({ analysisId: expect.any(String), assetPrefix: expect.any(String), plateSkipped: true });
+  });
+
   it('starts from the frame the plate was checked on when that was later than the first', async () => {
     await startDeviceLift({ ...SUB, plateMark: { x: 0.5, y: 0.6, r: 0.1, atS: 0.5 } });
     expect(mockPlan.mock.calls.at(-1)?.[2]).toEqual({ analysisId: expect.any(String), assetPrefix: expect.any(String), plateMark: { frame: 15, x: 0.5, y: 0.6, r: 0.1 } });

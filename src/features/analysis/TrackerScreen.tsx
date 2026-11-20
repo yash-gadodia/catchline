@@ -423,6 +423,7 @@ export default function TrackerScreen({
       {showLook ? (
         <FirstLook
           kind={lookKind}
+          cause={analysis.noPathCause}
           first={firstLift}
           peak={barSpeedOf?.peak?.v ?? null}
           free={free}
