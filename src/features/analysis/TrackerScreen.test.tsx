@@ -7,6 +7,7 @@ import type { Body } from '../../analysis/device/tracking';
 import { snatchMock } from '../../analysis/fixtures';
 import { DEFAULT_OVERLAYS, useOverlays } from './overlayPrefs';
 import TrackerScreen from './TrackerScreen';
+import { useLiftNames } from '../library/liftNames';
 
 const CLIP = 'file:///documents/lifts/a/clip.mp4';
 const whole: Analysis = { ...snatchMock, video: { ...snatchMock.video, width: 1080, height: 1920, fps: 60, frameCount: 300 } };
@@ -20,6 +21,7 @@ let player: Fake | null = null;
 beforeEach(() => {
   player = null;
   useOverlays.setState(DEFAULT_OVERLAYS);
+  useLiftNames.setState({ shapes: {}, chosen: {} });
   jest.mocked(useVideoPlayer).mockImplementation(((_source: unknown, setup?: (p: Fake) => void) => {
     if (player) return player;
     const listeners: Record<string, ((payload: object) => void)[]> = {};
@@ -168,6 +170,27 @@ describe('TrackerScreen bar speed', () => {
     expect(getByTestId('tracker-speed')).toHaveTextContent('1.08 m/s · peak 1.08');
   });
 
+  // #253: the pull peaks at 2.0 m/s, the bar is held overhead, dropped (2.0 m/s down) and bounces off the floor at
+  // 2.2 m/s before the lift window ends. Each entry is the bar's speed over one frame step at 60 fps.
+  const steps = [
+    ...new Array<number>(20).fill(0),
+    ...Array.from({ length: 40 }, (_, i) => 2.0 * (1 - Math.abs(i - 19.5) / 20.5)),
+    ...new Array<number>(20).fill(0),
+    ...new Array<number>(30).fill(-2.0),
+    ...new Array<number>(12).fill(2.2),
+    ...new Array<number>(18).fill(0),
+  ];
+  const droppedPath = steps.reduce((path, v, i) => [...path, { frame: 91 + i, x: 0.5, y: path[i].y - v / 4.5 / 60, src: 'plate' as const, r: 0.05 }], [{ frame: 90, x: 0.5, y: 0.8, src: 'plate' as const, r: 0.05 }]);
+  const dropped: Analysis = { ...marked, reps: [{ ...marked.reps[0], path: droppedPath }] };
+
+  it('peaks on the pull, not the dropped bar bouncing, on the card and the readout alike (#253)', async () => {
+    const { getByTestId } = await show(dropped, body, { reveal: true, reduceMotion: true, onShare: () => {} });
+    expect(getByTestId('first-look-peak')).toHaveTextContent('1.80 m/s');
+    await press(getByTestId('first-look-detail'));
+    await at(206);
+    expect(getByTestId('tracker-speed')).toHaveTextContent('2.20 m/s · peak 1.80');
+  });
+
   it('charts the speed under the controls, with the rep in numbers', async () => {
     const { getByTestId } = await show(measured);
     await at(120);
@@ -256,6 +279,18 @@ describe('TrackerScreen first look (reveal)', () => {
     expect(onAnother).toHaveBeenCalledTimes(1);
   });
 
+  // the tracker recorded why: one cause and its one fix in place of the three general tips
+  it.each([
+    [{ cause: 'no_barbell' as const }, 'You said this lift has no barbell, so only the body is drawn.', 'For a barbell lift, put the circle on the plate before you track.'],
+    [{ cause: 'off_side' as const, offSideDeg: 45 }, 'This video was filmed about 45° off side-on, so the plate was too edge-on to follow.', 'Film from straight side-on, so the plate faces the camera as a circle.'],
+    [{ cause: 'plate_unread' as const }, 'The plate was not found on any frame of this video.', 'Keep the whole plate in the frame from start to finish, with nothing in front of it.'],
+  ])('a lift with no bar path says its recorded cause (%j) and its one fix', async (noPathCause, why, fix) => {
+    const { getByTestId, queryByText } = await show({ ...lifted, reps: [{ ...lifted.reps[0], path: [] }], noPathCause }, body, { reveal: true, reduceMotion: true, onShare: () => {} });
+    expect(getByTestId('first-look-why')).toHaveTextContent(why);
+    expect(getByTestId('first-look-fix')).toHaveTextContent(fix);
+    expect(queryByText('Film from the side, not from the front.')).toBeNull();
+  });
+
   it('a hip trail (a hanging movement) says what is drawn instead of leaving the space empty (#239)', async () => {
     const { getByTestId, getByText, queryByTestId } = await show({ ...lifted, traceKind: 'hip' }, body, { reveal: true, reduceMotion: true, onShare: () => {} });
     expect(getByTestId('first-look-trail')).toBeOnTheScreen();
@@ -269,6 +304,36 @@ describe('TrackerScreen first look (reveal)', () => {
     expect(getByText('This is a sample lift')).toBeOnTheScreen();
     expect(queryByTestId('first-look-share')).toBeNull();
     expect(getByTestId('first-look-another')).toHaveTextContent('Now try your own lift');
+  });
+
+  it('a real lift asks what it was on its result card, and More opens the details', async () => {
+    const onDetails = jest.fn();
+    const { getByTestId } = await show({ ...lifted, traceKind: 'hip' }, body, { reveal: true, reduceMotion: true, onShare: () => {}, onDetails });
+    expect(getByTestId('first-look-kinds')).toHaveTextContent(/^What was this lift\?Pull-upButterfly pull-up/);
+    await press(getByTestId('first-look-kind-pullUp'));
+    expect(useLiftNames.getState().chosen).toEqual({ [lifted.id]: 'pullUp' });
+    await press(getByTestId('first-look-kind-more'));
+    expect(onDetails).toHaveBeenCalledTimes(1);
+    expect(getByTestId('first-look')).toBeOnTheScreen();
+  });
+
+  it('the sample asks nothing about its kind', async () => {
+    const { queryByTestId } = await show(lifted, body, { reveal: true, reduceMotion: true, sample: true, onAnother: () => {}, onDetails: () => {} });
+    expect(queryByTestId('first-look-kinds')).toBeNull();
+  });
+
+  it('the video makes room for all of the result card', async () => {
+    const view = await show(lifted, body, { reveal: true, reduceMotion: true, onShare: () => {}, onDetails: () => {} });
+    // a 750 x 1334 screen: 42% of it before the card is measured
+    expect(view.getByTestId('tracker-video')).toHaveStyle({ width: 315, height: 560 });
+    await act(async () => {
+      fireEvent(view.getByTestId('first-look-top'), 'layout', { nativeEvent: { layout: { height: 92 } } });
+    });
+    await act(async () => {
+      fireEvent(view.getByTestId('first-look-bottom'), 'layout', { nativeEvent: { layout: { height: 700 } } });
+    });
+    // 1334 less the top bar and the scrub line (100) and the card (840): 394
+    expect(view.getByTestId('tracker-video')).toHaveStyle({ width: 222, height: 395 });
   });
 
   it('a tap while it plays hands the player back to the lifter', async () => {

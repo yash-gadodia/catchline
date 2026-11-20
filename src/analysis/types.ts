@@ -128,6 +128,10 @@ export type Failure = {
 export type NoCueCode = 'off_side_on' | 'plate_hidden' | 'rep_cut_off' | 'unclear_miss' | 'low_confidence' | 'bar_lost' | 'path_only';
 export type PathOnlyGate = 'no_reps' | 'no_plate' | 'no_body_scale' | 'not_side_on' | 'shoulders_cut_off';
 export type NoCueReason = { code: NoCueCode; offSideDeg?: number; gate?: PathOnlyGate };
+// 4.0: why a barbell lift has no bar path (the body is still drawn), so the result says the cause and its fix:
+// the lifter said the lift has no barbell at the plate check, it was filmed well off side-on (degrees off), or the
+// plate was read on no frame. Absent when a bar path was drawn, and on lifts tracked before it was recorded.
+export type NoPathCause = { cause: 'no_barbell' | 'off_side' | 'plate_unread'; offSideDeg?: number };
 
 // What the pose alone says the clip shows; 'unknown' when the signal is weak.
 export type DetectedMovement = { movement: Movement | 'unknown'; confidence: number };
@@ -174,6 +178,7 @@ export type Analysis = {
   segments?: AnalysisSegment[];
   // 4.0: the frames that hold the lift itself (pick-up to put-down); absent when the whole clip is the lift.
   lift?: { startFrame: number; endFrame: number };
+  noPathCause?: NoPathCause;
 };
 
 export type AnalysisSegment = Pick<Analysis, 'reps' | 'bestRepIndex' | 'cue' | 'noCueReason' | 'notes' | 'measurements' | 'keyNumbers' | 'pxPerCm'> & {

@@ -33,6 +33,7 @@ export const library: Strings<typeof en> = {
   'library.lifts.byDate': "日付順",
   'library.lifts.byKind': "種目別",
   'library.lifts.noKind': "未分類",
+  'library.lifts.noKindHint': "リフトの ··· をタップして種目を選びます。",
   'library.detail.barAndBody': "バーの軌道と身体",
   'library.detail.bodyOnly': "身体のみ",
   'library.lifts.emptyTitle': "最初のリフトを追加しましょう。",

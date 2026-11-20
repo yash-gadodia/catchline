@@ -26,6 +26,7 @@ import { writeFreeUsed } from './freeLifts';
 import { queueLiftSync } from './liftOutbox';
 import { syncConsent } from './backend';
 import { keepClip, localClipUri, readLocalAnalysis, saveLocalLift } from './localLifts';
+import { discardPickedCopy } from './clipCache';
 import { usePipeline, type Job } from './pipeline';
 import { usePendingLifts, whenHydrated, type PendingLift } from './pendingLifts';
 import { detectedMade } from '../features/library/madeLog';
@@ -122,7 +123,8 @@ export const PASS_WEIGHTS = [0.8, 0.12, 0.08];
 const PASS_STARTS = PASS_WEIGHTS.map((_, i) => PASS_WEIGHTS.slice(0, i).reduce((a, b) => a + b, 0));
 
 // plateMark: the lifter's mark on the plate, on that frame of the clip at `uri` (frame 0 when not given; null: none).
-export async function analyseLoop(uri: string, movement: Movement, liftId: string, onProgress: Progress, isCancelled: () => boolean = () => false, plateMark: (PlateMark & { frame?: number }) | null = null): Promise<LoopResult> {
+// plateSkipped: the lifter said at the plate check that the lift has no barbell.
+export async function analyseLoop(uri: string, movement: Movement, liftId: string, onProgress: Progress, isCancelled: () => boolean = () => false, plateMark: (PlateMark & { frame?: number }) | null = null, plateSkipped = false): Promise<LoopResult> {
   const native = PoseCoreML;
   if (!native) throw new Error('no_native');
   const words = { title: t('library.inFlight.title'), subtitle: t('analysis.processing.background') };
@@ -141,7 +143,7 @@ export async function analyseLoop(uri: string, movement: Movement, liftId: strin
       }
       if (isCancelled()) throw new Error('cancelled');
       stills = { ...stills, ...result.stills };
-      tracked = trackTrace(await readTrace(result.tracePath), { analysisId: liftId, assetPrefix: liftId, ...(plateMark ? { plateMark: { frame: plateMark.frame ?? 0, x: plateMark.x, y: plateMark.y, r: plateMark.r } } : {}) });
+      tracked = trackTrace(await readTrace(result.tracePath), { analysisId: liftId, assetPrefix: liftId, ...(plateMark ? { plateMark: { frame: plateMark.frame ?? 0, x: plateMark.x, y: plateMark.y, r: plateMark.r } } : {}), ...(plateSkipped ? { plateSkipped } : {}) });
       if (tracked.misses.length === 0) break;
       plan = toNativePlan(tracked.plan);
     }
@@ -301,13 +303,15 @@ async function runDeviceLift(item: PendingLift): Promise<void> {
     patch({ status: 'analysing', prepared: 1 });
     // the mark was made atS into the trimmed clip: that is this frame of the prepared one
     const marked = sub.plateMark ? { ...sub.plateMark, frame: Math.max(0, Math.round((sub.plateMark.atS ?? 0) * (clip.fps || 30))) } : null;
-    const loop = await analyseLoop(clip.uri, sub.movement, liftId, (stage, fraction) => patch({ stage, fraction }), () => cancelledRun === liftId, marked);
+    const loop = await analyseLoop(clip.uri, sub.movement, liftId, (stage, fraction) => patch({ stage, fraction }), () => cancelledRun === liftId, marked, sub.plateSkipped === true);
     const analysis = finishAnalysis(parseAnalysis(loop.analysis), liftId, sub);
     const local = saveLocalLift(liftId, analysis, loop.tracePath, loop.stills, loop.body);
     // 4.0: the clip stays on the phone with its lift (the player draws on the real video); deleted with the lift.
     keepClip(liftId, clip.uri);
     // kept with its lift now: a relaunch from here on must not track (and count) it again
     usePendingLifts.getState().remove(liftId);
+    // the picker's copy of an imported clip is not needed once the lift has its own; a failed lift keeps it for Try again
+    if (!local.failure) discardPickedCopy(sub.uri);
     if (!local.failure) rememberLiftShape(liftId, { analysis: local, body: loop.body ?? null });
     prepared = null;
     const now = new Date();

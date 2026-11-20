@@ -33,6 +33,7 @@ export const library: Strings<typeof en> = {
   'library.lifts.byDate': "按日期",
   'library.lifts.byKind': "按动作",
   'library.lifts.noKind': "尚未分类",
+  'library.lifts.noKindHint': "点按试举上的 ··· 来选择动作。",
   'library.detail.barAndBody': "杠铃轨迹和身体",
   'library.detail.bodyOnly': "仅身体",
   'library.lifts.emptyTitle': "添加你的第一次试举。",

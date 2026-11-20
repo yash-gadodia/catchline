@@ -33,6 +33,7 @@ export const library: Strings<typeof en> = {
   'library.lifts.byDate': "날짜별",
   'library.lifts.byKind': "종목별",
   'library.lifts.noKind': "미분류",
+  'library.lifts.noKindHint': "리프트의 ···를 눌러 종목을 고르세요.",
   'library.detail.barAndBody': "바 궤적과 몸",
   'library.detail.bodyOnly': "몸만",
   'library.lifts.emptyTitle': "첫 리프트를 추가하세요.",

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { isNudge, scheduleFirstLiftNudges } from '../src/features/notifications/nudges';
 import { listLocalAnalyses } from '../src/data/localLifts';
+import { sweepClipCache } from '../src/data/clipCache';
 import * as SplashScreen from 'expo-splash-screen';
 import { LaunchOverlay } from '../src/components/Mark';
 import * as Notifications from 'expo-notifications';
@@ -79,6 +80,8 @@ export default function RootLayout() {
   useEffect(() => {
     initAnalytics();
     track(EVENTS.APP_OPEN);
+    // nothing is preparing, tracking or rendering yet: what an earlier run left in the caches goes
+    sweepClipCache();
     // a phone with no lift yet gets its three reminders set, once
     // and a phone with two lifts is asked, once, how Catchline is working
     void listLocalAnalyses()

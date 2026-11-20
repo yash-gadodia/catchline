@@ -1,4 +1,4 @@
-import { forgetLiftName, kindIdOf, kindsOf, liftKind, ownKinds, rememberLiftShape, setLiftKind, useLiftNames } from './liftNames';
+import { forgetLiftName, kindChoices, kindIdOf, kindsOf, liftKind, ownKinds, rememberLiftShape, setLiftKind, useLiftNames } from './liftNames';
 import * as compare from '../analysis/compare';
 import { forgetLocalData } from '../you/account';
 
@@ -75,5 +75,21 @@ describe('the kind a lifter picks', () => {
     forgetLocalData();
     expect(useLiftNames.getState().chosen).toEqual({});
     expect(ownKinds(useLiftNames.getState().chosen)).toEqual([]);
+  });
+});
+
+describe('the kinds offered on the result card', () => {
+  it('a bar path offers the barbell lifts, the one the app read first, then the lifter\'s own', () => {
+    expect(kindChoices('path', 'overhead', ['Ring dip'])).toEqual(['overhead', 'snatch', 'clean', 'cleanJerk', 'jerk', 'squat', 'deadlift', 'pull', 'Ring dip']);
+    expect(kindChoices('none', null, [])).toEqual(['snatch', 'clean', 'cleanJerk', 'jerk', 'squat', 'deadlift', 'pull', 'overhead']);
+  });
+
+  it('a hip trail starts with the gymnastics kinds', () => {
+    expect(kindChoices('trail', null, ['Ring dip', 'Toes to bar'])).toEqual(['pullUp', 'butterflyPullUp', 'muscleUp', 'handstandPushUp', 'Ring dip', 'Toes to bar']);
+  });
+
+  it('keeps a kind picked on the details first, once', () => {
+    expect(kindChoices('trail', 'snatch', [])).toEqual(['snatch', 'pullUp', 'butterflyPullUp', 'muscleUp', 'handstandPushUp']);
+    expect(kindChoices('trail', 'Ring dip', ['Ring dip'])).toEqual(['Ring dip', 'pullUp', 'butterflyPullUp', 'muscleUp', 'handstandPushUp']);
   });
 });

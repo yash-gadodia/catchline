@@ -50,6 +50,7 @@ jest.mock('../analysis/device/analyseTrace', () => {
   });
   return { ...mocks, trackTrace };
 });
+jest.mock('./clipCache', () => ({ discardPickedCopy: jest.fn() }));
 jest.mock('expo-crypto', () => ({ randomUUID: jest.fn(() => 'lift-1') }));
 jest.mock('./liftOutbox', () => ({ queueLiftSync: jest.fn(async () => 1) }));
 jest.mock('./freeLifts', () => ({ writeFreeUsed: jest.fn(async () => undefined), writeFreeWeek: jest.fn(async () => undefined) }));
@@ -72,6 +73,7 @@ import { randomUUID } from 'expo-crypto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { usePendingLifts } from './pendingLifts';
 import { usePurchases } from '../features/purchases/usePurchases';
+import { discardPickedCopy } from './clipCache';
 
 const native = PoseCoreML as NonNullable<typeof PoseCoreML>;
 const mockAnalyse = native.analyseOnDevice as jest.Mock;
@@ -154,11 +156,23 @@ describe('startDeviceLift, the happy path', () => {
     expect(track).toHaveBeenCalledTimes(4);
   });
 
+  // #111: the lift keeps its own clip.mp4, so the photo picker's copy of the picked video goes
+  it('deletes the photo picker copy of an imported clip once its lift is saved', async () => {
+    await startDeviceLift({ ...SUB, source: 'library', uri: 'file:///cache/ImagePicker/A1.mov' });
+    expect(discardPickedCopy).toHaveBeenCalledWith('file:///cache/ImagePicker/A1.mov');
+    expect((keepClip as jest.Mock).mock.invocationCallOrder[0]).toBeLessThan((discardPickedCopy as jest.Mock).mock.invocationCallOrder[0]);
+  });
+
   it('says the plate was marked when the clip came with a mark', async () => {
     await startDeviceLift({ ...SUB, plateMark: { x: 0.5, y: 0.6, r: 0.1 } });
     expect(track).toHaveBeenCalledWith('track_started', { source: 'camera', mark: 'made' });
     expect(track).toHaveBeenCalledWith('track_completed', { seconds: 0, frames: snatchMock.video.frameCount, has_bar_path: true, mark: 'made' });
     expect(mockPlan.mock.calls.at(-1)?.[2]).toEqual({ analysisId: expect.any(String), assetPrefix: expect.any(String), plateMark: { frame: 0, x: 0.5, y: 0.6, r: 0.1 } });
+  });
+
+  it('tells the tracker the lifter skipped the plate check ("My lift has no barbell")', async () => {
+    await startDeviceLift({ ...SUB, plateSkipped: true });
+    expect(mockPlan.mock.calls.at(-1)?.[2]).toEqual({ analysisId: expect.any(String), assetPrefix: expect.any(String), plateSkipped: true });
   });
 
   it('starts from the frame the plate was checked on when that was later than the first', async () => {
@@ -354,6 +368,8 @@ describe('startDeviceLift when the analysis fails', () => {
     // the trimmed clip is kept for "Send this clip so we can fix it", not discarded
     expect(keepClip).toHaveBeenCalledWith('lift-1', 'file:///clip.mov.mp4');
     expect(discardPrepared).not.toHaveBeenCalled();
+    // a failed lift is tracked again from the same pick (Try again), so the picker copy stays
+    expect(discardPickedCopy).not.toHaveBeenCalled();
   });
 
   it('sends a native read error to the could-not-read screen, counting and syncing nothing', async () => {

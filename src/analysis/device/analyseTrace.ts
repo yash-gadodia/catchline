@@ -44,7 +44,7 @@ export function planFromMisses(trace: unknown, movement: string, opts: Opts = {}
 // is the one the phone picked for a standing movement, whatever the clip shows. With opts.plateMark (a frame and a
 // point on the plate, x and y as shares of the frame) the plan asks for the follow of that plate, both ways from the
 // frame; run it, merge the trace, and call again with the same plateMark.
-export function trackTrace(trace: unknown, opts: Opts & { plateMark?: PlateMark } = {}): { analysis: Analysis; body: Body | null; plan: Plan; misses: string[] } {
+export function trackTrace(trace: unknown, opts: Opts & { plateMark?: PlateMark; plateSkipped?: boolean } = {}): { analysis: Analysis; body: Body | null; plan: Plan; misses: string[] } {
   const t = trace as Trace;
   if (!t || typeof t !== 'object' || t.traceVersion !== 1) throw new TraceMissing(`trace version ${(t as Trace | null)?.traceVersion}`);
   const input = traceInput(t, 'snatch');

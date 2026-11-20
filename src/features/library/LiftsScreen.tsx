@@ -184,6 +184,11 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
         ? byKind(shown, kindOf).map((g) => (
             <View key={g.kind ?? 'none'} testID={`kind-group-${g.kind ?? 'none'}`} style={{ gap: space.s2 }}>
               <SmallCaps>{`${g.label} · ${g.lifts.length}`}</SmallCaps>
+              {g.kind === null ? (
+                <Text testID="kind-sort-hint" style={{ ...type.small, color: colors.text2 }}>
+                  {t('library.lifts.noKindHint')}
+                </Text>
+              ) : null}
               <View>
                 {g.lifts.map((l) => (
                   <LiftRow key={l.id} lift={l} nav={nav} dated />

@@ -58,6 +58,7 @@ export const capture = {
   'capture.trim.pause': "Pause",
   'capture.trim.long': "Long clip. Trim to just the lift and it tracks faster.",
   'capture.trim.tooLong': "Too long to track. Trim to {max} s or less.",
+  'capture.trim.tooShort': "Too short to track. A clip needs at least {min} s with the whole lift in it.",
   'capture.trim.track': "Track",
   'capture.trim.weightA11y': "Weight in {units}",
 } as const;

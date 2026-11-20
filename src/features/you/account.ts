@@ -1,7 +1,10 @@
 import { create } from 'zustand';
 import { clearLiveAnalyses } from '../../analysis/live';
 import { backendEnabled, resetConsentSync } from '../../data/backend';
-import { deleteAllLocalLifts } from '../../data/localLifts';
+import { deleteAllLocalLifts, readLocalBody } from '../../data/localLifts';
+import { sweepClipCache } from '../../data/clipCache';
+import type { Body } from '../../analysis/device/tracking';
+import type { Analysis, Phase, RepTracks, TracePoint } from '../../analysis/types';
 import { useLiftOutbox } from '../../data/liftOutbox';
 import { usePendingLifts } from '../../data/pendingLifts';
 import { deleteAccount as deleteRemoteAccount } from '../../lib/api';
@@ -18,7 +21,7 @@ import { useUsage } from '../paywall/usageStore';
 import { t } from '../../i18n';
 import { usePurchases } from '../purchases/usePurchases';
 import type { CsvLift } from './liftsCsv';
-import type { Settings } from './settings';
+import { useSettings, type Settings } from './settings';
 
 export type Account = {
   name: string;
@@ -95,7 +98,49 @@ export type ExportedLift = {
   cue?: string;
   measurements: { id: string; label: string; value: number; unit: string }[];
   analysisVersion?: string;
+  tracking?: ExportedTracking;
+  body?: { joints: string[]; frames: (number | null)[][] };
 };
+
+// What the phone tracked: per rep the bar path (the hips for a hanging movement), the joint tracks beside it, the
+// phases and the file names of the stills kept with it (in the lift's folder on this phone).
+export type ExportedTracking = {
+  fps: number;
+  traceKind: Analysis['traceKind'];
+  reps: {
+    index: number;
+    startFrame: number;
+    endFrame: number;
+    made: boolean;
+    phases: Phase[];
+    path: TracePoint[];
+    tracks?: RepTracks;
+    stills: string[];
+  }[];
+};
+
+// body.json holds x, y for each of these joints on every frame (BODY_JOINTS in src/analysis/device/tracking.ts).
+export const BODY_JOINT_NAMES = [
+  'left_shoulder', 'right_shoulder', 'left_elbow', 'right_elbow', 'left_wrist', 'right_wrist', 'left_hip', 'right_hip',
+  'left_knee', 'right_knee', 'left_ankle', 'right_ankle', 'left_heel', 'right_heel', 'left_big_toe', 'right_big_toe',
+];
+
+function exportedTracking(analysis: Analysis): ExportedTracking {
+  return {
+    fps: analysis.video.fps,
+    traceKind: analysis.traceKind,
+    reps: analysis.reps.map((r) => ({
+      index: r.index,
+      startFrame: r.startFrame,
+      endFrame: r.endFrame,
+      made: r.made,
+      phases: r.phases,
+      path: r.path,
+      ...(r.tracks ? { tracks: r.tracks } : {}),
+      stills: r.keyFrames.flatMap((k) => (k.image ? [k.image.slice(k.image.lastIndexOf('/') + 1)] : [])),
+    })),
+  };
+}
 
 export type DataExport = {
   exportedAt: string;
@@ -104,9 +149,9 @@ export type DataExport = {
   lifts: ExportedLift[];
 };
 
-// Each lift as the lifter saw it: what (the kind Lifts shows), when, what they wrote about it, the cue, and every
-// measurement the clip could see (as the CSV export).
-export function exportedLift({ lift, analysis }: CsvLift): ExportedLift {
+// Each lift as the lifter saw it: what (the kind Lifts shows), when, what they wrote about it, the cue, every
+// measurement the clip could see (as the CSV export), and what the phone tracked: the path, the joints, the stills.
+export function exportedLift({ lift, analysis }: CsvLift, body: Body | null = null): ExportedLift {
   const key = lift.analysisId ?? lift.id;
   const { name, tags, note } = detailsOf(useLiftDetails.getState().details, key);
   return {
@@ -123,6 +168,8 @@ export function exportedLift({ lift, analysis }: CsvLift): ExportedLift {
       .filter((m) => m.status !== 'not_seen')
       .map((m) => ({ id: m.id, label: m.label, value: m.value, unit: m.unit })),
     analysisVersion: analysis?.analysisVersion,
+    ...(analysis && !analysis.failure ? { reps: analysis.reps.length, tracking: exportedTracking(analysis) } : {}),
+    ...(body ? { body: { joints: BODY_JOINT_NAMES, frames: body.frames } } : {}),
   };
 }
 
@@ -137,7 +184,10 @@ export const useAccountStore = create<{ account: Account | null }>(() => ({
   account: { name: 'Alex', signIn: 'apple', synced: true, tier: 'founding' },
 }));
 
-export function createLocalAccountRepository(now: () => Date = () => new Date()): AccountRepository {
+export function createLocalAccountRepository(
+  now: () => Date = () => new Date(),
+  readBody: (liftId: string) => Promise<Body | null> = readLocalBody,
+): AccountRepository {
   return {
     get: () => useAccountStore.getState().account,
     async rename(name) {
@@ -150,7 +200,7 @@ export function createLocalAccountRepository(now: () => Date = () => new Date())
         exportedAt: now().toISOString(),
         account: { name: a?.name ?? '', plan: a?.plan ?? '' },
         settings,
-        lifts: lifts.map(exportedLift),
+        lifts: await Promise.all(lifts.map(async (l) => exportedLift(l, await readBody(l.lift.analysisId ?? l.lift.id)))),
       };
     },
     async deleteAccount() {
@@ -177,12 +227,14 @@ export function forgetLocalData(): void {
   leaveAccount();
   // the delete sheet promises every lift goes: the clips and tracking on this phone, and any record not yet synced
   deleteAllLocalLifts();
+  sweepClipCache({ cameraOriginals: true });
   useLiftOutbox.setState({ items: [] });
   usePendingLifts.setState({ items: [] });
   useLiftNames.setState({ shapes: {}, chosen: {} });
   useLiftDetails.setState({ details: {} });
   useAccountStore.setState({ account: null });
   useOnboarding.getState().reset();
+  useSettings.getState().reset();
 }
 
 export async function signOutOfAccount(): Promise<void> {

@@ -71,6 +71,7 @@ export const capture: Strings<typeof en> = {
   'capture.trim.long': "Longue vidéo. Coupe autour du mouvement, le suivi ira plus vite.",
   // REVIEW
   'capture.trim.tooLong': "Trop long pour le suivi. Coupe à {max} s ou moins.",
+  'capture.trim.tooShort': "Trop court pour le suivi. Il faut au moins {min} s, avec tout le mouvement dedans.",
   'capture.viewfinder.framingGuide': "Tout le corps et la barre dans le cadre, téléphone immobile",
   'capture.trim.track': "Suivre",
   'capture.trim.weightA11y': "Poids en {units}",

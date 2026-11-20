@@ -85,6 +85,14 @@ test('after a purchase the saved clip is tracked (always submitted as a snatch, 
   expect(mockNav.push).not.toHaveBeenCalled();
 });
 
+test('a clip whose plate check was skipped ("My lift has no barbell") is tracked as skipped; one never asked is not', async () => {
+  usePurchases.setState({ tier: 'pull', period: 'annual' });
+  useCapture.setState({ draft: { ...newClip({ uri: 'file:///clip.mov', durationS: 8, fps: 30, source: 'library' }), plateMark: null } });
+  expect(submitDraft({ replace: true })).toBe(true);
+  await flush();
+  expect(startLift).toHaveBeenLastCalledWith(expect.objectContaining({ plateMark: null, plateSkipped: true }));
+});
+
 test('a free lifter with no videos left this week still gets the paywall, not a loop', async () => {
   useCapture.setState({ draft: newClip({ uri: 'file:///clip.mov', durationS: 8, fps: 30, source: 'camera' }) });
   usePurchases.setState({ tier: 'free', period: null });

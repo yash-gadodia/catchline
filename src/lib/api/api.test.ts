@@ -50,6 +50,7 @@ jest.mock('../supabase', () => {
         getSession: jest.fn(async () => ({ data: { session: { access_token: 'jwt-1' } } })),
         signInAnonymously: jest.fn(async () => ({ data: { user: { id: 'anon-2' } }, error: null })),
         signOut: jest.fn(async () => ({ error: null })),
+        getUser: jest.fn(async () => ({ data: { user: { id: 'u1' } }, error: null })),
       },
     },
   };
@@ -62,7 +63,7 @@ const mocked = supabase as unknown as {
   removeChannel: jest.Mock;
   storage: { from: jest.Mock };
   functions: { invoke: jest.Mock };
-  auth: { getSession: jest.Mock; signInAnonymously: jest.Mock; signOut: jest.Mock };
+  auth: { getSession: jest.Mock; signInAnonymously: jest.Mock; signOut: jest.Mock; getUser: jest.Mock };
 };
 
 const LIFT = { id: 'l1', user_id: 'u1', clip_path: 'u1/l1', status: 'uploading', movement: 'snatch' };
@@ -335,6 +336,21 @@ describe('deleteAccount', () => {
   it('throws when the function fails and keeps the session', async () => {
     mocked.functions.invoke.mockResolvedValueOnce({ data: null, error: new Error('data_delete_failed') });
     await expect(deleteAccount()).rejects.toMatchObject({ name: 'ApiError', code: 'unknown', message: 'data_delete_failed' });
+    expect(mocked.auth.signOut).not.toHaveBeenCalled();
+  });
+
+  it('treats an account already deleted on another phone as deleted and drops the local session', async () => {
+    mocked.functions.invoke.mockResolvedValueOnce({ data: null, error: new Error('Edge Function returned a non-2xx status code') });
+    mocked.auth.getUser.mockResolvedValueOnce({ data: { user: null }, error: { name: 'AuthApiError', status: 403, code: 'user_not_found', message: 'User from sub claim in JWT does not exist' } });
+    await expect(deleteAccount()).resolves.toBeUndefined();
+    expect(mocked.auth.signOut).toHaveBeenCalledTimes(1);
+    expect(mocked.auth.signOut).toHaveBeenCalledWith({ scope: 'local' });
+  });
+
+  it('still throws when the function fails offline and the auth server cannot be reached', async () => {
+    mocked.functions.invoke.mockResolvedValueOnce({ data: null, error: new Error('Failed to send a request to the Edge Function') });
+    mocked.auth.getUser.mockResolvedValueOnce({ data: { user: null }, error: { name: 'AuthRetryableFetchError', status: 0, message: 'Network request failed' } });
+    await expect(deleteAccount()).rejects.toMatchObject({ name: 'ApiError', code: 'unknown', message: 'Failed to send a request to the Edge Function' });
     expect(mocked.auth.signOut).not.toHaveBeenCalled();
   });
 });

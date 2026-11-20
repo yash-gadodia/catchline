@@ -1,5 +1,5 @@
 import type { RefObject } from 'react';
-import { Linking, Share, type View } from 'react-native';
+import { Linking, PixelRatio, Platform, Share, type View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { captureRef } from 'react-native-view-shot';
 import { File } from 'expo-file-system';
@@ -9,10 +9,12 @@ import type { OverlaySpec, ShareAspect } from './overlay';
 import { OUTPUT } from './overlay';
 import type { TrackSpec } from './trackShare';
 
-// The still card renders on-device: the card view is captured at export size.
+// The still card renders on-device: the card view is captured at export size, as a JPEG (the card is opaque).
+// On iOS view-shot takes the size in points and draws at the screen's scale, so it is divided by that scale.
 export async function renderStill(ref: RefObject<View | null>, aspect: ShareAspect): Promise<string> {
   const size = OUTPUT[aspect];
-  return captureRef(ref, { format: 'png', quality: 1, width: size.width, height: size.height, result: 'tmpfile' });
+  const scale = Platform.OS === 'ios' ? PixelRatio.get() : 1;
+  return captureRef(ref, { format: 'jpg', quality: 0.9, width: size.width / scale, height: size.height / scale, result: 'tmpfile' });
 }
 
 // The overlay video, rendered on the phone from the lifter's own clip.

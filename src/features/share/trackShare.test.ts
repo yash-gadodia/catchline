@@ -281,6 +281,22 @@ describe('the story number is the player\'s number', () => {
     expect(hero.value).toBeLessThan(after);
   });
 
+  it('is the pull, not the dropped bar bouncing off the floor inside the lift (#253)', () => {
+    // 30 fps: the pull peaks at 2.0 m/s, held overhead, dropped at 2.0 m/s down, a 2.2 m/s bounce, all in the lift
+    const steps = [
+      ...new Array<number>(10).fill(0),
+      ...Array.from({ length: 20 }, (_, i) => 2.0 * (1 - Math.abs(i - 9.5) / 10.5)),
+      ...new Array<number>(10).fill(0),
+      ...new Array<number>(15).fill(-2.0),
+      ...new Array<number>(6).fill(2.2),
+      ...new Array<number>(10).fill(0),
+    ];
+    const drop = steps.reduce((p, v, i) => [...p, { frame: i + 1, x: 0.5, y: p[i].y - v / 4.5 / 30, r: 0.05 }], [{ frame: 0, x: 0.5, y: 0.8, r: 0.05 }]);
+    const dropped = { ...analysis, video: { ...analysis.video, frameCount: drop.length }, reps: [{ path: drop }], lift: { startFrame: 0, endFrame: drop.length - 1 } } as typeof analysis;
+    expect(Math.max(...shareChart(dropped, 0, drop.length - 1)!.values.map(([, v]) => v))).toBe(2.2);
+    expect(buildStory(dropped, story, 0, drop.length - 1, 1).hero).toMatchObject({ value: 1.81, peakFrame: 20 });
+  });
+
   it("is measured at the clip's real rate when the screen knows it", () => {
     const recorded = buildStory(analysis, story, 0, 60, 1).hero!.value;
     const real = buildStory(analysis, story, 0, 60, 1, 28.3).hero!.value;

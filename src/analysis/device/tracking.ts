@@ -18,18 +18,23 @@ export const BODY_JOINTS = [L_SHO, R_SHO, L_ELB, R_ELB, L_WRI, R_WRI, L_HIP, R_H
 export type Body = { version: 1; frames: (number | null)[][] };
 
 const BRIDGE_S = 0.6;
+// past this far off side-on a plate is an edge-on ellipse, and a bar path missing is put down to the angle
+const OFF_SIDE_NO_PLATE_DEG = 30;
 
 export type Tracked = { analysis: AnalysisJson; body: Body | null };
 
 // opts.plateMark: a point the user put on the plate (the frame, and x, y as shares of the frame's width and height);
-// the plate under it is followed over the whole clip in place of the one the search would find.
-export function track(input: DeviceInput, opts: { analysisId?: string; assetPrefix?: string; plateMark?: PlateMark } = {}): Tracked {
+// the plate under it is followed over the whole clip in place of the one the search would find. opts.plateSkipped:
+// the lifter said at the plate check that the lift has no barbell.
+export function track(input: DeviceInput, opts: { analysisId?: string; assetPrefix?: string; plateMark?: PlateMark; plateSkipped?: boolean } = {}): Tracked {
   const { meta, lifter } = input;
   const [H, W] = input.shape;
   const n = lifter.k.length;
   const world = toWorld(lifter.k, input.cameraPath);
   const sig = signals(world, meta.fps);
-  const hanging = family(sig) === 'hanging';
+  // a plate the lifter confirmed makes it a barbell lift, whatever the body alone suggests: a long overhead hold
+  // can read as hanging from a bar, and then the plate was never followed (#248)
+  const hanging = !opts.plateMark && family(sig) === 'hanging';
   const ctx: Ctx = {
     input,
     movement: hanging ? 'kipping_pull_up' : 'snatch',
@@ -60,6 +65,12 @@ export function track(input: DeviceInput, opts: { analysisId?: string; assetPref
   if (firstPlate < 0 && only.analysis.traceKind === 'bar') {
     rep.path = [];
     delete rep.guides;
+    const off = (only.analysis.noCueReason as { offSideDeg?: number } | null)?.offSideDeg;
+    only.analysis.noPathCause = opts.plateSkipped
+      ? { cause: 'no_barbell' }
+      : off !== undefined && off > OFF_SIDE_NO_PLATE_DEG
+        ? { cause: 'off_side', offSideDeg: off }
+        : { cause: 'plate_unread' };
   }
   if (firstPlate >= 0) {
     let lastPlate = rep.path.length - 1;

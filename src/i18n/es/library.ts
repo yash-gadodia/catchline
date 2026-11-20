@@ -32,6 +32,7 @@ export const library: Strings<typeof en> = {
   'library.lifts.byDate': "Por fecha",
   'library.lifts.byKind': "Por levantamiento",
   'library.lifts.noKind': "Sin clasificar",
+  'library.lifts.noKindHint': "Toca ··· en un levantamiento para elegir cuál fue.",
   'library.detail.barAndBody': "Trayectoria de la barra y cuerpo",
   'library.detail.bodyOnly': "Solo cuerpo",
   // REVIEW: machine-drafted, needs a native speaker before release.
