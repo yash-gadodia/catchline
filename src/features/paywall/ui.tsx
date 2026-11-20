@@ -1,5 +1,6 @@
 import { useCallback, useState, type ReactNode } from 'react';
-import { Image, Linking, Pressable, Text, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
+import { Image, Linking, Pressable, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
+import Text from '../../components/Text';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Btn from '../../components/Btn';
 import { colors, shape, space } from '../../design/tokens';
@@ -217,6 +218,8 @@ export function OptionCard({
         borderColor: selected ? colors.text : colors.hairline,
         ...shape.control,
         flexDirection: 'row',
+        // at large text the price drops under the plan name instead of squeezing it to a letter a line
+        flexWrap: 'wrap',
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: space.s3,

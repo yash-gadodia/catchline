@@ -12,6 +12,7 @@ export const capture: Strings<typeof en> = {
   'capture.hud.stopRecording': "녹화 중지",
   'capture.hud.record': "녹화",
   'capture.viewfinder.fps': "{fps} fps",
+  'capture.viewfinder.close': "닫기",
   'capture.viewfinder.framingGuide': "전신과 바가 화면에, 휴대폰은 고정",
   'capture.viewfinder.tooLongTitle': "30초를 넘었어요",
   'capture.viewfinder.tooLongBody': "긴 영상은 트래킹이 오래 걸려요. 여기서 멈추세요. 다음 화면에서 자를 수 있어요.",

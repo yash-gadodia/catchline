@@ -1,4 +1,4 @@
-import { fmt, movementLabel } from '../../analysis/format';
+import { formatLoad, movementLabel, type Units } from '../../analysis/format';
 import { formatDate, t } from '../../i18n';
 import { localClipUri } from '../../data/localLifts';
 import { failureMessage } from './failures';
@@ -8,9 +8,15 @@ function utc(day: Day): Date {
   return new Date(`${day}T00:00:00Z`);
 }
 
-export function shortDate(day: Day): string {
-  const d = utc(day);
-  return t('library.date.dayMonth', { day: d.getUTCDate(), month: formatDate(d, { month: 'short', timeZone: 'UTC' }) });
+// "14 Nov", with the year when it is not this year's ("14 Nov 2025"), so a year of history reads in order.
+function dayMonth(d: Date, inUtc: boolean, now: Date): string {
+  const year = inUtc ? d.getUTCFullYear() : d.getFullYear();
+  const vars = { day: inUtc ? d.getUTCDate() : d.getDate(), month: formatDate(d, { month: 'short', ...(inUtc ? { timeZone: 'UTC' } : {}) }) };
+  return year === now.getFullYear() ? t('library.date.dayMonth', vars) : t('library.date.dayMonthYear', { ...vars, year });
+}
+
+export function shortDate(day: Day, now: Date = new Date()): string {
+  return dayMonth(utc(day), true, now);
 }
 
 function pad(n: number): string {
@@ -18,17 +24,17 @@ function pad(n: number): string {
 }
 
 // "11 Nov, 14:32" in the phone's own time; a lift with no time on record (fixtures) reads as its day.
-export function liftWhen(l: Pick<Lift, 'date' | 'at'>): string {
-  if (!l.at) return shortDate(l.date);
+export function liftWhen(l: Pick<Lift, 'date' | 'at'>, now: Date = new Date()): string {
+  if (!l.at) return shortDate(l.date, now);
   const d = new Date(l.at);
-  const date = t('library.date.dayMonth', { day: d.getDate(), month: formatDate(d, { month: 'short' }) });
+  const date = dayMonth(d, false, now);
   return t('library.date.dayTime', { date, time: `${pad(d.getHours())}:${pad(d.getMinutes())}` });
 }
 
 // The line a shared video can carry: the day of the lift, and its load if the lifter set one ("14 Nov 2026 · 62.5 kg").
-export function liftCaption(l: Pick<Lift, 'date' | 'at' | 'loadKg'>): string {
+export function liftCaption(l: Pick<Lift, 'date' | 'at' | 'loadKg'>, units: Units): string {
   const day = formatDate(l.at ? new Date(l.at) : utc(l.date), { day: 'numeric', month: 'short', year: 'numeric', ...(l.at ? {} : { timeZone: 'UTC' }) });
-  return l.loadKg != null ? `${day} · ${fmt(l.loadKg)} kg` : day;
+  return l.loadKg != null ? `${day} · ${formatLoad(l.loadKg, units)}` : day;
 }
 
 // A 4.0 lift keeps its clip and was never given a movement by the lifter.
@@ -37,8 +43,8 @@ export function isTracked(l: Pick<Lift, 'id' | 'analysisId'>): boolean {
 }
 
 // The date and time, plus the load if the lifter set one.
-export function liftTitle(l: Pick<Lift, 'date' | 'at' | 'loadKg'>): string {
-  return l.loadKg != null ? `${liftWhen(l)} · ${fmt(l.loadKg)} kg` : liftWhen(l);
+export function liftTitle(l: Pick<Lift, 'date' | 'at' | 'loadKg'>, units: Units): string {
+  return l.loadKg != null ? `${liftWhen(l)} · ${formatLoad(l.loadKg, units)}` : liftWhen(l);
 }
 
 function localDay(d: Date): Day {
@@ -46,11 +52,11 @@ function localDay(d: Date): Day {
 }
 
 // Under its day's heading a lift is titled by its time (and load); one with no time on record keeps its full title.
-export function liftTime(l: Pick<Lift, 'date' | 'at' | 'loadKg'>): string {
-  if (!l.at) return liftTitle(l);
+export function liftTime(l: Pick<Lift, 'date' | 'at' | 'loadKg'>, units: Units): string {
+  if (!l.at) return liftTitle(l, units);
   const d = new Date(l.at);
   const time = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  return l.loadKg != null ? `${time} · ${fmt(l.loadKg)} kg` : time;
+  return l.loadKg != null ? `${time} · ${formatLoad(l.loadKg, units)}` : time;
 }
 
 export type DayGroup = { day: Day; label: string; lifts: Lift[] };
@@ -64,7 +70,7 @@ export function byDay(lifts: Lift[], now: Date = new Date()): DayGroup[] {
     const day = l.at ? localDay(new Date(l.at)) : l.date;
     const last = out[out.length - 1];
     if (last && last.day === day) last.lifts.push(l);
-    else out.push({ day, label: day === today ? t('library.date.today') : day === yesterday ? t('library.date.yesterday') : shortDate(day), lifts: [l] });
+    else out.push({ day, label: day === today ? t('library.date.today') : day === yesterday ? t('library.date.yesterday') : shortDate(day, now), lifts: [l] });
   }
   return out;
 }

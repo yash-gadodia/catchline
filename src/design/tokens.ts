@@ -121,3 +121,7 @@ export const control = {
   chipHeight: 40,
   compactHeight: 48,
 } as const;
+
+// How far Dynamic Type may grow text: every standard size (largest about 1.35x) and the first accessibility size in
+// full, then capped (the largest accessibility sizes reach about 3x and broke rows, chips and the tab bar).
+export const textScale = { max: 1.5 } as const;

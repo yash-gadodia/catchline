@@ -1,4 +1,5 @@
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import Text from '../../components/Text';
 import { colors, space } from '../../design/tokens';
 import { type } from '../../design/typography';
 import type { Job } from '../../data/pipeline';

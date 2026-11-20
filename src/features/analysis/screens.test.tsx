@@ -39,6 +39,21 @@ describe('ProcessingSheet', () => {
     expect(getByTestId('processing-doing')).toHaveTextContent('Following the bar and your body, frame by frame.');
   });
 
+  it('in French the time left wraps under the title instead of running into it', async () => {
+    const { setLanguage } = require('../../i18n');
+    setLanguage('fr');
+    try {
+      const { getByTestId, getByText } = await render(
+        <ProcessingSheet analysis={null} state="progress" step={2} elapsed={6} progress={0.22} meta="environ 1 min restante" {...handlers} />
+      );
+      expect(getByText('Suivi de ton mouvement')).toHaveStyle({ flexShrink: 1 });
+      expect(getByTestId('processing-header')).toHaveStyle({ flexDirection: 'row', flexWrap: 'wrap', columnGap: 12 });
+      expect(getByText('environ 1 min restante')).toBeOnTheScreen();
+    } finally {
+      setLanguage('en');
+    }
+  });
+
   it('without a clip shows the silhouette, the usual wait and a way to hide', async () => {
     const { getByText, getByTestId, queryByText } = await render(
       <ProcessingSheet analysis={snatchMock} state="progress" step={2} elapsed={6} {...handlers} />
@@ -180,6 +195,20 @@ describe('PlayerScreen', () => {
     expect(getByTestId('stage-layer-asset:snatch/5-turnover')).toBeOnTheScreen();
     expect(getByTestId('measure-turnover_time')).toHaveTextContent('Turnover time0.21 sbest rep 0.19 s');
     expect(Haptics.impactAsync).toHaveBeenCalledWith('rigid');
+  });
+
+  it('gives uppercase phase headings room for accented capitals (ÜBERGANG, RÉCEPTION)', async () => {
+    const { setLanguage } = require('../../i18n');
+    setLanguage('de');
+    try {
+      const { getByTestId } = await render(<PlayerScreen analysis={snatchMock} initialFrame={snatchMock.cue!.evidence.frame} {...props} />);
+      await press(getByTestId('frame-transition'));
+      expect(getByTestId('phase-name')).toHaveTextContent('Übergang');
+      expect(getByTestId('phase-name')).toHaveStyle({ fontSize: 30, lineHeight: 36, textTransform: 'uppercase' });
+      expect(getByTestId('frame-label-transition')).toHaveStyle({ fontSize: 19, lineHeight: 23, textTransform: 'uppercase' });
+    } finally {
+      setLanguage('en');
+    }
   });
 
   it('steps phase to phase from the chevrons and stops at the ends', async () => {

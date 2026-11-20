@@ -8,6 +8,7 @@ export const capture = {
   'capture.hud.stopRecording': "Stop recording",
   'capture.hud.record': "Record",
   'capture.viewfinder.fps': "{fps} fps",
+  'capture.viewfinder.close': "Close",
   'capture.viewfinder.framingGuide': "Whole body and bar in frame, phone still",
   'capture.viewfinder.tooLongTitle': "Over 30 seconds",
   'capture.viewfinder.tooLongBody': "Long clips take longer to track. Stop here; you can trim it on the next screen.",

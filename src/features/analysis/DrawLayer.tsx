@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
-import { Text, View, type GestureResponderEvent } from 'react-native';
+import { View, type GestureResponderEvent } from 'react-native';
+import Text from '../../components/Text';
 import Svg, { Circle, G, Line, Path } from 'react-native-svg';
 import type { Fit, Size } from '../../analysis/geometry';
 import { toScreen } from '../../analysis/geometry';

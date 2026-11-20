@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
-import { Pressable, Text, type StyleProp, type ViewStyle } from 'react-native';
-import { colors, control, shape, stroke } from '../design/tokens';
+import { Pressable, type StyleProp, type ViewStyle } from 'react-native';
+import Text from './Text';
+import { colors, control, shape, space, stroke } from '../design/tokens';
 import { fontFamily } from '../design/typography';
 
 type Props = {
@@ -58,8 +59,11 @@ export default function Btn({
       accessibilityState={disabled ? { disabled: true } : undefined}
       style={({ pressed }) => [
         {
-          height,
+          // a minimum, not a height: a long label (German, French, large text) wraps inside the button
+          minHeight: height,
           width: square ? height : undefined,
+          paddingHorizontal: square ? 0 : space.s4,
+          paddingVertical: square ? 0 : space.s2,
           ...shape.control,
           alignItems: 'center',
           justifyContent: 'center',
@@ -84,6 +88,7 @@ export default function Btn({
             fontFamily: fontFamily.bodyBold,
             fontSize: size,
             lineHeight: Math.round(size * 1.3),
+            textAlign: 'center',
           }}
         >
           {children}

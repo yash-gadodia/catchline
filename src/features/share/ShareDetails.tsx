@@ -1,4 +1,5 @@
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+import Text from '../../components/Text';
 import Svg, { Circle, Line, Path } from 'react-native-svg';
 import { colors, opacity, shade, shape, stroke } from '../../design/tokens';
 import { display } from '../../design/typography';

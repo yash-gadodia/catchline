@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 import type { Movement } from '../../analysis/types';
+import { KG_PER_LB } from '../../analysis/format';
 import { useOnboarding, type Units } from '../onboarding/store';
 import type { CheckId } from './checks';
 import { useCapture, type Clip, type ClipSource } from './store';
@@ -26,12 +27,10 @@ export type ClipSubmission = {
   plateSkipped?: boolean;
 };
 
-const LB_TO_KG = 0.45359237;
-
 export function parseWeight(text: string, units: Units): number | null {
   const v = Number(text.replace(',', '.'));
   if (!text.trim() || !Number.isFinite(v) || v <= 0) return null;
-  const kg = Math.round((units === 'lb' ? v * LB_TO_KG : v) * 10) / 10;
+  const kg = Math.round((units === 'lb' ? v * KG_PER_LB : v) * 10) / 10;
   // the server keeps 0 < kg < 500; a load outside it would be refused on every sync
   return kg > 0 && kg < 500 ? kg : null;
 }

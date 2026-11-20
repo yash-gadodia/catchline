@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
-import { Pressable, Text, View, type GestureResponderEvent } from 'react-native';
+import { Pressable, View, type GestureResponderEvent } from 'react-native';
+import Text from '../../components/Text';
 import Svg, { Circle, Line, Path } from 'react-native-svg';
 import { seconds } from '../../analysis/format';
 import { colors, shade, shape, space, stroke } from '../../design/tokens';

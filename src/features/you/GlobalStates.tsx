@@ -1,4 +1,5 @@
-import { Linking, Text, View } from 'react-native';
+import { Linking, View } from 'react-native';
+import Text from '../../components/Text';
 import Btn from '../../components/Btn';
 import Sheet from '../../components/Sheet';
 import { colors, space } from '../../design/tokens';

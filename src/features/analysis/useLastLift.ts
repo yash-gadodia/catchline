@@ -4,6 +4,7 @@ import type { Body } from '../../analysis/device/tracking';
 import { readLocalAnalysis, readLocalBody } from '../../data/localLifts';
 import { liftTitle } from '../library/derive';
 import { useLibrary } from '../library/repository';
+import { useOnboarding } from '../onboarding/store';
 import { ghostPath, liftShape, liftsBefore } from './compare';
 
 // how many earlier lifts are read looking for one of the same kind
@@ -15,10 +16,11 @@ export type LastLift = { id: string; title: string; points: Point[] };
 // there is no earlier lift with a path. `devId` names the earlier lift outright (a dev link, for simulator checks).
 export function useLastLift(analysis: Analysis | null, body: Body | null, devId?: string): LastLift | null {
   const { lifts } = useLibrary();
+  const units = useOnboarding((s) => s.units);
   const candidates = devId ? [] : analysis ? liftsBefore(lifts, analysis.id).slice(0, LOOK_BACK) : [];
   const ids = devId ? [devId] : candidates.flatMap((l) => (l.analysisId ? [l.analysisId] : []));
   const [state, setState] = useState<{ key: string; last: LastLift | null } | null>(null);
-  const key = analysis && ids.length ? `${analysis.id}:${ids.join(',')}` : '';
+  const key = analysis && ids.length ? `${analysis.id}:${ids.join(',')}:${units}` : '';
   useEffect(() => {
     if (!analysis || !ids.length) return;
     let live = true;
@@ -35,7 +37,7 @@ export function useLastLift(analysis: Analysis | null, body: Body | null, devId?
         const points = ghostPath(earlier, today);
         if (!points) continue;
         const lift = candidates[i];
-        setState({ key, last: { id: ids[i], title: lift ? liftTitle(lift) : ids[i], points } });
+        setState({ key, last: { id: ids[i], title: lift ? liftTitle(lift, units) : ids[i], points } });
         return;
       }
       setState({ key, last: null });

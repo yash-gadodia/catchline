@@ -1,4 +1,5 @@
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import Text from '../../components/Text';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Btn from '../../components/Btn';
 import { colors } from '../../design/tokens';
@@ -29,7 +30,7 @@ export default function TabBar({
         accessibilityRole="tab"
         accessibilityState={{ selected: on }}
         testID={`tab-${t.name}`}
-        style={{ flex: 1, height: 56, alignItems: 'center', justifyContent: 'center' }}
+        style={{ flex: 1, minHeight: 56, alignItems: 'center', justifyContent: 'center' }}
       >
         <Text style={{ color: on ? colors.text : colors.text2, ...type.caption, fontFamily: fontFamily.bodyMedium }}>
           {t.label()}

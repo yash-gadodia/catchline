@@ -1,5 +1,6 @@
 import { forwardRef } from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+import Text from '../../components/Text';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { Analysis, KeyFrame } from '../../analysis/types';
 import { toScreen, type Fit } from '../../analysis/geometry';
@@ -10,6 +11,7 @@ import Mark from '../../components/Mark';
 import Stage, { type StageLayer } from '../analysis/Stage';
 import { FlarePath, KeyDots, OverlaySvg } from '../analysis/overlays';
 import { cardCopy, cardSize, safeInsets } from './model';
+import { useOnboarding } from '../onboarding/store';
 import type { ShareAspect } from './overlay';
 
 type Props = { analysis: Analysis; aspect: ShareAspect; brand: boolean };
@@ -50,7 +52,7 @@ const ShareCard = forwardRef<View, Props>(function ShareCard({ analysis, aspect,
   const box = cardSize(aspect);
   const inset = safeInsets(aspect, box);
   const src = { width: analysis.video.width, height: analysis.video.height };
-  const copy = cardCopy(analysis);
+  const copy = cardCopy(analysis, useOnboarding((s) => s.units));
   return (
     <View ref={ref} collapsable={false} testID={`share-card-${aspect}`} style={{ width: box.width, height: box.height, overflow: 'hidden', backgroundColor: colors.halo }}>
       <Stage src={src} box={box} focus={FOCUS} layers={strobeLayers(analysis)} style={{ position: 'absolute', left: 0, top: 0, backgroundColor: colors.halo }}>

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { Pressable, Text, TextInput, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Pressable, TextInput, View, type StyleProp, type ViewStyle } from 'react-native';
+import Text from '../../components/Text';
 import Btn from '../../components/Btn';
 import { colors, shade, shape, space, stroke } from '../../design/tokens';
 import { fontFamily, type } from '../../design/typography';
@@ -15,12 +16,14 @@ export function HudBadge({
   onPress,
   testID,
   square,
+  accessibilityLabel,
 }: {
   children: string;
   dot?: boolean;
   onPress?: () => void;
   testID?: string;
   square?: boolean;
+  accessibilityLabel?: string;
 }) {
   const body = (
     <View
@@ -52,7 +55,7 @@ export function HudBadge({
   );
   if (!onPress) return body;
   return (
-    <Pressable onPress={onPress} testID={testID} accessibilityRole="button" hitSlop={8}>
+    <Pressable onPress={onPress} testID={testID} accessibilityRole="button" accessibilityLabel={accessibilityLabel} hitSlop={8}>
       {body}
     </Pressable>
   );

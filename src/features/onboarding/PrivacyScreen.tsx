@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Linking, ScrollView, Text, View } from 'react-native';
+import { Linking, ScrollView, View } from 'react-native';
+import Text from '../../components/Text';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, space } from '../../design/tokens';
 import { type } from '../../design/typography';

@@ -1,5 +1,6 @@
 import { useRef, useState, type ReactNode } from 'react';
-import { PanResponder, Pressable, Text, View } from 'react-native';
+import { PanResponder, Pressable, View } from 'react-native';
+import Text from '../../components/Text';
 import { Image } from 'expo-image';
 import { colors, space } from '../../design/tokens';
 import { type } from '../../design/typography';

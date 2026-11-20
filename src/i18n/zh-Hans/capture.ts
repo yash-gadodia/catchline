@@ -12,6 +12,7 @@ export const capture: Strings<typeof en> = {
   'capture.hud.stopRecording': "停止录制",
   'capture.hud.record': "录制",
   'capture.viewfinder.fps': "{fps} fps",
+  'capture.viewfinder.close': "关闭",
   'capture.viewfinder.framingGuide': "全身和杠铃入镜，手机保持不动",
   'capture.viewfinder.tooLongTitle': "超过 30 秒",
   'capture.viewfinder.tooLongBody': "视频越长，追踪越慢。先停在这里，下一步可以裁剪。",

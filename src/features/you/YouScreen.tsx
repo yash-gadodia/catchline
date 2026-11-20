@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
-import { Platform, Pressable, ScrollView, Share, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, ScrollView, Share, TextInput, View } from 'react-native';
+import Text from '../../components/Text';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { File, Paths } from 'expo-file-system';
 import { backendEnabled } from '../../data/backend';
@@ -141,7 +142,13 @@ export default function YouScreen({
           onPress={() => setPicker('language')}
           testID="row-language"
         />
-        <Row title={t('you.haptics')} right={<Toggle value={settings.haptics} onChange={(v) => settings.set('haptics', v)} testID="toggle-haptics" />} />
+        <Row
+          title={t('you.haptics')}
+          checked={settings.haptics}
+          onPress={() => settings.set('haptics', !settings.haptics)}
+          right={<Toggle value={settings.haptics} onChange={(v) => settings.set('haptics', v)} testID="toggle-haptics" />}
+          testID="row-haptics"
+        />
         <Section>{t('you.section.privacy')}</Section>
         <Row title={t('you.whatIsStored')} right={<Value>›</Value>} onPress={nav.onWhatIsStored} testID="row-stored" />
         <Row title={t('you.exportAll')} right={<Value>›</Value>} onPress={doExport} testID="row-export" />
@@ -154,7 +161,10 @@ export default function YouScreen({
         <Row
           title={t('you.shot.toggle')}
           sub={t('you.shot.toggleSub')}
+          checked={shotPrompt}
+          onPress={() => useScreenshotFeedback.getState().setEnabled(!shotPrompt)}
           right={<Toggle value={shotPrompt} onChange={(v) => useScreenshotFeedback.getState().setEnabled(v)} testID="toggle-screenshot" />}
+          testID="row-screenshot"
         />
         <Row title={t('you.whatsNew')} right={<Value>›</Value>} onPress={nav.onWhatsNew} last testID="row-whats-new" />
         <BuildLine />
@@ -232,6 +242,7 @@ function Row({
   bold,
   muted,
   last,
+  checked,
   onPress,
   testID,
 }: {
@@ -242,6 +253,8 @@ function Row({
   bold?: boolean;
   muted?: boolean;
   last?: boolean;
+  // a row with a switch: VoiceOver reads the whole row as the switch, with its state, and a double tap flips it
+  checked?: boolean;
   onPress?: () => void;
   testID?: string;
 }) {
@@ -250,7 +263,8 @@ function Row({
       onPress={onPress}
       disabled={!onPress}
       testID={testID}
-      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityRole={checked !== undefined ? 'switch' : onPress ? 'button' : undefined}
+      accessibilityState={checked !== undefined ? { checked } : undefined}
       divider={last ? 'none' : 'bottom'}
       style={({ pressed }) => ({ minHeight: 48, paddingVertical: space.s2, opacity: pressed ? 0.7 : 1 })}
     >

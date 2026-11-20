@@ -23,6 +23,11 @@ const liftsNav = () => ({
   onDetails: jest.fn(),
 });
 
+// These lifts are dated 2026; a date in another year carries its year (#164), so the clock is held in 2026.
+const ONLY_DATE = ['hrtime', 'nextTick', 'performance', 'queueMicrotask', 'requestAnimationFrame', 'cancelAnimationFrame', 'requestIdleCallback', 'cancelIdleCallback', 'setImmediate', 'clearImmediate', 'setInterval', 'clearInterval', 'setTimeout', 'clearTimeout'] as const;
+beforeAll(() => jest.useFakeTimers({ now: new Date(2026, 10, 20, 12), doNotFake: [...ONLY_DATE] }));
+afterAll(() => jest.useRealTimers());
+
 beforeEach(() => {
   jest.clearAllMocks();
   loadLibrary('seeded');
@@ -203,6 +208,29 @@ describe('LiftsScreen', () => {
     expect(rows()).toHaveLength(8);
   });
 
+  it('shows and searches every load in lb when the lifter picked lb', async () => {
+    require('../onboarding/store').useOnboarding.setState({ units: 'lb' });
+    const done = (n: number, loadKg?: number) => ({ id: `l${n}`, movement: 'snatch' as const, date: `2026-03-${String(20 - n).padStart(2, '0')}`, status: 'done' as const, analysisId: `a${n}`, loadKg });
+    useLibraryStore.getState().load({ ...emptyLibrary(), lifts: [done(1, 72.5), done(2, 100), done(3), done(4), done(5), done(6), done(7), done(8)] });
+    try {
+      const { getByTestId, queryAllByTestId, queryByText } = await render(<LiftsScreen nav={liftsNav()} />);
+      expect(getByTestId('lift-title-l1')).toHaveTextContent('19 Mar · 160 lb');
+      expect(getByTestId('lift-title-l2')).toHaveTextContent('18 Mar · 220.5 lb');
+      expect(queryByText(/kg/)).toBeNull();
+      const rows = () => queryAllByTestId(/^lift-title-/).map((n) => n.props.testID.replace('lift-title-', ''));
+      await act(async () => {
+        fireEvent.changeText(getByTestId('lift-search'), '160lb');
+      });
+      expect(rows()).toEqual(['l1']);
+      await act(async () => {
+        fireEvent.changeText(getByTestId('lift-search'), '72.5 kg');
+      });
+      expect(rows()).toEqual([]);
+    } finally {
+      require('../onboarding/store').useOnboarding.setState({ units: 'kg' });
+    }
+  });
+
   it('keeps the search field away until there are eight lifts', async () => {
     const lifts = Array.from({ length: 7 }, (_, n) => ({ id: `l${n}`, movement: 'snatch' as const, date: `2026-03-${String(10 + n)}`, status: 'done' as const }));
     useLibraryStore.getState().load({ ...emptyLibrary(), lifts });
@@ -238,6 +266,20 @@ describe('LiftsScreen', () => {
     expect(nav.onRecord).toHaveBeenCalledTimes(1);
     expect(queryByTestId('empty-demo')).toBeNull();
   });
+
+  it('at large text sizes nothing on Lifts has a fixed height and the empty screen scrolls (#114)', async () => {
+    loadLibrary('empty');
+    const empty = await render(<LiftsScreen nav={liftsNav()} />);
+    expect(empty.getByTestId('lifts-empty').type).toBe('RCTScrollView');
+    expect(empty.getByText('Add your first lift.')).toHaveProp('maxFontSizeMultiplier', 1.5);
+    expect(empty.getByTestId('free-chip')).toHaveStyle({ minHeight: 44 });
+    expect(empty.getByTestId('free-chip')).not.toHaveStyle({ height: 44 });
+    loadLibrary('seeded');
+    require('./liftNames').useLiftNames.setState({ shapes: { 'snatch-mock': 'floor-overhead', 'snatch-mock-low': 'floor-shoulders' } });
+    const full = await render(<LiftsScreen nav={liftsNav()} />);
+    expect(full.getByTestId('lifts-by-day')).toHaveStyle({ minHeight: 40 });
+    expect(full.getByTestId('lifts-by-day')).not.toHaveStyle({ height: 40 });
+  });
 });
 
 describe('TabBar', () => {
@@ -246,6 +288,8 @@ describe('TabBar', () => {
     const onImport = jest.fn();
     const { getByTestId, getByText, getAllByRole } = await render(<TabBar active="me" onTab={onTab} onImport={onImport} />);
     expect(getAllByRole('tab')).toHaveLength(2);
+    expect(getByTestId('tab-me')).toHaveStyle({ minHeight: 56 });
+    expect(getByTestId('tab-me')).not.toHaveStyle({ height: 56 });
     expect(getByTestId('tab-me')).toBeSelected();
     expect(getByTestId('tab-index')).not.toBeSelected();
     expect(getByText('You')).toBeOnTheScreen();

@@ -6,6 +6,7 @@ export const library: Strings<typeof en> = {
   'library.tabs.lifts': "试举",
   'library.tabs.you': "我",
   'library.date.dayMonth': "{month}{day}日",
+  'library.date.dayMonthYear': "{year}年{month}{day}日",
   'library.free.all': { one: "{count} 个免费视频", other: "{count} 个免费视频" },
   'library.free.used': "免费视频已用完",
   'library.free.left': { one: "还剩 {count} 个免费视频", other: "还剩 {count} 个免费视频" },

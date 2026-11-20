@@ -6,6 +6,7 @@ export const library: Strings<typeof en> = {
   'library.tabs.lifts': "リフト",
   'library.tabs.you': "あなた",
   'library.date.dayMonth': "{month}{day}日",
+  'library.date.dayMonthYear': "{year}年{month}{day}日",
   'library.free.all': { one: "無料動画{count}本", other: "無料動画{count}本" },
   'library.free.used': "無料動画を使い切りました",
   'library.free.left': { one: "無料動画 残り{count}本", other: "無料動画 残り{count}本" },

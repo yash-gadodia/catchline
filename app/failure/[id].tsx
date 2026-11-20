@@ -4,6 +4,7 @@ import FailureScreen, { type Share } from '../../src/features/library/FailureScr
 import { FAILURE_COPY, failureMessage, type FailureAction, type FailureReason } from '../../src/features/library/failures';
 import { liftTitle } from '../../src/features/library/derive';
 import { useLift } from '../../src/features/library/repository';
+import { useOnboarding } from '../../src/features/onboarding/store';
 import { removeLift } from '../../src/data/library';
 import { submitDraft } from '../../src/features/capture/submit';
 import { localClipUri } from '../../src/data/localLifts';
@@ -16,9 +17,10 @@ export default function FailureRoute() {
   const { id, reason, native, share: previewShare } = useLocalSearchParams<{ id: string; reason?: string; native?: string; share?: string }>();
   const router = useRouter();
   const lift = useLift(id);
+  const units = useOnboarding((s) => s.units);
   const r = (reason && reason in FAILURE_COPY ? reason : lift?.failure?.reason ?? 'unknown') as FailureReason;
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
-  const header = lift ? liftTitle(lift) : '';
+  const header = lift ? liftTitle(lift, units) : '';
   const stored = lift?.failure?.reason === r ? failureMessage(lift.failure) : undefined;
   const detail = native ?? (stored && stored !== FAILURE_COPY[r].title ? stored : undefined);
   const partial = lift?.analysisId ?? (__DEV__ ? 'snatch-mock' : null);
