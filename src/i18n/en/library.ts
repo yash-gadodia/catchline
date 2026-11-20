@@ -7,6 +7,7 @@ export const library = {
   'library.free.used': 'Free videos used',
   'library.free.left': { one: '{count} free video left', other: '{count} free videos left' },
   'library.detail.processing': "tracking",
+  'library.detail.waiting': "waiting · tracks after the lift in progress",
   'library.detail.uploadStuck': "Upload didn't finish · film or import it again",
   'library.inFlight.title': "Tracking your lift",
   'library.detail.queued': 'Queued · free videos used',

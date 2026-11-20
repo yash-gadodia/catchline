@@ -6,7 +6,7 @@ import PaywallSheet from '../../src/features/paywall/PaywallSheet';
 import { annualSavingFor, makePriceFor } from '../../src/features/paywall/storePrices';
 import { purchasePlan, storePlatform, useFoundingSeats, useVideosLeft } from '../../src/features/paywall/hooks';
 import { FOUNDING_SEATS_TOTAL } from '../../src/features/paywall/entitlements';
-import { submitDraft } from '../../src/features/capture/submit';
+import { trackHeld } from '../../src/features/capture/submit';
 import type { Phase } from '../../src/features/paywall/ui';
 
 // The one paywall. Capture saves the clip first and opens /paywall/cap?clip=<id> when
@@ -24,9 +24,9 @@ export default function PaywallRoute() {
   const savePct = useMemo(() => annualSavingFor(offerings), [offerings]);
   const freeLeft = useVideosLeft();
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
-  // After a purchase or restore: track the clip the lifter already picked, else close.
+  // After a purchase or restore: track the clip saved at the cap (from here or an earlier Not now), else close.
   const done = () => {
-    if (!p.clip || !submitDraft({ replace: true })) back();
+    if (!trackHeld({ replace: true })) back();
   };
 
   useEffect(() => {

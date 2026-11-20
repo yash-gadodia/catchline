@@ -1,4 +1,5 @@
 import { act, fireEvent, render } from '@testing-library/react-native';
+import { AppState } from 'react-native';
 import TabsLayout from '../../../app/(tabs)/_layout';
 import LiftsRoute from '../../../app/(tabs)/index';
 import { useOnboarding } from '../onboarding/store';
@@ -13,8 +14,12 @@ jest.mock('expo-router', () => {
   const Tabs = ({ tabBar }: { tabBar: (p: unknown) => unknown }) =>
     tabBar({ state: { index: 0, routes: [{ name: 'index' }] }, navigation: { navigate: jest.fn() } });
   Tabs.Screen = () => null;
-  return { __esModule: true, useRouter: () => mockNav, Tabs, Redirect: View };
+  // a focused screen: the callback runs as the screen mounts (expo-router runs it on every focus)
+  const { useEffect } = require('react');
+  return { __esModule: true, useRouter: () => mockNav, Tabs, Redirect: View, useFocusEffect: (cb: () => () => void) => useEffect(cb, [cb]) };
 });
+jest.mock('../../data/library', () => ({ ...jest.requireActual('../../data/library'), syncLibrary: jest.fn(async () => undefined) }));
+const mockSync = jest.requireMock('../../data/library').syncLibrary as jest.Mock;
 
 const press = async (el: Parameters<typeof fireEvent.press>[0]) => {
   await act(async () => {
@@ -74,5 +79,26 @@ describe('import-first routing', () => {
   it('has two tabs: Lifts and You', async () => {
     const view = await render(<TabsLayout />);
     expect(view.getAllByRole('tab').map((t) => t.props.testID)).toEqual(['tab-index', 'tab-me']);
+  });
+});
+
+describe('the Lifts tab follows the server (#206)', () => {
+  it('lists again each time the tab is looked at and each time the app comes back to the front', async () => {
+    const listeners: ((s: string) => void)[] = [];
+    const spy = jest.spyOn(AppState, 'addEventListener').mockImplementation((_type, fn) => {
+      listeners.push(fn as (s: string) => void);
+      return { remove: jest.fn() } as unknown as ReturnType<typeof AppState.addEventListener>;
+    });
+    await render(<LiftsRoute />);
+    expect(mockSync).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      listeners.forEach((l) => l('background'));
+    });
+    expect(mockSync).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      listeners.forEach((l) => l('active'));
+    });
+    expect(mockSync).toHaveBeenCalledTimes(2);
+    spy.mockRestore();
   });
 });

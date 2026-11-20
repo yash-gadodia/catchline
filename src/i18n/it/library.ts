@@ -11,6 +11,7 @@ export const library: Strings<typeof en> = {
   'library.free.used': "Video gratuiti esauriti",
   'library.free.left': { one: "{count} video gratuito rimasto", other: "{count} video gratuiti rimasti" },
   'library.detail.processing': "tracciamento",
+  'library.detail.waiting': "in attesa · tracciato dopo il sollevamento in corso",
   'library.detail.uploadStuck': "Caricamento non finito · filmalo o importalo di nuovo",
   'library.inFlight.title': "Traccio la tua alzata",
   'library.detail.queued': "In coda · video gratuiti esauriti",

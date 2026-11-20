@@ -80,8 +80,8 @@ export async function syncKeychainUsage(): Promise<void> {
 export const syncServerUsage = syncKeychainUsage;
 
 // What the capture flow does with the next clip once it is saved.
-export function nextClipGate(now: Date = new Date()): Gate {
-  return gateFor(usePurchases.getState().tier, useUsage.getState().usage, now);
+export function nextClipGate(now: Date = new Date(), ahead = 0): Gate {
+  return gateFor(usePurchases.getState().tier, useUsage.getState().usage, now, ahead);
 }
 
 // Kept for the screens that still call them: there is no trial paywall after a
