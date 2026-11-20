@@ -1,5 +1,6 @@
 import { forgetLiftName, kindIdOf, kindsOf, liftKind, ownKinds, rememberLiftShape, setLiftKind, useLiftNames } from './liftNames';
 import * as compare from '../analysis/compare';
+import { forgetLocalData } from '../you/account';
 
 const lift = {} as compare.TrackedLift;
 
@@ -66,5 +67,13 @@ describe('the kind a lifter picks', () => {
     setLiftKind('a', 'squat');
     forgetLiftName('a');
     expect(useLiftNames.getState().chosen).toEqual({});
+  });
+
+  it('forgets the kinds the lifter typed when the phone is erased, so the next account is not offered them (#243)', () => {
+    setLiftKind('a', 'Zzmarker');
+    setLiftKind('b', 'squat');
+    forgetLocalData();
+    expect(useLiftNames.getState().chosen).toEqual({});
+    expect(ownKinds(useLiftNames.getState().chosen)).toEqual([]);
   });
 });
