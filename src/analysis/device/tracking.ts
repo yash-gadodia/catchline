@@ -29,7 +29,9 @@ export function track(input: DeviceInput, opts: { analysisId?: string; assetPref
   const n = lifter.k.length;
   const world = toWorld(lifter.k, input.cameraPath);
   const sig = signals(world, meta.fps);
-  const hanging = family(sig) === 'hanging';
+  // a plate the lifter confirmed makes it a barbell lift, whatever the body alone suggests: a long overhead hold
+  // can read as hanging from a bar, and then the plate was never followed (#248)
+  const hanging = !opts.plateMark && family(sig) === 'hanging';
   const ctx: Ctx = {
     input,
     movement: hanging ? 'kipping_pull_up' : 'snatch',
