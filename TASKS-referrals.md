@@ -109,6 +109,11 @@ Seen walking a fresh install on the simulator (17-11): picking a video is follow
 - [ ] (Claude, when the Mini is back) Welcome screen: play the owner's Ubud snatch (IMG_1101) as the tracked lift
 - [ ] (Yash) Telegram handle for the emails; check the Gmail profile photo is a clear one (it shows beside the sender name)
 - [ ] (Yash) Reopen Tailscale on the Mini (the remote restart on 20-11 closed it; the container VM was stopped first and needs starting again)
+- [x] 20-11 decisions (owner: "u decide all"): free stays 1 video a week (#236, docs fixed); bot PR #240 merged; sample opens the picker (#237); hip-path headline (#239); live on 4.0.6 (update 01a1f84d)
+- [ ] (Yash) Buy catchlineapp.com (looked unregistered on 20-11; catchline.app and getcatchline.com are taken)
+- [ ] (Yash) Create @catchlineapp on Instagram and TikTok (availability not checked: Instagram needs a login), then tell Claude the handle for the end card, captions and Blotato
+- [ ] (Claude, next store build) Store listing 4.0.7: subtitle "Weightlifting Video Analysis", new keywords, en-US locale, es-MX as a second US keyword set (draft approved 20-11: ~/dev/liftcheck-research/launch/4.0.7-listing-draft.json); also remove the Intercom SDK, consider the Live Activity for the tracking wait
+- [ ] (Claude, ~27-11) Read the 4.0.6 first-launch funnel; then decide on a bigger first free week
 - [ ] (Claude) Re-read the funnel per person on 20-11, once phones have the fix
 - [x] A lift with no path drawn does not use the free video, and the player says so (2731309, live on all three runtimes 17-11)
 - [x] Three quiet reminders (1, 3 and 7 days) for a phone that never tracked a lift; the first lift cancels them (edd611b, live 17-11). Only reaches phones that open the app after the update
