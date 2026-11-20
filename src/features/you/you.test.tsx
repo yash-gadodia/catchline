@@ -304,6 +304,16 @@ describe('exportMyData', () => {
     useLiftDetails.setState({ details: {} });
   });
 
+  // #108: the export carries the unit the You row shows (the onboarding store), not a stale copy
+  it('exports the units the You row shows', async () => {
+    useOnboarding.getState().setUnits('kg');
+    useSettings.setState({ units: 'lb' });
+    const send = jest.fn((_bundle: DataExport) => Promise.resolve());
+    await exportMyData(send);
+    expect(send.mock.calls[0][0].settings.units).toBe('kg');
+    useSettings.setState({ units: 'kg' });
+  });
+
   it('stamps the export time from the repository clock', async () => {
     const repo = createLocalAccountRepository(() => new Date('2026-10-11T10:00:00.000Z'));
     const bundle = await repo.exportAllData(DEFAULT_SETTINGS, []);

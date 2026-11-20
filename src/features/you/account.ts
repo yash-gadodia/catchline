@@ -17,7 +17,7 @@ import { useUsage } from '../paywall/usageStore';
 import { t } from '../../i18n';
 import { usePurchases } from '../purchases/usePurchases';
 import type { CsvLift } from './liftsCsv';
-import type { Settings } from './settings';
+import { useSettings, type Settings } from './settings';
 
 export type Account = {
   name: string;
@@ -181,6 +181,7 @@ export function forgetLocalData(): void {
   useLiftDetails.setState({ details: {} });
   useAccountStore.setState({ account: null });
   useOnboarding.getState().reset();
+  useSettings.getState().reset();
 }
 
 export async function signOutOfAccount(): Promise<void> {

@@ -13,6 +13,7 @@ import { createAccountRepository, useAccountStore } from './account';
 import DeleteAccountSheet from './DeleteAccountSheet';
 import { deleteAllLocalLifts } from '../../data/localLifts';
 import { useLiftOutbox } from '../../data/liftOutbox';
+import { DEFAULT_SETTINGS, settingsOf, useSettings } from './settings';
 
 jest.mock('../../data/localLifts', () => ({ ...jest.requireActual('../../data/localLifts'), deleteAllLocalLifts: jest.fn() }));
 
@@ -79,6 +80,17 @@ describe('DeleteAccountSheet against the backend', () => {
     expect(useLibraryStore.getState().sessions).toEqual([]);
     expect(useLibraryStore.getState().cues).toEqual([]);
     expect(useLibraryStore.getState().freeVideosUsed).toBe(0);
+  });
+
+  // #108: units live in the onboarding store (the You row) and the settings store (the export); both reset
+  it('resets the units and every device setting, so You and the export agree on kg', async () => {
+    useOnboarding.getState().setUnits('lb');
+    useSettings.getState().set('units', 'lb');
+    useSettings.getState().set('autoDelete', '7d');
+    await confirmDelete(jest.fn());
+
+    expect(useOnboarding.getState().units).toBe('kg');
+    expect(settingsOf(useSettings.getState())).toEqual(DEFAULT_SETTINGS);
   });
 
   // #234: the week's free video belongs to the phone, so deleting the account must not hand it back
