@@ -11,6 +11,7 @@ type UsageState = {
   record: (tier: Tier, now: Date) => void;
   adoptWeek: (held: FreeWeek) => void;
   reset: () => void;
+  forgetAccount: () => void;
 };
 
 export const useUsage = create<UsageState>()(
@@ -28,6 +29,8 @@ export const useUsage = create<UsageState>()(
         if (week > usage.week || (week === usage.week && used > usage.thisWeek)) set({ usage: { ...usage, week, thisWeek: used } });
       },
       reset: () => set({ usage: EMPTY_USAGE }),
+      // The week's free videos belong to the phone, not the account: leaving or deleting one keeps them used (#234).
+      forgetAccount: () => set(({ usage }) => ({ usage: { ...EMPTY_USAGE, week: usage.week, thisWeek: usage.thisWeek } })),
     }),
     {
       name: 'catchline-usage',
