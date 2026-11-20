@@ -27,8 +27,8 @@ export function mailFor(d: Due): Mail {
     to: d.email,
     subject: "how was your first lift on Catchline?",
     body: [greeting(d.display_name), "Yash here. I built Catchline.", about,
-      "You've tracked your first lift. I can't see it, the video never leaves your phone, so I have to ask: did the bar path sit on the plate?",
-      "If anything looked off, reply and tell me what you filmed and I'll look into it. If it worked, what would you want next?",
+      "You've tracked your first lift. How did it go?",
+      "Be honest: what worked, what was confusing, what's missing. One line is plenty.",
       REPLY, "Yash"].join("\n\n"),
   };
 }
