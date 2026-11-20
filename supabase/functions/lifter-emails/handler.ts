@@ -12,6 +12,8 @@ export function greeting(name: string | null): string {
 
 const ABOUT = "I lift too (weightlifting and CrossFit, in Singapore) and made it because I was tired of squinting at replays of my own lifts.";
 const REPLY = "This email is automated, but I read every reply and I will answer yours.";
+// The owner's own contact, at his request (20 Nov 2026): faster than email for most lifters in Singapore.
+const REACH = "If a message is easier than email, I'm on WhatsApp at +65 8139 4225 (wa.me/6581394225).";
 
 export function mailFor(d: Due): Mail {
   if (d.kind === "welcome") {
@@ -29,7 +31,7 @@ export function mailFor(d: Due): Mail {
     body: [greeting(d.display_name), "Yash here. I built Catchline.", about,
       "You've tracked your first lift. How did it go?",
       "Be honest: what worked, what was confusing, what's missing. One line is plenty.",
-      REPLY, "Yash"].join("\n\n"),
+      REPLY, REACH, "Yash"].join("\n\n"),
   };
 }
 
