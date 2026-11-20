@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { View } from 'react-native';
 import { Redirect, Tabs, useRouter, type Href } from 'expo-router';
 import { usePipeline } from '../../src/data/pipeline';
+import { usePendingLifts } from '../../src/data/pendingLifts';
 import { syncLibrary } from '../../src/data/library';
 import InFlightBar from '../../src/features/library/InFlightBar';
 import { useHydrated, useOnboarding } from '../../src/features/onboarding/store';
@@ -18,9 +19,11 @@ export default function TabsLayout() {
   // The lift got its id, and later its result: list it both times, so its row replaces the in-flight bar and a
   // lift that finished while the wait was hidden shows up without a relaunch (#101).
   const ended = job?.status === 'done' || job?.status === 'failed';
+  // and a lift that joins or leaves the queue behind it (#252)
+  const pending = usePendingLifts((s) => s.items.length);
   useEffect(() => {
-    if (job?.liftId) syncLibrary().catch(() => undefined);
-  }, [job?.liftId, ended]);
+    if (job?.liftId || pending > 0) syncLibrary().catch(() => undefined);
+  }, [job?.liftId, ended, pending]);
   // Once after an update, What's new opens over the library.
   useEffect(() => {
     if (!hydrated) return;

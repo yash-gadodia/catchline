@@ -8,7 +8,8 @@ import type { PlateMark } from './plateMark';
 import { nextClipGate, syncKeychainUsage } from '../paywall/hooks';
 import { onDeviceAnalysisEnabled } from '../../data/onDeviceAnalysis';
 import { startLift } from '../../data/pipeline';
-import { deviceLiftInFlight } from '../../data/devicePipeline';
+import { deviceLiftInFlight, holdDeviceLift, trackHeldLifts } from '../../data/devicePipeline';
+import { usePendingLifts } from '../../data/pendingLifts';
 
 export type ClipSubmission = {
   uri: string | null;
@@ -70,29 +71,48 @@ export async function submitClip(clip: ClipSubmission, opts: { replace?: boolean
 
 async function submitOnce(clip: ClipSubmission, opts: { replace?: boolean }): Promise<void> {
   const go = opts.replace ? router.replace : router.push;
-  // One lift at a time: one the lifter hid is shown again rather than run alongside, and one they cancelled
-  // finishes its last pass first (both share the phone's models).
-  const busy = deviceLiftInFlight();
-  if (busy && !busy.cancelled) return go({ pathname: '/analysis/processing', params: { live: '1' } });
-  if (busy) await busy.done;
+  // One lift tracks at a time (they share the phone's models): one the lifter cancelled finishes its last pass
+  // first, and a clip tracked while another still is waits behind it (#252).
+  const cancelled = deviceLiftInFlight();
+  if (cancelled?.cancelled) await cancelled.done;
   // The Keychain count first (a reinstall must not hand the free lifts back); the
   // gate itself is local and works offline. The server mirror is read at launch.
   await syncKeychainUsage();
-  const gate = nextClipGate();
+  // a clip saved at the cap goes before this one when the gate lets it (#247), and the lifts already tracking or
+  // waiting spend a free lifter's videos first
+  if (onDeviceAnalysisEnabled()) trackHeldLifts();
+  // the same clip again (a second Track on the same draft) is the lift already on its way, not another one
+  const same = (s: ClipSubmission) => s.uri === clip.uri && s.trim.start === clip.trim.start && s.trim.end === clip.trim.end;
+  if (clip.uri && usePendingLifts.getState().items.some((i) => !i.held && same(i.sub))) return go({ pathname: '/analysis/processing', params: { live: '1' } });
+  const gate = nextClipGate(new Date(), usePendingLifts.getState().items.filter((i) => !i.held).length);
   const params = { clip: `clip-${Date.now()}`, movement: clip.movement };
   if (gate === 'paywall') return go({ pathname: '/paywall', params });
-  if (gate === 'cap') return go({ pathname: '/paywall/cap', params });
+  if (gate === 'cap') {
+    // saved, as the cap sheet says: tracked first after a purchase or when the free video is back
+    if (clip.uri && onDeviceAnalysisEnabled() && !usePendingLifts.getState().items.some((i) => same(i.sub))) holdDeviceLift({ ...clip, uri: clip.uri });
+    return go({ pathname: '/paywall/cap', params });
+  }
   if (!clip.uri && !__DEV__) return go('/capture');
   if (!onDeviceAnalysisEnabled() || !clip.uri) {
     go({ pathname: '/analysis/processing', params: { fixture: 'snatch-mock', count: '1' } });
     return;
   }
+  const busy = deviceLiftInFlight();
   startLift({ ...clip, uri: clip.uri });
+  // it waits for the one tracking: Lifts lists it as waiting, the in-flight bar above it follows the other
+  if (busy) return router.dismissTo('/');
   go({ pathname: '/analysis/processing', params: { live: '1' } });
 }
 
-// After a paywall or trial purchase: send the clip the lifter already picked.
-// Returns false when there is no saved clip (the paywall was opened elsewhere).
+// After a purchase or restore on the paywall: the clip saved at the cap is tracked (it goes first, #247).
+// Returns false when none was saved or the gate still holds it.
+export function trackHeld(opts: { replace?: boolean } = {}): boolean {
+  if (!onDeviceAnalysisEnabled() || !trackHeldLifts()) return false;
+  (opts.replace ? router.replace : router.push)({ pathname: '/analysis/processing', params: { live: '1' } });
+  return true;
+}
+
+// Track on the clip the lifter picked (trim, the plate check, a retry). Returns false when there is none.
 export function submitDraft(opts: { replace?: boolean } = {}): boolean {
   const { draft, lastWeight } = useCapture.getState();
   if (!draft) return false;

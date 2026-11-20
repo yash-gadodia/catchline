@@ -1,6 +1,6 @@
 import { AppState } from 'react-native';
 import { cancelFirstLiftNudges, scheduleFreeVideoBack } from '../features/notifications/nudges';
-import { freeLeft, nextWeekStart } from '../features/paywall/entitlements';
+import { freeLeft, gateFor, nextWeekStart } from '../features/paywall/entitlements';
 import { scheduleFeedbackNotification } from '../features/feedback/ask';
 import { File } from 'expo-file-system';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
@@ -28,6 +28,7 @@ import { syncConsent } from './backend';
 import { keepClip, localClipUri, readLocalAnalysis, saveLocalLift } from './localLifts';
 import { discardPickedCopy } from './clipCache';
 import { usePipeline, type Job } from './pipeline';
+import { usePendingLifts, whenHydrated, type PendingLift } from './pendingLifts';
 import { detectedMade } from '../features/library/madeLog';
 import { rememberLiftShape } from '../features/library/liftNames';
 import { ClipTooLongError, discardPrepared, prepareClip } from './prepare';
@@ -202,17 +203,68 @@ export function syncRecord(a: Analysis, sub: ClipSubmission, analysedAt: Date): 
 // Keychain count and RevenueCat's cached plan), so there is no server round trip:
 // the clip is trimmed and analysed on the phone, kept in Documents, counted, and
 // its slim record queued for sync_lift. Works in airplane mode. Never throws: the
-// outcome lands on the job.
+// outcome lands on the job. The lift is written to disk first (pendingLifts) and
+// tracked when the one before it ends; resolves once this lift has ended.
 export function startDeviceLift(sub: ClipSubmission & { uri: string }): Promise<void> {
   const liftId = randomUUID();
-  const done = runDeviceLift(sub, liftId).finally(() => {
-    if (running?.liftId === liftId) running = null;
-  });
-  running = { liftId, done };
-  return done;
+  usePendingLifts.getState().add({ liftId, sub, at: new Date().toISOString() });
+  const ended = new Promise<void>((resolve) => ends.set(liftId, resolve));
+  pumpDeviceLifts();
+  return ended;
 }
 
-async function runDeviceLift(sub: ClipSubmission & { uri: string }, liftId: string): Promise<void> {
+const ends = new Map<string, () => void>();
+
+// A clip Track was pressed on at the weekly cap: kept on disk, as the cap sheet promises, and tracked before any
+// clip picked after it once the lifter goes Pro or the week's free video is back (#247).
+export function holdDeviceLift(sub: ClipSubmission & { uri: string }): void {
+  usePendingLifts.getState().add({ liftId: randomUUID(), sub, at: new Date().toISOString(), held: true });
+}
+
+// Lets the held lifts the gate now allows through, oldest first, and tracks them. True when one was let through.
+export function trackHeldLifts(now: Date = new Date()): boolean {
+  let released = false;
+  for (const item of usePendingLifts.getState().items) {
+    if (!item.held) continue;
+    const ahead = usePendingLifts.getState().items.filter((i) => !i.held).length;
+    if (gateFor(usePurchases.getState().tier, useUsage.getState().usage, now, ahead) !== 'ok') break;
+    usePendingLifts.getState().update(item.liftId, { held: false });
+    released = true;
+  }
+  pumpDeviceLifts();
+  return released;
+}
+
+// Starts the oldest lift waiting when none is tracking.
+function pumpDeviceLifts(): void {
+  if (running) return;
+  const next = usePendingLifts.getState().items.find((i) => !i.held);
+  if (!next) return;
+  const liftId = next.liftId;
+  const done = runDeviceLift(next).finally(() => {
+    usePendingLifts.getState().remove(liftId);
+    if (running?.liftId === liftId) running = null;
+    if (cancelledRun === liftId) cancelledRun = null;
+    ends.get(liftId)?.();
+    ends.delete(liftId);
+    // the next one a moment later, so the screens see this one end before its job is replaced; a held one goes
+    // now if this lift left the week's free video unused
+    setTimeout(() => trackHeldLifts(), 0);
+  });
+  running = { liftId, done };
+}
+
+// At launch and whenever the app is back in front: a lift still on disk with nothing tracking it is one the app was
+// killed in the middle of (or never got to), and is tracked now. One that is still tracking in this process (the app
+// was only in the background, iOS 26's continued run) is left alone: running is set, and nothing starts twice. A held
+// one goes once the week's free video is back (the count read from disk first, so it is never let through early).
+export async function resumeDeviceLifts(): Promise<void> {
+  await Promise.all([whenHydrated(usePendingLifts), whenHydrated(useUsage)]);
+  trackHeldLifts();
+}
+
+async function runDeviceLift(item: PendingLift): Promise<void> {
+  const { liftId, sub } = item;
   const jobId = `job-${liftId}`;
   // a run only ever writes to its own job, never to one started after it
   const patch = (fields: Partial<Job>) => {
@@ -244,8 +296,10 @@ async function runDeviceLift(sub: ClipSubmission & { uri: string }, liftId: stri
   try {
     void syncConsent().catch(() => undefined);
     rememberClip(liftId, sub.uri, sub.trim.start);
-    const clip = await prepareClip(sub.uri, sub.trim, (p) => patch({ prepared: p }));
+    // a lift the app was killed in the middle of starts again from the copy it had already prepared
+    const clip = item.prepared && new File(item.prepared.uri).exists ? item.prepared : await prepareClip(sub.uri, sub.trim, (p) => patch({ prepared: p }));
     prepared = clip.uri;
+    usePendingLifts.getState().update(liftId, { prepared: { uri: clip.uri, fps: clip.fps } });
     patch({ status: 'analysing', prepared: 1 });
     // the mark was made atS into the trimmed clip: that is this frame of the prepared one
     const marked = sub.plateMark ? { ...sub.plateMark, frame: Math.max(0, Math.round((sub.plateMark.atS ?? 0) * (clip.fps || 30))) } : null;
@@ -254,6 +308,8 @@ async function runDeviceLift(sub: ClipSubmission & { uri: string }, liftId: stri
     const local = saveLocalLift(liftId, analysis, loop.tracePath, loop.stills, loop.body);
     // 4.0: the clip stays on the phone with its lift (the player draws on the real video); deleted with the lift.
     keepClip(liftId, clip.uri);
+    // kept with its lift now: a relaunch from here on must not track (and count) it again
+    usePendingLifts.getState().remove(liftId);
     // the picker's copy of an imported clip is not needed once the lift has its own; a failed lift keeps it for Try again
     if (!local.failure) discardPickedCopy(sub.uri);
     if (!local.failure) rememberLiftShape(liftId, { analysis: local, body: loop.body ?? null });
@@ -294,6 +350,9 @@ export function retrackLift(liftId: string, movement: Movement, plateMark: Plate
   if (!uri || running) return null;
   const done = runRetrack(liftId, uri, movement, plateMark).finally(() => {
     if (running?.liftId === liftId) running = null;
+    if (cancelledRun === liftId) cancelledRun = null;
+    // a lift tracked while this one ran waited for it
+    setTimeout(() => trackHeldLifts(), 0);
   });
   running = { liftId, done };
   return done;

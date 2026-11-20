@@ -6,6 +6,7 @@ import { sweepClipCache } from '../../data/clipCache';
 import type { Body } from '../../analysis/device/tracking';
 import type { Analysis, Phase, RepTracks, TracePoint } from '../../analysis/types';
 import { useLiftOutbox } from '../../data/liftOutbox';
+import { usePendingLifts } from '../../data/pendingLifts';
 import { deleteAccount as deleteRemoteAccount } from '../../lib/api';
 import { signOut as endSession } from '../auth/appleSignIn';
 import { NO_USER, useAuthUser, type AuthUser } from '../auth/authUser';
@@ -228,6 +229,7 @@ export function forgetLocalData(): void {
   deleteAllLocalLifts();
   sweepClipCache({ cameraOriginals: true });
   useLiftOutbox.setState({ items: [] });
+  usePendingLifts.setState({ items: [] });
   useLiftNames.setState({ shapes: {}, chosen: {} });
   useLiftDetails.setState({ details: {} });
   useAccountStore.setState({ account: null });

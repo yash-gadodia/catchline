@@ -18,6 +18,8 @@ export type Lift = {
   // What a tracked lift has to show: the bar's path with the body, or (no plate read, or a hanging movement) the body alone.
   shows?: 'bar' | 'body';
   failure?: Failure;
+  // pressed Track on this phone, waiting for the lift tracking now (#252)
+  waiting?: boolean;
 };
 
 export type Session = {

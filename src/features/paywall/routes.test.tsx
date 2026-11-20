@@ -4,7 +4,9 @@ import { useOnboarding } from '../onboarding/store';
 import { presentCustomerCenter, usePurchases } from '../purchases/usePurchases';
 import { weekKey } from './entitlements';
 import { useUsage } from './usageStore';
-import { startLift } from '../../data/pipeline';
+import { usePipeline } from '../../data/pipeline';
+import { usePendingLifts } from '../../data/pendingLifts';
+import { deviceLiftInFlight } from '../../data/devicePipeline';
 import PaywallRoute from '../../../app/paywall/index';
 import CapRoute from '../../../app/paywall/cap';
 
@@ -17,7 +19,6 @@ jest.mock('expo-router', () => {
 const mockNav = jest.requireMock('expo-router').router as { push: jest.Mock; replace: jest.Mock; back: jest.Mock };
 jest.mock('../../data/backend', () => ({ backendEnabled: () => false }));
 jest.mock('../../data/onDeviceAnalysis', () => ({ onDeviceAnalysisEnabled: () => true }));
-jest.mock('../../data/pipeline', () => ({ startLift: jest.fn() }));
 jest.mock('./seats', () => ({
   ...jest.requireActual('./seats'),
   getFoundingSeats: jest.fn(async () => ({ total: 500, remaining: 137 })),
@@ -43,6 +44,8 @@ beforeEach(() => {
   useOnboarding.setState({ units: 'kg' });
   usePurchases.setState({ tier: 'free', period: null, demo: true, demoOutcome: 'success' });
   useUsage.getState().reset();
+  usePendingLifts.setState({ items: [] });
+  usePipeline.getState().clear();
 });
 
 describe('/paywall/cap: the weekly free videos are used and a clip is saved', () => {
@@ -50,6 +53,8 @@ describe('/paywall/cap: the weekly free videos are used and a clip is saved', ()
     usedUp();
     useCapture.setState({ draft: draft() });
     params.current = { clip: 'clip-1', movement: 'snatch' };
+    // Track at the cap saved the clip (submitClip, #247)
+    usePendingLifts.setState({ items: [{ liftId: 'held-1', at: '2026-11-20T08:00:00.000Z', held: true, sub: { uri: 'file:///clip.mov', movement: 'snatch', loadKg: null, trim: { start: 0, end: 8 }, rep: 'all', source: 'camera', fps: 30, overridden: [] } }] });
   });
 
   it('is the paywall leading with the cap', async () => {
@@ -63,8 +68,8 @@ describe('/paywall/cap: the weekly free videos are used and a clip is saved', ()
     const view = await render(<CapRoute />);
     await press(view.getByText('Not now'));
     expect(mockNav.back).toHaveBeenCalledTimes(1);
-    expect(startLift).not.toHaveBeenCalled();
-    expect(useCapture.getState().draft?.uri).toBe('file:///clip.mov');
+    expect(usePipeline.getState().job).toBeNull();
+    expect(usePendingLifts.getState().items.map((i) => [i.liftId, i.held])).toEqual([['held-1', true]]);
   });
 
   it('buying Pro tracks the saved clip straight away', async () => {
@@ -72,9 +77,12 @@ describe('/paywall/cap: the weekly free videos are used and a clip is saved', ()
     await press(view.getByTestId('continue'));
     expect(usePurchases.getState().tier).toBe('pull');
     await press(view.getByText('Track my video'));
-    await act(async () => {});
-    expect(startLift).toHaveBeenCalledWith(expect.objectContaining({ uri: 'file:///clip.mov', movement: 'snatch' }));
+    expect(usePipeline.getState().job).toMatchObject({ liftId: 'held-1', uri: 'file:///clip.mov' });
     expect(mockNav.replace).toHaveBeenCalledWith({ pathname: '/analysis/processing', params: { live: '1' } });
+    await act(async () => {
+      await deviceLiftInFlight()?.done;
+    });
+    expect(usePendingLifts.getState().items).toEqual([]);
   });
 });
 
@@ -89,7 +97,7 @@ describe('/paywall from the Plan row', () => {
     const view = await render(<PaywallRoute />);
     await press(view.getByTestId('continue'));
     await press(view.getByText('Done'));
-    expect(startLift).not.toHaveBeenCalled();
+    expect(usePipeline.getState().job).toBeNull();
     expect(mockNav.back).toHaveBeenCalledTimes(1);
   });
 
