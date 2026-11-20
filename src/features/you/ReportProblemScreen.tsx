@@ -6,6 +6,7 @@ import TopBar from '../../components/TopBar';
 import { colors, shape, space } from '../../design/tokens';
 import { fontFamily, type } from '../../design/typography';
 import { queueProblemReport, reportDetails } from '../../data/problemReports';
+import { EMAIL_MAX, leaveContactEmail, useContact, validEmail } from '../../data/contact';
 import { t } from '../../i18n';
 import { EVENTS, track } from '../../lib/analytics';
 
@@ -27,10 +28,12 @@ export default function ReportProblemScreen({
   const insets = useSafeAreaInsets();
   const [text, setText] = useState('');
   const [result, setResult] = useState<'sent' | 'queued' | null>(null);
+  const [email, setEmail] = useState(() => useContact.getState().email);
   const details = reportDetails();
   const feedback = context === 'feedback';
   const send = async () => {
     const sent = await queueProblemReport({ body: text, liftId, context, ...(shot ? { shot } : {}) });
+    if (validEmail(email)) void leaveContactEmail(email);
     setResult(sent > 0 ? 'sent' : 'queued');
     if (feedback) track(EVENTS.FEEDBACK_SENT, { chars: text.trim().length });
   };
@@ -76,6 +79,34 @@ export default function ReportProblemScreen({
                 textAlignVertical: 'top',
               }}
             />
+            <View style={{ gap: space.s1 }}>
+              <TextInput
+                value={email}
+                onChangeText={setEmail}
+                maxLength={EMAIL_MAX}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                textContentType="emailAddress"
+                placeholder={t('you.report.email')}
+                placeholderTextColor={colors.text3}
+                accessibilityLabel={t('you.report.email')}
+                testID="report-email"
+                style={{
+                  borderWidth: 1,
+                  borderColor: colors.hairline,
+                  ...shape.control,
+                  padding: space.s3,
+                  color: colors.text,
+                  fontFamily: fontFamily.body,
+                  // design-ok: TextInput, a lineHeight shifts the caret and text on iOS
+                  fontSize: 17,
+                }}
+              />
+              <Text style={{ color: colors.text2, ...type.small }} testID="report-email-note">
+                {t('you.report.emailNote')}
+              </Text>
+            </View>
             <View style={{ gap: space.s1 }}>
               <Text style={{ color: colors.text2, ...type.small }} testID="report-details">
                 {t('you.report.details', { version: details.appVersion, update: details.updateId, device: details.device })}

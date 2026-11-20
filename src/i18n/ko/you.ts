@@ -119,6 +119,8 @@ export const you: Strings<typeof en> = {
   'you.feedback.title': "Catchline, 잘 쓰고 계신가요?",
   'you.feedback.body': "고칠 점이나 부족한 점을 알려 주세요. 모든 메시지를 읽고, 다음에 만들 것을 정합니다.",
   'you.feedback.placeholder': "Catchline이 더 잘해야 할 점은 무엇인가요? 무엇이 부족한가요?",
+  'you.report.email': "답장을 원하시면 이메일 (선택)",
+  'you.report.emailNote': "답장을 보내는 데에만 사용합니다. Catchline을 만든 Yash가 모든 메시지를 읽습니다.",
   'you.report.send': "보내기",
   'you.report.sent': "보냈어요. 감사합니다, 하나도 빠짐없이 읽어요.",
   'you.report.queued': "저장했어요. 다음에 온라인이 되면 전송돼요.",

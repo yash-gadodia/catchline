@@ -142,6 +142,7 @@ export const analysis: Strings<typeof en> = {
   'analysis.reveal.first': "La tua prima traiettoria del bilanciere",
   'analysis.reveal.peak': "velocità massima del bilanciere",
   'analysis.reveal.detail': "Vedi il dettaglio",
+  'analysis.reveal.tell': "Dì a chi l'ha creata com'è andata",
   'analysis.reveal.another': "Analizza un altro sollevamento",
   'analysis.reveal.none.title': "Niente traiettoria in questo video",
   'analysis.reveal.none.why': "Il disco non si vedeva bene in questo video. Tre cose lo risolvono:",

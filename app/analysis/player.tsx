@@ -51,7 +51,7 @@ export default function PlayerRoute() {
   const share = () => router.push({ pathname: '/share', params: { fixture: analysis.id } });
   if (clip) {
     if (!body.ready) return <AnalysisPlaceholder status="loading" onBack={back} />;
-    return <TrackerScreen key={analysis.id} analysis={analysis} clipUri={clip} body={body.body} title={lift ? liftTitle(lift) : ''} onBack={back} onShare={share} reveal={reveal === '1'} firstLift={tracked <= 1} onAnother={() => router.push('/capture/import' as Href)} lastLift={lastLift} onSideBySide={lastLift ? () => router.push({ pathname: '/analysis/compare', params: { a: analysis.id, b: lastLift.id } } as Href) : undefined}
+    return <TrackerScreen key={analysis.id} analysis={analysis} clipUri={clip} body={body.body} title={lift ? liftTitle(lift) : ''} onBack={back} onShare={share} reveal={reveal === '1'} firstLift={tracked <= 1} onAnother={() => router.push(captureHref('/capture/import') as Href)} onTell={() => router.push({ pathname: '/report', params: { context: 'feedback', lift: analysis.id } } as Href)} lastLift={lastLift} onSideBySide={lastLift ? () => router.push({ pathname: '/analysis/compare', params: { a: analysis.id, b: lastLift.id } } as Href) : undefined}
       onAdjustPlate={() => router.push({ pathname: '/analysis/plate', params: { id: analysis.id } } as Href)}
       onDetails={() => router.push({ pathname: '/analysis/details', params: { id: analysis.id } } as Href)}
     />;

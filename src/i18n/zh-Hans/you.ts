@@ -119,6 +119,8 @@ export const you: Strings<typeof en> = {
   'you.feedback.title': "Catchline 用得怎么样？",
   'you.feedback.body': "告诉我们哪里需要改进、还缺什么。每条留言我们都会读，它决定接下来做什么。",
   'you.feedback.placeholder': "Catchline 哪里可以做得更好？还缺什么？",
+  'you.report.email': "如需回复，请留下邮箱（可选）",
+  'you.report.emailNote': "仅用于回复你。Catchline 的开发者 Yash 会阅读每条留言。",
   'you.report.send': "发送",
   'you.report.sent': "已发送。谢谢，每一条我们都会看。",
   'you.report.queued': "已保存。下次联网时发送。",

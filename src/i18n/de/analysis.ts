@@ -144,6 +144,7 @@ export const analysis: Strings<typeof en> = {
   'analysis.reveal.first': "Dein erster Hantelweg",
   'analysis.reveal.peak': "höchste Hantelgeschwindigkeit",
   'analysis.reveal.detail': "Details ansehen",
+  'analysis.reveal.tell': "Sag dem Entwickler, wie es aussah",
   'analysis.reveal.another': "Weiteren Lift tracken",
   'analysis.reveal.none.title': "Kein Hantelweg in diesem Video",
   'analysis.reveal.none.why': "Die Scheibe war in diesem Video nicht klar zu sehen. Drei Dinge helfen:",

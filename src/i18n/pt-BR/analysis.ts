@@ -144,6 +144,7 @@ export const analysis: Strings<typeof en> = {
   'analysis.reveal.first': "Sua primeira trajetória da barra",
   'analysis.reveal.peak': "velocidade máxima da barra",
   'analysis.reveal.detail': "Ver os detalhes",
+  'analysis.reveal.tell': "Conte ao criador como ficou",
   'analysis.reveal.another': "Analisar outro levantamento",
   'analysis.reveal.none.title': "Sem trajetória da barra neste vídeo",
   'analysis.reveal.none.why': "A anilha não estava nítida neste vídeo. Três coisas resolvem:",

@@ -131,6 +131,8 @@ export const you: Strings<typeof en> = {
   'you.feedback.title': "Como está sendo usar o Catchline?",
   'you.feedback.body': "Conte o que precisa de conserto ou o que falta. Lemos cada mensagem, e ela decide o que construímos em seguida.",
   'you.feedback.placeholder': "O que o Catchline deveria fazer melhor? O que falta?",
+  'you.report.email': "Seu e-mail, se quiser uma resposta (opcional)",
+  'you.report.emailNote': "Usado só para responder a você. Yash, que criou o Catchline, lê cada mensagem.",
   'you.report.send': "Enviar",
   // REVIEW
   'you.report.sent': "Enviado. Obrigado, lemos todos.",

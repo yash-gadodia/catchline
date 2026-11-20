@@ -55,6 +55,7 @@ export default function TrackerScreen({
   firstLift = false,
   sample = false,
   onAnother,
+  onTell,
   lastLift,
   onSideBySide,
   onAdjustPlate,
@@ -77,6 +78,7 @@ export default function TrackerScreen({
   firstLift?: boolean;
   sample?: boolean;
   onAnother?: () => void;
+  onTell?: () => void;
   // The lifter's last lift before this one, to lay its bar path on this video.
   lastLift?: LastLift | null;
   // Opens this lift next to the last lift of the same kind (two videos in step).
@@ -147,7 +149,7 @@ export default function TrackerScreen({
   useEffect(() => {
     if (showLook) track(EVENTS.RESULT_VIEWED, { kind: lookKind, first: firstLift });
   }, [showLook]);
-  const lookAction = (action: 'share' | 'detail' | 'another', then?: () => void) => () => {
+  const lookAction = (action: 'share' | 'detail' | 'another' | 'tell', then?: () => void) => () => {
     track(EVENTS.RESULT_ACTION, { action, kind: lookKind });
     if (action === 'detail') setLook(false);
     then?.();
@@ -428,6 +430,7 @@ export default function TrackerScreen({
           onShare={onShare ? lookAction('share', onShare) : undefined}
           onDetail={lookAction('detail')}
           onAnother={onAnother ? lookAction('another', onAnother) : undefined}
+          onTell={onTell ? lookAction('tell', onTell) : undefined}
         />
       ) : (
       <>

@@ -19,6 +19,7 @@ export default function FirstLook({
   onShare,
   onDetail,
   onAnother,
+  onTell,
 }: {
   kind: FirstLookKind;
   // the lifter's first lift: said once
@@ -31,6 +32,8 @@ export default function FirstLook({
   onShare?: () => void;
   onDetail: () => void;
   onAnother?: () => void;
+  // the feedback form, where the lifter can also leave an email for a reply
+  onTell?: () => void;
 }) {
   const number =
     peak === null ? null : (
@@ -86,6 +89,11 @@ export default function FirstLook({
         {(kind === 'path' || kind === 'trail') && onAnother ? (
           <Btn kind="text" onPress={onAnother} testID="first-look-another">
             {t('analysis.reveal.another')}
+          </Btn>
+        ) : null}
+        {first && kind !== 'sample' && onTell ? (
+          <Btn kind="text" onPress={onTell} testID="first-look-tell">
+            {t('analysis.reveal.tell')}
           </Btn>
         ) : null}
       </View>

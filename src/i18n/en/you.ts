@@ -115,6 +115,8 @@ export const you = {
   'you.feedback.title': "How is Catchline working for you?",
   'you.feedback.body': "Tell us what to fix or what is missing. Every message is read, and it decides what gets built next.",
   'you.feedback.placeholder': "What should Catchline do better? What is missing?",
+  'you.report.email': "Your email, if you'd like a reply (optional)",
+  'you.report.emailNote': "Only used to reply to you. Yash, who built Catchline, reads every message.",
   'you.report.send': "Send",
   'you.report.sent': "Sent. Thank you, we read every one.",
   'you.report.queued': "Saved. It sends the next time you are online.",

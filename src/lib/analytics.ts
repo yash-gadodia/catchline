@@ -52,6 +52,8 @@ export const EVENTS = {
   FEEDBACK_ASK_LATER: 'feedback_ask_later',
   FEEDBACK_NOTIFICATION_OPENED: 'feedback_notification_opened',
   FEEDBACK_SENT: 'feedback_sent',
+  // a lifter left an email so the owner can reply (never the address itself)
+  CONTACT_EMAIL_LEFT: 'contact_email_left',
   // a queued report that did not reach the server: which step, and the error's code and message
   REPORT_SEND_FAILED: 'report_send_failed',
   // the kind of lift: the lifter's pick on a lift, and the Lifts list switched between days and kinds

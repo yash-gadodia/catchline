@@ -144,6 +144,7 @@ export const analysis: Strings<typeof en> = {
   'analysis.reveal.first': "Ta première trajectoire de barre",
   'analysis.reveal.peak': "vitesse max de la barre",
   'analysis.reveal.detail': "Voir le détail",
+  'analysis.reveal.tell': "Dis au créateur ce que ça a donné",
   'analysis.reveal.another': "Analyser un autre mouvement",
   'analysis.reveal.none.title': "Pas de trajectoire de barre sur celle-ci",
   'analysis.reveal.none.why': "Le disque n'était pas net sur cette vidéo. Trois choses règlent ça :",

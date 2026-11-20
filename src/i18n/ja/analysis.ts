@@ -142,6 +142,7 @@ export const analysis: Strings<typeof en> = {
   'analysis.reveal.first': "はじめてのバーの軌道",
   'analysis.reveal.peak': "バーの最高速度",
   'analysis.reveal.detail': "詳細を見る",
+  'analysis.reveal.tell': "作者に感想を伝える",
   'analysis.reveal.another': "別のリフトを解析",
   'analysis.reveal.none.title': "この動画ではバーの軌道を描けませんでした",
   'analysis.reveal.none.why': "この動画ではプレートがはっきり映っていませんでした。次の3つで改善します。",

@@ -22,6 +22,7 @@ import { moveServerAnalysesToDevice } from '../src/data/migrateToDevice';
 import { syncServerUsage } from '../src/features/paywall/hooks';
 import { flushLiftOutbox } from '../src/data/liftOutbox';
 import { flushProblemReports } from '../src/data/problemReports';
+import { flushContactEmail } from '../src/data/contact';
 import { installForegroundHandler, liftIdFromResponse, registerPushToken, routeForLift } from '../src/features/notifications';
 import { init as initAnalytics, identify, reset, track, EVENTS } from '../src/lib/analytics';
 import { startAuthUserSync } from '../src/features/auth/authUser';
@@ -95,6 +96,7 @@ export default function RootLayout() {
     }
     const stopAuthUserSync = startAuthUserSync();
     void flushProblemReports();
+    void flushContactEmail();
     syncLibrary()
       .catch(() => undefined)
       .then(() => syncServerUsage())
