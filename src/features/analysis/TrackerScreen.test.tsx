@@ -168,6 +168,27 @@ describe('TrackerScreen bar speed', () => {
     expect(getByTestId('tracker-speed')).toHaveTextContent('1.08 m/s · peak 1.08');
   });
 
+  // #253: the pull peaks at 2.0 m/s, the bar is held overhead, dropped (2.0 m/s down) and bounces off the floor at
+  // 2.2 m/s before the lift window ends. Each entry is the bar's speed over one frame step at 60 fps.
+  const steps = [
+    ...new Array<number>(20).fill(0),
+    ...Array.from({ length: 40 }, (_, i) => 2.0 * (1 - Math.abs(i - 19.5) / 20.5)),
+    ...new Array<number>(20).fill(0),
+    ...new Array<number>(30).fill(-2.0),
+    ...new Array<number>(12).fill(2.2),
+    ...new Array<number>(18).fill(0),
+  ];
+  const droppedPath = steps.reduce((path, v, i) => [...path, { frame: 91 + i, x: 0.5, y: path[i].y - v / 4.5 / 60, src: 'plate' as const, r: 0.05 }], [{ frame: 90, x: 0.5, y: 0.8, src: 'plate' as const, r: 0.05 }]);
+  const dropped: Analysis = { ...marked, reps: [{ ...marked.reps[0], path: droppedPath }] };
+
+  it('peaks on the pull, not the dropped bar bouncing, on the card and the readout alike (#253)', async () => {
+    const { getByTestId } = await show(dropped, body, { reveal: true, reduceMotion: true, onShare: () => {} });
+    expect(getByTestId('first-look-peak')).toHaveTextContent('1.80 m/s');
+    await press(getByTestId('first-look-detail'));
+    await at(206);
+    expect(getByTestId('tracker-speed')).toHaveTextContent('2.20 m/s · peak 1.80');
+  });
+
   it('charts the speed under the controls, with the rep in numbers', async () => {
     const { getByTestId } = await show(measured);
     await at(120);
