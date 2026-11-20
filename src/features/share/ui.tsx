@@ -48,12 +48,13 @@ export function Chip({
   );
 }
 
-export function Toggle({ value, onChange, testID }: { value: boolean; onChange: (v: boolean) => void; testID?: string }) {
+export function Toggle({ value, onChange, testID, accessibilityLabel }: { value: boolean; onChange: (v: boolean) => void; testID?: string; accessibilityLabel?: string }) {
   return (
     <Switch
       value={value}
       onValueChange={onChange}
       testID={testID}
+      accessibilityLabel={accessibilityLabel}
       trackColor={{ false: colors.surface2, true: colors.text }}
       thumbColor={value ? colors.bg : colors.text3}
       ios_backgroundColor={colors.surface2}

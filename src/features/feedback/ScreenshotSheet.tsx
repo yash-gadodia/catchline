@@ -54,6 +54,7 @@ export default function ScreenshotSheet() {
               if (!v) dismiss();
             }}
             testID="screenshot-toggle"
+            accessibilityLabel={t('you.shot.toggle')}
           />
         </View>
       </Sheet>
