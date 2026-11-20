@@ -75,6 +75,41 @@ describe('the library in airplane mode (3.1)', () => {
     expect(useLiftOutbox.getState().items).toEqual([]);
   });
 
+  it('drops a synced lift the server no longer lists (deleted on another phone): it does not come back from the outbox (#206)', async () => {
+    useLiftOutbox.setState({ items: [{ id: 'l1', lift: LIFT, synced: true }, { id: 'l2', lift: { ...LIFT, analysedAt: '2026-10-20T09:10:00.000Z' } }] });
+    local.listLocalAnalyses.mockResolvedValue([
+      { liftId: 'l1', analysis: { ...snatchMock, id: 'l1' } },
+      { liftId: 'l2', analysis: { ...snatchMock, id: 'l2' } },
+    ]);
+    api.ensureSession.mockResolvedValue('u1');
+    api.listLifts.mockResolvedValue([]);
+    await syncLibrary(new Date('2026-10-20T10:00:00Z'));
+    // l2 was never synced: it is this phone's and waits to go up
+    expect(useLibraryStore.getState().lifts.map((l) => l.id)).toEqual(['l2']);
+    expect(useLiftOutbox.getState().items.map((i) => i.id)).toEqual(['l2']);
+    await syncLibrary(new Date('2026-10-20T10:00:00Z'));
+    expect(useLibraryStore.getState().lifts.map((l) => l.id)).toEqual(['l2']);
+  });
+
+  it('keeps a synced lift older than a full page of server lifts: the server just did not list that far back', async () => {
+    useLiftOutbox.setState({ items: [{ id: 'l1', lift: { ...LIFT, analysedAt: '2026-01-01T09:00:00.000Z' }, synced: true }] });
+    api.ensureSession.mockResolvedValue('u1');
+    const page = Array.from({ length: 50 }, (_, i) => ({ id: `s${i}`, user_id: 'u1', movement: 'snatch', load_kg: 70, status: 'done', error: null, created_at: `2026-10-${String(i % 28 + 1).padStart(2, '0')}T09:00:00Z` }));
+    api.listLifts.mockResolvedValue(page);
+    await syncLibrary(new Date('2026-10-30T10:00:00Z'));
+    expect(useLiftOutbox.getState().items.map((i) => i.id)).toEqual(['l1']);
+    expect(useLibraryStore.getState().lifts.map((l) => l.id)).toContain('l1');
+  });
+
+  it('keeps every lift when the server could not be asked (offline)', async () => {
+    useLiftOutbox.setState({ items: [{ id: 'l1', lift: LIFT, synced: true }] });
+    api.ensureSession.mockResolvedValue('u1');
+    api.listLifts.mockRejectedValue(new Error('Network request failed'));
+    await syncLibrary(new Date('2026-10-20T10:00:00Z'));
+    expect(useLibraryStore.getState().lifts.map((l) => l.id)).toEqual(['l1']);
+    expect(useLiftOutbox.getState().items).toHaveLength(1);
+  });
+
   it('lists a lift waiting behind the one tracking as waiting, and not the one tracking (the in-flight bar has it) (#252)', async () => {
     api.ensureSession.mockRejectedValue(new Error('Network request failed'));
     usePipeline.getState().start({ ...JOB, liftId: 'a' });

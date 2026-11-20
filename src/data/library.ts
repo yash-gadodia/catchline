@@ -113,23 +113,37 @@ export function pendingLift(item: PendingLift): Lift {
   return item.held ? { ...base, status: 'queued' } : { ...base, status: 'processing', waiting: true };
 }
 
+const LIFTS_PAGE = 50;
+
+// A lift the server took (synced) and no longer lists was deleted there, on another phone (#206): its outbox record
+// goes, so the row does not come back from it. Past a full page the server lists only the newest, so an older
+// record is left alone.
+function forgetDeletedOnServer(serverLifts: LiftRow[], onServer: Set<string>): void {
+  const oldest = serverLifts.length >= LIFTS_PAGE ? serverLifts[serverLifts.length - 1].created_at : null;
+  const outbox = useLiftOutbox.getState();
+  for (const i of outbox.items) {
+    if (i.synced && !onServer.has(i.id) && (oldest === null || Date.parse(i.lift.analysedAt) >= Date.parse(oldest))) outbox.forget(i.id);
+  }
+}
+
 // Offline first: the lifts are the analyses in Documents plus the rows the server
 // knows (lifts made on another phone). Offline, only this phone's lifts are listed.
 export async function syncLibrary(now: Date = new Date()): Promise<void> {
   const analyses = await listLocalAnalyses();
   const byLift = new Map(analyses.map((r) => [r.liftId, r.analysis]));
   for (const r of analyses) putLiveAnalysis(r.analysis);
-  let serverLifts: LiftRow[] = [];
+  let serverLifts: LiftRow[] | null = null;
   try {
     await ensureSession();
     await flushLiftOutbox();
-    serverLifts = await listLifts();
+    serverLifts = await listLifts({ limit: LIFTS_PAGE });
   } catch {
     // offline: this phone's lifts only
   }
-  const onServer = new Set(serverLifts.map((l) => l.id));
+  const onServer = new Set((serverLifts ?? []).map((l) => l.id));
+  if (serverLifts) forgetDeletedOnServer(serverLifts, onServer);
   const pending = useLiftOutbox.getState().items.filter((i) => !onServer.has(i.id) && byLift.has(i.id)).map(localRow);
-  const lifts = [...pending, ...serverLifts].sort((a, b) => b.created_at.localeCompare(a.created_at));
+  const lifts = [...pending, ...(serverLifts ?? [])].sort((a, b) => b.created_at.localeCompare(a.created_at));
   // the lifts on their way, newest first; the one tracking has the in-flight bar instead of a row
   const tracking = usePipeline.getState().job?.liftId;
   const onTheirWay = usePendingLifts.getState().items.filter((i) => i.liftId !== tracking).reverse().map(pendingLift);

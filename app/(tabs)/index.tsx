@@ -1,5 +1,6 @@
-import { Alert } from 'react-native';
-import { useRouter, type Href } from 'expo-router';
+import { useCallback } from 'react';
+import { Alert, AppState } from 'react-native';
+import { useFocusEffect, useRouter, type Href } from 'expo-router';
 import { removeLift, syncLibrary } from '../../src/data/library';
 import { t } from '../../src/i18n';
 import { liftLink } from '../../src/features/library/derive';
@@ -8,6 +9,16 @@ import { captureHref } from '../../src/features/paywall/hooks';
 
 export default function LiftsRoute() {
   const router = useRouter();
+  // The list follows the server whenever the lifter looks at it: a lift deleted on another phone leaves it (#206).
+  useFocusEffect(
+    useCallback(() => {
+      syncLibrary().catch(() => undefined);
+      const sub = AppState.addEventListener('change', (s) => {
+        if (s === 'active') syncLibrary().catch(() => undefined);
+      });
+      return () => sub.remove();
+    }, [])
+  );
   const unlock = () => router.push('/paywall' as Href);
   return (
     <LiftsScreen
