@@ -162,6 +162,8 @@ export const analysis: Strings<typeof en> = {
   'analysis.reveal.sample.title': "这是一段示例举重",
   'analysis.reveal.sample.body': "用你自己的视频也一样：杠铃轨迹、身体线条和杠铃速度，都在你的手机上绘制。",
   'analysis.reveal.sample.own': "现在试试你自己的",
+  'analysis.reveal.kind.ask': "这是什么动作？",
+  'analysis.reveal.kind.more': "更多",
   'analysis.processing.step.clip': "视频已就绪",
   'analysis.processing.step.body': "正在每一帧中识别你的身体",
   'analysis.processing.step.bar': "正在跟踪杠铃",

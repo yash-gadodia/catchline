@@ -164,6 +164,8 @@ export const analysis: Strings<typeof en> = {
   'analysis.reveal.sample.title': "Este es un levantamiento de ejemplo",
   'analysis.reveal.sample.body': "Con tu propio vídeo obtienes lo mismo: la trayectoria de la barra, las líneas del cuerpo y la velocidad de la barra, dibujadas en tu teléfono.",
   'analysis.reveal.sample.own': "Ahora prueba con el tuyo",
+  'analysis.reveal.kind.ask': "¿Qué levantamiento era?",
+  'analysis.reveal.kind.more': "Más",
   'analysis.processing.step.clip': "Vídeo listo",
   'analysis.processing.step.body': "Buscando tu cuerpo en cada fotograma",
   'analysis.processing.step.bar': "Siguiendo la barra",

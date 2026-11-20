@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { demoClip } from '../../src/features/capture/demo';
 import { useCapture, useCaptureHydrated } from '../../src/features/capture/store';
 import { submitDraft } from '../../src/features/capture/submit';
+import { discardPickedCopy } from '../../src/data/clipCache';
 import TrimScreen from '../../src/features/capture/TrimScreen';
 import { findPlateSupported } from '../../src/features/capture/plateFind';
 import { useNoSwipeBack } from '../../src/lib/useNoSwipeBack';
@@ -30,7 +31,11 @@ export default function TrimRoute() {
       units={units}
       weight={lastWeight}
       onWeight={setLastWeight}
-      onCancel={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+      onCancel={() => {
+        discardPickedCopy(draft.uri);
+        if (router.canGoBack()) router.back();
+        else router.replace('/');
+      }}
       onTrack={(trim) => {
         updateDraft({ trim, plateMark: null });
         // 4.0.3 on: the plate is found on the first frame and checked before tracking. An older binary cannot look at

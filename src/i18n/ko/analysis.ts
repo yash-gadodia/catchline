@@ -162,6 +162,8 @@ export const analysis: Strings<typeof en> = {
   'analysis.reveal.sample.title': "샘플 리프팅입니다",
   'analysis.reveal.sample.body': "내 영상에서도 똑같이 바벨 궤적, 몸 라인, 바벨 속도가 휴대폰 안에서 그려집니다.",
   'analysis.reveal.sample.own': "이제 내 리프팅으로 해 보기",
+  'analysis.reveal.kind.ask': "어떤 종목이었나요?",
+  'analysis.reveal.kind.more': "더 보기",
   'analysis.processing.step.clip': "영상 준비 완료",
   'analysis.processing.step.body': "모든 프레임에서 몸을 찾는 중",
   'analysis.processing.step.bar': "바벨을 따라가는 중",

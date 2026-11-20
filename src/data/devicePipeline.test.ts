@@ -49,6 +49,7 @@ jest.mock('../analysis/device/analyseTrace', () => {
   });
   return { ...mocks, trackTrace };
 });
+jest.mock('./clipCache', () => ({ discardPickedCopy: jest.fn() }));
 jest.mock('expo-crypto', () => ({ randomUUID: () => 'lift-1' }));
 jest.mock('./liftOutbox', () => ({ queueLiftSync: jest.fn(async () => 1) }));
 jest.mock('./freeLifts', () => ({ writeFreeUsed: jest.fn(async () => undefined), writeFreeWeek: jest.fn(async () => undefined) }));
@@ -64,6 +65,7 @@ import { ClipTooLongError, prepareClip } from './prepare';
 import { keepClip, saveLocalLift } from './localLifts';
 import { discardPrepared } from './prepare';
 import { track } from '../lib/analytics';
+import { discardPickedCopy } from './clipCache';
 
 const native = PoseCoreML as NonNullable<typeof PoseCoreML>;
 const mockAnalyse = native.analyseOnDevice as jest.Mock;
@@ -143,6 +145,13 @@ describe('startDeviceLift, the happy path', () => {
     // the week's one free video is now used: the Monday reminder is set
     expect(track).toHaveBeenCalledWith('free_back_scheduled', {});
     expect(track).toHaveBeenCalledTimes(4);
+  });
+
+  // #111: the lift keeps its own clip.mp4, so the photo picker's copy of the picked video goes
+  it('deletes the photo picker copy of an imported clip once its lift is saved', async () => {
+    await startDeviceLift({ ...SUB, source: 'library', uri: 'file:///cache/ImagePicker/A1.mov' });
+    expect(discardPickedCopy).toHaveBeenCalledWith('file:///cache/ImagePicker/A1.mov');
+    expect((keepClip as jest.Mock).mock.invocationCallOrder[0]).toBeLessThan((discardPickedCopy as jest.Mock).mock.invocationCallOrder[0]);
   });
 
   it('says the plate was marked when the clip came with a mark', async () => {
@@ -350,6 +359,8 @@ describe('startDeviceLift when the analysis fails', () => {
     // the trimmed clip is kept for "Send this clip so we can fix it", not discarded
     expect(keepClip).toHaveBeenCalledWith('lift-1', 'file:///clip.mov.mp4');
     expect(discardPrepared).not.toHaveBeenCalled();
+    // a failed lift is tracked again from the same pick (Try again), so the picker copy stays
+    expect(discardPickedCopy).not.toHaveBeenCalled();
   });
 
   it('sends a native read error to the could-not-read screen, counting and syncing nothing', async () => {

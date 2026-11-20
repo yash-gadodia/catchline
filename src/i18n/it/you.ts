@@ -95,7 +95,7 @@ export const you: Strings<typeof en> = {
   'you.stored.positions.body': "Posizioni del corpo e traiettoria del bilanciere come numeri, non video, conservati così il tuo storico migliora quando migliora l'analisi. Nessun punto del volto; i punti della testa vengono scartati prima del salvataggio. Eliminati con il tuo account.",
   'you.stored.originals.onDevice': "Sul tuo telefono. Analizzati sul tuo iPhone, mai caricati.",
   'you.stored.positions.onDevice': "Posizioni del corpo e traiettoria del bilanciere come numeri, non video, conservati sul tuo telefono (e nel tuo backup iCloud) così il tuo storico migliora quando migliora l'analisi. Mai sui nostri server.",
-  'you.stored.frames.onDevice': "Cinque fermi immagine per alzata per lo strobo e il ritaglio di prova, solo sul tuo telefono.",
+  'you.stored.frames.onDevice': "Due fermi immagine per video, la partenza e il punto più alto, solo sul tuo telefono.",
   'you.stored.frames.title': "Fotogrammi chiave",
   'you.stored.frames.body': "Cinque fermi immagine per alzata per lo strobo e il ritaglio di prova.",
   'you.stored.cues.title': "Consigli e se hanno funzionato",

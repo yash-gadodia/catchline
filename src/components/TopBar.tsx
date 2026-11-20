@@ -4,6 +4,8 @@ import { colors, space } from '../design/tokens';
 import { fontFamily } from '../design/typography';
 import { t } from '../i18n';
 
+export const TOP_BAR_H = 56;
+
 export default function TopBar({
   back = t('library.tabs.lifts'),
   onBack,
@@ -22,7 +24,7 @@ export default function TopBar({
   return (
     <View
       style={{
-        height: 56,
+        height: TOP_BAR_H,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',

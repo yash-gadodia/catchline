@@ -28,6 +28,7 @@ beforeEach(() => {
   loadLibrary('seeded');
   require('./liftDetails').useLiftDetails.setState({ details: {} });
   require('./liftNames').useLiftNames.setState({ shapes: {} });
+  require('./liftNames').useLiftsView.setState({ by: 'day' });
   require('../paywall/usageStore').useUsage.setState({ usage: { lifetime: 0, month: '', thisMonth: 0 } });
 });
 
@@ -79,6 +80,23 @@ describe('LiftsScreen', () => {
     expect(getAllByTestId(/^lift-title-/).map((n) => n.props.testID)).toEqual(['lift-title-l1', 'lift-title-l2']);
     await press(getByTestId('kind-all'));
     expect(getAllByTestId(/^lift-title-/)).toHaveLength(4);
+  });
+
+  it('says how to sort the lifts in Not sorted yet, and only there', async () => {
+    const { useLiftNames, useLiftsView } = require('./liftNames');
+    useLiftNames.setState({ shapes: { 'a-1': 'floor-overhead' } });
+    useLiftsView.setState({ by: 'kind' });
+    useLibraryStore.getState().load({
+      ...emptyLibrary(),
+      lifts: [
+        { id: 'l1', movement: 'snatch', date: '2026-03-11', status: 'done', analysisId: 'a-1' },
+        { id: 'l2', movement: 'snatch', date: '2026-03-10', status: 'done', analysisId: 'a-2' },
+      ],
+    });
+    const { getByTestId, getAllByTestId } = await render(<LiftsScreen nav={liftsNav()} />);
+    expect(getAllByTestId(/^kind-group-/).map((n) => n.props.testID)).toEqual(['kind-group-Snatch', 'kind-group-none']);
+    expect(getAllByTestId(/^kind-sort-hint/)).toHaveLength(1);
+    expect(within(getByTestId('kind-group-none')).getByTestId('kind-sort-hint')).toHaveTextContent('Tap ··· on a lift to pick what it was.');
   });
 
   it("titles a lift by the lifter's own name, with its tags and the first line of its note", async () => {

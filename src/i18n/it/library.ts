@@ -32,6 +32,7 @@ export const library: Strings<typeof en> = {
   'library.lifts.byDate': "Per data",
   'library.lifts.byKind': "Per alzata",
   'library.lifts.noKind': "Non ancora ordinate",
+  'library.lifts.noKindHint': "Tocca ··· su un'alzata per scegliere quale era.",
   'library.detail.barAndBody': "Traiettoria e corpo",
   'library.detail.bodyOnly': "Solo corpo",
   'library.lifts.emptyTitle': "Aggiungi la tua prima alzata.",

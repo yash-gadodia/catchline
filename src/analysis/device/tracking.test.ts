@@ -3,6 +3,7 @@ import { Pt } from './num';
 import { DeviceInput } from './source';
 import { MIN_TRIM_S } from '../../features/capture/trim';
 import { BODY_JOINTS, track } from './tracking';
+import * as movement from './movement';
 
 // A side-on lifter standing still at 30 fps (inference px, 1280 x 720) whose hands go from the hips to overhead and
 // back over three seconds: no movement to pick, not a snatch, clean or jerk.
@@ -185,5 +186,17 @@ describe('track (4.0: tracking only)', () => {
     const { analysis, body } = track(clip(90, false));
     expect((analysis as { failure: { code: string } }).failure.code).toBe('no_person');
     expect(body).toBeNull();
+  });
+});
+
+describe('a plate the lifter confirmed (#248)', () => {
+  it('keeps it a barbell lift even when the body alone reads as hanging from a bar', () => {
+    const fam = jest.spyOn(movement, 'family').mockReturnValue('hanging');
+    try {
+      expect(track(clip()).analysis.traceKind).toBe('hip');
+      expect(track(clip(), { plateMark: { frame: 0, x: 0.5, y: 0.8, r: 0.1 } }).analysis.traceKind).toBe('bar');
+    } finally {
+      fam.mockRestore();
+    }
   });
 });

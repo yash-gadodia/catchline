@@ -10,7 +10,7 @@ import { seconds } from '../../analysis/format';
 import { toScreen, type Fit } from '../../analysis/geometry';
 import Btn from '../../components/Btn';
 import Readout from '../../components/Readout';
-import TopBar from '../../components/TopBar';
+import TopBar, { TOP_BAR_H } from '../../components/TopBar';
 import { impact } from '../../lib/haptics';
 import { colors, control, shade, shape, space, stroke } from '../../design/tokens';
 import { type } from '../../design/typography';
@@ -25,7 +25,7 @@ import SpeedChart, { SPEED_CHART_MIN_H } from './SpeedChart';
 import type { FrameWindow } from './chart';
 import { Freehand, Grid, PlumbLine } from './ReferenceTools';
 import type { LastLift } from './useLastLift';
-import { ANGLE_MAX_OFF_SIDE_DEG, drawnSide, frameAt, jointAngles, joints, liftRange, repAt, repStarts, spread, startLineX, timeOf } from './tracker';
+import { ANGLE_MAX_OFF_SIDE_DEG, cardVideoHeight, drawnSide, frameAt, jointAngles, joints, liftRange, repAt, repStarts, spread, startLineX, timeOf } from './tracker';
 import { dragged, NO_ZOOM, pinched, type PictureZoom } from './videoZoom';
 import { t } from '../../i18n';
 import { usePurchases } from '../purchases/usePurchases';
@@ -111,9 +111,10 @@ export default function TrackerScreen({
   // a lift with bar speed gives the picture a little less height, for the speed chart under the controls; the lifter
   // drags the divider between them to give either one more
   const [videoH, setVideoH] = useState<number | null>(null);
-  // while the result card is up the video gives it room: every button of the card is on screen
+  // while the result card is up the video gives it room: every button of the card is on screen, on a small phone too
   const cardUp = !!reveal && revealing === 'done' && look;
-  const maxH = cardUp ? Math.round(height * 0.42) : (videoH ?? Math.round(height * (barSpeedOf ? 0.5 : 0.6)));
+  const [cardNeed, setCardNeed] = useState(0);
+  const maxH = cardUp ? cardVideoHeight(height, insets.top + TOP_BAR_H + SCRUB_H, cardNeed) : (videoH ?? Math.round(height * (barSpeedOf ? 0.5 : 0.6)));
   const boxW = Math.min(width, Math.round((maxH * src.width) / src.height));
   const box = { width: boxW, height: Math.round((boxW * src.height) / src.width) };
   const fit: Fit = { x: 0, y: 0, width: box.width, height: box.height };
@@ -432,6 +433,9 @@ export default function TrackerScreen({
           onDetail={lookAction('detail')}
           onAnother={onAnother ? lookAction('another', onAnother) : undefined}
           onTell={onTell ? lookAction('tell', onTell) : undefined}
+          liftId={sample ? undefined : analysis.id}
+          onMoreKinds={onDetails}
+          onNeed={setCardNeed}
         />
       ) : (
       <>
