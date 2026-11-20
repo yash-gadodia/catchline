@@ -28,6 +28,7 @@ export const library = {
   'library.lifts.byDate': "By date",
   'library.lifts.byKind': "By lift",
   'library.lifts.noKind': "Not sorted yet",
+  'library.lifts.noKindHint': "Tap ··· on a lift to pick what it was.",
   'library.detail.barAndBody': "Bar path and body",
   'library.detail.bodyOnly': "Body only",
   'library.lifts.emptyTitle': 'Add your first lift.',

@@ -31,6 +31,7 @@ export const library: Strings<typeof en> = {
   'library.lifts.byDate': "Nach Datum",
   'library.lifts.byKind': "Nach Übung",
   'library.lifts.noKind': "Noch nicht sortiert",
+  'library.lifts.noKindHint': "Tippe bei einem Lift auf ···, um die Übung zu wählen.",
   'library.detail.barAndBody': "Hantelweg und Körper",
   'library.detail.bodyOnly': "Nur Körper",
   // REVIEW: machine-drafted, needs a native speaker before release.
