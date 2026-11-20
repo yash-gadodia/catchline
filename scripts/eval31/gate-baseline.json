@@ -1,8 +1,8 @@
 {
- "commit": "24fa565b9f18758649b0fb6aa77bd7ad8dc106cc",
+ "commit": "138690d13e9eb0dc289b05cd113f650530c18531",
  "mode": "full",
  "source": "prepared",
- "at": "2026-11-12T08:53:34.020Z",
+ "at": "2026-11-20T04:55:18.870Z",
  "clips": {
   "IMG_0591": {
    "tracked": true,
@@ -19,9 +19,9 @@
    "labelled": 11,
    "onLabels": 73,
    "size": "608x1080",
-   "prepS": 3.9,
-   "poseS": 35.9,
-   "allS": 57.4
+   "prepS": 3.8,
+   "poseS": 35.6,
+   "allS": 56.9
   },
   "IMG_0596": {
    "tracked": true,
@@ -39,8 +39,8 @@
    "onLabels": 79,
    "size": "608x1080",
    "prepS": 1.6,
-   "poseS": 14.1,
-   "allS": 22.6
+   "poseS": 14.6,
+   "allS": 23
   },
   "IMG_0830": {
    "tracked": true,
@@ -60,9 +60,9 @@
    "labelled": 8,
    "onLabels": 100,
    "size": "608x1080",
-   "prepS": 1.2,
-   "poseS": 8.5,
-   "allS": 14.6
+   "prepS": 1.1,
+   "poseS": 8.4,
+   "allS": 14
   },
   "IMG_0975": {
    "tracked": true,
@@ -82,9 +82,9 @@
    "labelled": 13,
    "onLabels": 92,
    "size": "608x1080",
-   "prepS": 1.8,
-   "poseS": 17.6,
-   "allS": 28
+   "prepS": 1.7,
+   "poseS": 17.2,
+   "allS": 26.7
   },
   "IMG_0976": {
    "tracked": true,
@@ -105,15 +105,15 @@
    "onLabels": 23,
    "size": "608x1080",
    "prepS": 2.6,
-   "poseS": 25.5,
-   "allS": 40.5
+   "poseS": 25.2,
+   "allS": 40
   },
   "IMG_1177": {
    "tracked": true,
    "failure": null,
-   "pathPts": 878,
+   "pathPts": 755,
    "traceKind": "bar",
-   "plateShare": 99,
+   "plateShare": 96,
    "jointsSeen": 100,
    "lift": [
     74,
@@ -124,11 +124,11 @@
    "missesLeft": 0,
    "srcFrames": 955,
    "labelled": 14,
-   "onLabels": 86,
+   "onLabels": 64,
    "size": "608x1080",
-   "prepS": 3.7,
-   "poseS": 33.6,
-   "allS": 56.5
+   "prepS": 4.1,
+   "poseS": 35.4,
+   "allS": 59.8
   },
   "IMG_1178": {
    "tracked": true,
@@ -148,9 +148,9 @@
    "labelled": 11,
    "onLabels": 100,
    "size": "608x1080",
-   "prepS": 2.3,
-   "poseS": 20.4,
-   "allS": 34.7
+   "prepS": 2.9,
+   "poseS": 20.9,
+   "allS": 35.5
   },
   "IMG_1558": {
    "tracked": true,
@@ -171,8 +171,8 @@
    "onLabels": 100,
    "size": "608x1080",
    "prepS": 1,
-   "poseS": 15.6,
-   "allS": 26.9
+   "poseS": 15.5,
+   "allS": 25.1
   },
   "IMG_1559": {
    "tracked": true,
@@ -192,9 +192,9 @@
    "labelled": 14,
    "onLabels": 93,
    "size": "608x1080",
-   "prepS": 0.9,
-   "poseS": 11.9,
-   "allS": 19.6
+   "prepS": 0.8,
+   "poseS": 11.5,
+   "allS": 19
   },
   "IMG_1561": {
    "tracked": true,
@@ -214,9 +214,9 @@
    "labelled": 14,
    "onLabels": 93,
    "size": "608x1080",
-   "prepS": 0.7,
-   "poseS": 10.4,
-   "allS": 17.2
+   "prepS": 0.8,
+   "poseS": 10.7,
+   "allS": 17.5
   },
   "IMG_1179": {
    "tracked": true,
@@ -234,8 +234,8 @@
    "missesLeft": 0,
    "size": "608x1080",
    "prepS": 3,
-   "poseS": 25.4,
-   "allS": 42.9
+   "poseS": 25.6,
+   "allS": 43.1
   },
   "2026-10-05_21B27BAF": {
    "tracked": true,
@@ -253,8 +253,8 @@
    "missesLeft": 0,
    "size": "608x1080",
    "prepS": 0.7,
-   "poseS": 6.6,
-   "allS": 10.4
+   "poseS": 7,
+   "allS": 10.7
   },
   "2026-10-04_100B1719": {
    "tracked": true,
@@ -272,8 +272,8 @@
    "missesLeft": 0,
    "size": "608x1080",
    "prepS": 1.1,
-   "poseS": 12.7,
-   "allS": 19.2
+   "poseS": 12.6,
+   "allS": 18.8
   },
   "wall-walk-2026-09-19": {
    "tracked": true,
@@ -290,9 +290,9 @@
    "fps": 30,
    "missesLeft": 0,
    "size": "608x1080",
-   "prepS": 1.1,
-   "poseS": 8,
-   "allS": 13.6
+   "prepS": 1,
+   "poseS": 8.2,
+   "allS": 13.7
   }
  }
 }
