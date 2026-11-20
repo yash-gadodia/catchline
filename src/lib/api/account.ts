@@ -56,8 +56,15 @@ export async function syncPlan(): Promise<PlanSync> {
  */
 export async function deleteAccount(): Promise<void> {
   const { error } = await supabase.functions.invoke('delete-account');
-  if (error) throw toApiError(error);
+  if (error && !(await userGone())) throw toApiError(error);
   await supabase.auth.signOut({ scope: 'local' });
+}
+
+// The function answers 401 for a token whose user is already gone (deleted on
+// another phone); the auth server says which: user_not_found means deleted.
+async function userGone(): Promise<boolean> {
+  const { error } = await supabase.auth.getUser();
+  return error?.code === 'user_not_found';
 }
 
 /** Founding seats sold so far (public RPC, no PII). */

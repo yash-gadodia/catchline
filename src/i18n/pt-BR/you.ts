@@ -103,7 +103,7 @@ export const you: Strings<typeof en> = {
   'you.notify.queuedAnalysed': 'Seus levantamentos na fila foram analisados',
   'you.stored.originals.onDevice': "No seu celular. Analisado no seu iPhone, nunca enviado.",
   'you.stored.positions.onDevice': "Posições do corpo e trajetória da barra como números, não vídeo, guardados no seu celular (e no seu próprio backup do iCloud) para que seu histórico melhore quando a análise melhorar. Nunca nos nossos servidores.",
-  'you.stored.frames.onDevice': "Cinco imagens por levantamento para o estroboscópio e o recorte de evidência, só no seu celular.",
+  'you.stored.frames.onDevice': "Duas imagens por vídeo, o início e o ponto mais alto, só no seu celular.",
   // REVIEW
   'you.reportProblem': "Relatar um problema",
   'you.helpSupport': 'Ajuda e suporte',

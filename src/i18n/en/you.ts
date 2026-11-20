@@ -91,7 +91,7 @@ export const you = {
   'you.stored.positions.body': 'Body positions and bar path as numbers, not video, kept so your history improves when the analysis does. No face points; head keypoints are dropped before storage. Deleted with your account.',
   'you.stored.originals.onDevice': 'On your phone. Analysed on your iPhone, never uploaded.',
   'you.stored.positions.onDevice': 'Body positions and bar path as numbers, not video, kept on your phone (and in your own iCloud backup) so your history improves when the analysis does. Never on our servers.',
-  'you.stored.frames.onDevice': 'Five stills per lift for the strobe and the evidence crop, on your phone only.',
+  'you.stored.frames.onDevice': "Two stills per video, the start and the highest point, on your phone only.",
   'you.stored.frames.title': 'Key frames',
   'you.stored.frames.body': 'Five stills per lift for the strobe and the evidence crop.',
   'you.stored.cues.title': 'Cues and whether they stuck',
