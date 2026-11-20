@@ -168,7 +168,7 @@ export function forgetLocalData(): void {
   // the delete sheet promises every lift goes: the clips and tracking on this phone, and any record not yet synced
   deleteAllLocalLifts();
   useLiftOutbox.setState({ items: [] });
-  useLiftNames.setState({ shapes: {} });
+  useLiftNames.setState({ shapes: {}, chosen: {} });
   useLiftDetails.setState({ details: {} });
   useAccountStore.setState({ account: null });
   useOnboarding.getState().reset();
