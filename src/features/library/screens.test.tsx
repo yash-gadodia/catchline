@@ -266,6 +266,20 @@ describe('LiftsScreen', () => {
     expect(nav.onRecord).toHaveBeenCalledTimes(1);
     expect(queryByTestId('empty-demo')).toBeNull();
   });
+
+  it('at large text sizes nothing on Lifts has a fixed height and the empty screen scrolls (#114)', async () => {
+    loadLibrary('empty');
+    const empty = await render(<LiftsScreen nav={liftsNav()} />);
+    expect(empty.getByTestId('lifts-empty').type).toBe('RCTScrollView');
+    expect(empty.getByText('Add your first lift.')).toHaveProp('maxFontSizeMultiplier', 1.5);
+    expect(empty.getByTestId('free-chip')).toHaveStyle({ minHeight: 44 });
+    expect(empty.getByTestId('free-chip')).not.toHaveStyle({ height: 44 });
+    loadLibrary('seeded');
+    require('./liftNames').useLiftNames.setState({ shapes: { 'snatch-mock': 'floor-overhead', 'snatch-mock-low': 'floor-shoulders' } });
+    const full = await render(<LiftsScreen nav={liftsNav()} />);
+    expect(full.getByTestId('lifts-by-day')).toHaveStyle({ minHeight: 40 });
+    expect(full.getByTestId('lifts-by-day')).not.toHaveStyle({ height: 40 });
+  });
 });
 
 describe('TabBar', () => {
@@ -274,6 +288,8 @@ describe('TabBar', () => {
     const onImport = jest.fn();
     const { getByTestId, getByText, getAllByRole } = await render(<TabBar active="me" onTab={onTab} onImport={onImport} />);
     expect(getAllByRole('tab')).toHaveLength(2);
+    expect(getByTestId('tab-me')).toHaveStyle({ minHeight: 56 });
+    expect(getByTestId('tab-me')).not.toHaveStyle({ height: 56 });
     expect(getByTestId('tab-me')).toBeSelected();
     expect(getByTestId('tab-index')).not.toBeSelected();
     expect(getByText('You')).toBeOnTheScreen();

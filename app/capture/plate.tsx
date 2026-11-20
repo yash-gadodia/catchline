@@ -1,6 +1,7 @@
 import { EVENTS, track as trackEvent } from '../../src/lib/analytics';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
+import Text from '../../src/components/Text';
 import { useRouter } from 'expo-router';
 import { useNoSwipeBack } from '../../src/lib/useNoSwipeBack';
 import MarkScreen from '../../src/features/capture/MarkScreen';

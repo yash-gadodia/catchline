@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { PanResponder, Text, View, useWindowDimensions } from 'react-native';
+import { PanResponder, View, useWindowDimensions } from 'react-native';
+import Text from '../../components/Text';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import Svg, { Circle } from 'react-native-svg';

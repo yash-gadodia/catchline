@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { Pressable, Text, type StyleProp, type ViewStyle } from 'react-native';
+import { Pressable, type StyleProp, type ViewStyle } from 'react-native';
+import Text from './Text';
 import { colors, control, shape, space, stroke } from '../design/tokens';
 import { fontFamily } from '../design/typography';
 

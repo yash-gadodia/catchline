@@ -1,4 +1,5 @@
-import { Image, Pressable, Text, View } from 'react-native';
+import { Image, Pressable, View } from 'react-native';
+import Text from '../../components/Text';
 import { usePathname, useRouter, type Href } from 'expo-router';
 import Btn from '../../components/Btn';
 import Sheet from '../../components/Sheet';

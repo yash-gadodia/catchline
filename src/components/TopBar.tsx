@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import Text from './Text';
 import { colors, space } from '../design/tokens';
 import { fontFamily } from '../design/typography';
 import { t } from '../i18n';

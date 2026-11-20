@@ -1,5 +1,6 @@
 import { useEffect, type ReactNode } from 'react';
-import { Image, Pressable, Text, View, useWindowDimensions } from 'react-native';
+import { Image, Pressable, View, useWindowDimensions } from 'react-native';
+import Text from '../../components/Text';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import Animated, {
   useAnimatedStyle,

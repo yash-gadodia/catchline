@@ -1,5 +1,6 @@
 import { forwardRef } from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+import Text from '../../components/Text';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { Analysis, KeyFrame } from '../../analysis/types';
 import { toScreen, type Fit } from '../../analysis/geometry';

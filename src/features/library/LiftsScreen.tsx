@@ -3,13 +3,14 @@ import { usePurchases } from '../purchases/usePurchases';
 import { FREE_PER_WEEK } from '../paywall/entitlements';
 import { useVideosLeft } from '../paywall/hooks';
 import { useState } from 'react';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, TextInput, View } from 'react-native';
+import Text from '../../components/Text';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, G, Line, Path, Rect, Text as SvgText } from 'react-native-svg';
 import Btn from '../../components/Btn';
 import Row from '../../components/Row';
 import SmallCaps from '../../components/SmallCaps';
-import { colors, control, shape, space, stroke } from '../../design/tokens';
+import { colors, control, shape, space, stroke, textScale } from '../../design/tokens';
 import { display, fontFamily, type } from '../../design/typography';
 import { byDay, byKind, freeVideosLabel, liftDetail, liftTime, liftTitle } from './derive';
 import { formatLoad } from '../../analysis/format';
@@ -72,7 +73,7 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', columnGap: space.s3 }}>
       <Title>{t('library.tabs.lifts')}</Title>
       {chip ? (
-        <Pressable onPress={nav.onUnlock} testID="free-chip" hitSlop={8} style={{ height: 44, justifyContent: 'center' }}>
+        <Pressable onPress={nav.onUnlock} testID="free-chip" hitSlop={8} style={{ minHeight: 44, justifyContent: 'center' }}>
           <Text style={{ color: colors.text2, ...type.readout }}>{chip}</Text>
         </Pressable>
       ) : null}
@@ -81,9 +82,14 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
 
   if (lib.lifts.length === 0) {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top + space.s3, paddingHorizontal: space.gutter }} testID="lifts-empty">
+      // scrolls, so at the largest text sizes the buttons stay reachable instead of sliding under the tab bar
+      <ScrollView
+        style={{ flex: 1, backgroundColor: colors.bg }}
+        contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top + space.s3, paddingHorizontal: space.gutter, paddingBottom: space.s6 }}
+        testID="lifts-empty"
+      >
         {header}
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.s5 }}>
+        <View style={{ flexGrow: 1, alignItems: 'center', justifyContent: 'center', gap: space.s5, paddingTop: space.s5 }}>
           <SideOnDiagram />
           <Text style={[display(32), { color: colors.text, textAlign: 'center' }]}>{t('library.lifts.emptyTitle')}</Text>
           <Text style={{ color: colors.text2, ...type.callout, textAlign: 'center' }}>
@@ -98,7 +104,7 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
             </Btn>
           </View>
         </View>
-      </View>
+      </ScrollView>
     );
   }
 
@@ -113,7 +119,7 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
     >
       {header}
       {searchable ? (
-        <View style={{ flexDirection: 'row', alignItems: 'center', height: control.compactHeight, borderWidth: stroke.hairline, borderColor: colors.hairline, ...shape.control }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', minHeight: control.compactHeight, borderWidth: stroke.hairline, borderColor: colors.hairline, ...shape.control }}>
           <TextInput
             value={query}
             onChangeText={setQuery}
@@ -123,6 +129,7 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
             autoCorrect={false}
             returnKeyType="search"
             accessibilityLabel={t('library.search.placeholder')}
+            maxFontSizeMultiplier={textScale.max}
             testID="lift-search"
             // a TextInput takes no lineHeight: on iOS it shifts the caret and the text
             style={{ flex: 1, alignSelf: 'stretch', paddingHorizontal: space.s3, color: colors.text, fontFamily: type.callout.fontFamily, fontSize: type.callout.fontSize }}
@@ -152,7 +159,7 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
                 useLiftsView.setState({ by });
                 track(EVENTS.LIFTS_GROUPED, { by });
               }}
-              style={{ height: control.chipHeight, paddingHorizontal: space.s3, justifyContent: 'center', borderWidth: stroke.hairline, borderColor: grouped === (by === 'kind') ? colors.text : colors.hairline, ...shape.control }}
+              style={{ minHeight: control.chipHeight, paddingHorizontal: space.s3, paddingVertical: space.s1, justifyContent: 'center', borderWidth: stroke.hairline, borderColor: grouped === (by === 'kind') ? colors.text : colors.hairline, ...shape.control }}
             >
               <Text style={{ ...type.caption, color: grouped === (by === 'kind') ? colors.text : colors.text2 }}>{t(by === 'day' ? 'library.lifts.byDate' : 'library.lifts.byKind')}</Text>
             </Pressable>
@@ -169,7 +176,7 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
                 accessibilityRole="button"
                 accessibilityState={{ selected: kind === k }}
                 onPress={() => setOnly(k)}
-                style={{ height: control.chipHeight, paddingHorizontal: space.s3, justifyContent: 'center', borderWidth: stroke.hairline, borderColor: kind === k ? colors.text : colors.hairline, ...shape.control }}
+                style={{ minHeight: control.chipHeight, paddingHorizontal: space.s3, paddingVertical: space.s1, justifyContent: 'center', borderWidth: stroke.hairline, borderColor: kind === k ? colors.text : colors.hairline, ...shape.control }}
               >
                 <Text style={{ ...type.caption, color: kind === k ? colors.text : colors.text2 }}>{k ?? t('library.lifts.allKinds')}</Text>
               </Pressable>

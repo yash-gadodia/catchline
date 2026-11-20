@@ -1,4 +1,5 @@
-import { Text, type TextStyle } from 'react-native';
+import type { TextStyle } from 'react-native';
+import Text from './Text';
 import { colors } from '../design/tokens';
 import { fontFamily } from '../design/typography';
 

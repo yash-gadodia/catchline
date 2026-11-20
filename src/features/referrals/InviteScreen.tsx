@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ScrollView, Share, Text, TextInput, View } from 'react-native';
+import { ScrollView, Share, TextInput, View } from 'react-native';
+import Text from '../../components/Text';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Btn from '../../components/Btn';
 import SmallCaps from '../../components/SmallCaps';

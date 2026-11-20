@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Keyboard, Platform, Pressable, Text, TextInput, View } from 'react-native';
+import { Keyboard, Platform, Pressable, TextInput, View } from 'react-native';
+import Text from '../../components/Text';
 import Btn from '../../components/Btn';
 import Sheet from '../../components/Sheet';
 import { colors, shape, space } from '../../design/tokens';

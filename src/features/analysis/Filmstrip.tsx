@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { Image, Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
+import { Image, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
+import Text from '../../components/Text';
 import type { PhaseName, Rep } from '../../analysis/types';
 import { phaseLabel, seconds } from '../../analysis/format';
 import { frameSource } from '../../analysis/frames';
