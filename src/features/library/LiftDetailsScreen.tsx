@@ -6,8 +6,7 @@ import TopBar from '../../components/TopBar';
 import { colors, control, shape, space, stroke } from '../../design/tokens';
 import { type } from '../../design/typography';
 import { t } from '../../i18n';
-import { KINDS, KIND_MAX, kindLabel, setLiftKind } from './liftNames';
-import { EVENTS, track } from '../../lib/analytics';
+import { KINDS, KIND_MAX, kindLabel, pickLiftKind } from './liftNames';
 import { NAME_MAX, NOTE_MAX, TAGS_MAX, TAG_MAX, addLiftTag, detailsOf, removeLiftTag, setLiftDetails, tagSuggestions, useLiftDetails } from './liftDetails';
 
 // A TextInput takes the face and size of a type style but no lineHeight: on iOS a lineHeight shifts the caret and the text.
@@ -60,10 +59,7 @@ export default function LiftDetailsScreen({
   const [note, setNote] = useState(saved.note);
   const [tag, setTag] = useState('');
   const [ownKind, setOwnKind] = useState('');
-  const pick = (k: string | null) => {
-    setLiftKind(id, k);
-    track(EVENTS.LIFT_KIND_SET, { kind: !k ? 'cleared' : (KINDS as readonly string[]).includes(k) ? k : 'own' });
-  };
+  const pick = (k: string | null) => pickLiftKind(id, k);
   const full = saved.tags.length >= TAGS_MAX;
   const suggestions = full ? [] : tagSuggestions(all, id, tag);
   const add = (raw: string) => {
