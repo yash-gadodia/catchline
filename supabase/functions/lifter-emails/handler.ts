@@ -21,7 +21,7 @@ export function mailFor(d: Due): Mail {
       to: d.email,
       subject: "you just joined Catchline",
       body: [greeting(d.display_name), "Yash here. I built Catchline.", ABOUT, REPLY,
-        "One ask: once you've tracked a lift, tell me what looked wrong or what's missing. Even one line helps.", "Yash"].join("\n\n"),
+        "One ask: once you've tracked a lift, tell me what looked wrong or what's missing. Even one line helps.", REACH, "Yash"].join("\n\n"),
     };
   }
   const about = d.founding ? `${ABOUT} Thank you for backing it early as a founding member, it means a lot.` : ABOUT;
