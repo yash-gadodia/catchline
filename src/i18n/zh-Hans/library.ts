@@ -10,6 +10,7 @@ export const library: Strings<typeof en> = {
   'library.free.used': "免费视频已用完",
   'library.free.left': { one: "还剩 {count} 个免费视频", other: "还剩 {count} 个免费视频" },
   'library.detail.processing': "追踪中",
+  'library.detail.waiting': "等待中 · 当前动作追踪完后开始",
   'library.detail.uploadStuck': "上传未完成 · 请重新拍摄或导入",
   'library.inFlight.title': "正在追踪你的试举",
   'library.detail.queued': "排队中 · 免费视频已用完",

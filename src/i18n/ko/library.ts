@@ -10,6 +10,7 @@ export const library: Strings<typeof en> = {
   'library.free.used': "무료 영상을 다 썼어요",
   'library.free.left': { one: "무료 영상 {count}개 남음", other: "무료 영상 {count}개 남음" },
   'library.detail.processing': "트래킹 중",
+  'library.detail.waiting': "대기 중 · 진행 중인 리프트 다음에 트래킹",
   'library.detail.uploadStuck': "업로드가 끝나지 않았어요 · 다시 촬영하거나 가져오세요",
   'library.inFlight.title': "리프트를 트래킹하는 중",
   'library.detail.queued': "대기 중 · 무료 영상을 다 썼어요",

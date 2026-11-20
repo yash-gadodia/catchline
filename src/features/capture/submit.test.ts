@@ -6,11 +6,14 @@ import { useUsage } from '../paywall/usageStore';
 import { weekKey } from '../paywall/entitlements';
 import { startLift } from '../../data/pipeline';
 import * as SecureStore from 'expo-secure-store';
+import { usePendingLifts } from '../../data/pendingLifts';
 
-jest.mock('expo-router', () => ({ __esModule: true, router: { push: jest.fn(), replace: jest.fn() } }));
-const mockNav = jest.requireMock('expo-router').router as { push: jest.Mock; replace: jest.Mock };
+jest.mock('expo-router', () => ({ __esModule: true, router: { push: jest.fn(), replace: jest.fn(), dismissTo: jest.fn() } }));
+const mockNav = jest.requireMock('expo-router').router as { push: jest.Mock; replace: jest.Mock; dismissTo: jest.Mock };
 jest.mock('../../data/backend', () => ({ backendEnabled: () => true }));
 jest.mock('../../data/pipeline', () => ({ startLift: jest.fn() }));
+jest.mock('../../data/devicePipeline', () => ({ ...jest.requireActual('../../data/devicePipeline'), deviceLiftInFlight: jest.fn(() => null), trackHeldLifts: jest.fn(() => false) }));
+const mockInFlight = jest.requireMock('../../data/devicePipeline').deviceLiftInFlight as jest.Mock;
 jest.mock('../../lib/api', () => ({ ...jest.requireActual('../../lib/api'), getAllowance: jest.fn() }));
 const mockAllowance = jest.requireMock('../../lib/api').getAllowance as jest.Mock;
 const flush = () => new Promise((r) => setImmediate(r));
@@ -22,6 +25,52 @@ beforeEach(() => {
   useUsage.getState().reset();
   (SecureStore as unknown as { __reset: () => void }).__reset();
   mockAllowance.mockRejectedValue(new Error('offline'));
+  usePendingLifts.setState({ items: [] });
+  mockInFlight.mockReturnValue(null);
+});
+
+// clip A is tracking: it is on disk as pending and the phone's run is busy with it
+function trackingA() {
+  const a = { liftId: 'lift-a', sub: { uri: 'file:///a.mov', movement: 'snatch' as const, loadKg: null, trim: { start: 0, end: 5 }, rep: 'all' as const, source: 'library' as const, fps: 30, overridden: [] }, at: '2026-11-20T08:00:00.000Z' };
+  usePendingLifts.setState({ items: [a] });
+  mockInFlight.mockReturnValue({ cancelled: false, done: new Promise(() => undefined) });
+}
+
+test('a second clip tracked while the first is still tracking waits behind it, and the lifter lands on Lifts (#252)', async () => {
+  trackingA();
+  usePurchases.setState({ tier: 'pull', period: 'annual' });
+  useCapture.setState({ draft: newClip({ uri: 'file:///b.mov', durationS: 5, fps: 30, source: 'library' }) });
+
+  submitDraft({ replace: true });
+  await flush();
+
+  expect(startLift).toHaveBeenCalledWith(expect.objectContaining({ uri: 'file:///b.mov' }));
+  expect(mockNav.dismissTo).toHaveBeenCalledWith('/');
+  expect(mockNav.replace).not.toHaveBeenCalled();
+});
+
+test('the same clip tracked again while it is still on its way is that lift, not a second one', async () => {
+  trackingA();
+  usePurchases.setState({ tier: 'pull', period: 'annual' });
+  useCapture.setState({ draft: newClip({ uri: 'file:///a.mov', durationS: 5, fps: 30, source: 'library' }) });
+
+  submitDraft({ replace: true });
+  await flush();
+
+  expect(startLift).not.toHaveBeenCalled();
+  expect(mockNav.replace).toHaveBeenCalledWith({ pathname: '/analysis/processing', params: { live: '1' } });
+});
+
+test('a free lifter whose one video this week is on the lift tracking meets the cap for a second clip, not a second free lift (#252)', async () => {
+  trackingA();
+  usePurchases.setState({ tier: 'free', period: null });
+  useCapture.setState({ draft: newClip({ uri: 'file:///b.mov', durationS: 5, fps: 30, source: 'library' }) });
+
+  submitDraft({ replace: true });
+  await flush();
+
+  expect(startLift).not.toHaveBeenCalled();
+  expect(mockNav.replace).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/paywall/cap' }));
 });
 
 test('after a purchase the saved clip is tracked (always submitted as a snatch, whatever it shows), replacing the paywall', async () => {
@@ -54,6 +103,32 @@ test('a free lifter with no videos left this week still gets the paywall, not a 
   await flush();
   expect(startLift).not.toHaveBeenCalled();
   expect(mockNav.replace).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/paywall/cap' }));
+});
+
+test('at the cap the clip is saved, as the paywall says: held on disk with its trim and mark, whatever the lifter answers (#247)', async () => {
+  const mark = { x: 0.5, y: 0.6, r: 0.1 };
+  useCapture.setState({ draft: { ...newClip({ uri: 'file:///clip.mov', durationS: 8, fps: 30, source: 'library', trim: { start: 1, end: 6 } }), plateMark: mark } });
+  usePurchases.setState({ tier: 'free', period: null });
+  useUsage.setState({ usage: { lifetime: 1, week: weekKey(new Date()), thisWeek: 1 } });
+
+  submitDraft({ replace: true });
+  await flush();
+
+  expect(startLift).not.toHaveBeenCalled();
+  expect(mockNav.replace).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/paywall/cap' }));
+  expect(usePendingLifts.getState().items).toEqual([
+    {
+      liftId: expect.any(String),
+      at: expect.any(String),
+      held: true,
+      sub: { uri: 'file:///clip.mov', movement: 'snatch', loadKg: 80, trim: { start: 1, end: 6 }, rep: 'all', source: 'library', fps: 30, overridden: [], plateMark: mark },
+    },
+  ]);
+
+  // the same clip at the cap again is the one already saved
+  submitDraft({ replace: true });
+  await flush();
+  expect(usePendingLifts.getState().items).toHaveLength(1);
 });
 
 test('the gate never waits on the server: a lower server count changes nothing (3.1: the phone decides)', async () => {

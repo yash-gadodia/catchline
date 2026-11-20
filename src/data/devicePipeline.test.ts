@@ -3,13 +3,14 @@ import { snatchMock } from '../analysis/fixtures';
 import type { Analysis } from '../analysis/types';
 import type { ClipSubmission } from '../features/capture/submit';
 import { usePipeline, startLift } from './pipeline';
-import { analyseLoop, cancelDeviceLift, failureReason, nativeCode, readTrace, retrackLift, startDeviceLift, toNativePlan } from './devicePipeline';
+import { analyseLoop, cancelDeviceLift, deviceLiftInFlight, failureReason, holdDeviceLift, nativeCode, readTrace, resumeDeviceLifts, retrackLift, startDeviceLift, toNativePlan, trackHeldLifts } from './devicePipeline';
+import { weekKey } from '../features/paywall/entitlements';
 import { strFromU8 } from 'fflate';
 import { AppState } from 'react-native';
 import * as Notifications from 'expo-notifications';
 
 jest.mock('expo-file-system', () => ({
-  File: jest.fn(() => ({ bytes: async () => new Uint8Array([1]) })),
+  File: jest.fn(() => ({ bytes: async () => new Uint8Array([1]), exists: true })),
 }));
 jest.mock('fflate', () => ({
   gunzipSync: jest.fn((b: Uint8Array) => b),
@@ -50,10 +51,13 @@ jest.mock('../analysis/device/analyseTrace', () => {
   return { ...mocks, trackTrace };
 });
 jest.mock('./clipCache', () => ({ discardPickedCopy: jest.fn() }));
-jest.mock('expo-crypto', () => ({ randomUUID: () => 'lift-1' }));
+jest.mock('expo-crypto', () => ({ randomUUID: jest.fn(() => 'lift-1') }));
 jest.mock('./liftOutbox', () => ({ queueLiftSync: jest.fn(async () => 1) }));
 jest.mock('./freeLifts', () => ({ writeFreeUsed: jest.fn(async () => undefined), writeFreeWeek: jest.fn(async () => undefined) }));
-jest.mock('../features/purchases/usePurchases', () => ({ usePurchases: { getState: () => ({ tier: 'free' }) } }));
+jest.mock('../features/purchases/usePurchases', () => {
+  const state = { tier: 'free' };
+  return { usePurchases: { getState: () => state, setState: (s: Partial<typeof state>) => Object.assign(state, s) } };
+});
 jest.mock('../lib/analytics', () => ({ ...jest.requireActual('../lib/analytics'), track: jest.fn() }));
 
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
@@ -65,6 +69,10 @@ import { ClipTooLongError, prepareClip } from './prepare';
 import { keepClip, saveLocalLift } from './localLifts';
 import { discardPrepared } from './prepare';
 import { track } from '../lib/analytics';
+import { randomUUID } from 'expo-crypto';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { usePendingLifts } from './pendingLifts';
+import { usePurchases } from '../features/purchases/usePurchases';
 import { discardPickedCopy } from './clipCache';
 
 const native = PoseCoreML as NonNullable<typeof PoseCoreML>;
@@ -94,6 +102,7 @@ beforeEach(() => {
   useUsage.getState().reset();
   mockTrace.mockReturnValue({ ...snatchMock, id: 'x' });
   appState.currentState = 'active';
+  usePurchases.setState({ tier: 'free' });
 });
 
 const BANNER = { title: 'Tracking your lift', subtitle: 'Keeps working in the background.' };
@@ -483,5 +492,130 @@ describe('retrackLift, tracking a lift again from an adjusted plate', () => {
   it('does nothing for a lift whose clip is gone', () => {
     expect(retrackLift('gone', 'snatch', MARK)).toBeNull();
     expect(mockAnalyse).not.toHaveBeenCalled();
+  });
+});
+
+const flush = () => new Promise((r) => setImmediate(r));
+function deferred<T>() {
+  let resolve!: (v: T) => void;
+  let reject!: (e: Error) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+const PASS = { tracePath: 'file:///cache/pose-coreml/trace.json.gz', stills: {} };
+const FIRST_PASS = { ...BANNER, from: 0, to: 0.8 };
+
+describe('a lift the app is killed in the middle of (#250)', () => {
+  const MARKED: ClipSubmission & { uri: string } = { ...SUB, plateMark: { x: 0.5, y: 0.6, r: 0.1, atS: 0.5 } };
+
+  it('keeps the clip, its prepared copy and the mark on disk until the lift ends', async () => {
+    const pass = deferred<typeof PASS>();
+    mockAnalyse.mockReturnValueOnce(pass.promise);
+    const done = startDeviceLift(MARKED);
+    await flush();
+    expect(usePendingLifts.getState().items).toEqual([{ liftId: 'lift-1', sub: MARKED, at: expect.any(String), prepared: { uri: 'file:///clip.mov.mp4', fps: 30 } }]);
+    expect(JSON.parse((await AsyncStorage.getItem('catchline-pending-lifts')) ?? '{}').state.items[0].prepared).toEqual({ uri: 'file:///clip.mov.mp4', fps: 30 });
+    pass.resolve(PASS);
+    await done;
+    expect(usePendingLifts.getState().items).toEqual([]);
+  });
+
+  it('is tracked again on the next launch, from the prepared clip and the mark, without picking it again', async () => {
+    const killed = deferred<typeof PASS>();
+    mockAnalyse.mockReturnValueOnce(killed.promise);
+    const before = startDeviceLift(MARKED);
+    await flush();
+    // the app is killed mid-pass: what is in memory is gone, what is on disk stays
+    const shared = {
+      storage: jest.requireMock('@react-native-async-storage/async-storage'),
+      prepare: jest.requireMock('./prepare'),
+      native: jest.requireMock('../../modules/pose-coreml'),
+      trace: jest.requireMock('../analysis/device/analyseTrace'),
+      local: jest.requireMock('./localLifts'),
+      pipeline: jest.requireActual('./pipeline'),
+    };
+    let relaunched!: typeof import('./devicePipeline');
+    let pending!: typeof import('./pendingLifts');
+    jest.isolateModules(() => {
+      jest.doMock('@react-native-async-storage/async-storage', () => shared.storage);
+      jest.doMock('./prepare', () => shared.prepare);
+      jest.doMock('../../modules/pose-coreml', () => shared.native);
+      jest.doMock('../analysis/device/analyseTrace', () => shared.trace);
+      jest.doMock('./localLifts', () => shared.local);
+      jest.doMock('./pipeline', () => shared.pipeline);
+      relaunched = require('./devicePipeline');
+      pending = require('./pendingLifts');
+    });
+    await relaunched.resumeDeviceLifts();
+    await relaunched.deviceLiftInFlight()?.done;
+
+    expect(prepareClip).toHaveBeenCalledTimes(1);
+    expect(mockAnalyse).toHaveBeenCalledTimes(2);
+    expect(mockAnalyse).toHaveBeenLastCalledWith('file:///clip.mov.mp4', 'snatch', undefined, FIRST_PASS);
+    expect(mockPlan.mock.calls.at(-1)?.[2]).toEqual({ analysisId: 'lift-1', assetPrefix: 'lift-1', plateMark: { frame: 15, x: 0.5, y: 0.6, r: 0.1 } });
+    expect(keepClip).toHaveBeenCalledWith('lift-1', 'file:///clip.mov.mp4');
+    expect(usePipeline.getState().job).toMatchObject({ liftId: 'lift-1', status: 'done' });
+    expect(pending.usePendingLifts.getState().items).toEqual([]);
+
+    killed.reject(new Error('cancelled'));
+    await before;
+  });
+});
+
+describe('a lift held by the weekly cap (#247: "Your video is saved and goes first")', () => {
+  const thisWeekUsed = () => useUsage.setState({ usage: { lifetime: 1, week: weekKey(new Date()), thisWeek: 1 } });
+
+  it('is kept on disk, not tracked, while the week\'s free video is used', async () => {
+    thisWeekUsed();
+    holdDeviceLift(SUB);
+    await resumeDeviceLifts();
+    expect(trackHeldLifts()).toBe(false);
+    expect(mockAnalyse).not.toHaveBeenCalled();
+    expect(usePendingLifts.getState().items).toEqual([{ liftId: 'lift-1', sub: SUB, at: expect.any(String), held: true }]);
+    expect(JSON.parse((await AsyncStorage.getItem('catchline-pending-lifts')) ?? '{}').state.items).toEqual([{ liftId: 'lift-1', sub: SUB, at: expect.any(String), held: true }]);
+    usePendingLifts.setState({ items: [] });
+  });
+
+  it('is tracked as soon as the lifter goes Pro, without picking it again', async () => {
+    thisWeekUsed();
+    holdDeviceLift(SUB);
+    usePurchases.setState({ tier: 'pull' });
+    expect(trackHeldLifts()).toBe(true);
+    await deviceLiftInFlight()?.done;
+    expect(mockAnalyse).toHaveBeenCalledWith('file:///clip.mov.mp4', 'snatch', undefined, FIRST_PASS);
+    expect(saveLocalLift).toHaveBeenCalledWith('lift-1', expect.objectContaining({ id: 'lift-1' }), 'file:///cache/pose-coreml/trace.json.gz', {}, null);
+    expect(usePendingLifts.getState().items).toEqual([]);
+  });
+
+  it('goes first when the free video is back: the next launch in a new week tracks it', async () => {
+    useUsage.setState({ usage: { lifetime: 1, week: '2026-01-05', thisWeek: 1 } });
+    holdDeviceLift(SUB);
+    await resumeDeviceLifts();
+    await deviceLiftInFlight()?.done;
+    expect(mockAnalyse).toHaveBeenCalledTimes(1);
+    expect(usePendingLifts.getState().items).toEqual([]);
+  });
+});
+
+describe('a second lift started while one is tracking (#252)', () => {
+  it('waits for the first and is tracked after it, never dropped', async () => {
+    (randomUUID as jest.Mock).mockReturnValueOnce('lift-a').mockReturnValueOnce('lift-b');
+    const pass = deferred<typeof PASS>();
+    mockAnalyse.mockReturnValueOnce(pass.promise);
+    const a = startDeviceLift(SUB);
+    const b = startDeviceLift({ ...SUB, uri: 'file:///b.mov' });
+    await flush();
+    expect(mockAnalyse).toHaveBeenCalledTimes(1);
+    expect(usePendingLifts.getState().items.map((i) => i.liftId)).toEqual(['lift-a', 'lift-b']);
+
+    pass.resolve(PASS);
+    await a;
+    await b;
+    expect(mockAnalyse.mock.calls.map((c) => c[0])).toEqual(['file:///clip.mov.mp4', 'file:///b.mov.mp4']);
+    expect((saveLocalLift as jest.Mock).mock.calls.map((c) => c[0])).toEqual(['lift-a', 'lift-b']);
+    expect(usePendingLifts.getState().items).toEqual([]);
   });
 });
