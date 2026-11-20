@@ -22,6 +22,9 @@ import { t } from '../../src/i18n';
 const STEP_MS = 1100;
 const LONG_WAIT_MARGIN_S = 30;
 const LONG_WAIT_S = EXPECTED_ANALYSIS_S + LONG_WAIT_MARGIN_S;
+// Cancel sits where Track was on the plate check: the second tap of a double-tapped Track lands on it as the
+// sheet slides in, and the lift was dropped (#235). A tap that soon after the sheet opens is that one, not a cancel.
+const CANCEL_GUARD_MS = 1000;
 
 type Params = { fixture?: string; state?: ProcessingState; step?: string; elapsed?: string; count?: string; live?: string; pct?: string };
 
@@ -119,6 +122,7 @@ function LiveProcessing() {
   const startedAt = job ? Number(job.id.replace('job-', '')) || null : null;
   const since = () => (startedAt ? Math.max(0, Math.floor((Date.now() - startedAt) / 1000)) : 0);
   const [elapsed, setElapsed] = useState(since);
+  const openedAt = useRef(Date.now());
   // Leaving lands on the Lifts tab, never back on the review of the clip already analysed.
   const home = () => router.dismissTo('/');
   const fail = (id: string, reason: Failure['reason'], native?: string) =>
@@ -176,6 +180,7 @@ function LiveProcessing() {
       elapsed={elapsed}
       onHide={home}
       onCancel={analysis ? undefined : () => {
+        if (Date.now() - openedAt.current < CANCEL_GUARD_MS) return;
         track(EVENTS.TRACK_CANCELLED, { pct: Math.round((overallProgress(job) ?? 0) * 100), seconds: elapsed });
         cancelDeviceLift();
         home();
