@@ -213,8 +213,9 @@ function Backdrop({ analysis, state, box }: { analysis: Analysis; state: Process
 
 function Header({ title, meta, strong }: { title: string; meta: string; strong?: boolean }) {
   return (
-    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
-      <Text style={{ color: colors.text, ...type.title }}>{title}</Text>
+    // the estimate wraps under a long title (French, German) instead of running into it
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'baseline', columnGap: space.s3 }} testID="processing-header">
+      <Text style={{ color: colors.text, ...type.title, flexShrink: 1 }}>{title}</Text>
       <Text
         style={{
           color: strong ? colors.text : colors.text2,

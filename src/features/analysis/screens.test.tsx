@@ -39,6 +39,21 @@ describe('ProcessingSheet', () => {
     expect(getByTestId('processing-doing')).toHaveTextContent('Following the bar and your body, frame by frame.');
   });
 
+  it('in French the time left wraps under the title instead of running into it', async () => {
+    const { setLanguage } = require('../../i18n');
+    setLanguage('fr');
+    try {
+      const { getByTestId, getByText } = await render(
+        <ProcessingSheet analysis={null} state="progress" step={2} elapsed={6} progress={0.22} meta="environ 1 min restante" {...handlers} />
+      );
+      expect(getByText('Suivi de ton mouvement')).toHaveStyle({ flexShrink: 1 });
+      expect(getByTestId('processing-header')).toHaveStyle({ flexDirection: 'row', flexWrap: 'wrap', columnGap: 12 });
+      expect(getByText('environ 1 min restante')).toBeOnTheScreen();
+    } finally {
+      setLanguage('en');
+    }
+  });
+
   it('without a clip shows the silhouette, the usual wait and a way to hide', async () => {
     const { getByText, getByTestId, queryByText } = await render(
       <ProcessingSheet analysis={snatchMock} state="progress" step={2} elapsed={6} {...handlers} />

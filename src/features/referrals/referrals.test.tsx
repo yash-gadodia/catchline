@@ -1,8 +1,9 @@
-import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, waitFor, within } from '@testing-library/react-native';
 import { useAuthUser } from '../auth/authUser';
 import { claimErrorOf, inviteLink, monthsOf, normalizeCode, type MyReferral } from './api';
 import InviteScreen, { inviteMessage, type InviteApi } from './InviteScreen';
 import { useInvite } from './store';
+import { setLanguage } from '../../i18n';
 
 const MINE: MyReferral = {
   code: 'YASH42',
@@ -72,6 +73,24 @@ describe('InviteScreen', () => {
       fireEvent.press(view.getByTestId('invite-sign-in'));
     });
     expect(signIn).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['de', 'fr'] as const)('in %s, the title keeps clear of the back label and the Apple buttons wrap their labels centred', async (lang) => {
+    useAuthUser.setState({ userId: 'anon', anonymous: true, displayName: null });
+    setLanguage(lang);
+    try {
+      const view = await render(<InviteScreen onBack={jest.fn()} api={fakeApi()} />);
+      expect(view.getByTestId('topbar-center')).toHaveStyle({ flex: 1, marginHorizontal: 12 });
+      expect(view.getByTestId('invite-title')).toHaveProp('numberOfLines', 2);
+      expect(view.getByTestId('invite-title')).toHaveStyle({ textAlign: 'center' });
+      for (const [id, min] of [['invite-sign-in', 56], ['invite-claim-sign-in', 48]] as const) {
+        expect(view.getByTestId(id)).toHaveStyle({ minHeight: min, paddingHorizontal: 16 });
+        expect(view.getByTestId(id)).not.toHaveStyle({ height: min });
+        expect(within(view.getByTestId(id)).getByText(/Apple/)).toHaveStyle({ textAlign: 'center' });
+      }
+    } finally {
+      setLanguage('en');
+    }
   });
 
   it('shows the code, progress and friends, and shares the friend message', async () => {

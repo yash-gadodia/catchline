@@ -24,7 +24,7 @@ export default function TopBar({
   return (
     <View
       style={{
-        height: TOP_BAR_H,
+        minHeight: TOP_BAR_H,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -36,15 +36,18 @@ export default function TopBar({
           ‹ {back}
         </Text>
       </Pressable>
-      {center ??
-        (title ? (
-          <Text
-            numberOfLines={1}
-            style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}
-          >
-            {title}
-          </Text>
-        ) : null)}
+      {/* the middle takes what the back label and the dots leave, so a long title wraps or truncates instead of running into them */}
+      <View style={{ flex: 1, alignItems: 'center', marginHorizontal: space.s3 }} testID="topbar-center">
+        {center ??
+          (title ? (
+            <Text
+              numberOfLines={1}
+              style={{ color: colors.text2, fontFamily: fontFamily.mono, fontSize: 13, lineHeight: 18 }}
+            >
+              {title}
+            </Text>
+          ) : null)}
+      </View>
       <Pressable
         onPress={onMore}
         disabled={!more || !onMore}

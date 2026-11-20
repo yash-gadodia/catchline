@@ -99,7 +99,7 @@ export default function InviteScreen({
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }} testID="invite-screen">
-      <TopBar back={t('you.title')} onBack={onBack} more={false} center={<Text style={{ color: colors.text, ...type.button }}>{t('invite.row')}</Text>} />
+      <TopBar back={t('you.title')} onBack={onBack} more={false} center={<Text numberOfLines={2} style={{ color: colors.text, ...type.button, textAlign: 'center' }} testID="invite-title">{t('invite.row')}</Text>} />
       <ScrollView contentContainerStyle={{ paddingTop: space.s5, paddingHorizontal: space.gutter, paddingBottom: space.s7, gap: space.s5 }} keyboardShouldPersistTaps="handled">
         <View style={{ gap: space.s2 }}>
           <Text style={{ color: colors.text, ...type.body }}>{mine?.kind === 'coach' ? t('invite.coachBody') : t('invite.body')}</Text>
