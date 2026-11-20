@@ -48,6 +48,7 @@ function viewfinder(overrides: Partial<Parameters<typeof ViewfinderScreen>[0]> =
     onDeleteOriginals: jest.fn(),
     onImport: jest.fn(),
     onGuide: jest.fn(),
+    onClose: jest.fn(),
     onRecorded: jest.fn(),
     camera: false,
     ...overrides,
@@ -66,6 +67,19 @@ describe('Viewfinder', () => {
     expect(screen.getByTestId('record-button')).toBeEnabled();
     expect(screen.getByTestId('fps-badge')).toHaveTextContent('30 fps');
     expect(screen.getByTestId('free-count')).toHaveTextContent('0 / 3');
+  });
+
+  it('has a close button that leaves without filming', async () => {
+    const { props, ui } = viewfinder();
+    const screen = await render(ui);
+    const close = screen.getByTestId('close-button');
+    expect(close).toHaveProp('accessibilityRole', 'button');
+    expect(close).toHaveProp('accessibilityLabel', 'Close');
+    await act(async () => {
+      fireEvent.press(close);
+    });
+    expect(props.onClose).toHaveBeenCalledTimes(1);
+    expect(props.onRecorded).not.toHaveBeenCalled();
   });
 
   it('shows the three items as plain guidance, no tick and no hint, while there is no real detection', async () => {

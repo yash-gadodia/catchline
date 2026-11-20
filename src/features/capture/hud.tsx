@@ -15,12 +15,14 @@ export function HudBadge({
   onPress,
   testID,
   square,
+  accessibilityLabel,
 }: {
   children: string;
   dot?: boolean;
   onPress?: () => void;
   testID?: string;
   square?: boolean;
+  accessibilityLabel?: string;
 }) {
   const body = (
     <View
@@ -52,7 +54,7 @@ export function HudBadge({
   );
   if (!onPress) return body;
   return (
-    <Pressable onPress={onPress} testID={testID} accessibilityRole="button" hitSlop={8}>
+    <Pressable onPress={onPress} testID={testID} accessibilityRole="button" accessibilityLabel={accessibilityLabel} hitSlop={8}>
       {body}
     </Pressable>
   );

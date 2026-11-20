@@ -59,6 +59,7 @@ export default function CaptureRoute() {
       onDeleteOriginals={() => setOriginals(deleteOriginals(originals))}
       onImport={() => router.push('/capture/import')}
       onGuide={() => router.push({ pathname: '/onboarding/guide', params: { from: 'capture' } })}
+      onClose={() => (router.canGoBack() ? router.back() : router.replace('/'))}
       onRecorded={({ uri, durationS, overridden }) => {
         if (uri) addOriginal(uri);
         setDraft(newClip({ uri, durationS, fps: RECORD_FPS, source: 'camera', overridden }));
