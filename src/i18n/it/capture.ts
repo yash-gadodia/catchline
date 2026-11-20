@@ -57,6 +57,7 @@ export const capture: Strings<typeof en> = {
   'capture.trim.pause': "Pausa",
   'capture.trim.long': "Video lungo. Taglialo alla sola alzata e il tracciamento è più veloce.",
   'capture.trim.tooLong': "Troppo lungo da tracciare. Taglialo a {max} s o meno.",
+  'capture.trim.tooShort': "Troppo corto da tracciare. Servono almeno {min} s, con tutta l'alzata dentro.",
   'capture.trim.track': "Traccia",
   'capture.trim.weightA11y': "Peso in {units}",
   'capture.mark.check': "Il cerchio è sul tuo disco? Trascinalo per spostarlo, o trascina il bordo per ridimensionarlo.",

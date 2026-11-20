@@ -126,11 +126,10 @@ export function markLayout(video: Size): { size: number; inset: number; widthPt:
 const REPLAY_BEFORE_S = 1.2;
 const REPLAY_AFTER_S = 0.8;
 export function buildStory(analysis: Analysis, story: NonNullable<TrackShareOptions['story']>, first: number, last: number, speed: ShareSpeed, clipFps?: number): NonNullable<TrackSpec['story']> {
-  const chart = shareChart(analysis, first, last, clipFps);
-  // the peak of the lift itself, as the player shows it: not the bar bouncing after it is dropped
-  const inLift = chart?.values.filter(([f]) => !analysis.lift || (f >= analysis.lift.startFrame && f <= analysis.lift.endFrame));
-  const peak = (inLift?.length ? inLift : chart?.values)?.reduce((a, b) => (b[1] > a[1] ? b : a));
-  const hero = peak && peak[1] > 0 ? { value: peak[1], unit: chart!.unit, label: t('share.story.peak'), kicker: story.kicker ?? '', peakFrame: peak[0] } : undefined;
+  // the peak of the pull, as the player and the result card show it (#253): not the bar bouncing after it is dropped
+  const bar = hasBarPath(analysis) ? barSpeed(analysis.reps[0].path, clipFps || analysis.video.fps, analysis.lift) : null;
+  const peak = bar?.peak && bar.peak.frame >= first && bar.peak.frame <= last ? bar.peak : null;
+  const hero = peak ? { value: peak.v, unit: 'm/s', label: t('share.story.peak'), kicker: story.kicker ?? '', peakFrame: peak.frame } : undefined;
   const fps = analysis.video.fps || 30;
   const xs = (analysis.reps[0]?.path ?? []).map((p) => p.x);
   const title = story.title ?? (hero ? `${hero.value.toFixed(2)} ${hero.unit}` : t('share.story.path'));

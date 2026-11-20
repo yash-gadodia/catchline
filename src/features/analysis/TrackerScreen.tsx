@@ -369,7 +369,7 @@ export default function TrackerScreen({
             <Readout testID="tracker-readout">{cropped ? `${seconds((frame - first) / fps)} s · ${frame + 1} / ${count}` : `${frame + 1} / ${count} · ${seconds(frame / fps)} s`}</Readout>
             {barSpeedOf?.peak && overlays.path ? (
               <Readout testID="tracker-speed">
-                {t('analysis.tracker.barSpeed', { now: speedAt(barSpeedOf.at, frame), peak: (peakIn(barSpeedOf.at, repAt(starts, frame).start, repAt(starts, frame).end) ?? barSpeedOf.peak.v).toFixed(2) })}
+                {t('analysis.tracker.barSpeed', { now: speedAt(barSpeedOf.at, frame), peak: (peakIn(barSpeedOf.at, analysis.reps[0].path, Math.max(repAt(starts, frame).start, analysis.lift?.startFrame ?? -Infinity), Math.min(repAt(starts, frame).end, (analysis.lift?.endFrame ?? Infinity) + 1)) ?? barSpeedOf.peak.v).toFixed(2) })}
               </Readout>
             ) : null}
           </View>
@@ -424,6 +424,7 @@ export default function TrackerScreen({
       {showLook ? (
         <FirstLook
           kind={lookKind}
+          cause={analysis.noPathCause}
           first={firstLift}
           peak={barSpeedOf?.peak?.v ?? null}
           free={free}

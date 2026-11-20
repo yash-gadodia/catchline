@@ -75,12 +75,12 @@ describe('framing checks', () => {
 });
 
 describe('trim', () => {
-  it('keeps the handles inside the clip and at least 1 s apart', () => {
+  it('keeps the handles inside the clip and at least 1.5 s apart (the tracker needs a second of the lifter seen, #249)', () => {
     const t = { start: 1.4, end: 7.6 };
     expect(moveHandle(t, 'start', -2, 8)).toEqual({ start: 0, end: 7.6 });
-    expect(moveHandle(t, 'start', 7.5, 8)).toEqual({ start: 6.6, end: 7.6 });
+    expect(moveHandle(t, 'start', 7.5, 8)).toEqual({ start: 6.1, end: 7.6 });
     expect(moveHandle(t, 'end', 20, 8)).toEqual({ start: 1.4, end: 8 });
-    expect(moveHandle(t, 'end', 1, 8)).toEqual({ start: 1.4, end: 2.4 });
+    expect(moveHandle(t, 'end', 1, 8)).toEqual({ start: 1.4, end: 2.9 });
   });
 
   it('slides the whole selection, keeping its length, inside the clip', () => {
@@ -90,18 +90,24 @@ describe('trim', () => {
     expect(slideTrim(t, -3, 10)).toEqual({ start: 0, end: 6.2 });
   });
 
-  it('nudges a handle a tenth of a second, still 1 s apart and inside the clip', () => {
+  it('nudges a handle a tenth of a second, still 1.5 s apart and inside the clip', () => {
     const t = { start: 1.4, end: 7.6 };
     expect(nudgeHandle(t, 'start', 1, 8)).toEqual({ start: 1.5, end: 7.6 });
     expect(nudgeHandle(t, 'end', -1, 8)).toEqual({ start: 1.4, end: 7.5 });
     expect(nudgeHandle({ start: 0, end: 8 }, 'start', -1, 8)).toEqual({ start: 0, end: 8 });
-    expect(nudgeHandle({ start: 6.95, end: 8 }, 'start', 1, 8)).toEqual({ start: 7, end: 8 });
+    expect(nudgeHandle({ start: 6.45, end: 8 }, 'start', 1, 8)).toEqual({ start: 6.5, end: 8 });
   });
 
   it('flags a trim longer than one lift, and one too long to analyse', () => {
     expect(trimProblem({ start: 0, end: 12 }, 86)).toBeNull();
     expect(trimProblem({ start: 0, end: 25 }, 86)).toBe('long');
     expect(trimProblem({ start: 0, end: 90 }, 86)).toBe('too_long');
+  });
+
+  it('stops a clip too short to track at the trim, not as a missing person after tracking (#249)', () => {
+    expect(trimProblem({ start: 0, end: 1.2 }, 86)).toBe('too_short');
+    expect(trimProblem({ start: 0, end: 1.5 }, 86)).toBeNull();
+    expect(trimProblem({ start: 2.1, end: 3.6 }, 86)).toBeNull();
   });
 
   it('loops playback inside the trim', () => {
@@ -129,10 +135,12 @@ describe('trim', () => {
 
   it('knows when a handle has hit the clip edge or the minimum length', () => {
     expect(atLimit({ start: 0, end: 5 }, 'start', 8)).toBe(true);
-    expect(atLimit({ start: 4, end: 5 }, 'start', 8)).toBe(true);
+    expect(atLimit({ start: 3.5, end: 5 }, 'start', 8)).toBe(true);
+    expect(atLimit({ start: 3.4, end: 5 }, 'start', 8)).toBe(false);
     expect(atLimit({ start: 2, end: 5 }, 'start', 8)).toBe(false);
     expect(atLimit({ start: 2, end: 8 }, 'end', 8)).toBe(true);
-    expect(atLimit({ start: 2, end: 3 }, 'end', 8)).toBe(true);
+    expect(atLimit({ start: 2, end: 3.5 }, 'end', 8)).toBe(true);
+    expect(atLimit({ start: 2, end: 3.6 }, 'end', 8)).toBe(false);
     expect(atLimit({ start: 2, end: 5 }, 'end', 8)).toBe(false);
   });
 
