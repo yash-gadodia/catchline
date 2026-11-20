@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { PanResponder, Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
+import { PanResponder, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
+import Text from '../../components/Text';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Rect } from 'react-native-svg';
 import type { Analysis, Measurement, Phase, PhaseName } from '../../analysis/types';
@@ -24,7 +25,7 @@ import Readout from '../../components/Readout';
 import TopBar from '../../components/TopBar';
 import { impact } from '../../lib/haptics';
 import { colors, control, opacity, shape, space, stroke } from '../../design/tokens';
-import { display, fontFamily, type } from '../../design/typography';
+import { display, displayCaps, fontFamily, type } from '../../design/typography';
 import Stage, { type StageLayer } from './Stage';
 import { CurrentDot, FlarePath, Guides, KeyDots, OverlaySvg, RefLine } from './overlays';
 import Filmstrip, { type PhaseMark } from './Filmstrip';
@@ -32,6 +33,7 @@ import FadeRow from './FadeRow';
 import DrawLayer from './DrawLayer';
 import { isComplete, type Shape } from './drawGeometry';
 import { t } from '../../i18n';
+import { useOnboarding } from '../onboarding/store';
 
 export type Speed = '0.25' | '0.5' | '1';
 const SPEEDS: Speed[] = ['0.25', '0.5', '1'];
@@ -58,6 +60,7 @@ export default function PlayerScreen({
 }) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const units = useOnboarding((s) => s.units);
   // A 3.x lift opens on the rep its cue was read from, as it always did.
   const rep = repByIndex(analysis, analysis.cue?.evidence.rep ?? analysis.bestRepIndex);
   const openFrame = initialFrame ?? (rep.phases[0] ? phaseFrame(rep, rep.phases[0].name) : rep.startFrame);
@@ -160,7 +163,7 @@ export default function PlayerScreen({
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }} testID="player-screen">
-      <TopBar title={liftTitle(analysis, rep.index)} onBack={onBack} onMore={onMore} />
+      <TopBar title={liftTitle(analysis, units, rep.index)} onBack={onBack} onMore={onMore} />
       <View {...pan.panHandlers} testID="player-video">
         <Pressable
           onPress={togglePlay}
@@ -327,7 +330,7 @@ function PhaseHead({ phase, fps }: { phase: Phase; fps: number }) {
   const meta = UNTIMED.includes(phase.name) ? range : `${range} · ${seconds(phaseSeconds(phase, fps))} s`;
   return (
     <View testID="phase-head" style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: space.s3 }}>
-      <Text testID="phase-name" style={[display(30), { color: colors.text, textTransform: 'uppercase', flexShrink: 1 }]}>
+      <Text testID="phase-name" style={[displayCaps(30), { color: colors.text, flexShrink: 1 }]}>
         {phaseLabel(phase.name)}
       </Text>
       <Text style={{ ...type.caption, color: colors.text2 }}>{meta}</Text>

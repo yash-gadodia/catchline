@@ -8,6 +8,7 @@ import { useLibrary } from '../../src/features/library/repository';
 import { useLiftNames } from '../../src/features/library/liftNames';
 import { detailsOf, useLiftDetails } from '../../src/features/library/liftDetails';
 import { sameKindLifts } from '../../src/features/analysis/compare';
+import { useOnboarding } from '../../src/features/onboarding/store';
 
 // Two tracked lifts side by side: `a` is the lift the lifter came from, `b` another of the same kind (the last one
 // before it to begin with; the lifter can pick any other whose clip is still on the phone).
@@ -18,8 +19,9 @@ export default function CompareRoute() {
   const { lifts } = useLibrary();
   const shapes = useLiftNames((s) => s.shapes);
   const details = useLiftDetails((s) => s.details);
+  const units = useOnboarding((s) => s.units);
   const others = sameKindLifts(lifts, shapes, a)
-    .flatMap((l) => (l.analysisId && localClipUri(l.analysisId) ? [{ id: l.analysisId, title: [detailsOf(details, l.analysisId).name, liftTitle(l)].filter(Boolean).join(' · ') }] : []))
+    .flatMap((l) => (l.analysisId && localClipUri(l.analysisId) ? [{ id: l.analysisId, title: [detailsOf(details, l.analysisId).name, liftTitle(l, units)].filter(Boolean).join(' · ') }] : []))
     .slice(0, MAX_OTHERS);
   const [pair, setPair] = useState<[ComparedLift, ComparedLift] | 'missing' | null>(null);
   useEffect(() => {
@@ -30,7 +32,7 @@ export default function CompareRoute() {
       if (!id || !clipUri) return null;
       const [analysis, body] = await Promise.all([readLocalAnalysis(id), readLocalBody(id)]);
       const lift = lifts.find((l) => (l.analysisId ?? l.id) === id);
-      return analysis ? { analysis, body, clipUri, title: lift ? liftTitle(lift) : '' } : null;
+      return analysis ? { analysis, body, clipUri, title: lift ? liftTitle(lift, units) : '' } : null;
     };
     Promise.all([load(a), load(b)]).then(
       ([x, y]) => live && setPair(x && y ? [x, y] : 'missing'),
@@ -39,7 +41,7 @@ export default function CompareRoute() {
     return () => {
       live = false;
     };
-  }, [a, b]);
+  }, [a, b, units]);
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
   if (pair === null) return <AnalysisPlaceholder status="loading" onBack={back} />;
   if (pair === 'missing') return <AnalysisPlaceholder status="missing" onBack={back} />;

@@ -14,6 +14,7 @@ import { SHARE_ASPECTS } from '../../src/features/share/overlay';
 import { EVENTS, track } from '../../src/lib/analytics';
 import { liftCaption } from '../../src/features/library/derive';
 import { useLift } from '../../src/features/library/repository';
+import { useOnboarding } from '../../src/features/onboarding/store';
 
 // Where a share can be opened from; anything else in the link counts as the player.
 const FROM = ['player', 'reveal'];
@@ -33,11 +34,12 @@ export default function ShareRoute() {
   const kept = id ? localClipUri(id) : null;
   const body = useLocalBody(id, !!kept);
   const lift = useLift(id);
+  const units = useOnboarding((s) => s.units);
   if (load.status !== 'ready') return <AnalysisPlaceholder status={load.status} onBack={back} />;
   const analysis = load.analysis;
   if (kept) {
     if (!body.ready) return <AnalysisPlaceholder status="loading" onBack={back} />;
-    return <TrackShareScreen key={analysis.id} analysis={analysis} body={body.body} clipUri={kept} watermark caption={lift ? liftCaption(lift) : null} onBack={back} onInvite={() => router.push('/you/invite' as Href)} />;
+    return <TrackShareScreen key={analysis.id} analysis={analysis} body={body.body} clipUri={kept} watermark caption={lift ? liftCaption(lift, units) : null} onBack={back} onInvite={() => router.push('/you/invite' as Href)} />;
   }
   const clip = __DEV__ && p.clip ? { uri: p.clip, startS: Number(p.start ?? 0) } : localClipFor(analysis.id);
   return (

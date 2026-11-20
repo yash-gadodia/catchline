@@ -11,6 +11,7 @@ export const capture: Strings<typeof en> = {
   'capture.hud.stopRecording': "Aufnahme stoppen",
   'capture.hud.record': "Aufnehmen",
   'capture.viewfinder.fps': "{fps} fps",
+  'capture.viewfinder.close': "Schließen",
   'capture.viewfinder.tooLongTitle': "Über 30 Sekunden",
   'capture.viewfinder.tooLongBody': "Lange Videos brauchen länger. Stopp hier; schneiden kannst du auf dem nächsten Bildschirm.",
   'capture.viewfinder.getSet': "Bereit machen",

@@ -69,6 +69,7 @@ describe('ScreenshotSheet', () => {
   it('turning the switch off closes the sheet and keeps the prompt off', async () => {
     useScreenshotFeedback.setState({ shot: 'file:///mock/screen.jpg' });
     const view = await render(<ScreenshotSheet />);
+    expect(view.getByTestId('screenshot-toggle')).toHaveProp('accessibilityLabel', 'Screenshot to give feedback');
     await act(async () => fireEvent(view.getByTestId('screenshot-toggle'), 'valueChange', false));
     expect(useScreenshotFeedback.getState()).toMatchObject({ enabled: false, shot: null });
     expect(view.queryByTestId('screenshot-sheet')).toBeNull();

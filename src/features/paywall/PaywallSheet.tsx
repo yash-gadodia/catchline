@@ -1,6 +1,7 @@
 import { EVENTS, track } from '../../lib/analytics';
 import { useState } from 'react';
-import { ScrollView, Text, View, useWindowDimensions } from 'react-native';
+import { ScrollView, View, useWindowDimensions } from 'react-native';
+import Text from '../../components/Text';
 import Btn from '../../components/Btn';
 import Segmented from '../../components/Segmented';
 import Sheet from '../../components/Sheet';
@@ -117,7 +118,7 @@ export default function PaywallSheet({
             </View>
             <View style={{ gap: space.s2 }}>
               <OptionCard selected={choice === 'pro'} onPress={() => setChoice('pro')} testID="plan-pro">
-                <View style={{ flex: 1 }}>
+                <View style={{ flexGrow: 1, flexShrink: 1, flexBasis: 140 }} testID="plan-pro-name">
                   <Text style={{ color: colors.text, ...type.button }}>{t('paywall.pro')}</Text>
                   <Text style={{ color: colors.text2, ...type.small }}>{t('paywall.unlimited')}</Text>
                 </View>
@@ -125,7 +126,7 @@ export default function PaywallSheet({
               </OptionCard>
               {seats && foundingState(seats) !== 'soldOut' ? (
                 <OptionCard selected={choice === 'founding'} onPress={() => { track(EVENTS.PAYWALL_PLAN_SELECTED, { plan: 'founding' }); setChoice('founding'); }} testID="plan-founding">
-                  <View style={{ flex: 1 }}>
+                  <View style={{ flexGrow: 1, flexShrink: 1, flexBasis: 140 }}>
                     <Text style={{ color: colors.text, ...type.label, fontFamily: fontFamily.body }}>{t('paywall.founding')}</Text>
                     <Text testID="founding-seats" style={{ color: colors.text, ...type.readout }}>
                       {seatsLeftLabel(seats)}
@@ -146,7 +147,7 @@ export default function PaywallSheet({
                 {t('paywall.inviteFree')}
               </Btn>
             ) : null}
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: space.s3 }} testID="paywall-links">
               <Btn kind="text" onPress={onNotNow} testID="not-now">
                 {t('paywall.notNow')}
               </Btn>

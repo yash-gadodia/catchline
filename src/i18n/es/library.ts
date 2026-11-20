@@ -5,6 +5,7 @@ export const library: Strings<typeof en> = {
   'library.tabs.lifts': "Levantamientos",
   'library.tabs.you': "Tú",
   'library.date.dayMonth': "{day} {month}",
+  'library.date.dayMonthYear': "{day} {month} {year}",
   'library.free.all': { one: "{count} vídeo gratis", other: "{count} vídeos gratis" },
   'library.free.used': "Vídeos gratis usados",
   'library.free.left': { one: "Te queda {count} vídeo gratis", other: "Te quedan {count} vídeos gratis" },

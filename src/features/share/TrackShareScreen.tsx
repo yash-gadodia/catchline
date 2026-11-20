@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { PanResponder, Pressable, Text, View, useWindowDimensions } from 'react-native';
+import { PanResponder, Pressable, View, useWindowDimensions } from 'react-native';
+import Text from '../../components/Text';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import type { Analysis } from '../../analysis/types';
@@ -25,6 +26,8 @@ import { liftCsv } from './csv';
 import { shareLiftsCsv } from '../you/liftsCsv';
 import { STORY_ASPECT, buildStory, buildTrackSpec, markLayout, shareCaption, shareChart, shareSpeeds, storyPlacement, storyValue, frameCountOf, hasBarPath, type ShareSpeed, type TrackShareOptions } from './trackShare';
 import { Chip } from './ui';
+import { formatLoad } from '../../analysis/format';
+import { useOnboarding } from '../onboarding/store';
 
 export type TrackShareDeps = {
   renderVideo: typeof renderTrackVideo;
@@ -80,6 +83,7 @@ export default function TrackShareScreen({
   deps?: TrackShareDeps;
 }) {
   const insets = useSafeAreaInsets();
+  const units = useOnboarding((s) => s.units);
   const { width, height } = useWindowDimensions();
   const fps = analysis.video.fps;
   const count = frameCountOf(analysis, body);
@@ -191,7 +195,7 @@ export default function TrackShareScreen({
   const maxH = room ?? Math.max(240, height - insets.top - insets.bottom - 380);
   const lockup = watermark && (deps.shareBrand ?? shareBrandSupported());
   const chart = details && graph ? shareChart(analysis, first, last, clipFps) : undefined;
-  const options: TrackShareOptions = { ...layers, body: layers.body && body !== null, watermark, speed, whole, ...(details ? { details: { graph, caption: captioned ? caption : null } } : {}), ...(storyOk && story ? { story: { kicker: captioned ? caption : null, title: analysis.loadKg != null ? `${analysis.loadKg} kg` : null, code } } : {}), ...(clipFps ? { clipFps } : {}) };
+  const options: TrackShareOptions = { ...layers, body: layers.body && body !== null, watermark, speed, whole, ...(details ? { details: { graph, caption: captioned ? caption : null } } : {}), ...(storyOk && story ? { story: { kicker: captioned ? caption : null, title: analysis.loadKg != null ? formatLoad(analysis.loadKg, units) : null, code } } : {}), ...(clipFps ? { clipFps } : {}) };
   // the story as the video will carry it: the preview is the 9:16 canvas with the clip placed as StoryRenderer places it
   const storySpec = options.story ? buildStory(analysis, options.story, first, last, speed, clipFps) : null;
   const canvasW = Math.min(width, Math.round(maxH * STORY_ASPECT));

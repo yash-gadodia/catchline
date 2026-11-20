@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { Units } from '../../analysis/format';
 
-export type Units = 'kg' | 'lb';
+export type { Units };
 
 // Bump when the privacy copy changes so everyone re-consents.
 export const CONSENT_VERSION = 1;

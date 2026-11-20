@@ -12,6 +12,7 @@ export const capture: Strings<typeof en> = {
   'capture.hud.stopRecording': "撮影を停止",
   'capture.hud.record': "撮影",
   'capture.viewfinder.fps': "{fps} fps",
+  'capture.viewfinder.close': "閉じる",
   'capture.viewfinder.framingGuide': "全身とバーを画面に入れ、iPhoneは固定",
   'capture.viewfinder.tooLongTitle': "30秒を超えました",
   'capture.viewfinder.tooLongBody': "長い動画はトラッキングに時間がかかります。ここで止めましょう。次の画面でトリミングできます。",

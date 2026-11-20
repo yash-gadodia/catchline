@@ -1,4 +1,5 @@
-import { Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { View, type StyleProp, type ViewStyle } from 'react-native';
+import Text from './Text';
 import { colors } from '../design/tokens';
 import { fontFamily } from '../design/typography';
 

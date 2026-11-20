@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { Pressable, Switch, Text, View } from 'react-native';
+import { Pressable, Switch, View } from 'react-native';
+import Text from '../../components/Text';
 import { colors, shape, space, stroke } from '../../design/tokens';
 import { fontFamily, type } from '../../design/typography';
 
@@ -26,7 +27,7 @@ export function Chip({
       accessibilityRole="button"
       accessibilityState={{ selected: on, disabled: !!disabled }}
       style={{
-        height: mono ? 32 : 36,
+        minHeight: mono ? 32 : 36,
         paddingHorizontal: mono ? 10 : 12,
         borderWidth: 1,
         borderColor: on ? colors.text : colors.hairline,
@@ -48,12 +49,13 @@ export function Chip({
   );
 }
 
-export function Toggle({ value, onChange, testID }: { value: boolean; onChange: (v: boolean) => void; testID?: string }) {
+export function Toggle({ value, onChange, testID, accessibilityLabel }: { value: boolean; onChange: (v: boolean) => void; testID?: string; accessibilityLabel?: string }) {
   return (
     <Switch
       value={value}
       onValueChange={onChange}
       testID={testID}
+      accessibilityLabel={accessibilityLabel}
       trackColor={{ false: colors.surface2, true: colors.text }}
       thumbColor={value ? colors.bg : colors.text3}
       ios_backgroundColor={colors.surface2}
@@ -118,7 +120,8 @@ export function DangerBtn({
       accessibilityState={{ disabled: !!disabled }}
       style={({ pressed }) => ({
         flex: compact ? 1 : undefined,
-        height: compact ? 48 : 56,
+        minHeight: compact ? 48 : 56,
+        paddingHorizontal: space.s4,
         ...shape.control,
         borderWidth: stroke.outline,
         borderColor: disabled ? colors.hairline : colors.flare,

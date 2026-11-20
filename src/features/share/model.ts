@@ -1,5 +1,5 @@
 import type { Analysis, Measurement } from '../../analysis/types';
-import { fmt, heroValue, movementLabel } from '../../analysis/format';
+import { formatLoad, heroValue, movementLabel, type Units } from '../../analysis/format';
 import { cueText } from '../../i18n/cues';
 import type { ShareAspect } from './overlay';
 
@@ -38,9 +38,9 @@ export function cueMeasurement(a: Analysis): Measurement | null {
 
 export type CardCopy = { hero: string | null; label: string | null; cue: string | null; meta: string };
 
-export function cardCopy(a: Analysis): CardCopy {
+export function cardCopy(a: Analysis, units: Units): CardCopy {
   const parts = [movementLabel(a.movement).toLowerCase()];
-  if (a.loadKg != null) parts.push(`${fmt(a.loadKg)} kg`);
+  if (a.loadKg != null) parts.push(formatLoad(a.loadKg, units));
   return {
     hero: a.cue ? heroValue(a.cue) : null,
     label: cueMeasurement(a)?.label ?? null,

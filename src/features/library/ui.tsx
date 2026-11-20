@@ -1,5 +1,6 @@
 import { useEffect, type ReactNode } from 'react';
-import { Image, Pressable, Text, View, type ImageSourcePropType, type StyleProp, type ViewStyle } from 'react-native';
+import { Image, Pressable, View, type ImageSourcePropType, type StyleProp, type ViewStyle } from 'react-native';
+import Text from '../../components/Text';
 import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import { frameSource } from '../../analysis/frames';
 import { coverFit } from '../../analysis/geometry';

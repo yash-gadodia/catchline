@@ -44,9 +44,16 @@ export function addLine(shapes: Shape[], a: Point, b: Point): Shape[] {
   return [...shapes.filter(isComplete), { kind: 'line', points: [a, b] }];
 }
 
+// A tap this close (in normalised units) to a point the angle already has is the same spot: it would make a
+// zero-length arm and a stray 0° mark that takes a drawing slot.
+export const SAME_SPOT = 0.02;
+
 export function addAnglePoint(shapes: Shape[], p: Point): Shape[] {
   if (!canDraw(shapes)) return shapes;
   const last = shapes[shapes.length - 1];
-  if (last && !isComplete(last)) return [...shapes.slice(0, -1), { kind: 'angle', points: [...last.points, p] }];
+  if (last && !isComplete(last)) {
+    if (last.points.some((q) => Math.hypot(p.x - q.x, p.y - q.y) < SAME_SPOT)) return shapes;
+    return [...shapes.slice(0, -1), { kind: 'angle', points: [...last.points, p] }];
+  }
   return [...shapes, { kind: 'angle', points: [p] }];
 }

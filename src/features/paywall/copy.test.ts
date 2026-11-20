@@ -13,6 +13,7 @@ import {
   shortDate,
   successBody,
 } from './copy';
+import { setLanguage } from '../../i18n';
 
 const OCT11 = new Date(2026, 9, 11);
 const WED = new Date(2026, 10, 11, 9, 0);
@@ -49,6 +50,24 @@ describe('the sheet', () => {
     expect(sheetBody(0, WED)).toBe('They come back on Monday, 16 Nov. Catchline Pro has no limit.');
     expect(sheetBody(0, new Date(2026, 10, 15, 23, 0))).toBe('They come back on Monday, 16 Nov. Catchline Pro has no limit.');
     expect(sheetBody(0, new Date(2026, 10, 30))).toBe('They come back on Monday, 7 Dec. Catchline Pro has no limit.');
+  });
+
+  it('writes the month out in other languages, so a short month ending in a dot never meets the full stop', () => {
+    const FRI = new Date(2026, 10, 20, 9, 0);
+    try {
+      setLanguage('fr');
+      expect(sheetBody(0, FRI)).toBe("Elles reviennent lundi 23 novembre. Catchline Pro n'a pas de limite.");
+      setLanguage('pt-BR');
+      expect(sheetBody(0, FRI)).toBe('Eles voltam na segunda, 23 de novembro. O Catchline Pro não tem limite.');
+      setLanguage('de');
+      expect(sheetBody(0, FRI)).toBe('Am Montag, 23. November, gibt es neue. Catchline Pro hat kein Limit.');
+      for (const lang of ['es', 'it', 'ja', 'ko', 'zh-Hans'] as const) {
+        setLanguage(lang);
+        expect(sheetBody(0, FRI)).not.toMatch(/\.\./);
+      }
+    } finally {
+      setLanguage('en');
+    }
   });
 });
 

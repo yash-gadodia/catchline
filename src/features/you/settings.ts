@@ -2,11 +2,11 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Movement } from '../../analysis/types';
-import { movementLabel } from '../../analysis/format';
+import { movementLabel, type Units } from '../../analysis/format';
 import { setHapticsEnabled } from '../../lib/haptics';
 import { setLanguage, t, type Language } from '../../i18n';
 
-export type Units = 'kg' | 'lb';
+export type { Units };
 export type FrameRate = 'auto' | '60' | '120' | '240';
 export type AutoDelete = '24h' | '7d' | '30d' | 'never';
 export type CueReminder = { days: number[]; time: string };

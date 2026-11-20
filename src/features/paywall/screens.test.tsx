@@ -39,6 +39,15 @@ describe('PaywallSheet for a free lifter', () => {
     expect(getByTestId('founding-seats')).toHaveTextContent('137 of 500 left');
   });
 
+  it('at large text the price drops under the plan name and the button grows, instead of a letter a line (#115)', async () => {
+    const { getByTestId, getByText } = await renderPaywall(handlers());
+    expect(getByTestId('plan-pro')).toHaveStyle({ flexDirection: 'row', flexWrap: 'wrap', minHeight: 56 });
+    expect(getByTestId('plan-pro-name')).toHaveStyle({ flexBasis: 140, flexShrink: 1 });
+    expect(getByTestId('continue')).toHaveStyle({ minHeight: 56, paddingHorizontal: 16 });
+    expect(getByText('Continue · $19.99 a year')).toHaveStyle({ textAlign: 'center' });
+    expect(getByTestId('paywall-links')).toHaveStyle({ flexWrap: 'wrap', gap: 12 });
+  });
+
   it('with free videos in hand, sells unlimited videos and claims nothing is used up', async () => {
     const { getByText, queryByText } = await renderPaywall(handlers(), { freeLeft: 2, queued: false });
     expect(getByText('Unlimited videos.')).toBeOnTheScreen();

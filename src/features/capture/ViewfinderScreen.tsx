@@ -1,5 +1,6 @@
 import { useEffect, useReducer, useRef } from 'react';
-import { Image, Pressable, Text, View, useWindowDimensions } from 'react-native';
+import { Image, Pressable, View, useWindowDimensions } from 'react-native';
+import Text from '../../components/Text';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Speech from 'expo-speech';
@@ -29,6 +30,7 @@ export default function ViewfinderScreen({
   onDeleteOriginals,
   onImport,
   onGuide,
+  onClose,
   onRecorded,
   camera = true,
   initial = { kind: 'idle' },
@@ -44,6 +46,8 @@ export default function ViewfinderScreen({
   onDeleteOriginals: () => void;
   onImport: () => void;
   onGuide: () => void;
+  // a way out without filming, like every other pushed screen
+  onClose: () => void;
   onRecorded: (r: Recorded) => void;
   // false: no camera (simulator, design QA), show a still frame instead.
   camera?: boolean;
@@ -122,11 +126,14 @@ export default function ViewfinderScreen({
               left: space.gutter,
               right: space.gutter,
               flexDirection: 'row',
-              justifyContent: 'flex-end',
               alignItems: 'center',
               gap: space.s2,
             }}
           >
+            <HudBadge square onPress={onClose} accessibilityLabel={t('capture.viewfinder.close')} testID="close-button">
+              ✕
+            </HudBadge>
+            <View style={{ flex: 1 }} />
             <HudBadge testID="fps-badge">{t('capture.viewfinder.fps', { fps })}</HudBadge>
             <HudBadge square onPress={onGuide} testID="guide-button">
               ?

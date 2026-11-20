@@ -20,6 +20,7 @@ import { useOnboarding } from '../onboarding/store';
 import { useUsage } from '../paywall/usageStore';
 import { usePurchases } from '../purchases/usePurchases';
 import { NO_USER, useAuthUser } from '../auth/authUser';
+import { useScreenshotFeedback } from '../feedback/screenshot';
 
 jest.mock('expo-file-system', () => {
   const File = jest.fn().mockImplementation(() => ({ uri: 'file:///cache/catchline-data.json', create: jest.fn(), write: jest.fn() }));
@@ -149,6 +150,25 @@ describe('YouScreen', () => {
       fireEvent(screen.getByTestId('toggle-haptics'), 'valueChange', true);
     });
     expect(isHapticsEnabled()).toBe(true);
+  });
+
+  it('reads the Haptics and screenshot rows as switches with their state, and a tap on the row flips them', async () => {
+    useScreenshotFeedback.setState({ enabled: true });
+    const screen = await render(<YouScreen nav={nav} />);
+    const haptics = screen.getByTestId('row-haptics');
+    expect(haptics).toHaveProp('accessibilityRole', 'switch');
+    expect(haptics).toBeChecked();
+    await press(haptics);
+    expect(useSettings.getState().haptics).toBe(false);
+    expect(screen.getByTestId('row-haptics')).not.toBeChecked();
+    await press(screen.getByTestId('row-haptics'));
+    expect(useSettings.getState().haptics).toBe(true);
+    const shot = screen.getByTestId('row-screenshot');
+    expect(shot).toHaveProp('accessibilityRole', 'switch');
+    expect(shot).toBeChecked();
+    await press(shot);
+    expect(useScreenshotFeedback.getState().enabled).toBe(false);
+    expect(screen.getByTestId('row-screenshot')).not.toBeChecked();
   });
 
   it('renames the profile', async () => {

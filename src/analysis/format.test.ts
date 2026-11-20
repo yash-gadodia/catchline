@@ -1,6 +1,7 @@
 import type { Cue, Measurement } from './types';
 import {
   fmt,
+  formatLoad,
   formatWait,
   heroValue,
   liftTitle,
@@ -33,14 +34,32 @@ describe('fmt', () => {
 
 describe('titles', () => {
   it('reads movement, load and rep', () => {
-    expect(liftTitle(snatchMock, 2)).toBe('Snatch · 62.5 kg · rep 2');
-    expect(liftTitle(snatchMock)).toBe('Snatch · 62.5 kg');
-    expect(liftTitle({ ...snatchMock, loadKg: 67.5 }, 'miss')).toBe('Snatch · 67.5 kg · miss');
+    expect(liftTitle(snatchMock, 'kg', 2)).toBe('Snatch · 62.5 kg · rep 2');
+    expect(liftTitle(snatchMock, 'kg')).toBe('Snatch · 62.5 kg');
+    expect(liftTitle({ ...snatchMock, loadKg: 67.5 }, 'kg', 'miss')).toBe('Snatch · 67.5 kg · miss');
+  });
+
+  it('reads the load in lb when the lifter picked lb', () => {
+    expect(liftTitle({ ...snatchMock, loadKg: 72.5 }, 'lb')).toBe('Snatch · 160 lb');
   });
 
   it('labels phases for chips', () => {
     expect(phaseLabel('first_pull')).toBe('1st pull');
     expect(phaseLabel('second_pull')).toBe('2nd pull');
+  });
+});
+
+describe('loads', () => {
+  it('shows kg as stored and lb to the nearest half pound', () => {
+    expect(formatLoad(62.5, 'kg')).toBe('62.5 kg');
+    expect(formatLoad(72.5, 'lb')).toBe('160 lb');
+    expect(formatLoad(100, 'lb')).toBe('220.5 lb');
+  });
+
+  it('reads a lb entry back as typed, though it is stored to 0.1 kg', () => {
+    // 135 lb is stored as 61.2 kg, 137.5 lb as 62.4 kg (parseWeight)
+    expect(formatLoad(61.2, 'lb')).toBe('135 lb');
+    expect(formatLoad(62.4, 'lb')).toBe('137.5 lb');
   });
 });
 

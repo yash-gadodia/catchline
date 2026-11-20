@@ -66,6 +66,27 @@ describe('shape list', () => {
     ]);
   });
 
+  it('ignores a tap on a point the angle already has, so three taps on one spot leave no 0° mark', () => {
+    let shapes: Shape[] = [];
+    for (let i = 0; i < 3; i++) shapes = addAnglePoint(shapes, p(0.5));
+    expect(shapes).toEqual([{ kind: 'angle', points: [p(0.5)] }]);
+    shapes = addAnglePoint(shapes, { x: 0.505, y: 0.5 });
+    expect(shapes).toEqual([{ kind: 'angle', points: [p(0.5)] }]);
+    shapes = addAnglePoint(shapes, p(0.3));
+    shapes = addAnglePoint(shapes, p(0.5));
+    expect(shapes).toEqual([{ kind: 'angle', points: [p(0.5), p(0.3)] }]);
+    shapes = addAnglePoint(shapes, { x: 0.3, y: 0.1 });
+    expect(shapes).toEqual([{ kind: 'angle', points: [p(0.5), p(0.3), { x: 0.3, y: 0.1 }] }]);
+  });
+
+  it('the ignored taps leave every drawing slot free', () => {
+    let shapes: Shape[] = [];
+    for (let i = 0; i < 3; i++) shapes = addAnglePoint(shapes, p(0.5));
+    for (let i = 0; i < 3; i++) shapes = addLine(shapes, p(0.1), p(0.2 + i / 10));
+    expect(shapes).toHaveLength(3);
+    expect(shapes.every((s) => s.kind === 'line')).toBe(true);
+  });
+
   it('a line drops an angle left half-placed', () => {
     const shapes = addLine(addAnglePoint([], p(0.1)), p(0.2), p(0.3));
     expect(shapes).toEqual([{ kind: 'line', points: [p(0.2), p(0.3)] }]);

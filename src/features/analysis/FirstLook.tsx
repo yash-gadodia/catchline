@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import Text from '../../components/Text';
 import Btn from '../../components/Btn';
 import { colors, control, shape, space, stroke } from '../../design/tokens';
 import { display, type } from '../../design/typography';

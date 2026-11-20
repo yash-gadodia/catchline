@@ -4,8 +4,10 @@ import type { Plan } from './products';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+// Other languages get the month written out: their short months can end in a dot ("nov."), which doubled the full
+// stop where the date ends a sentence ("lundi 23 nov..").
 export function shortDate(d: Date): string {
-  if (getLocale() !== 'en') return formatDate(d, { day: 'numeric', month: 'short' });
+  if (getLocale() !== 'en') return formatDate(d, { day: 'numeric', month: 'long' });
   return `${d.getDate()} ${MONTHS[d.getMonth()]}`;
 }
 
