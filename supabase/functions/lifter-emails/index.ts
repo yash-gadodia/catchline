@@ -47,7 +47,7 @@ Deno.serve(async (req: Request) => {
     try {
       await smtp.sendMail({ from: `Yash from Catchline <${user}>`, to: mail.to, subject: mail.subject, text: mail.body });
       // first_lift also closes the welcome: nobody gets "you just joined" after "how was your first lift"
-      const rows = d.kind === "first_lift" ? [{ user_id: d.user_id, kind: "first_lift" }, { user_id: d.user_id, kind: "welcome" }] : [{ user_id: d.user_id, kind: "welcome" }];
+      const rows = d.kind === "first_lift" ? [{ user_id: d.user_id, kind: "first_lift" }, { user_id: d.user_id, kind: "welcome" }] : [{ user_id: d.user_id, kind: d.kind }];
       const { error: wrote } = await admin.from("lifter_emails").upsert(rows, { onConflict: "user_id,kind", ignoreDuplicates: true });
       if (wrote) throw wrote;
       results.push({ user_id: d.user_id, kind: d.kind, ok: true });

@@ -1,6 +1,6 @@
 // The two emails, as pure functions (tested in handler_test.ts). Plain text, the owner's own voice, no tracking.
 
-export type Due = { user_id: string; email: string; display_name: string | null; kind: "welcome" | "first_lift"; founding: boolean };
+export type Due = { user_id: string; email: string; display_name: string | null; kind: "welcome" | "first_lift" | "subscribed"; founding: boolean };
 export type Mail = { to: string; subject: string; body: string };
 
 // "Selene Say" greets as "Selene". One word, three or more words, or no name: no name is used, because which part is
@@ -22,6 +22,17 @@ export function mailFor(d: Due): Mail {
       subject: "you just joined Catchline",
       body: [greeting(d.display_name), "Yash here. I built Catchline.", ABOUT, REPLY,
         "One ask: once you've tracked a lift, tell me what looked wrong or what's missing. Even one line helps.", REACH, "Yash"].join("\n\n"),
+    };
+  }
+  if (d.kind === "subscribed") {
+    return {
+      to: d.email,
+      subject: "thank you",
+      body: [greeting(d.display_name), "Yash here. I built Catchline.",
+        d.founding ? "You just became a founding member. Thank you." : "You just went Pro. Thank you.",
+        "I'm one person building this, so every lifter who backs it means a lot to me. It's what lets me keep working on it.",
+        "If anything ever breaks, or there's something you want added, reply here and tell me.",
+        REPLY, REACH, "Yash"].join("\n\n"),
     };
   }
   const about = d.founding ? `${ABOUT} Thank you for backing it early as a founding member, it means a lot.` : ABOUT;

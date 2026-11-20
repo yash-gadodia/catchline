@@ -28,3 +28,11 @@ Deno.test("relay addresses wait for the Apple registration; excluded addresses n
   assertEquals(sendable(relay, { relayOk: true, exclude: [] }), true);
   assertEquals(sendable(due, { relayOk: true, exclude: ["a@example.com"] }), false);
 });
+
+Deno.test("the thank-you names what they bought and says what it means", () => {
+  const pro = mailFor({ ...due, kind: "subscribed" });
+  assertEquals(pro.subject, "thank you");
+  assertStringIncludes(pro.body, "You just went Pro. Thank you.");
+  assertStringIncludes(pro.body, "means a lot to me");
+  assertStringIncludes(mailFor({ ...due, kind: "subscribed", founding: true }).body, "founding member");
+});
