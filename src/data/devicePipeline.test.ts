@@ -3,7 +3,8 @@ import { snatchMock } from '../analysis/fixtures';
 import type { Analysis } from '../analysis/types';
 import type { ClipSubmission } from '../features/capture/submit';
 import { usePipeline, startLift } from './pipeline';
-import { analyseLoop, cancelDeviceLift, failureReason, nativeCode, readTrace, retrackLift, startDeviceLift, toNativePlan } from './devicePipeline';
+import { analyseLoop, cancelDeviceLift, deviceLiftInFlight, failureReason, holdDeviceLift, nativeCode, readTrace, resumeDeviceLifts, retrackLift, startDeviceLift, toNativePlan, trackHeldLifts } from './devicePipeline';
+import { weekKey } from '../features/paywall/entitlements';
 import { strFromU8 } from 'fflate';
 import { AppState } from 'react-native';
 import * as Notifications from 'expo-notifications';
@@ -545,6 +546,41 @@ describe('a lift the app is killed in the middle of (#250)', () => {
 
     killed.reject(new Error('cancelled'));
     await before;
+  });
+});
+
+describe('a lift held by the weekly cap (#247: "Your video is saved and goes first")', () => {
+  const thisWeekUsed = () => useUsage.setState({ usage: { lifetime: 1, week: weekKey(new Date()), thisWeek: 1 } });
+
+  it('is kept on disk, not tracked, while the week\'s free video is used', async () => {
+    thisWeekUsed();
+    holdDeviceLift(SUB);
+    await resumeDeviceLifts();
+    expect(trackHeldLifts()).toBe(false);
+    expect(mockAnalyse).not.toHaveBeenCalled();
+    expect(usePendingLifts.getState().items).toEqual([{ liftId: 'lift-1', sub: SUB, at: expect.any(String), held: true }]);
+    expect(JSON.parse((await AsyncStorage.getItem('catchline-pending-lifts')) ?? '{}').state.items).toEqual([{ liftId: 'lift-1', sub: SUB, at: expect.any(String), held: true }]);
+    usePendingLifts.setState({ items: [] });
+  });
+
+  it('is tracked as soon as the lifter goes Pro, without picking it again', async () => {
+    thisWeekUsed();
+    holdDeviceLift(SUB);
+    usePurchases.setState({ tier: 'pull' });
+    expect(trackHeldLifts()).toBe(true);
+    await deviceLiftInFlight()?.done;
+    expect(mockAnalyse).toHaveBeenCalledWith('file:///clip.mov.mp4', 'snatch', undefined, FIRST_PASS);
+    expect(saveLocalLift).toHaveBeenCalledWith('lift-1', expect.objectContaining({ id: 'lift-1' }), 'file:///cache/pose-coreml/trace.json.gz', {}, null);
+    expect(usePendingLifts.getState().items).toEqual([]);
+  });
+
+  it('goes first when the free video is back: the next launch in a new week tracks it', async () => {
+    useUsage.setState({ usage: { lifetime: 1, week: '2026-01-05', thisWeek: 1 } });
+    holdDeviceLift(SUB);
+    await resumeDeviceLifts();
+    await deviceLiftInFlight()?.done;
+    expect(mockAnalyse).toHaveBeenCalledTimes(1);
+    expect(usePendingLifts.getState().items).toEqual([]);
   });
 });
 

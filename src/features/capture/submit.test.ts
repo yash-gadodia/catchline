@@ -12,7 +12,7 @@ jest.mock('expo-router', () => ({ __esModule: true, router: { push: jest.fn(), r
 const mockNav = jest.requireMock('expo-router').router as { push: jest.Mock; replace: jest.Mock; dismissTo: jest.Mock };
 jest.mock('../../data/backend', () => ({ backendEnabled: () => true }));
 jest.mock('../../data/pipeline', () => ({ startLift: jest.fn() }));
-jest.mock('../../data/devicePipeline', () => ({ deviceLiftInFlight: jest.fn(() => null) }));
+jest.mock('../../data/devicePipeline', () => ({ ...jest.requireActual('../../data/devicePipeline'), deviceLiftInFlight: jest.fn(() => null), trackHeldLifts: jest.fn(() => false) }));
 const mockInFlight = jest.requireMock('../../data/devicePipeline').deviceLiftInFlight as jest.Mock;
 jest.mock('../../lib/api', () => ({ ...jest.requireActual('../../lib/api'), getAllowance: jest.fn() }));
 const mockAllowance = jest.requireMock('../../lib/api').getAllowance as jest.Mock;
@@ -95,6 +95,32 @@ test('a free lifter with no videos left this week still gets the paywall, not a 
   await flush();
   expect(startLift).not.toHaveBeenCalled();
   expect(mockNav.replace).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/paywall/cap' }));
+});
+
+test('at the cap the clip is saved, as the paywall says: held on disk with its trim and mark, whatever the lifter answers (#247)', async () => {
+  const mark = { x: 0.5, y: 0.6, r: 0.1 };
+  useCapture.setState({ draft: { ...newClip({ uri: 'file:///clip.mov', durationS: 8, fps: 30, source: 'library', trim: { start: 1, end: 6 } }), plateMark: mark } });
+  usePurchases.setState({ tier: 'free', period: null });
+  useUsage.setState({ usage: { lifetime: 1, week: weekKey(new Date()), thisWeek: 1 } });
+
+  submitDraft({ replace: true });
+  await flush();
+
+  expect(startLift).not.toHaveBeenCalled();
+  expect(mockNav.replace).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/paywall/cap' }));
+  expect(usePendingLifts.getState().items).toEqual([
+    {
+      liftId: expect.any(String),
+      at: expect.any(String),
+      held: true,
+      sub: { uri: 'file:///clip.mov', movement: 'snatch', loadKg: 80, trim: { start: 1, end: 6 }, rep: 'all', source: 'library', fps: 30, overridden: [], plateMark: mark },
+    },
+  ]);
+
+  // the same clip at the cap again is the one already saved
+  submitDraft({ replace: true });
+  await flush();
+  expect(usePendingLifts.getState().items).toHaveLength(1);
 });
 
 test('the gate never waits on the server: a lower server count changes nothing (3.1: the phone decides)', async () => {

@@ -1,6 +1,6 @@
 import { AppState } from 'react-native';
 import { cancelFirstLiftNudges, scheduleFreeVideoBack } from '../features/notifications/nudges';
-import { freeLeft, nextWeekStart } from '../features/paywall/entitlements';
+import { freeLeft, gateFor, nextWeekStart } from '../features/paywall/entitlements';
 import { scheduleFeedbackNotification } from '../features/feedback/ask';
 import { File } from 'expo-file-system';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
@@ -213,6 +213,26 @@ export function startDeviceLift(sub: ClipSubmission & { uri: string }): Promise<
 
 const ends = new Map<string, () => void>();
 
+// A clip Track was pressed on at the weekly cap: kept on disk, as the cap sheet promises, and tracked before any
+// clip picked after it once the lifter goes Pro or the week's free video is back (#247).
+export function holdDeviceLift(sub: ClipSubmission & { uri: string }): void {
+  usePendingLifts.getState().add({ liftId: randomUUID(), sub, at: new Date().toISOString(), held: true });
+}
+
+// Lets the held lifts the gate now allows through, oldest first, and tracks them. True when one was let through.
+export function trackHeldLifts(now: Date = new Date()): boolean {
+  let released = false;
+  for (const item of usePendingLifts.getState().items) {
+    if (!item.held) continue;
+    const ahead = usePendingLifts.getState().items.filter((i) => !i.held).length;
+    if (gateFor(usePurchases.getState().tier, useUsage.getState().usage, now, ahead) !== 'ok') break;
+    usePendingLifts.getState().update(item.liftId, { held: false });
+    released = true;
+  }
+  pumpDeviceLifts();
+  return released;
+}
+
 // Starts the oldest lift waiting when none is tracking.
 function pumpDeviceLifts(): void {
   if (running) return;
@@ -222,20 +242,23 @@ function pumpDeviceLifts(): void {
   const done = runDeviceLift(next).finally(() => {
     usePendingLifts.getState().remove(liftId);
     if (running?.liftId === liftId) running = null;
+    if (cancelledRun === liftId) cancelledRun = null;
     ends.get(liftId)?.();
     ends.delete(liftId);
-    // the next one a moment later, so the screens see this one end before its job is replaced
-    setTimeout(pumpDeviceLifts, 0);
+    // the next one a moment later, so the screens see this one end before its job is replaced; a held one goes
+    // now if this lift left the week's free video unused
+    setTimeout(() => trackHeldLifts(), 0);
   });
   running = { liftId, done };
 }
 
 // At launch and whenever the app is back in front: a lift still on disk with nothing tracking it is one the app was
 // killed in the middle of (or never got to), and is tracked now. One that is still tracking in this process (the app
-// was only in the background, iOS 26's continued run) is left alone: running is set, and nothing starts twice.
+// was only in the background, iOS 26's continued run) is left alone: running is set, and nothing starts twice. A held
+// one goes once the week's free video is back (the count read from disk first, so it is never let through early).
 export async function resumeDeviceLifts(): Promise<void> {
-  await whenHydrated(usePendingLifts);
-  pumpDeviceLifts();
+  await Promise.all([whenHydrated(usePendingLifts), whenHydrated(useUsage)]);
+  trackHeldLifts();
 }
 
 async function runDeviceLift(item: PendingLift): Promise<void> {
@@ -323,6 +346,9 @@ export function retrackLift(liftId: string, movement: Movement, plateMark: Plate
   if (!uri || running) return null;
   const done = runRetrack(liftId, uri, movement, plateMark).finally(() => {
     if (running?.liftId === liftId) running = null;
+    if (cancelledRun === liftId) cancelledRun = null;
+    // a lift tracked while this one ran waited for it
+    setTimeout(() => trackHeldLifts(), 0);
   });
   running = { liftId, done };
   return done;

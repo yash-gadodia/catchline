@@ -105,10 +105,12 @@ export function localRow(item: OutboxItem): LiftRow {
   };
 }
 
-// A lift the lifter pressed Track on that waits for the one tracking (#252).
+// A lift the lifter pressed Track on that waits for the one tracking (#252), or that the weekly cap holds until a
+// purchase or Monday (#247: the row opens the paywall).
 export function pendingLift(item: PendingLift): Lift {
   const { sub, at } = item;
-  return { id: item.liftId, movement: sub.movement, date: dayOf(at), at, loadKg: sub.loadKg ?? undefined, status: 'processing', waiting: true };
+  const base = { id: item.liftId, movement: sub.movement, date: dayOf(at), at, loadKg: sub.loadKg ?? undefined };
+  return item.held ? { ...base, status: 'queued' } : { ...base, status: 'processing', waiting: true };
 }
 
 // Offline first: the lifts are the analyses in Documents plus the rows the server
@@ -130,7 +132,7 @@ export async function syncLibrary(now: Date = new Date()): Promise<void> {
   const lifts = [...pending, ...serverLifts].sort((a, b) => b.created_at.localeCompare(a.created_at));
   // the lifts on their way, newest first; the one tracking has the in-flight bar instead of a row
   const tracking = usePipeline.getState().job?.liftId;
-  const onTheirWay = usePendingLifts.getState().items.filter((i) => i.liftId !== tracking && !i.held).reverse().map(pendingLift);
+  const onTheirWay = usePendingLifts.getState().items.filter((i) => i.liftId !== tracking).reverse().map(pendingLift);
   useLibraryStore.getState().load({
     today: dayOf(now.toISOString()),
     synced: true,

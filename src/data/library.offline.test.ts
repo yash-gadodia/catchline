@@ -88,6 +88,18 @@ describe('the library in airplane mode (3.1)', () => {
     expect(liftDetail(lifts[0])).toBe('waiting · tracks after the lift in progress');
   });
 
+  it('lists a clip saved at the weekly cap as queued, the row that opens the paywall (#247)', async () => {
+    api.ensureSession.mockRejectedValue(new Error('Network request failed'));
+    usePendingLifts.setState({ items: [{ liftId: 'h', sub: SUB, at: '2026-10-20T09:40:00.000Z', held: true }] });
+    await syncLibrary(new Date('2026-10-20T10:00:00Z'));
+    const lifts = useLibraryStore.getState().lifts;
+    expect(lifts.map((l) => [l.id, l.status, l.waiting ?? false])).toEqual([
+      ['h', 'queued', false],
+      ['l1', 'done', false],
+    ]);
+    expect(liftDetail(lifts[0])).toBe('Queued · free videos used');
+  });
+
   it('deletes a waiting lift from the phone only: it never reached the server or Documents', async () => {
     usePendingLifts.setState({ items: [{ liftId: 'b', sub: SUB, at: '2026-10-20T09:31:00.000Z' }] });
     await removeLift('b');
