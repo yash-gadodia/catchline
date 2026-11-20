@@ -194,3 +194,11 @@ export function drawnPaths(analysis: Analysis, frame: number, starts?: number[])
   }
   return { current: pathUpTo(path.filter((p) => p.frame >= rep.start), frame), earlier, whole };
 }
+
+// The video's height while the result card is up: what the card leaves of the screen under the fixed rows above it
+// (`chrome`: the status bar, the top bar and the scrub line), at most 42% of the screen and at least a fifth.
+// `card` is 0 until the card is measured.
+export function cardVideoHeight(screen: number, chrome: number, card: number): number {
+  const most = Math.round(screen * 0.42);
+  return card > 0 ? Math.max(Math.round(screen * 0.2), Math.min(most, screen - chrome - card)) : most;
+}

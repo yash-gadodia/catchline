@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { t, type Key } from '../../i18n';
 import { liftShape, type TrackedLift } from '../analysis/compare';
 import { forgetLiftDetails } from './liftDetails';
+import { EVENTS, track } from '../../lib/analytics';
 
 // What kind of lift each tracked lift is. `shapes` is read from the bar's path against the body (compare.ts liftShape)
 // when the lift is tracked, or the first time an older one is opened. `chosen` is what the lifter picked on the lift's
@@ -42,6 +43,21 @@ export function setLiftKind(liftId: string, raw: string | null): void {
     const { [liftId]: _was, ...chosen } = s.chosen;
     return { chosen: kind ? { ...chosen, [liftId]: kind } : chosen };
   });
+}
+
+// A pick on the details or the result card, tracked by kind (never the lifter's own words).
+export function pickLiftKind(liftId: string, raw: string | null): void {
+  setLiftKind(liftId, raw);
+  track(EVENTS.LIFT_KIND_SET, { kind: !raw ? 'cleared' : isKind(raw) ? raw : 'own' });
+}
+
+const GYMNASTICS: readonly string[] = ['pullUp', 'butterflyPullUp', 'muscleUp', 'handstandPushUp'];
+
+// The kinds the result card offers, most likely first: the lift's kind as stored, the gymnastics kinds for a hip
+// trail or the barbell lifts for a bar, then the lifter's own. The rest are on the details.
+export function kindChoices(trace: 'path' | 'trail' | 'none', current: string | null, own: string[]): string[] {
+  const likely = KINDS.filter((k) => GYMNASTICS.includes(k) === (trace === 'trail'));
+  return [...new Set([...(current ? [current] : []), ...likely, ...own])];
 }
 
 // The lifter's own kinds (not in KINDS), most used first: offered again on the next lift.

@@ -156,6 +156,8 @@ export const analysis: Strings<typeof en> = {
   'analysis.reveal.sample.title': "これはサンプルのリフトです",
   'analysis.reveal.sample.body': "自分の動画でも同じように、バーの軌道、体のライン、バーの速度がこのスマホの中で描かれます。",
   'analysis.reveal.sample.own': "自分のリフトで試す",
+  'analysis.reveal.kind.ask': "どの種目でしたか？",
+  'analysis.reveal.kind.more': "その他",
   'analysis.processing.step.clip': "動画の準備完了",
   'analysis.processing.step.body': "すべてのフレームで体を検出中",
   'analysis.processing.step.bar': "バーを追跡中",

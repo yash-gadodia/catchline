@@ -152,6 +152,8 @@ export const analysis = {
   'analysis.reveal.sample.title': "This is a sample lift",
   'analysis.reveal.sample.body': "On your own video you get the same: the bar path, body lines and bar speed, drawn on your phone.",
   'analysis.reveal.sample.own': "Now try your own lift",
+  'analysis.reveal.kind.ask': "What was this lift?",
+  'analysis.reveal.kind.more': "More",
   'analysis.processing.step.clip': "Clip ready",
   'analysis.processing.step.body': "Finding your body on every frame",
   'analysis.processing.step.bar': "Following the bar",
