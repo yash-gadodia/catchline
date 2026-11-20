@@ -7,6 +7,7 @@ import type { Body } from '../../analysis/device/tracking';
 import { snatchMock } from '../../analysis/fixtures';
 import { DEFAULT_OVERLAYS, useOverlays } from './overlayPrefs';
 import TrackerScreen from './TrackerScreen';
+import { useLiftNames } from '../library/liftNames';
 
 const CLIP = 'file:///documents/lifts/a/clip.mp4';
 const whole: Analysis = { ...snatchMock, video: { ...snatchMock.video, width: 1080, height: 1920, fps: 60, frameCount: 300 } };
@@ -20,6 +21,7 @@ let player: Fake | null = null;
 beforeEach(() => {
   player = null;
   useOverlays.setState(DEFAULT_OVERLAYS);
+  useLiftNames.setState({ shapes: {}, chosen: {} });
   jest.mocked(useVideoPlayer).mockImplementation(((_source: unknown, setup?: (p: Fake) => void) => {
     if (player) return player;
     const listeners: Record<string, ((payload: object) => void)[]> = {};
@@ -269,6 +271,36 @@ describe('TrackerScreen first look (reveal)', () => {
     expect(getByText('This is a sample lift')).toBeOnTheScreen();
     expect(queryByTestId('first-look-share')).toBeNull();
     expect(getByTestId('first-look-another')).toHaveTextContent('Now try your own lift');
+  });
+
+  it('a real lift asks what it was on its result card, and More opens the details', async () => {
+    const onDetails = jest.fn();
+    const { getByTestId } = await show({ ...lifted, traceKind: 'hip' }, body, { reveal: true, reduceMotion: true, onShare: () => {}, onDetails });
+    expect(getByTestId('first-look-kinds')).toHaveTextContent(/^What was this lift\?Pull-upButterfly pull-up/);
+    await press(getByTestId('first-look-kind-pullUp'));
+    expect(useLiftNames.getState().chosen).toEqual({ [lifted.id]: 'pullUp' });
+    await press(getByTestId('first-look-kind-more'));
+    expect(onDetails).toHaveBeenCalledTimes(1);
+    expect(getByTestId('first-look')).toBeOnTheScreen();
+  });
+
+  it('the sample asks nothing about its kind', async () => {
+    const { queryByTestId } = await show(lifted, body, { reveal: true, reduceMotion: true, sample: true, onAnother: () => {}, onDetails: () => {} });
+    expect(queryByTestId('first-look-kinds')).toBeNull();
+  });
+
+  it('the video makes room for all of the result card', async () => {
+    const view = await show(lifted, body, { reveal: true, reduceMotion: true, onShare: () => {}, onDetails: () => {} });
+    // a 750 x 1334 screen: 42% of it before the card is measured
+    expect(view.getByTestId('tracker-video')).toHaveStyle({ width: 315, height: 560 });
+    await act(async () => {
+      fireEvent(view.getByTestId('first-look-top'), 'layout', { nativeEvent: { layout: { height: 92 } } });
+    });
+    await act(async () => {
+      fireEvent(view.getByTestId('first-look-bottom'), 'layout', { nativeEvent: { layout: { height: 700 } } });
+    });
+    // 1334 less the top bar and the scrub line (100) and the card (840): 394
+    expect(view.getByTestId('tracker-video')).toHaveStyle({ width: 222, height: 395 });
   });
 
   it('a tap while it plays hands the player back to the lifter', async () => {

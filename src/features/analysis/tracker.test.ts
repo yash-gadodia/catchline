@@ -1,6 +1,6 @@
 import type { Body } from '../../analysis/device/tracking';
 import { snatchMock } from '../../analysis/fixtures';
-import { bones, drawnPath, drawnPaths, drawnSide, floorY, frameAt, jointAngles, joints, liftRange, repAt, repStarts, spread, timeOf } from './tracker';
+import { bones, cardVideoHeight, drawnPath, drawnPaths, drawnSide, floorY, frameAt, jointAngles, joints, liftRange, repAt, repStarts, spread, timeOf } from './tracker';
 
 // shoulder, elbow, wrist, hip, knee, ankle, heel, toe; left then right. The right side is unseen but for the hip.
 const row = (pts: Record<number, [number, number]>): (number | null)[] => {
@@ -148,5 +148,25 @@ describe('reps of a set', () => {
   it('is one rep when there is no rest to split at (touch and go)', () => {
     expect(repStarts(seg(5, lift), 30)).toEqual([5]);
     expect(repStarts([], 30)).toEqual([]);
+  });
+});
+
+describe('cardVideoHeight', () => {
+  // an iPhone SE: 667 pt tall, 20 of status bar, 56 of top bar and 44 of scrub line above the card
+  const SE = 667;
+  const chrome = 20 + 56 + 44;
+
+  it('gives the card the room it needs, so every button of it is on screen', () => {
+    expect(cardVideoHeight(SE, chrome, 364)).toBe(183);
+    expect(SE - chrome - cardVideoHeight(SE, chrome, 364)).toBe(364);
+  });
+
+  it('is never taller than 42% of the screen, also before the card is measured', () => {
+    expect(cardVideoHeight(SE, chrome, 0)).toBe(280);
+    expect(cardVideoHeight(1334, chrome, 300)).toBe(560);
+  });
+
+  it('keeps a fifth of the screen for the video however long the card is', () => {
+    expect(cardVideoHeight(SE, chrome, 600)).toBe(133);
   });
 });

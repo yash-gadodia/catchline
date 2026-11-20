@@ -158,6 +158,8 @@ export const analysis: Strings<typeof en> = {
   'analysis.reveal.sample.title': "Das ist ein Beispiel-Lift",
   'analysis.reveal.sample.body': "Bei deinem eigenen Video bekommst du dasselbe: Hantelweg, Körperlinien und Hantelgeschwindigkeit, auf deinem iPhone gezeichnet.",
   'analysis.reveal.sample.own': "Jetzt mit deinem eigenen Lift",
+  'analysis.reveal.kind.ask': "Welche Übung war das?",
+  'analysis.reveal.kind.more': "Mehr",
   'analysis.processing.step.clip': "Clip bereit",
   'analysis.processing.step.body': "Dein Körper wird in jedem Bild gesucht",
   'analysis.processing.step.bar': "Die Hantel wird verfolgt",
