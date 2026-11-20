@@ -12,7 +12,7 @@ import { useAppFonts } from '../src/design/fonts';
 import { queryClient } from '../src/lib/queryClient';
 import { usePurchases } from '../src/features/purchases/usePurchases';
 import { AppErrorBoundary } from '../src/components/AppErrorBoundary';
-import { View } from 'react-native';
+import { AppState, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { colors } from '../src/design/tokens';
 import { supabase } from '../src/lib/supabase';
@@ -21,6 +21,7 @@ import { syncLibrary } from '../src/data/library';
 import { moveServerAnalysesToDevice } from '../src/data/migrateToDevice';
 import { syncServerUsage } from '../src/features/paywall/hooks';
 import { flushLiftOutbox } from '../src/data/liftOutbox';
+import { resumeDeviceLifts } from '../src/data/devicePipeline';
 import { flushProblemReports } from '../src/data/problemReports';
 import { flushContactEmail } from '../src/data/contact';
 import { installForegroundHandler, liftIdFromResponse, registerPushToken, routeForLift } from '../src/features/notifications';
@@ -144,6 +145,15 @@ export default function RootLayout() {
   }, [launched]);
 
   useEffect(() => watchScreenshots(), []);
+
+  // A lift the app was killed in the middle of is tracked again from where it was saved (#250).
+  useEffect(() => {
+    void resumeDeviceLifts();
+    const sub = AppState.addEventListener('change', (s) => {
+      if (s === 'active') void resumeDeviceLifts();
+    });
+    return () => sub.remove();
+  }, []);
 
   if (!fontsLoaded) {
     return (

@@ -3,6 +3,7 @@ import { clearLiveAnalyses } from '../../analysis/live';
 import { backendEnabled, resetConsentSync } from '../../data/backend';
 import { deleteAllLocalLifts } from '../../data/localLifts';
 import { useLiftOutbox } from '../../data/liftOutbox';
+import { usePendingLifts } from '../../data/pendingLifts';
 import { deleteAccount as deleteRemoteAccount } from '../../lib/api';
 import { signOut as endSession } from '../auth/appleSignIn';
 import { NO_USER, useAuthUser, type AuthUser } from '../auth/authUser';
@@ -177,6 +178,7 @@ export function forgetLocalData(): void {
   // the delete sheet promises every lift goes: the clips and tracking on this phone, and any record not yet synced
   deleteAllLocalLifts();
   useLiftOutbox.setState({ items: [] });
+  usePendingLifts.setState({ items: [] });
   useLiftNames.setState({ shapes: {}, chosen: {} });
   useLiftDetails.setState({ details: {} });
   useAccountStore.setState({ account: null });
