@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { clearLiveAnalyses } from '../../analysis/live';
 import { backendEnabled, resetConsentSync } from '../../data/backend';
 import { deleteAllLocalLifts, readLocalBody } from '../../data/localLifts';
+import { sweepClipCache } from '../../data/clipCache';
 import type { Body } from '../../analysis/device/tracking';
 import type { Analysis, Phase, RepTracks, TracePoint } from '../../analysis/types';
 import { useLiftOutbox } from '../../data/liftOutbox';
@@ -225,6 +226,7 @@ export function forgetLocalData(): void {
   leaveAccount();
   // the delete sheet promises every lift goes: the clips and tracking on this phone, and any record not yet synced
   deleteAllLocalLifts();
+  sweepClipCache({ cameraOriginals: true });
   useLiftOutbox.setState({ items: [] });
   useLiftNames.setState({ shapes: {}, chosen: {} });
   useLiftDetails.setState({ details: {} });

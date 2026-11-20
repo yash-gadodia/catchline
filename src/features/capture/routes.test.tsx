@@ -29,6 +29,9 @@ jest.mock('expo-video', () => {
 });
 jest.mock('expo-file-system', () => ({ File: jest.fn(), Paths: { availableDiskSpace: 0 } }));
 
+jest.mock('../../data/clipCache', () => ({ discardPickedCopy: jest.fn() }));
+import { discardPickedCopy } from '../../data/clipCache';
+
 jest.mock('../onboarding/store', () => {
   const actual = jest.requireActual('../onboarding/store');
   return { ...actual, useHydrated: () => true, hasConsent: () => true };
@@ -140,6 +143,19 @@ describe('add a video, trim, track', () => {
     expect(useCapture.getState().draft?.plateMark).toBeNull();
     // this binary can look at one frame: the plate is found and checked before tracking
     expect(mockNav.push).toHaveBeenCalledWith('/capture/plate');
+  });
+});
+
+// #111: cancelling the import leaves no copy of the picked video in the picker cache
+describe('cancelling trim', () => {
+  it('deletes the photo picker copy of the picked video and goes back', async () => {
+    useCapture.setState({ draft: { uri: 'file:///cache/ImagePicker/A1.mov', durationS: 8, fps: 30, source: 'library', trim: { start: 0, end: 8 }, overridden: [] } });
+    const view = await render(<TrimRoute />);
+    await act(async () => {
+      fireEvent.press(view.getByTestId('trim-cancel'));
+    });
+    expect(discardPickedCopy).toHaveBeenCalledWith('file:///cache/ImagePicker/A1.mov');
+    expect(mockNav.replace).toHaveBeenCalledWith('/');
   });
 });
 

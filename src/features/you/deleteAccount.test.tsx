@@ -17,6 +17,9 @@ import { DEFAULT_SETTINGS, settingsOf, useSettings } from './settings';
 
 jest.mock('../../data/localLifts', () => ({ ...jest.requireActual('../../data/localLifts'), deleteAllLocalLifts: jest.fn() }));
 
+jest.mock('../../data/clipCache', () => ({ sweepClipCache: jest.fn() }));
+import { sweepClipCache } from '../../data/clipCache';
+
 jest.mock('../../lib/supabase', () => ({
   supabaseConfigured: true,
   supabase: {
@@ -66,6 +69,8 @@ describe('DeleteAccountSheet against the backend', () => {
     expect(mocked.auth.signOut).toHaveBeenCalledWith({ scope: 'local' });
     expect(onDeleted).toHaveBeenCalledTimes(1);
     expect(deleteAllLocalLifts).toHaveBeenCalledTimes(1);
+    // #111: the picker copies, the temporary render files and the camera originals go too
+    expect(sweepClipCache).toHaveBeenCalledWith({ cameraOriginals: true });
     expect(useLiftOutbox.getState().items).toEqual([]);
 
     expect(useAccountStore.getState().account).toBeNull();
