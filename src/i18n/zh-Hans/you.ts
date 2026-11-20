@@ -95,7 +95,7 @@ export const you: Strings<typeof en> = {
   'you.stored.positions.body': "身体位置和杠铃轨迹以数字保存，不是视频，这样分析改进时你的历史记录也会跟着改进。没有面部点位；头部关键点在存储前就会丢弃。随账户一起删除。",
   'you.stored.originals.onDevice': "在你的手机上。在你的 iPhone 上分析，从不上传。",
   'you.stored.positions.onDevice': "身体位置和杠铃轨迹以数字保存，不是视频，存在你的手机上（以及你自己的 iCloud 备份里），这样分析改进时你的历史记录也会跟着改进。绝不存到我们的服务器。",
-  'you.stored.frames.onDevice': "每次试举五张静态图，用于频闪图和依据截图，仅存在你的手机上。",
+  'you.stored.frames.onDevice': "每个视频两张静态图（起始和最高点），仅存在你的手机上。",
   'you.stored.frames.title': "关键帧",
   'you.stored.frames.body': "每次试举五张静态图，用于频闪图和依据截图。",
   'you.stored.cues.title': "提示及其是否见效",

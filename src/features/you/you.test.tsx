@@ -371,6 +371,8 @@ describe('WhatIsStoredScreen', () => {
     const screen = await render(<WhatIsStoredScreen onBack={jest.fn()} onExport={onExport} />);
     expect(screen.getByText('On your phone. Analysed on your iPhone, never uploaded.')).toBeOnTheScreen();
     expect(screen.getAllByText('kept')).toHaveLength(3);
+    // #77: a 4.0 lift keeps two stills (setup and peak), not five
+    expect(screen.getByText('Two stills per video, the start and the highest point, on your phone only.')).toBeOnTheScreen();
     expect(screen.queryByText('Cues and whether they stuck')).toBeNull();
     expect(screen.queryByTestId('toggle-improve')).toBeNull();
     await press(screen.getByText('Export all my data'));

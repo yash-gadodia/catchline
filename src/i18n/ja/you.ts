@@ -95,7 +95,7 @@ export const you: Strings<typeof en> = {
   'you.stored.positions.body': "身体の位置とバーの軌道を、動画ではなく数値として保存します。解析が良くなったときに履歴も良くなるようにするためです。顔の点は保存せず、頭部のキーポイントは保存前に破棄します。アカウントと一緒に削除されます。",
   'you.stored.originals.onDevice': "iPhoneに保存されます。iPhone上で解析し、アップロードはしません。",
   'you.stored.positions.onDevice': "身体の位置とバーの軌道を、動画ではなく数値としてiPhone（とあなた自身のiCloudバックアップ）に保存します。解析が良くなったときに履歴も良くなるようにするためです。サーバーには保存しません。",
-  'you.stored.frames.onDevice': "ストロボと根拠の切り抜き用に、リフトごとに静止画5枚。iPhoneにのみ保存します。",
+  'you.stored.frames.onDevice': "動画ごとに静止画2枚（スタートと最高点）。iPhoneにのみ保存します。",
   'you.stored.frames.title': "キーフレーム",
   'you.stored.frames.body': "ストロボと根拠の切り抜き用に、リフトごとに静止画5枚。",
   'you.stored.cues.title': "キューと、定着したかどうか",
