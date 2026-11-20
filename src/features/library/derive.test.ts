@@ -1,6 +1,6 @@
 import { File } from 'expo-file-system';
 import { setLanguage } from '../../i18n';
-import { byDay, byKind, freeVideosLabel, isTracked, liftTime, liftDetail, liftCaption, liftLink, liftTitle, liftWhen, newestFirst, sessionsDone } from './derive';
+import { byDay, byKind, freeVideosLabel, isTracked, liftTime, liftDetail, liftCaption, liftLink, liftTitle, liftWhen, newestFirst, sessionsDone, shortDate } from './derive';
 import { emptyLibrary } from './seed';
 import type { CueRecord, Lift, Session } from './types';
 
@@ -27,6 +27,10 @@ const kept = (File as unknown as { kept: Set<string> }).kept;
 const AT = new Date(2026, 10, 11, 14, 32).toISOString();
 const lift = (over: Partial<Lift> = {}): Lift => ({ id: 'l1', movement: 'snatch', date: '2026-11-11', at: AT, status: 'done', analysisId: 'l1', ...over });
 
+// These lifts are dated 2026; a date in another year carries its year (#164), so the clock is held in 2026.
+const ONLY_DATE = ['hrtime', 'nextTick', 'performance', 'queueMicrotask', 'requestAnimationFrame', 'cancelAnimationFrame', 'requestIdleCallback', 'cancelIdleCallback', 'setImmediate', 'clearImmediate', 'setInterval', 'clearInterval', 'setTimeout', 'clearTimeout'] as const;
+beforeAll(() => jest.useFakeTimers({ now: new Date(2026, 10, 20, 12), doNotFake: [...ONLY_DATE] }));
+afterAll(() => jest.useRealTimers());
 beforeEach(() => kept.clear());
 afterEach(() => setLanguage('en'));
 
@@ -53,6 +57,20 @@ describe('a lift row', () => {
     expect(liftTitle(lift({ loadKg: 72.5 }), 'lb')).toBe('11 Nov, 14:32 · 160 lb');
     expect(liftTime(lift({ loadKg: 100 }), 'lb')).toBe('14:32 · 220.5 lb');
     expect(liftCaption(lift({ loadKg: 61.2 }), 'lb')).toMatch(/^(11 Nov 2026|Nov 11, 2026) · 135 lb$/);
+  });
+
+  it('adds the year to a date from another year, so last November does not read as next month', () => {
+    const now = new Date(2026, 9, 24);
+    expect(shortDate('2025-11-14', now)).toBe('14 Nov 2025');
+    expect(shortDate('2026-11-14', now)).toBe('14 Nov');
+    expect(liftWhen(lift({ date: '2025-12-31', at: new Date(2025, 11, 31, 9, 5).toISOString() }), now)).toBe('31 Dec 2025, 09:05');
+    expect(liftWhen(lift(), now)).toBe('11 Nov, 14:32');
+    expect(byDay([lift({ id: 'old', date: '2025-11-14', at: undefined })], now).map((g) => g.label)).toEqual(['14 Nov 2025']);
+    expect(liftTitle(lift({ date: '2025-11-14', at: undefined, loadKg: 70 }), 'kg')).toBe('14 Nov 2025 · 70 kg');
+    setLanguage('de');
+    expect(shortDate('2025-11-14', now)).toBe('14. Nov 2025');
+    setLanguage('ja');
+    expect(shortDate('2025-11-14', now)).toBe('2025年11月14日');
   });
 
   it('writes the date the way the language does', () => {

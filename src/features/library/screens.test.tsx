@@ -23,6 +23,11 @@ const liftsNav = () => ({
   onDetails: jest.fn(),
 });
 
+// These lifts are dated 2026; a date in another year carries its year (#164), so the clock is held in 2026.
+const ONLY_DATE = ['hrtime', 'nextTick', 'performance', 'queueMicrotask', 'requestAnimationFrame', 'cancelAnimationFrame', 'requestIdleCallback', 'cancelIdleCallback', 'setImmediate', 'clearImmediate', 'setInterval', 'clearInterval', 'setTimeout', 'clearTimeout'] as const;
+beforeAll(() => jest.useFakeTimers({ now: new Date(2026, 10, 20, 12), doNotFake: [...ONLY_DATE] }));
+afterAll(() => jest.useRealTimers());
+
 beforeEach(() => {
   jest.clearAllMocks();
   loadLibrary('seeded');

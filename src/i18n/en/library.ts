@@ -2,6 +2,7 @@ export const library = {
   'library.tabs.lifts': 'Lifts',
   'library.tabs.you': 'You',
   'library.date.dayMonth': '{day} {month}',
+  'library.date.dayMonthYear': '{day} {month} {year}',
   'library.free.all': { one: '{count} free video', other: '{count} free videos' },
   'library.free.used': 'Free videos used',
   'library.free.left': { one: '{count} free video left', other: '{count} free videos left' },

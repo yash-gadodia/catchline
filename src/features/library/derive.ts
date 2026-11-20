@@ -8,9 +8,15 @@ function utc(day: Day): Date {
   return new Date(`${day}T00:00:00Z`);
 }
 
-export function shortDate(day: Day): string {
-  const d = utc(day);
-  return t('library.date.dayMonth', { day: d.getUTCDate(), month: formatDate(d, { month: 'short', timeZone: 'UTC' }) });
+// "14 Nov", with the year when it is not this year's ("14 Nov 2025"), so a year of history reads in order.
+function dayMonth(d: Date, inUtc: boolean, now: Date): string {
+  const year = inUtc ? d.getUTCFullYear() : d.getFullYear();
+  const vars = { day: inUtc ? d.getUTCDate() : d.getDate(), month: formatDate(d, { month: 'short', ...(inUtc ? { timeZone: 'UTC' } : {}) }) };
+  return year === now.getFullYear() ? t('library.date.dayMonth', vars) : t('library.date.dayMonthYear', { ...vars, year });
+}
+
+export function shortDate(day: Day, now: Date = new Date()): string {
+  return dayMonth(utc(day), true, now);
 }
 
 function pad(n: number): string {
@@ -18,10 +24,10 @@ function pad(n: number): string {
 }
 
 // "11 Nov, 14:32" in the phone's own time; a lift with no time on record (fixtures) reads as its day.
-export function liftWhen(l: Pick<Lift, 'date' | 'at'>): string {
-  if (!l.at) return shortDate(l.date);
+export function liftWhen(l: Pick<Lift, 'date' | 'at'>, now: Date = new Date()): string {
+  if (!l.at) return shortDate(l.date, now);
   const d = new Date(l.at);
-  const date = t('library.date.dayMonth', { day: d.getDate(), month: formatDate(d, { month: 'short' }) });
+  const date = dayMonth(d, false, now);
   return t('library.date.dayTime', { date, time: `${pad(d.getHours())}:${pad(d.getMinutes())}` });
 }
 
@@ -64,7 +70,7 @@ export function byDay(lifts: Lift[], now: Date = new Date()): DayGroup[] {
     const day = l.at ? localDay(new Date(l.at)) : l.date;
     const last = out[out.length - 1];
     if (last && last.day === day) last.lifts.push(l);
-    else out.push({ day, label: day === today ? t('library.date.today') : day === yesterday ? t('library.date.yesterday') : shortDate(day), lifts: [l] });
+    else out.push({ day, label: day === today ? t('library.date.today') : day === yesterday ? t('library.date.yesterday') : shortDate(day, now), lifts: [l] });
   }
   return out;
 }
