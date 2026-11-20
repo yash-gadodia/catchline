@@ -36,3 +36,10 @@ Deno.test("the thank-you names what they bought and says what it means", () => {
   assertStringIncludes(pro.body, "means a lot to me");
   assertStringIncludes(mailFor({ ...due, kind: "subscribed", founding: true }).body, "founding member");
 });
+
+Deno.test("the nudge asks what got in the way; the goodbye thanks them and promises silence", () => {
+  assertStringIncludes(mailFor({ ...due, kind: "nudge" }).body, "did something get in the way");
+  const bye = mailFor({ ...due, kind: "goodbye" });
+  assertStringIncludes(bye.body, "You won't hear from me again");
+  assertStringIncludes(bye.body, "Thank you for trying it");
+});

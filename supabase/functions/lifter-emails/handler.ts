@@ -1,6 +1,6 @@
 // The two emails, as pure functions (tested in handler_test.ts). Plain text, the owner's own voice, no tracking.
 
-export type Due = { user_id: string; email: string; display_name: string | null; kind: "welcome" | "first_lift" | "subscribed"; founding: boolean };
+export type Due = { user_id: string; email: string; display_name: string | null; kind: "welcome" | "first_lift" | "subscribed" | "nudge" | "goodbye"; founding: boolean };
 export type Mail = { to: string; subject: string; body: string };
 
 // "Selene Say" greets as "Selene". One word, three or more words, or no name: no name is used, because which part is
@@ -22,6 +22,27 @@ export function mailFor(d: Due): Mail {
       subject: "you just joined Catchline",
       body: [greeting(d.display_name), "Yash here. I built Catchline.", ABOUT, REPLY,
         "One ask: once you've tracked a lift, tell me what looked wrong or what's missing. Even one line helps.", REACH, "Yash"].join("\n\n"),
+    };
+  }
+  if (d.kind === "nudge") {
+    return {
+      to: d.email,
+      subject: "still lifting?",
+      body: [greeting(d.display_name), "Yash here, from Catchline.",
+        "You haven't tracked a lift in a week. No pressure, just checking in: did something get in the way, or did it not do what you hoped?",
+        "If you tell me, I can fix it. And if you've just been busy, any lift filmed from the side works whenever you're back.",
+        REPLY, REACH, "Yash"].join("\n\n"),
+    };
+  }
+  if (d.kind === "goodbye") {
+    return {
+      to: d.email,
+      subject: "last one from me",
+      body: [greeting(d.display_name), "Yash here, from Catchline.",
+        "It's been a couple of weeks since you tracked a lift, so this is my last email. You won't hear from me again.",
+        "Thank you for trying it. It means a lot that you gave it a go.",
+        "If you ever feel like telling me why it didn't stick, I'd still love to know. And the app is there whenever you want it.",
+        "Yash"].join("\n\n"),
     };
   }
   if (d.kind === "subscribed") {
