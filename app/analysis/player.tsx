@@ -14,6 +14,7 @@ import { liftTitle } from '../../src/features/library/derive';
 import { useLibrary, useLift } from '../../src/features/library/repository';
 import { openLiftActions, reportHref } from '../../src/features/analysis/liftActions';
 import { captureHref } from '../../src/features/paywall/hooks';
+import { useOnboarding } from '../../src/features/onboarding/store';
 
 export default function PlayerRoute() {
   // `reveal=1` comes from the tracking screen: the lift's first look plays itself (TrackerScreen).
@@ -35,6 +36,7 @@ export default function PlayerRoute() {
     if (opened) track(EVENTS.PLAYER_OPENED, { kind: clip ? 'tracker' : 'stills', has_bar_path: hasBarPath(opened) });
   }, [opened?.id]);
   const lift = useLift(id);
+  const units = useOnboarding((s) => s.units);
   // how many lifts this phone has tracked: the first one is named as the first on its result card
   const tracked = useLibrary().lifts.filter((l) => l.status === 'done').length;
   const body = useLocalBody(id, !!clip);
@@ -51,7 +53,7 @@ export default function PlayerRoute() {
   const share = () => router.push({ pathname: '/share', params: { fixture: analysis.id } });
   if (clip) {
     if (!body.ready) return <AnalysisPlaceholder status="loading" onBack={back} />;
-    return <TrackerScreen key={analysis.id} analysis={analysis} clipUri={clip} body={body.body} title={lift ? liftTitle(lift) : ''} onBack={back} onShare={share} reveal={reveal === '1'} firstLift={tracked <= 1} onAnother={() => router.push(captureHref('/capture/import') as Href)} onTell={() => router.push({ pathname: '/report', params: { context: 'feedback', lift: analysis.id } } as Href)} lastLift={lastLift} onSideBySide={lastLift ? () => router.push({ pathname: '/analysis/compare', params: { a: analysis.id, b: lastLift.id } } as Href) : undefined}
+    return <TrackerScreen key={analysis.id} analysis={analysis} clipUri={clip} body={body.body} title={lift ? liftTitle(lift, units) : ''} onBack={back} onShare={share} reveal={reveal === '1'} firstLift={tracked <= 1} onAnother={() => router.push(captureHref('/capture/import') as Href)} onTell={() => router.push({ pathname: '/report', params: { context: 'feedback', lift: analysis.id } } as Href)} lastLift={lastLift} onSideBySide={lastLift ? () => router.push({ pathname: '/analysis/compare', params: { a: analysis.id, b: lastLift.id } } as Href) : undefined}
       onAdjustPlate={() => router.push({ pathname: '/analysis/plate', params: { id: analysis.id } } as Href)}
       onDetails={() => router.push({ pathname: '/analysis/details', params: { id: analysis.id } } as Href)}
     />;

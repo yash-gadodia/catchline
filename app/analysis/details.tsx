@@ -5,6 +5,7 @@ import { liftTitle } from '../../src/features/library/derive';
 import LiftDetailsScreen from '../../src/features/library/LiftDetailsScreen';
 import { kindIdOf, liftKind, ownKinds, useLiftNames } from '../../src/features/library/liftNames';
 import { useLibrary } from '../../src/features/library/repository';
+import { useOnboarding } from '../../src/features/onboarding/store';
 
 // The lifter's name, tags and note for one lift. `id` is the id the player opens it by (its `fixture`).
 export default function LiftDetailsRoute() {
@@ -14,8 +15,9 @@ export default function LiftDetailsRoute() {
   const { lifts } = useLibrary();
   const shapes = useLiftNames((n) => n.shapes);
   const chosen = useLiftNames((n) => n.chosen);
+  const units = useOnboarding((s) => s.units);
   const lift = lifts.find((l) => (l.analysisId ?? l.id) === id);
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
   if (!id || !lift) return <AnalysisPlaceholder status="missing" onBack={back} />;
-  return <LiftDetailsScreen key={id} id={id} kind={liftKind(shapes, id, chosen)} kindId={kindIdOf({ shapes, chosen }, id)} picked={chosen[id] !== undefined} own={ownKinds(chosen)} title={liftTitle(lift)} back={t('library.details.back')} onBack={back} />;
+  return <LiftDetailsScreen key={id} id={id} kind={liftKind(shapes, id, chosen)} kindId={kindIdOf({ shapes, chosen }, id)} picked={chosen[id] !== undefined} own={ownKinds(chosen)} title={liftTitle(lift, units)} back={t('library.details.back')} onBack={back} />;
 }

@@ -32,6 +32,7 @@ import FadeRow from './FadeRow';
 import DrawLayer from './DrawLayer';
 import { isComplete, type Shape } from './drawGeometry';
 import { t } from '../../i18n';
+import { useOnboarding } from '../onboarding/store';
 
 export type Speed = '0.25' | '0.5' | '1';
 const SPEEDS: Speed[] = ['0.25', '0.5', '1'];
@@ -58,6 +59,7 @@ export default function PlayerScreen({
 }) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const units = useOnboarding((s) => s.units);
   // A 3.x lift opens on the rep its cue was read from, as it always did.
   const rep = repByIndex(analysis, analysis.cue?.evidence.rep ?? analysis.bestRepIndex);
   const openFrame = initialFrame ?? (rep.phases[0] ? phaseFrame(rep, rep.phases[0].name) : rep.startFrame);
@@ -160,7 +162,7 @@ export default function PlayerScreen({
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }} testID="player-screen">
-      <TopBar title={liftTitle(analysis, rep.index)} onBack={onBack} onMore={onMore} />
+      <TopBar title={liftTitle(analysis, units, rep.index)} onBack={onBack} onMore={onMore} />
       <View {...pan.panHandlers} testID="player-video">
         <Pressable
           onPress={togglePlay}

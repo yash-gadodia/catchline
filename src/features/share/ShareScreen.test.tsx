@@ -55,7 +55,8 @@ describe('share model', () => {
   it('builds the card copy from the analysis', () => {
     expect(cueMeasurement(snatchMock)?.id).toBe('bar_drift_hip');
     expect(cueMeasurement(snatchReal)?.id).toBe('jump_forward');
-    expect(cardCopy(snatchMock)).toEqual({ hero: '6 cm', label: 'Bar drift at hip', cue: 'Stay over the bar longer', meta: 'snatch · 62.5 kg' });
+    expect(cardCopy(snatchMock, 'kg')).toEqual({ hero: '6 cm', label: 'Bar drift at hip', cue: 'Stay over the bar longer', meta: 'snatch · 62.5 kg' });
+    expect(cardCopy({ ...snatchMock, loadKg: 45 }, 'lb').meta).toBe('snatch · 99 lb');
   });
 });
 
@@ -76,6 +77,16 @@ describe('local clips', () => {
 });
 
 describe('ShareCard', () => {
+  it('writes the load on the card in lb for a lifter on lb', async () => {
+    require('../onboarding/store').useOnboarding.setState({ units: 'lb' });
+    try {
+      const { getByTestId } = await render(<ShareCard analysis={{ ...snatchMock, loadKg: 45 }} aspect="9:16" brand />);
+      expect(getByTestId('card-meta')).toHaveTextContent('snatch · 99 lb');
+    } finally {
+      require('../onboarding/store').useOnboarding.setState({ units: 'kg' });
+    }
+  });
+
   it('renders the strobe still with the label, number, cue, path and brand', async () => {
     const { getByTestId } = await render(<ShareCard analysis={snatchMock} aspect="9:16" brand />);
     expect(getByTestId('share-card-9:16')).toBeOnTheScreen();

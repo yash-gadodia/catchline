@@ -203,6 +203,29 @@ describe('LiftsScreen', () => {
     expect(rows()).toHaveLength(8);
   });
 
+  it('shows and searches every load in lb when the lifter picked lb', async () => {
+    require('../onboarding/store').useOnboarding.setState({ units: 'lb' });
+    const done = (n: number, loadKg?: number) => ({ id: `l${n}`, movement: 'snatch' as const, date: `2026-03-${String(20 - n).padStart(2, '0')}`, status: 'done' as const, analysisId: `a${n}`, loadKg });
+    useLibraryStore.getState().load({ ...emptyLibrary(), lifts: [done(1, 72.5), done(2, 100), done(3), done(4), done(5), done(6), done(7), done(8)] });
+    try {
+      const { getByTestId, queryAllByTestId, queryByText } = await render(<LiftsScreen nav={liftsNav()} />);
+      expect(getByTestId('lift-title-l1')).toHaveTextContent('19 Mar · 160 lb');
+      expect(getByTestId('lift-title-l2')).toHaveTextContent('18 Mar · 220.5 lb');
+      expect(queryByText(/kg/)).toBeNull();
+      const rows = () => queryAllByTestId(/^lift-title-/).map((n) => n.props.testID.replace('lift-title-', ''));
+      await act(async () => {
+        fireEvent.changeText(getByTestId('lift-search'), '160lb');
+      });
+      expect(rows()).toEqual(['l1']);
+      await act(async () => {
+        fireEvent.changeText(getByTestId('lift-search'), '72.5 kg');
+      });
+      expect(rows()).toEqual([]);
+    } finally {
+      require('../onboarding/store').useOnboarding.setState({ units: 'kg' });
+    }
+  });
+
   it('keeps the search field away until there are eight lifts', async () => {
     const lifts = Array.from({ length: 7 }, (_, n) => ({ id: `l${n}`, movement: 'snatch' as const, date: `2026-03-${String(10 + n)}`, status: 'done' as const }));
     useLibraryStore.getState().load({ ...emptyLibrary(), lifts });

@@ -41,17 +41,23 @@ describe('free videos chip', () => {
 describe('a lift row', () => {
   it('is titled by its date and time, with the load only when the lifter set one', () => {
     expect(liftWhen(lift())).toBe('11 Nov, 14:32');
-    expect(liftTitle(lift())).toBe('11 Nov, 14:32');
-    expect(liftTitle(lift({ loadKg: 62.5 }))).toBe('11 Nov, 14:32 · 62.5 kg');
+    expect(liftTitle(lift(), 'kg')).toBe('11 Nov, 14:32');
+    expect(liftTitle(lift({ loadKg: 62.5 }), 'kg')).toBe('11 Nov, 14:32 · 62.5 kg');
     // the line a shared video carries: the day with its year, and the load when there is one
-    expect(liftCaption(lift({ loadKg: 62.5 }))).toMatch(/^(11 Nov 2026|Nov 11, 2026) · 62\.5 kg$/);
-    expect(liftCaption(lift())).toMatch(/^(11 Nov 2026|Nov 11, 2026)$/);
-    expect(liftTitle(lift({ at: undefined, loadKg: 60 }))).toBe('11 Nov · 60 kg');
+    expect(liftCaption(lift({ loadKg: 62.5 }), 'kg')).toMatch(/^(11 Nov 2026|Nov 11, 2026) · 62\.5 kg$/);
+    expect(liftCaption(lift(), 'kg')).toMatch(/^(11 Nov 2026|Nov 11, 2026)$/);
+    expect(liftTitle(lift({ at: undefined, loadKg: 60 }), 'kg')).toBe('11 Nov · 60 kg');
+  });
+
+  it('shows the load in lb when the lifter picked lb', () => {
+    expect(liftTitle(lift({ loadKg: 72.5 }), 'lb')).toBe('11 Nov, 14:32 · 160 lb');
+    expect(liftTime(lift({ loadKg: 100 }), 'lb')).toBe('14:32 · 220.5 lb');
+    expect(liftCaption(lift({ loadKg: 61.2 }), 'lb')).toMatch(/^(11 Nov 2026|Nov 11, 2026) · 135 lb$/);
   });
 
   it('writes the date the way the language does', () => {
     setLanguage('de');
-    expect(liftTitle(lift({ loadKg: 62.5 }))).toBe('11. Nov, 14:32 · 62,5 kg');
+    expect(liftTitle(lift({ loadKg: 62.5 }), 'kg')).toBe('11. Nov, 14:32 · 62,5 kg');
   });
 
   it('lists the newest first, by time within a day', () => {
@@ -72,9 +78,9 @@ describe('a lift row', () => {
       ['2026-11-10', 'Yesterday', ['c']],
       ['2026-11-03', '3 Nov', ['d']],
     ]);
-    expect(liftTime(a)).toBe('09:05 · 62.5 kg');
-    expect(liftTime(b)).toBe('14:32');
-    expect(liftTime(d)).toBe('3 Nov · 60 kg');
+    expect(liftTime(a, 'kg')).toBe('09:05 · 62.5 kg');
+    expect(liftTime(b, 'kg')).toBe('14:32');
+    expect(liftTime(d, 'kg')).toBe('3 Nov · 60 kg');
   });
 
   it('never names a movement on a 4.0 lift (its clip is kept); a 3.x lift keeps the one the lifter picked', () => {

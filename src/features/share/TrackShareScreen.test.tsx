@@ -128,6 +128,20 @@ describe('TrackShareScreen', () => {
     expect(specOf(d.renderVideo, 1).story).toBeUndefined();
   });
 
+  it('titles the story end card in lb for a lifter on lb', async () => {
+    require('../onboarding/store').useOnboarding.setState({ units: 'lb' });
+    try {
+      const d = deps({ shareStory: true, inviteCode: jest.fn(async () => 'YASH42') });
+      const { getByTestId } = await render(<TrackShareScreen analysis={{ ...analysis, loadKg: 72.5 }} body={body} clipUri={CLIP} watermark caption="14 Nov 2026 · 160 lb" onBack={() => {}} deps={d} />);
+      await waitFor(() => expect(d.inviteCode).toHaveBeenCalledTimes(1));
+      await press(getByTestId('share-video-btn'));
+      await waitFor(() => expect(d.share).toHaveBeenCalledWith(VIDEO));
+      expect(specOf(d.renderVideo).story?.end?.title).toBe('160 lb');
+    } finally {
+      require('../onboarding/store').useOnboarding.setState({ units: 'kg' });
+    }
+  });
+
   it('previews the story: the mark and no old lockup; the number only for a lift with a bar speed', async () => {
     const { getByTestId, queryByTestId, getByText } = await render(<TrackShareScreen analysis={analysis} body={body} clipUri={CLIP} watermark onBack={() => {}} deps={deps({ shareStory: true, shareBrand: true })} />);
     expect(getByTestId('share-story')).toBeOnTheScreen();

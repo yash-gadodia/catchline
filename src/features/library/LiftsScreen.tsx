@@ -12,7 +12,8 @@ import SmallCaps from '../../components/SmallCaps';
 import { colors, control, shape, space, stroke } from '../../design/tokens';
 import { display, fontFamily, type } from '../../design/typography';
 import { byDay, byKind, freeVideosLabel, liftDetail, liftTime, liftTitle } from './derive';
-import { fmt } from '../../analysis/format';
+import { formatLoad } from '../../analysis/format';
+import { useOnboarding } from '../onboarding/store';
 import { detailsOf, matchesSearch, useLiftDetails } from './liftDetails';
 import { kindsOf, liftKind, useLiftNames, useLiftsView } from './liftNames';
 import { EVENTS, track } from '../../lib/analytics';
@@ -36,6 +37,7 @@ export const SEARCH_MIN = 8;
 
 export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
   const insets = useSafeAreaInsets();
+  const units = useOnboarding((s) => s.units);
   const lib = useLibrary();
   const tier = usePurchases((s) => s.tier);
   const used = FREE_PER_WEEK - useVideosLeft();
@@ -55,11 +57,13 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
   const searchable = lib.lifts.length >= SEARCH_MIN;
   const q = searchable ? query.trim() : '';
   const ofKind = kind ? lib.lifts.filter((l) => kindOf(l) === kind) : lib.lifts;
-  // the search reads what the row shows (name, kind, tags, note, load), with and without the unit
+  // the search reads what the row shows (name, kind, tags, note, load in the lifter's units), with or without the space, with a
+  // decimal point or comma
   const shown = q
     ? ofKind.filter((l) => {
         const d = detailsOf(details, idOf(l));
-        const load = l.loadKg != null ? [`${fmt(l.loadKg)} kg`, `${fmt(l.loadKg)}kg`, `${l.loadKg}kg`] : [];
+        const text = l.loadKg != null ? formatLoad(l.loadKg, units) : null;
+        const load = text ? [text, text.replace(' ', ''), text.replace(',', '.').replace(' ', '')] : [];
         return matchesSearch(q, [d.name, kindOf(l), ...d.tags, d.note, liftDetail(l), ...load]);
       })
     : ofKind;
@@ -215,13 +219,14 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
 
 // `dated`: the row sits under its kind, not its day, so it is titled by its date.
 function LiftRow({ lift, nav, dated = false }: { lift: Lift; nav: LiftsNav; dated?: boolean }) {
+  const units = useOnboarding((s) => s.units);
   const muted = lift.status === 'queued';
   // a tracked lift whose kind was read is titled by it, with the time moved to the line under
   const kind = useLiftNames((n) => (lift.status === 'done' ? liftKind(n.shapes, lift.analysisId ?? lift.id, n.chosen) : null));
   // the lifter's own name for it comes first; tags and the start of the note sit under the row's own lines
   const mine = useLiftDetails((d) => detailsOf(d.details, lift.analysisId ?? lift.id));
   const name = mine.name || (dated ? null : kind);
-  const when = dated ? liftTitle(lift) : liftTime(lift);
+  const when = dated ? liftTitle(lift, units) : liftTime(lift, units);
   const detail = name ? [when, liftDetail(lift)].filter(Boolean).join(' · ') : liftDetail(lift);
   const thumb =
     lift.status === 'processing' ? (

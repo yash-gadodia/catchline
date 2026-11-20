@@ -97,13 +97,22 @@ export function valueText(m: Pick<Measurement, 'unit' | 'value'>): string {
 }
 
 
+export type Units = 'kg' | 'lb';
+export const KG_PER_LB = 0.45359237;
+
+// Loads are kept in kg. In lb they read to the nearest half pound: a lb entry is stored to 0.1 kg, which is
+// within a quarter pound of what was typed, so 135 lb reads back as 135 lb.
+export function formatLoad(kg: number, units: Units): string {
+  return units === 'lb' ? `${fmt(Math.round((kg / KG_PER_LB) * 2) / 2)} lb` : `${fmt(kg)} kg`;
+}
+
 export function seconds(s: number): string {
   return formatNumber(s, undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-export function liftTitle(a: Analysis, rep?: number | 'miss'): string {
+export function liftTitle(a: Analysis, units: Units, rep?: number | 'miss'): string {
   const parts = [movementLabel(a.movement)];
-  if (a.loadKg != null) parts.push(`${fmt(a.loadKg)} kg`);
+  if (a.loadKg != null) parts.push(formatLoad(a.loadKg, units));
   if (rep === 'miss') parts.push(t('format.title.miss'));
   else if (rep != null) parts.push(t('format.title.rep', { rep }));
   return parts.join(' · ');

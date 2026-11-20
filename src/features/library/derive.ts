@@ -1,4 +1,4 @@
-import { fmt, movementLabel } from '../../analysis/format';
+import { formatLoad, movementLabel, type Units } from '../../analysis/format';
 import { formatDate, t } from '../../i18n';
 import { localClipUri } from '../../data/localLifts';
 import { failureMessage } from './failures';
@@ -26,9 +26,9 @@ export function liftWhen(l: Pick<Lift, 'date' | 'at'>): string {
 }
 
 // The line a shared video can carry: the day of the lift, and its load if the lifter set one ("14 Nov 2026 · 62.5 kg").
-export function liftCaption(l: Pick<Lift, 'date' | 'at' | 'loadKg'>): string {
+export function liftCaption(l: Pick<Lift, 'date' | 'at' | 'loadKg'>, units: Units): string {
   const day = formatDate(l.at ? new Date(l.at) : utc(l.date), { day: 'numeric', month: 'short', year: 'numeric', ...(l.at ? {} : { timeZone: 'UTC' }) });
-  return l.loadKg != null ? `${day} · ${fmt(l.loadKg)} kg` : day;
+  return l.loadKg != null ? `${day} · ${formatLoad(l.loadKg, units)}` : day;
 }
 
 // A 4.0 lift keeps its clip and was never given a movement by the lifter.
@@ -37,8 +37,8 @@ export function isTracked(l: Pick<Lift, 'id' | 'analysisId'>): boolean {
 }
 
 // The date and time, plus the load if the lifter set one.
-export function liftTitle(l: Pick<Lift, 'date' | 'at' | 'loadKg'>): string {
-  return l.loadKg != null ? `${liftWhen(l)} · ${fmt(l.loadKg)} kg` : liftWhen(l);
+export function liftTitle(l: Pick<Lift, 'date' | 'at' | 'loadKg'>, units: Units): string {
+  return l.loadKg != null ? `${liftWhen(l)} · ${formatLoad(l.loadKg, units)}` : liftWhen(l);
 }
 
 function localDay(d: Date): Day {
@@ -46,11 +46,11 @@ function localDay(d: Date): Day {
 }
 
 // Under its day's heading a lift is titled by its time (and load); one with no time on record keeps its full title.
-export function liftTime(l: Pick<Lift, 'date' | 'at' | 'loadKg'>): string {
-  if (!l.at) return liftTitle(l);
+export function liftTime(l: Pick<Lift, 'date' | 'at' | 'loadKg'>, units: Units): string {
+  if (!l.at) return liftTitle(l, units);
   const d = new Date(l.at);
   const time = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  return l.loadKg != null ? `${time} · ${fmt(l.loadKg)} kg` : time;
+  return l.loadKg != null ? `${time} · ${formatLoad(l.loadKg, units)}` : time;
 }
 
 export type DayGroup = { day: Day; label: string; lifts: Lift[] };
