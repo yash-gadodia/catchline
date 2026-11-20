@@ -10,7 +10,7 @@ The app sells one plan. The store products, entitlements and offerings below are
 
 | Plan | Videos | Price | Store products the app sells |
 |---|---|---|---|
-| Free | 3 a week, every overlay | - | - |
+| Free | 1 a week, every overlay (decided 20 Nov 2026, #236) | - | - |
 | Catchline Pro | Unlimited | $2.99 a month, $19.99 a year | `catchline_pull_monthly`, `catchline_pull_annual` (packages `pull_monthly`, `pull_annual` in offering `default`) |
 | Founding member | Unlimited, for life | $29.99 once | `catchline_founding_lifetime` (package `founding`), offered while seats remain |
 

@@ -256,6 +256,13 @@ describe('TrackerScreen first look (reveal)', () => {
     expect(onAnother).toHaveBeenCalledTimes(1);
   });
 
+  it('a hip trail (a hanging movement) says what is drawn instead of leaving the space empty (#239)', async () => {
+    const { getByTestId, getByText, queryByTestId } = await show({ ...lifted, traceKind: 'hip' }, body, { reveal: true, reduceMotion: true, onShare: () => {} });
+    expect(getByTestId('first-look-trail')).toBeOnTheScreen();
+    expect(getByText('Your hip path')).toBeOnTheScreen();
+    expect(queryByTestId('first-look-peak')).toBeNull();
+  });
+
   it('the sample lift offers the lifter their own lift, not a share', async () => {
     const onAnother = jest.fn();
     const { getByText, getByTestId, queryByTestId } = await show(lifted, body, { reveal: true, reduceMotion: true, sample: true, onAnother });

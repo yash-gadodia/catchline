@@ -143,6 +143,8 @@ export const analysis: Strings<typeof en> = {
   'analysis.reveal.peak': "杠铃最高速度",
   'analysis.reveal.detail': "查看详情",
   'analysis.reveal.tell': "告诉开发者效果如何",
+  'analysis.reveal.trail.title': "你的髋部轨迹",
+  'analysis.reveal.trail.body': "身体线条和髋部轨迹，绘制在每一帧上。",
   'analysis.reveal.another': "分析另一次举重",
   'analysis.reveal.none.title': "这段视频没有杠铃轨迹",
   'analysis.reveal.none.why': "这段视频里杠铃片不够清晰。做到这三点就能解决：",

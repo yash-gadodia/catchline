@@ -26,6 +26,8 @@ export default function WelcomeRoute() {
     <WelcomeScreen
       onSample={() => {
         track(EVENTS.WELCOME_CHOICE, { choice: 'sample' });
+        // the terms line sits under this button too: going on to the sample accepts them, as Pick and Film do (#237)
+        accept();
         router.push('/analysis/sample?from=welcome' as Href);
       }}
       onPick={() => {

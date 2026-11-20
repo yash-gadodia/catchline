@@ -69,6 +69,13 @@ export default function FirstLook({
         <View style={{ gap: space.s2 }}>
           {first && kind === 'path' ? <Text testID="first-look-first" style={{ ...type.label, color: colors.text2 }}>{t('analysis.reveal.first')}</Text> : null}
           {number}
+          {kind === 'trail' ? (
+            // a hanging movement has no bar, so no bar speed: say what is drawn instead of leaving the space empty (#239)
+            <View testID="first-look-trail" style={{ gap: space.s2 }}>
+              <Text style={{ ...type.title, color: colors.text }}>{t('analysis.reveal.trail.title')}</Text>
+              <Text style={{ ...type.callout, color: colors.text2 }}>{t('analysis.reveal.trail.body')}</Text>
+            </View>
+          ) : null}
         </View>
       )}
       <View style={{ gap: space.s2 }}>

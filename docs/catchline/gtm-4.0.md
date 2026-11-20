@@ -72,7 +72,7 @@ Not covered: no reliable source found for CapCut's watermark as a growth driver;
 
 ## 3. Pricing and paywall: recommendation
 
-- **Keep 3 free videos a week.** Your gym data showed 1 to 2 uploads per active user a month (SYNTHESIS), so almost nobody meets the paywall. Fine for now: the goal is exports, not revenue.
+- **Free is 1 video a week** (the app since 3d88fde; confirmed 20 Nov 2026, #236). Superseded advice kept for the record: **Keep 3 free videos a week.** Your gym data showed 1 to 2 uploads per active user a month (SYNTHESIS), so almost nobody meets the paywall. Fine for now: the goal is exports, not revenue.
 - **Keep the wordmark on every export, Pro included. Do not sell removal.** Removal earns little and costs reach (Kapwing).
 - **No referral scheme yet.** Extra free videos are worthless to people who never hit the cap.
 - **Do not touch price for 14 days.**
@@ -172,7 +172,7 @@ If the gate passes and 4.0 is released on any day, do the launch-day list in sec
 4. One honest LinkedIn post and one newsletter note: what it does, what it does not do yet.
 
 **Week two.**
-- **Reddit.** r/weightlifting: one comment in the Saturday thread: what it is, 3 free videos a week, what it gets wrong, and a request to tear it apart. Elsewhere, comment usefully on form checks and mention the app only if asked. r/crossfit and r/formcheck: no post until you have read the live rules and commented there for two weeks.
+- **Reddit.** r/weightlifting: one comment in the Saturday thread: what it is, 1 free video a week, what it gets wrong, and a request to tear it apart. Elsewhere, comment usefully on form checks and mention the app only if asked. r/crossfit and r/formcheck: no post until you have read the live rules and commented there for two weeks.
 - **Coaches.** A coach who films ten lifters is ten exports. Pro free for any coach who uses it in class.
 - **Product Hunt.** Optional, one afternoon, backlink only. One fitness founder got about zero active users from a week on it [S](https://www.indiehackers.com/post/what-6-weeks-of-shipping-fitforge-in-public-actually-looked-like-9b610d316f).
 - **Hacker News.** Only as a technical write-up of on-phone tracking [I].

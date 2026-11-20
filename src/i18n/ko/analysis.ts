@@ -143,6 +143,8 @@ export const analysis: Strings<typeof en> = {
   'analysis.reveal.peak': "바벨 최고 속도",
   'analysis.reveal.detail': "자세히 보기",
   'analysis.reveal.tell': "만든 사람에게 어땠는지 알려 주기",
+  'analysis.reveal.trail.title': "엉덩이 궤적",
+  'analysis.reveal.trail.body': "몸의 라인과 엉덩이 궤적을 모든 프레임에 그립니다.",
   'analysis.reveal.another': "다른 리프팅 분석하기",
   'analysis.reveal.none.title': "이 영상에서는 바벨 궤적을 그리지 못했어요",
   'analysis.reveal.none.why': "이 영상에서는 원판이 선명하게 보이지 않았어요. 세 가지만 바꾸면 됩니다.",

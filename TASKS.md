@@ -12,7 +12,7 @@ Owner decision 11-11: drop cues; the app tracks any lift or gymnastics clip and 
 ## Phase 2: strip back
 - [x] Remove movement picker, reveal/cue/miss/compare routes, Cues and Trends tabs, cue tracking, retest, drills, review and import screens; processing copy; Lifts is a plain list (branch v40/strip-ui)
 - [ ] Delete what only the old onboarding demo and paywall proof rows still hold up: `RevealScreen`, `CueScreen` (cut down to the sample), `PathReplay`, `ResultNumbers`, `LibraryState.cues/sessions`, `sessionsDone`, the `cue` strings; `PlayerScreen.onCompare` (passed by `SampleScreen`); `routeAfterAnalysis()` has no caller since the cue route went
-- [x] Onboarding (3 steps: welcome, how to film, add a video), paywall (free 3 a week, one plan Catchline Pro) (branch v40/onboard-paywall)
+- [x] Onboarding (3 steps: welcome, how to film, add a video), paywall (free 3 a week at the time; 1 a week since 3d88fde, one plan Catchline Pro) (branch v40/onboard-paywall)
 - [ ] Store listing copy and screenshots
 - [ ] Follow-ups from the onboarding/paywall pass: Lifts chip, capture `freeUsed` and library `freeVideosUsed` still read the lifetime count (use `useVideosLeft()`); `app/(tabs)` still links `/onboarding/demo` and `/paywall/plans` (both gone); drop `captureHref`, `routeAfterAnalysis`, submit's 'paywall'/'trial' branches and devicePipeline's `writeFreeUsed`; nothing asks for notifications before the first result any more
 ## Phase 3: store build

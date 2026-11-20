@@ -59,6 +59,14 @@ describe('onboarding is one screen', () => {
     expect(mockNav.push.mock.calls).toEqual([['/onboarding/camera?state=denied']]);
     expect(useOnboarding.getState().completed).toBe(false);
   });
+
+  it('opening the sample records the consent under the buttons, but onboarding is not finished yet (#237)', async () => {
+    const view = await render(<WelcomeRoute />);
+    await press(view.getByText('Try it on a sample lift'));
+    expect(hasConsent(useOnboarding.getState().consent)).toBe(true);
+    expect(useOnboarding.getState().completed).toBe(false);
+    expect(mockNav.push.mock.calls).toEqual([['/analysis/sample?from=welcome']]);
+  });
 });
 
 describe('the camera-off screen', () => {
