@@ -28,6 +28,7 @@ export { sendProblemReport, type ProblemReport } from './feedback';
 export { setContactEmail } from './contact';
 export { uploadSharedClip } from './sharedClips';
 export { uploadProblemShot } from './problemShots';
+export { getVersionFlags, type VersionFlags } from './appVersion';
 export {
   ensureSession,
   recordConsent,
