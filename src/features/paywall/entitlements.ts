@@ -4,6 +4,9 @@ export type StorePlatform = 'ios' | 'android';
 
 // Free: 1 video a calendar week (Monday start, the phone's local time), every overlay.
 export const FREE_PER_WEEK = 1;
+// A new phone's first videos are free whatever the week (22-11-2026: 3 of the 5 lifters who saw a result and never
+// tracked again met the weekly limit on their second lift).
+export const STARTER_FREE = 3;
 
 // Catchline Pro is sold as the Pull products. Hook and Platform are no longer sold;
 // anyone who owns one of them, or a Founding seat, is Pro.
@@ -67,7 +70,12 @@ export function usedThisWeek(usage: Usage, now: Date): number {
 }
 
 export function freeLeft(usage: Usage, now: Date): number {
-  return Math.max(0, FREE_PER_WEEK - usedThisWeek(usage, now));
+  return Math.max(0, FREE_PER_WEEK - usedThisWeek(usage, now), STARTER_FREE - usage.lifetime);
+}
+
+// The count the free videos are shown out of: the starter videos while they are what is left, then the week's.
+export function freeTotal(usage: Usage, now: Date): number {
+  return STARTER_FREE - usage.lifetime > FREE_PER_WEEK - usedThisWeek(usage, now) ? STARTER_FREE : FREE_PER_WEEK;
 }
 
 export function canAnalyse(tier: Tier, usage: Usage, now: Date): boolean {

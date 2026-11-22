@@ -10,7 +10,7 @@ import { tusUpload } from '../lib/api/tus';
 import { submitClip, type ClipSubmission } from '../features/capture/submit';
 import { usePurchases } from '../features/purchases/usePurchases';
 import { useUsage } from '../features/paywall/usageStore';
-import { EMPTY_USAGE, weekKey } from '../features/paywall/entitlements';
+import { EMPTY_USAGE, STARTER_FREE, weekKey } from '../features/paywall/entitlements';
 import { useOnboarding } from '../features/onboarding/store';
 import { FREE_USED_KEY, FREE_WEEK_KEY } from './freeLifts';
 import { useLiftOutbox } from './liftOutbox';
@@ -150,10 +150,11 @@ describe('airplane mode, fresh install', () => {
     noServerAnalysis();
   });
 
-  it('the week\'s free lift is counted in the Keychain and queued for sync_lift; the next goes to the weekly cap', async () => {
+  it('past the starter videos, the week\'s free lift is counted in the Keychain and queued for sync_lift; the next goes to the weekly cap', async () => {
+    useUsage.setState({ usage: { ...EMPTY_USAGE, lifetime: STARTER_FREE } });
     const id = await analyse();
-    expect(useUsage.getState().usage.lifetime).toBe(1);
-    expect(await SecureStore.getItemAsync(FREE_USED_KEY)).toBe('1');
+    expect(useUsage.getState().usage.lifetime).toBe(STARTER_FREE + 1);
+    expect(await SecureStore.getItemAsync(FREE_USED_KEY)).toBe(String(STARTER_FREE + 1));
     expect(await SecureStore.getItemAsync(FREE_WEEK_KEY)).toBe(`${weekKey(new Date())}:1`);
     expect(useLiftOutbox.getState().items.map((i) => [i.id, i.synced ?? false])).toEqual([[id, false]]);
     expect(useLiftOutbox.getState().items[0].lift).toMatchObject({ movement: 'snatch', loadKg: 62.5, made: true });
@@ -169,6 +170,7 @@ describe('airplane mode, fresh install', () => {
 
   it('a reinstall reads this week’s Keychain count, so the free lifts are not handed back', async () => {
     await SecureStore.setItemAsync(FREE_WEEK_KEY, `${weekKey(new Date())}:1`);
+    await SecureStore.setItemAsync(FREE_USED_KEY, String(STARTER_FREE));
     await submitClip(CLIP);
     expect(nav.push).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/paywall/cap' }));
     expect(analyseOnDevice).not.toHaveBeenCalled();

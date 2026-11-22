@@ -10,6 +10,7 @@ type UsageState = {
   usage: Usage;
   record: (tier: Tier, now: Date) => void;
   adoptWeek: (held: FreeWeek) => void;
+  adoptLifetime: (count: number) => void;
   reset: () => void;
   forgetAccount: () => void;
 };
@@ -28,9 +29,15 @@ export const useUsage = create<UsageState>()(
         const usage = get().usage;
         if (week > usage.week || (week === usage.week && used > usage.thisWeek)) set({ usage: { ...usage, week, thisWeek: used } });
       },
+      // The Keychain's lifetime count, so a reinstall does not hand the starter videos back.
+      adoptLifetime: (count) => {
+        const usage = get().usage;
+        if (count > usage.lifetime) set({ usage: { ...usage, lifetime: count } });
+      },
       reset: () => set({ usage: EMPTY_USAGE }),
-      // The week's free videos belong to the phone, not the account: leaving or deleting one keeps them used (#234).
-      forgetAccount: () => set(({ usage }) => ({ usage: { ...EMPTY_USAGE, week: usage.week, thisWeek: usage.thisWeek } })),
+      // The free videos belong to the phone, not the account: leaving or deleting one keeps the week's and the
+      // starter videos used (#234).
+      forgetAccount: () => set(({ usage }) => ({ usage: { ...EMPTY_USAGE, lifetime: usage.lifetime, week: usage.week, thisWeek: usage.thisWeek } })),
     }),
     {
       name: 'catchline-usage',

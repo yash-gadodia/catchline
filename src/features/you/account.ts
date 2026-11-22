@@ -16,7 +16,7 @@ import { useLibraryStore } from '../library/store';
 import { kindIdOf, useLiftNames } from '../library/liftNames';
 import { detailsOf, useLiftDetails } from '../library/liftDetails';
 import { useOnboarding } from '../onboarding/store';
-import { FREE_PER_WEEK, freeLeft, type Tier, type Usage } from '../paywall/entitlements';
+import { freeLeft, freeTotal, type Tier, type Usage } from '../paywall/entitlements';
 import { useUsage } from '../paywall/usageStore';
 import { t } from '../../i18n';
 import { usePurchases } from '../purchases/usePurchases';
@@ -36,7 +36,7 @@ function signInName(s: Account['signIn']): string {
 
 // Free shows this week's videos; every paid tier, old or new, is Catchline Pro.
 export function planLabel(tier: Tier, usage: Usage, now: Date): string {
-  if (tier === 'free') return `${t('you.plan.free')} · ${t('you.plan.videosLeft', { count: FREE_PER_WEEK, left: freeLeft(usage, now), total: FREE_PER_WEEK })}`;
+  if (tier === 'free') return `${t('you.plan.free')} · ${t('you.plan.videosLeft', { count: freeTotal(usage, now), left: freeLeft(usage, now), total: freeTotal(usage, now) })}`;
   return `${t('you.plan.pro')} · ${t(tier === 'founding' ? 'you.plan.foundingMember' : 'you.plan.unlimited')}`;
 }
 
