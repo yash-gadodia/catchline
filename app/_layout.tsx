@@ -35,7 +35,7 @@ import { LaunchRecovery } from '../src/components/LaunchRecovery';
 // the settings store sets the saved language as it loads: imported here so that happens at launch (#92)
 import '../src/features/you/settings';
 import FeedbackSheet from '../src/features/feedback/FeedbackSheet';
-import { FEEDBACK_CONTEXT, feedbackNotificationOpened, isFeedbackAsk, offerFeedback } from '../src/features/feedback/ask';
+import { FEEDBACK_CONTEXT, feedbackNotificationOpened, isFeedbackAsk } from '../src/features/feedback/ask';
 import ScreenshotSheet from '../src/features/feedback/ScreenshotSheet';
 import { watchScreenshots } from '../src/features/feedback/screenshot';
 
@@ -83,12 +83,8 @@ export default function RootLayout() {
     // nothing is preparing, tracking or rendering yet: what an earlier run left in the caches goes
     sweepClipCache();
     // a phone with no lift yet gets its three reminders set, once
-    // and a phone with two lifts is asked, once, how Catchline is working
     void listLocalAnalyses()
-      .then((lifts) => {
-        offerFeedback(lifts.length);
-        return scheduleFirstLiftNudges(lifts.length > 0);
-      })
+      .then((lifts) => scheduleFirstLiftNudges(lifts.length > 0))
       .catch(() => undefined);
 
     // Initialise RevenueCat once (real SDK in a dev build; no-op in Expo Go).

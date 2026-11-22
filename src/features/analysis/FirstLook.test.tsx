@@ -104,4 +104,18 @@ describe('what was this lift, on the result card', () => {
     // 16 above, 92 + 16 + 202, and 16 below
     expect(onNeed).toHaveBeenLastCalledWith(342);
   });
+
+  it('measures both halves laid out in one pass, after RN has released the layout events', async () => {
+    const onNeed = jest.fn();
+    const { getByTestId } = await show('path', { onNeed });
+    const top: { nativeEvent: { layout: { height: number } } | null } = { nativeEvent: { layout: { height: 92 } } };
+    const bottom: { nativeEvent: { layout: { height: number } } | null } = { nativeEvent: { layout: { height: 202 } } };
+    await act(async () => {
+      fireEvent(getByTestId('first-look-top'), 'layout', top);
+      fireEvent(getByTestId('first-look-bottom'), 'layout', bottom);
+      top.nativeEvent = null;
+      bottom.nativeEvent = null;
+    });
+    expect(onNeed).toHaveBeenLastCalledWith(342);
+  });
 });

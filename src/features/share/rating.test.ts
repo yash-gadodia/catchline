@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { requireOptionalNativeModule } from 'expo';
 import { usePipeline } from '../../data/pipeline';
 import { askForRatingOnce, declineRating, ratingDue } from './rating';
+import { claimSessionAsk, resetSessionAsk } from '../feedback/sessionAsk';
 
 jest.mock('expo', () => ({ requireOptionalNativeModule: jest.fn() }));
 jest.mock('expo-constants', () => ({ __esModule: true, default: { expoConfig: { version: '4.1.0' } } }));
@@ -15,6 +16,7 @@ beforeEach(async () => {
   jest.clearAllMocks();
   await AsyncStorage.clear();
   usePipeline.getState().clear();
+  resetSessionAsk();
 });
 
 describe('askForRatingOnce', () => {
@@ -75,5 +77,14 @@ describe('ratingDue and declineRating', () => {
   it('is never due without the store review module', async () => {
     present(false);
     expect(await ratingDue(true)).toBe(false);
+  });
+
+  it('is not due in a run that already asked for feedback, and is again in the next run', async () => {
+    present();
+    expect(claimSessionAsk('feedback')).toBe(true);
+    expect(await ratingDue(true)).toBe(false);
+    resetSessionAsk();
+    expect(await ratingDue(true)).toBe(true);
+    expect(claimSessionAsk('feedback')).toBe(false);
   });
 });
