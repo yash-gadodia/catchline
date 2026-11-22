@@ -35,6 +35,7 @@ export const invite: Strings<typeof en> = {
   'invite.err.already_claimed': "你已经用过朋友的邀请码了。",
   'invite.err.too_late': "邀请码只能在你使用 Catchline 的前 30 天内使用。",
   'invite.err.sign_in_required': "请先通过 Apple 登录，再使用邀请码。",
+  'invite.err.apple_sheet': "未能通过 Apple 登录。请在“设置”中确认已登录你的 Apple 账户，然后重试。",
   'invite.err.generic': "无法连接 Catchline。检查网络后再试一次。",
   'invite.afterShare': "送朋友一个月免费 Pro",
 };

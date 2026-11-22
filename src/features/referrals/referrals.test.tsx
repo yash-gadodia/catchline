@@ -1,5 +1,6 @@
 import { act, fireEvent, render, waitFor, within } from '@testing-library/react-native';
 import { useAuthUser } from '../auth/authUser';
+import { AppleSheetError } from '../auth/appleSignIn';
 import { claimErrorOf, inviteLink, monthsOf, normalizeCode, type MyReferral } from './api';
 import InviteScreen, { inviteMessage, type InviteApi } from './InviteScreen';
 import { useInvite } from './store';
@@ -73,6 +74,21 @@ describe('InviteScreen', () => {
       fireEvent.press(view.getByTestId('invite-sign-in'));
     });
     expect(signIn).toHaveBeenCalledTimes(1);
+  });
+
+  it("says what to check when Apple's sheet fails, and says nothing on a cancel (22-11)", async () => {
+    useAuthUser.setState({ userId: 'anon', anonymous: true, displayName: null });
+    const signIn = jest.fn<Promise<{ cancelled: true }>, []>(async () => ({ cancelled: true }));
+    const view = await render(<InviteScreen onBack={jest.fn()} api={fakeApi()} signIn={signIn} />);
+    await act(async () => {
+      fireEvent.press(view.getByTestId('invite-sign-in'));
+    });
+    expect(view.queryByTestId('invite-claim-note')).toBeNull();
+    signIn.mockRejectedValueOnce(new AppleSheetError('The authorization attempt failed for an unknown reason'));
+    await act(async () => {
+      fireEvent.press(view.getByTestId('invite-sign-in'));
+    });
+    expect(view.getByTestId('invite-claim-note')).toHaveTextContent("Apple sign-in didn't go through. Check you're signed in to your Apple Account in Settings, then try again.");
   });
 
   it.each(['de', 'fr'] as const)('in %s, the title keeps clear of the back label and the Apple buttons wrap their labels centred', async (lang) => {

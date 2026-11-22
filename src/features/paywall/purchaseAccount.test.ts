@@ -2,12 +2,13 @@ import { purchasePlan } from './hooks';
 import { usePurchases } from '../purchases/usePurchases';
 import type { Plan } from './products';
 import { track } from '../../lib/analytics';
+import { AppleSheetError } from '../auth/appleSignIn';
 
 jest.mock('../../lib/analytics', () => ({ ...jest.requireActual('../../lib/analytics'), track: jest.fn() }));
 
 jest.mock('../../data/backend', () => ({ backendEnabled: () => true }));
 jest.mock('../../lib/supabase', () => ({ supabase: { auth: { getSession: jest.fn() } } }));
-jest.mock('../auth/appleSignIn', () => ({ signInWithApple: jest.fn() }));
+jest.mock('../auth/appleSignIn', () => ({ ...jest.requireActual('../auth/appleSignIn'), signInWithApple: jest.fn() }));
 
 const { supabase } = jest.requireMock('../../lib/supabase') as { supabase: { auth: { getSession: jest.Mock } } };
 const { signInWithApple } = jest.requireMock('../auth/appleSignIn') as { signInWithApple: jest.Mock };
@@ -52,6 +53,13 @@ describe('sign in with Apple before any purchase (3.1)', () => {
     signInWithApple.mockRejectedValue(new Error('network'));
     expect(await purchasePlan(PLAN)).toBe('failed');
     expect(purchase).not.toHaveBeenCalled();
+  });
+
+  it("still buys when Apple's own sheet fails on this phone, so no lifter is locked out of paying (22-11)", async () => {
+    session(true);
+    signInWithApple.mockRejectedValue(new AppleSheetError('The authorization attempt failed for an unknown reason'));
+    expect(await purchasePlan(PLAN)).toBe('success');
+    expect(purchase).toHaveBeenCalledWith(PLAN);
   });
 
   it('goes straight to the store for a lifter already signed in with Apple', async () => {

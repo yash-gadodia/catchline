@@ -9,7 +9,7 @@ import { useUsage } from './usageStore';
 import { backendEnabled } from '../../data/backend';
 import { supabase } from '../../lib/supabase';
 import { readFreeWeek } from '../../data/freeLifts';
-import { signInWithApple } from '../auth/appleSignIn';
+import { signInWithApple, AppleSheetError } from '../auth/appleSignIn';
 import { cancelFreeVideoBack } from '../notifications/nudges';
 
 export function storePlatform(): StorePlatform {
@@ -40,8 +40,10 @@ export async function ensureAccountForPurchase(): Promise<PurchaseStatus | null>
   try {
     const result = await signInWithApple();
     return result.cancelled ? 'cancelled' : null;
-  } catch {
-    return 'failed';
+  } catch (e) {
+    // Apple's sheet cannot sign in on this phone (22-11: a lifter got Apple's error 1000 twice): the purchase still
+    // goes ahead on the anonymous account, and signing in later moves the plan over. Our server failing stays a failure.
+    return e instanceof AppleSheetError ? null : 'failed';
   }
 }
 

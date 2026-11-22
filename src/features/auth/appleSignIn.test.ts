@@ -236,5 +236,8 @@ describe('auth user sync', () => {
     expect(appleDisplayName(null)).toBeNull();
     expect(isAppleCancel({ code: 'ERR_REQUEST_CANCELED' })).toBe(true);
     expect(isAppleCancel(new Error('x'))).toBe(false);
+    // 22-11: a real cancel reached JS with no code, only Apple's message
+    expect(isAppleCancel(new Error('The user canceled the authorization attempt'))).toBe(true);
+    expect(isAppleCancel(new Error('The authorization attempt failed for an unknown reason'))).toBe(false);
   });
 });

@@ -32,6 +32,7 @@ export const invite = {
   'invite.err.already_claimed': "You've already used a friend's code.",
   'invite.err.too_late': 'Codes work in your first 30 days on Catchline.',
   'invite.err.sign_in_required': 'Sign in with Apple first, then use the code.',
+  'invite.err.apple_sheet': "Apple sign-in didn't go through. Check you're signed in to your Apple Account in Settings, then try again.",
   'invite.err.generic': "Couldn't reach Catchline. Check your connection and try again.",
   'invite.afterShare': 'Give a friend a free month of Pro',
 };
