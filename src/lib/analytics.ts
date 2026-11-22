@@ -53,6 +53,11 @@ export const EVENTS = {
   FEEDBACK_ASK_LATER: 'feedback_ask_later',
   FEEDBACK_NOTIFICATION_OPENED: 'feedback_notification_opened',
   FEEDBACK_SENT: 'feedback_sent',
+  // force update: this binary is below feature_flags min_app_version (required) or recommended_app_version, the
+  // recommended sheet closed for the day, and the App Store opened from either
+  UPDATE_NEEDED: 'update_needed',
+  UPDATE_PROMPT_LATER: 'update_prompt_later',
+  UPDATE_STORE_OPENED: 'update_store_opened',
   // a lifter left an email so the owner can reply (never the address itself)
   CONTACT_EMAIL_LEFT: 'contact_email_left',
   // a queued report that did not reach the server: which step, and the error's code and message

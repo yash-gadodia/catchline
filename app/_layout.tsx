@@ -38,6 +38,8 @@ import FeedbackSheet from '../src/features/feedback/FeedbackSheet';
 import { FEEDBACK_CONTEXT, feedbackNotificationOpened, isFeedbackAsk } from '../src/features/feedback/ask';
 import ScreenshotSheet from '../src/features/feedback/ScreenshotSheet';
 import { watchScreenshots } from '../src/features/feedback/screenshot';
+import UpdateGate from '../src/features/update/UpdateGate';
+import { checkForUpdate } from '../src/features/update/appUpdate';
 
 const LAUNCH_FAILSAFE_MS = 4000;
 
@@ -146,10 +148,14 @@ export default function RootLayout() {
   useEffect(() => watchScreenshots(), []);
 
   // A lift the app was killed in the middle of is tracked again from where it was saved (#250).
+  // The installed version is checked against feature_flags' minimum and recommended versions.
   useEffect(() => {
     void resumeDeviceLifts();
+    void checkForUpdate();
     const sub = AppState.addEventListener('change', (s) => {
-      if (s === 'active') void resumeDeviceLifts();
+      if (s !== 'active') return;
+      void resumeDeviceLifts();
+      void checkForUpdate();
     });
     return () => sub.remove();
   }, []);
@@ -174,6 +180,7 @@ export default function RootLayout() {
             )}
             <ScreenshotSheet />
             <FeedbackSheet />
+            <UpdateGate />
             <LaunchRecovery />
           </AppErrorBoundary>
         </QueryClientProvider>
