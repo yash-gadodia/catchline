@@ -41,14 +41,14 @@ describe('import-first routing', () => {
   });
 
   it('with a free video left this week the picker opens directly: no heads-up screen', async () => {
-    useUsage.setState({ usage: { lifetime: 2, week: weekKey(new Date()), thisWeek: 0 } });
+    useUsage.setState({ usage: { lifetime: 3, week: weekKey(new Date()), thisWeek: 0 } });
     const view = await render(<TabsLayout />);
     await press(view.getByTestId('tab-import'));
     expect(mockNav.push.mock.calls).toEqual([['/capture/import']]);
   });
 
   it('with no free video left the paywall opens before the picker, not after the trim and the plate check', async () => {
-    useUsage.setState({ usage: { lifetime: 2, week: weekKey(new Date()), thisWeek: 1 } });
+    useUsage.setState({ usage: { lifetime: 3, week: weekKey(new Date()), thisWeek: 1 } }); // past the 3 starter videos
     const view = await render(<TabsLayout />);
     await press(view.getByTestId('tab-import'));
     expect(mockNav.push.mock.calls).toEqual([['/paywall']]);

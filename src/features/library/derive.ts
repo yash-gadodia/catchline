@@ -89,10 +89,10 @@ export function byKind(lifts: Lift[], kindOf: (l: Lift) => string | null): KindG
     .map(([kind, list]) => ({ kind, label: kind ?? t('library.lifts.noKind'), lifts: list }));
 }
 
-export function freeVideosLabel(s: Pick<LibraryState, 'plan' | 'freeVideosUsed'>): string | null {
+export function freeVideosLabel(s: Pick<LibraryState, 'plan' | 'freeVideosUsed'>, total = FREE_VIDEOS): string | null {
   if (s.plan !== 'free') return null;
-  const left = Math.max(0, FREE_VIDEOS - s.freeVideosUsed);
-  if (left === FREE_VIDEOS) return t('library.free.all', { count: FREE_VIDEOS });
+  const left = Math.max(0, total - s.freeVideosUsed);
+  if (left === total) return t('library.free.all', { count: total });
   if (left === 0) return t('library.free.used');
   return t('library.free.left', { count: left });
 }

@@ -6,7 +6,7 @@ import { newClip, useCapture } from '../capture/store';
 import { useLibraryStore } from '../library/store';
 import { useOnboarding } from '../onboarding/store';
 import { useUsage } from '../paywall/usageStore';
-import { weekKey } from '../paywall/entitlements';
+import { EMPTY_USAGE, STARTER_FREE, weekKey } from '../paywall/entitlements';
 import { captureHref } from '../paywall/hooks';
 import { usePurchases } from '../purchases/usePurchases';
 import { createAccountRepository, useAccountStore } from './account';
@@ -51,6 +51,8 @@ beforeEach(() => {
   useOnboarding.getState().acceptConsent(new Date('2026-10-01T00:00:00.000Z'));
   useOnboarding.getState().complete();
   useUsage.getState().reset();
+  // the third and last starter video, so the week's video is spent too
+  useUsage.setState({ usage: { ...EMPTY_USAGE, lifetime: STARTER_FREE - 1 } });
   useUsage.getState().record('free', new Date('2026-10-02T00:00:00.000Z'));
   useCapture.getState().setDraft(newClip({ uri: 'file:///clip.mov', durationS: 8, fps: 60, source: 'camera' }));
   useCapture.getState().setLastWeight('80');
@@ -76,7 +78,8 @@ describe('DeleteAccountSheet against the backend', () => {
     expect(useAccountStore.getState().account).toBeNull();
     expect(useOnboarding.getState().consent).toBeNull();
     expect(useOnboarding.getState().completed).toBe(false);
-    expect(useUsage.getState().usage.lifetime).toBe(0);
+    // the phone's videos, like the week's, are not handed back
+    expect(useUsage.getState().usage.lifetime).toBe(STARTER_FREE);
     expect(useCapture.getState().draft).toBeNull();
     expect(useCapture.getState().lastWeight).toBe('');
     expect(usePurchases.getState()).toMatchObject({ appUserId: null, tier: 'free', period: null, expiresAt: null, customerInfo: null });
@@ -98,11 +101,11 @@ describe('DeleteAccountSheet against the backend', () => {
     expect(settingsOf(useSettings.getState())).toEqual(DEFAULT_SETTINGS);
   });
 
-  // #234: the week's free video belongs to the phone, so deleting the account must not hand it back
-  it('keeps this week\'s free video used, so the next pick still goes to the paywall', async () => {
+  // #234: the week's free video and the starter videos belong to the phone, so deleting the account must not hand them back
+  it('keeps this week\'s free video and the starter videos used, so the next pick still goes to the paywall', async () => {
     await confirmDelete(jest.fn());
 
-    expect(useUsage.getState().usage).toEqual({ lifetime: 0, week: weekKey(new Date('2026-10-02T00:00:00.000Z')), thisWeek: 1 });
+    expect(useUsage.getState().usage).toEqual({ lifetime: STARTER_FREE, week: weekKey(new Date('2026-10-02T00:00:00.000Z')), thisWeek: 1 });
     expect(captureHref('/capture/import', new Date('2026-10-02T12:00:00.000Z'))).toBe('/paywall');
   });
 
@@ -120,7 +123,7 @@ describe('DeleteAccountSheet against the backend', () => {
     expect(mocked.auth.signOut).not.toHaveBeenCalled();
     expect(useAccountStore.getState().account?.name).toBe('Alex');
     expect(useOnboarding.getState().completed).toBe(true);
-    expect(useUsage.getState().usage.lifetime).toBe(1);
+    expect(useUsage.getState().usage.lifetime).toBe(STARTER_FREE);
     expect(liveAnalysis('snatch-mock')).toBe(ANALYSES['snatch-mock']);
   });
 });

@@ -1,5 +1,4 @@
-import { FREE_PER_WEEK } from '../../src/features/paywall/entitlements';
-import { useVideosLeft } from '../../src/features/paywall/hooks';
+import { useVideosLeft, useVideosTotal } from '../../src/features/paywall/hooks';
 import { useEffect, useMemo } from 'react';
 import { View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -12,7 +11,6 @@ import ViewfinderScreen from '../../src/features/capture/ViewfinderScreen';
 import { hasConsent, useHydrated, useOnboarding } from '../../src/features/onboarding/store';
 import { colors } from '../../src/design/tokens';
 import { useLibrary } from '../../src/features/library/repository';
-import { FREE_VIDEOS } from '../../src/features/library/types';
 
 type Params = { checks?: string; state?: string; still?: string; left?: string };
 
@@ -37,7 +35,8 @@ export default function CaptureRoute() {
   const { originals, setOriginals, setDraft, addOriginal } = useCapture();
   const checker = useMemo(() => (params.checks ? fixedChecker(parseChecks(params.checks)) : stubChecker), [params.checks]);
   const { plan } = useLibrary();
-  const freeVideosUsed = FREE_PER_WEEK - useVideosLeft();
+  const freeTotal = useVideosTotal();
+  const freeVideosUsed = freeTotal - useVideosLeft();
 
   const blocked = !still && (!hydrated || !hasConsent(consent) || !camera.ready || camera.status !== 'granted');
 
@@ -52,8 +51,8 @@ export default function CaptureRoute() {
     <ViewfinderScreen
       checker={checker}
       fps={RECORD_FPS}
-      freeUsed={plan === 'free' ? Math.min(freeVideosUsed, FREE_VIDEOS) : undefined}
-      freeTotal={FREE_VIDEOS}
+      freeUsed={plan === 'free' ? Math.min(freeVideosUsed, freeTotal) : undefined}
+      freeTotal={freeTotal}
       secondsLeft={() => secondsLeft(RECORD_FPS)}
       originals={originals.length}
       onDeleteOriginals={() => setOriginals(deleteOriginals(originals))}

@@ -64,6 +64,8 @@ describe('plan and settings labels', () => {
     expect(planLabel('free', one, wed)).toBe('Free · 0 of 1 video left this week');
     expect(planLabel('free', { lifetime: 9, week: '2026-11-09', thisWeek: 0 }, wed)).toBe('Free · 1 of 1 video left this week');
     expect(planLabel('free', one, new Date(2026, 10, 16))).toBe('Free · 1 of 1 video left this week');
+    expect(planLabel('free', { lifetime: 0, week: '', thisWeek: 0 }, wed)).toBe('Free · 3 of 3 videos left this week');
+    expect(planLabel('free', { lifetime: 1, week: '2026-11-09', thisWeek: 1 }, wed)).toBe('Free · 2 of 3 videos left this week');
     expect(planLabel('hook', one, wed)).toBe('Catchline Pro · unlimited videos');
     expect(planLabel('pull', one, wed)).toBe('Catchline Pro · unlimited videos');
     expect(planLabel('platform', one, wed)).toBe('Catchline Pro · unlimited videos');
@@ -193,7 +195,11 @@ describe('YouScreen', () => {
 
 describe('YouScreen with the backend on', () => {
 
-  beforeEach(() => mockBackendEnabled.mockReturnValue(true));
+  beforeEach(() => {
+    mockBackendEnabled.mockReturnValue(true);
+    // past the 3 starter videos, so the plan row shows the week's allowance
+    useUsage.setState({ usage: { lifetime: 3, week: '', thisWeek: 0 } });
+  });
 
   it('opens Give a month, get a month from its row', async () => {
     const onInvite = jest.fn();

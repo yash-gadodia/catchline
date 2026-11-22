@@ -1,10 +1,12 @@
 import {
   EMPTY_USAGE,
   FREE_PER_WEEK,
+  STARTER_FREE,
   annualSavingPct,
   canAnalyse,
   formatUsd,
   freeLeft,
+  freeTotal,
   gateFor,
   hasFeature,
   isPro,
@@ -48,40 +50,68 @@ describe('the week starts on Monday, in the phone’s local time', () => {
   });
 });
 
-describe('free: 1 video a week', () => {
-  it('starts with one', () => {
+// A lifter whose starter videos are spent, so only the week's video is left.
+const PAST_STARTER: Usage = { lifetime: STARTER_FREE, week: '2026-11-02', thisWeek: 1 };
+
+describe('a new phone: the first 3 videos are free whatever the week', () => {
+  it('starts with 3, counted out of 3', () => {
+    expect(STARTER_FREE).toBe(3);
+    expect(freeLeft(EMPTY_USAGE, WED)).toBe(3);
+    expect(freeTotal(EMPTY_USAGE, WED)).toBe(3);
+  });
+
+  it('allows 3 in one week, then blocks until Monday', () => {
+    expect(freeLeft(track(1, 'free', WED), WED)).toBe(2);
+    expect(freeLeft(track(2, 'free', WED), WED)).toBe(1);
+    const three = track(3, 'free', WED);
+    expect(three).toEqual({ lifetime: 3, week: '2026-11-09', thisWeek: 3 });
+    expect(gateFor('free', three, SUN_NIGHT)).toBe('cap');
+    expect(freeLeft(three, NEXT_MON)).toBe(1);
+    expect(freeTotal(three, NEXT_MON)).toBe(1);
+  });
+
+  it('a starter video left over carries into the next week, on top of nothing', () => {
+    const one = track(1, 'free', WED);
+    expect(freeLeft(one, NEXT_MON)).toBe(2);
+    const two = track(1, 'free', NEXT_MON, one);
+    expect(freeLeft(two, NEXT_MON)).toBe(1);
+  });
+
+  it('a lifter who has already tracked 3 or more gets only the week', () => {
+    const old: Usage = { lifetime: 40, week: '', thisWeek: 0 };
+    expect(freeLeft(old, WED)).toBe(1);
+    expect(freeTotal(old, WED)).toBe(1);
+  });
+});
+
+describe('free: 1 video a week, once the starter videos are spent', () => {
+  it('starts each week with one', () => {
     expect(FREE_PER_WEEK).toBe(1);
-    expect(freeLeft(EMPTY_USAGE, WED)).toBe(1);
-    expect(gateFor('free', EMPTY_USAGE, WED)).toBe('ok');
+    expect(freeLeft(PAST_STARTER, WED)).toBe(1);
+    expect(gateFor('free', PAST_STARTER, WED)).toBe('ok');
   });
 
   it('allows the first video and blocks the second', () => {
-    const one = track(1, 'free', WED);
-    expect(one).toEqual({ lifetime: 1, week: '2026-11-09', thisWeek: 1 });
+    const one = track(1, 'free', WED, PAST_STARTER);
+    expect(one).toEqual({ lifetime: 4, week: '2026-11-09', thisWeek: 1 });
     expect(freeLeft(one, WED)).toBe(0);
     expect(canAnalyse('free', one, WED)).toBe(false);
     expect(gateFor('free', one, WED)).toBe('cap');
   });
 
   it('stays blocked until Sunday night and resets on Monday', () => {
-    const one = track(1, 'free', WED);
+    const one = track(1, 'free', WED, PAST_STARTER);
     expect(gateFor('free', one, SUN_NIGHT)).toBe('cap');
     expect(usedThisWeek(one, NEXT_MON)).toBe(0);
     expect(freeLeft(one, NEXT_MON)).toBe(1);
     expect(gateFor('free', one, NEXT_MON)).toBe('ok');
-    expect(recordAnalysis(one, 'free', NEXT_MON)).toEqual({ lifetime: 2, week: '2026-11-16', thisWeek: 1 });
+    expect(recordAnalysis(one, 'free', NEXT_MON)).toEqual({ lifetime: 5, week: '2026-11-16', thisWeek: 1 });
   });
 
   it('counts a video from Monday against Sunday night', () => {
-    const usage = track(1, 'free', new Date(2026, 10, 9, 6, 0));
+    const usage = track(1, 'free', new Date(2026, 10, 9, 6, 0), PAST_STARTER);
     expect(usage.thisWeek).toBe(1);
     expect(gateFor('free', usage, SUN_NIGHT)).toBe('cap');
-  });
-
-  it('the lifetime count gates nothing: a lifter with 40 old videos gets 1 this week', () => {
-    const old: Usage = { lifetime: 40, week: '', thisWeek: 0 };
-    expect(freeLeft(old, WED)).toBe(1);
-    expect(gateFor('free', old, WED)).toBe('ok');
   });
 });
 

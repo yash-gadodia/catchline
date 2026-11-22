@@ -2,13 +2,13 @@ import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import { track, EVENTS } from '../../lib/analytics';
 import { usePurchases, type PurchaseStatus } from '../purchases/usePurchases';
-import { freeLeft, gateFor, type Gate, type StorePlatform } from './entitlements';
+import { freeLeft, freeTotal, gateFor, type Gate, type StorePlatform } from './entitlements';
 import { packageIdFor, type Plan } from './products';
 import { getFoundingSeats, type FoundingSeats } from './seats';
 import { useUsage } from './usageStore';
 import { backendEnabled } from '../../data/backend';
 import { supabase } from '../../lib/supabase';
-import { readFreeWeek } from '../../data/freeLifts';
+import { readFreeUsed, readFreeWeek } from '../../data/freeLifts';
 import { signInWithApple, AppleSheetError } from '../auth/appleSignIn';
 import { cancelFreeVideoBack } from '../notifications/nudges';
 
@@ -71,11 +71,17 @@ export function useVideosLeft(now: Date = new Date()): number {
   return freeLeft(useUsage((s) => s.usage), now);
 }
 
+// What those videos are counted out of: the starter videos first, then the week's.
+export function useVideosTotal(now: Date = new Date()): number {
+  return freeTotal(useUsage((s) => s.usage), now);
+}
+
 // This week's count from the Keychain, so a reinstall on this phone does not hand
 // the free videos back. It only ever raises the local count.
 export async function syncKeychainUsage(): Promise<void> {
-  const held = await readFreeWeek();
+  const [held, lifetime] = await Promise.all([readFreeWeek(), readFreeUsed()]);
   if (held) useUsage.getState().adoptWeek(held);
+  useUsage.getState().adoptLifetime(lifetime);
 }
 
 // The weekly limit lives on the phone only; the root layout and processing still call this name.
