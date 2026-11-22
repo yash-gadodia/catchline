@@ -57,6 +57,7 @@ export default function TrackerScreen({
   sample = false,
   onAnother,
   onTell,
+  onResultViewed,
   lastLift,
   onSideBySide,
   onAdjustPlate,
@@ -80,6 +81,8 @@ export default function TrackerScreen({
   sample?: boolean;
   onAnother?: () => void;
   onTell?: () => void;
+  // the result card is up, after the first look played
+  onResultViewed?: (kind: FirstLookKind) => void;
   // The lifter's last lift before this one, to lay its bar path on this video.
   lastLift?: LastLift | null;
   // Opens this lift next to the last lift of the same kind (two videos in step).
@@ -149,7 +152,9 @@ export default function TrackerScreen({
   const lookKind: FirstLookKind = sample ? 'sample' : analysis.traceKind === 'hip' ? 'trail' : (analysis.reps[0]?.path.length ?? 0) > 0 ? 'path' : 'none';
   const showLook = !!reveal && revealing === 'done' && look;
   useEffect(() => {
-    if (showLook) track(EVENTS.RESULT_VIEWED, { kind: lookKind, first: firstLift });
+    if (!showLook) return;
+    track(EVENTS.RESULT_VIEWED, { kind: lookKind, first: firstLift });
+    onResultViewed?.(lookKind);
   }, [showLook]);
   const lookAction = (action: 'share' | 'detail' | 'another' | 'tell', then?: () => void) => () => {
     track(EVENTS.RESULT_ACTION, { action, kind: lookKind });

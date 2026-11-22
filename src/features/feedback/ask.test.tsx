@@ -1,66 +1,127 @@
 import * as Notifications from 'expo-notifications';
-import { fireEvent, render } from '@testing-library/react-native';
-import FeedbackSheet from './FeedbackSheet';
+import { act, fireEvent, render } from '@testing-library/react-native';
+import FeedbackSheet, { FEEDBACK_ROUTE } from './FeedbackSheet';
 import { FEEDBACK_AFTER_S, FEEDBACK_ID, feedbackNotificationOpened, offerFeedback, scheduleFeedbackNotification, useFeedbackAsk } from './ask';
+import { claimSessionAsk, resetSessionAsk } from './sessionAsk';
 import { track } from '../../lib/analytics';
+import { queueProblemReport } from '../../data/problemReports';
 
-let mockPath = '/';
+let mockPath = FEEDBACK_ROUTE;
 jest.mock('expo-router', () => {
   const r = { push: jest.fn(), replace: jest.fn(), back: jest.fn() };
   return { __esModule: true, router: r, useRouter: () => r, usePathname: () => mockPath };
 });
 jest.mock('../../lib/analytics', () => ({ ...jest.requireActual('../../lib/analytics'), track: jest.fn() }));
-const router = jest.requireMock('expo-router') as { router: { push: jest.Mock } };
+jest.mock('../../data/problemReports', () => ({ queueProblemReport: jest.fn(async () => 1) }));
 const perms = Notifications.getPermissionsAsync as jest.Mock;
 const request = Notifications.requestPermissionsAsync as jest.Mock;
 const schedule = Notifications.scheduleNotificationAsync as jest.Mock;
 const cancel = Notifications.cancelScheduledNotificationAsync as jest.Mock;
+const queued = queueProblemReport as jest.Mock;
 
 beforeEach(() => {
   jest.clearAllMocks();
-  mockPath = '/';
-  useFeedbackAsk.setState({ asked: false, notified: false, open: false });
+  mockPath = FEEDBACK_ROUTE;
+  resetSessionAsk();
+  useFeedbackAsk.setState({ asked: false, notified: false, open: false, liftId: null, answer: null });
   perms.mockResolvedValue({ status: 'undetermined', granted: false, canAskAgain: true });
   request.mockResolvedValue({ status: 'granted', granted: true, canAskAgain: false });
   cancel.mockResolvedValue(undefined);
 });
 
 describe('the feedback ask', () => {
-  it('is not offered before two lifts', () => {
-    expect(offerFeedback(1)).toBe(false);
+  it('is not offered on the first lift', () => {
+    expect(offerFeedback(1, 'l1')).toBe(false);
     expect(useFeedbackAsk.getState().open).toBe(false);
   });
 
-  it('is offered once at two lifts, and cancels the notification', () => {
-    expect(offerFeedback(2)).toBe(true);
+  it('is offered once, on the second lift, and cancels the notification', () => {
+    expect(offerFeedback(2, 'l2')).toBe(true);
     expect(track).toHaveBeenCalledWith('feedback_ask_shown', { lifts: 2 });
     expect(cancel).toHaveBeenCalledWith(FEEDBACK_ID);
     useFeedbackAsk.setState({ open: false });
-    expect(offerFeedback(5)).toBe(false);
+    expect(offerFeedback(3, 'l3')).toBe(false);
   });
 
-  it('the sheet opens the report screen as feedback', async () => {
-    offerFeedback(2);
+  it('waits for the next run when the rating ask had this one, and then shows on the third lift', () => {
+    expect(claimSessionAsk('rating')).toBe(true);
+    expect(offerFeedback(2, 'l2')).toBe(false);
+    expect(useFeedbackAsk.getState().asked).toBe(false);
+    resetSessionAsk();
+    expect(offerFeedback(3, 'l3')).toBe(true);
+  });
+
+  it('takes the run from the rating ask once it shows', () => {
+    offerFeedback(2, 'l2');
+    expect(claimSessionAsk('rating')).toBe(false);
+  });
+
+  it('one tap answers: the thumb lands in problem_reports with the lift', async () => {
+    offerFeedback(2, 'l2');
+    const { getByTestId, getByText } = await render(<FeedbackSheet />);
+    expect(getByText("How's Catchline so far?")).toBeTruthy();
+    await act(async () => {
+      fireEvent.press(getByTestId('feedback-up'));
+    });
+    expect(queued.mock.calls).toEqual([[{ body: '👍', context: 'feedback_ask up', liftId: 'l2' }]]);
+    expect(track).toHaveBeenCalledWith('feedback_ask_answered', { answer: 'up' });
+    expect(getByText('Thanks. Anything to add?')).toBeTruthy();
+  });
+
+  it('the optional line goes as a second report, then the sheet closes', async () => {
+    offerFeedback(2, 'l2');
     const { getByTestId, queryByTestId } = await render(<FeedbackSheet />);
-    await fireEvent.press(getByTestId('feedback-give'));
-    expect(router.router.push).toHaveBeenCalledWith({ pathname: '/report', params: { context: 'feedback' } });
-    expect(track).toHaveBeenCalledWith('feedback_ask_give', {});
+    await act(async () => {
+      fireEvent.press(getByTestId('feedback-down'));
+    });
+    await act(async () => {
+      fireEvent.changeText(getByTestId('feedback-note'), '  the plate box jumps  ');
+    });
+    await act(async () => {
+      fireEvent.press(getByTestId('feedback-send'));
+    });
+    expect(queued.mock.calls).toEqual([
+      [{ body: '👎', context: 'feedback_ask down', liftId: 'l2' }],
+      [{ body: '👎 the plate box jumps', context: 'feedback_ask down', liftId: 'l2' }],
+    ]);
+    expect(track).toHaveBeenCalledWith('feedback_sent', { chars: 19, via: 'ask' });
+    expect(track).not.toHaveBeenCalledWith('feedback_ask_later', {});
     expect(queryByTestId('feedback-sheet')).toBeNull();
   });
 
-  it('"Not now" closes it for good', async () => {
-    offerFeedback(3);
+  it('"Done" after an answer closes it without a second report and without a "later"', async () => {
+    offerFeedback(2, 'l2');
     const { getByTestId, queryByTestId } = await render(<FeedbackSheet />);
-    await fireEvent.press(getByTestId('feedback-later'));
+    await act(async () => {
+      fireEvent.press(getByTestId('feedback-up'));
+    });
+    await act(async () => {
+      fireEvent.press(getByTestId('feedback-done'));
+    });
+    expect(queued).toHaveBeenCalledTimes(1);
+    expect(track).not.toHaveBeenCalledWith('feedback_ask_later', {});
+    expect(queryByTestId('feedback-sheet')).toBeNull();
+  });
+
+  it('"Not now" closes it for good, with nothing sent', async () => {
+    offerFeedback(3, 'l3');
+    const { getByTestId, queryByTestId } = await render(<FeedbackSheet />);
+    await act(async () => {
+      fireEvent.press(getByTestId('feedback-later'));
+    });
     expect(track).toHaveBeenCalledWith('feedback_ask_later', {});
     expect(queryByTestId('feedback-sheet')).toBeNull();
-    expect(router.router.push).not.toHaveBeenCalled();
+    expect(queued).not.toHaveBeenCalled();
+    expect(useFeedbackAsk.getState().asked).toBe(true);
   });
 
-  it('shows on the first screen only', async () => {
-    mockPath = '/analysis/player';
-    offerFeedback(2);
-    expect((await render(<FeedbackSheet />)).queryByTestId('feedback-sheet')).toBeNull();
+  it('shows on the result only, and leaving the result closes it (never over the paywall)', async () => {
+    offerFeedback(2, 'l2');
+    mockPath = '/paywall';
+    const { queryByTestId } = await render(<FeedbackSheet />);
+    expect(queryByTestId('feedback-sheet')).toBeNull();
+    expect(useFeedbackAsk.getState().open).toBe(false);
+    expect(track).toHaveBeenCalledWith('feedback_ask_later', {});
   });
 
   it('one quiet notification three days after a tracked lift, once', async () => {
@@ -72,11 +133,12 @@ describe('the feedback ask', () => {
   });
 
   it('no notification for a lifter the sheet already asked, and no sheet after a tapped notification', async () => {
-    offerFeedback(2);
+    offerFeedback(2, 'l2');
     expect(await scheduleFeedbackNotification()).toBe('skipped');
     useFeedbackAsk.setState({ asked: false, notified: false, open: false });
+    resetSessionAsk();
     feedbackNotificationOpened();
-    expect(offerFeedback(4)).toBe(false);
+    expect(offerFeedback(4, 'l4')).toBe(false);
     expect(track).toHaveBeenCalledWith('feedback_notification_opened', {});
   });
 });

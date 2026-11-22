@@ -128,8 +128,12 @@ export const you: Strings<typeof en> = {
   // REVIEW
   'you.shot.toggleSub': "Désactivez pour arrêter cette fenêtre",
   // REVIEW
-  'you.feedback.title': "Comment ça se passe avec Catchline ?",
-  'you.feedback.body': "Dites-nous ce qu'il faut corriger ou ce qui manque. Chaque message est lu et décide de la suite.",
+  'you.feedback.title': "Catchline, ça se passe comment ?",
+  'you.feedback.up': "Bien",
+  'you.feedback.down': "Pas terrible",
+  'you.feedback.more.up': "Merci. Autre chose à ajouter ?",
+  'you.feedback.more.down': "Merci. Que faut-il corriger ?",
+  'you.feedback.note': "Une ligne, facultatif",
   'you.feedback.placeholder': "Que devrait mieux faire Catchline ? Que manque-t-il ?",
   'you.report.email': "Ton e-mail, si tu veux une réponse (facultatif)",
   'you.report.emailNote': "Utilisé uniquement pour te répondre. Yash, qui a créé Catchline, lit chaque message.",

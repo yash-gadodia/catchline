@@ -69,7 +69,11 @@ export default function FirstLook({
     );
   return (
     <View testID="first-look" style={{ flex: 1, paddingHorizontal: space.gutter, paddingTop: space.s4, paddingBottom: padBottom, justifyContent: 'space-between', gap: space.s4 }}>
-      <View testID="first-look-top" onLayout={(e) => setParts((p) => ({ ...p, top: e.nativeEvent.layout.height }))}>
+      <View testID="first-look-top" onLayout={(e) => {
+        // read now: RN releases the event before a queued updater runs ('layout' of null, the result card's crash)
+        const h = e.nativeEvent.layout.height;
+        setParts((p) => ({ ...p, top: h }));
+      }}>
       {kind === 'none' ? (
         <View style={{ gap: space.s2 }}>
           <Text style={{ ...type.title, color: colors.text }}>{t('analysis.reveal.none.title')}</Text>
@@ -113,7 +117,11 @@ export default function FirstLook({
         </View>
       )}
       </View>
-      <View testID="first-look-bottom" onLayout={(e) => setParts((p) => ({ ...p, bottom: e.nativeEvent.layout.height }))} style={{ gap: space.s2 }}>
+      <View testID="first-look-bottom" onLayout={(e) => {
+        // read now: RN releases the event before a queued updater runs ('layout' of null, the result card's crash)
+        const h = e.nativeEvent.layout.height;
+        setParts((p) => ({ ...p, bottom: h }));
+      }} style={{ gap: space.s2 }}>
         {kind !== 'sample' && liftId ? <KindRow liftId={liftId} trace={kind} onMore={onMoreKinds} /> : null}
         {kind === 'none' || kind === 'sample' ? (
           onAnother ? (
