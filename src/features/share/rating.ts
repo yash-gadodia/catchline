@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { requireOptionalNativeModule } from 'expo';
 import { usePipeline } from '../../data/pipeline';
+import { claimSessionAsk } from '../feedback/sessionAsk';
 
 const ASKED_KEY = '@catchline/rating_asked_version';
 
@@ -21,7 +22,9 @@ const version = () => Constants.expoConfig?.version ?? 'unknown';
 export async function ratingDue(barPath: boolean): Promise<boolean> {
   if (!barPath || usePipeline.getState().job?.status === 'failed') return false;
   if (!(await storeReview())) return false;
-  return (await AsyncStorage.getItem(ASKED_KEY)) !== version();
+  if ((await AsyncStorage.getItem(ASKED_KEY)) === version()) return false;
+  // not in a run that already asked for feedback
+  return claimSessionAsk('rating');
 }
 
 export async function declineRating(): Promise<void> {

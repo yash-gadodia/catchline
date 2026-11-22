@@ -263,6 +263,12 @@ describe('TrackerScreen first look (reveal)', () => {
     expect(getByTestId('first-look-share')).toBeOnTheScreen();
   });
 
+  it('says once that the result card is up, with its kind (where the feedback ask is offered)', async () => {
+    const onResultViewed = jest.fn();
+    await show(lifted, body, { reveal: true, reduceMotion: true, onShare: () => {}, onResultViewed });
+    expect(onResultViewed.mock.calls).toEqual([['path']]);
+  });
+
   it('names the first lift on its result card', async () => {
     const { getByTestId } = await show(lifted, body, { reveal: true, reduceMotion: true, firstLift: true, onShare: () => {} });
     expect(getByTestId('first-look-first')).toHaveTextContent('Your first bar path');

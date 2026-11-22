@@ -16,6 +16,7 @@ The traps that bit us, in priority order:
 - **Web→RN swaps:** a `linear-gradient(...)`/`radial-gradient(...)` **string** is NOT a valid RN `backgroundColor`/`color` (renders nothing) → `expo-linear-gradient`; CSS keyframes → Reanimated; SVG → react-native-svg; `pointerEvents` is a PROP, not a style key. NOTE: `inset` and `display:'flex'` **are** valid in RN 0.71+ (`inset` is the top/right/bottom/left shorthand; flex is the default): do not "fix" them.
 - **No fake phone frame / status bar** (prototype scaffolding): use real safe-area insets (`react-native-safe-area-context`).
 - **Tab bar**: `src/features/library/TabBar.tsx`, passed to `<Tabs tabBar>` in `app/(tabs)/_layout.tsx` with the in-flight bar above it.
+- **Read `e.nativeEvent` before `setState`, never inside an updater.** `onLayout={(e) => setX((p) => ({ ...p, h: e.nativeEvent.layout.height }))}` crashes ("'layout' of null") when two layouts land in one pass: the second updater runs after RN released the event (the result card, 22-11-2026). `const h = e.nativeEvent.layout.height;` first.
 - **TypeScript**: no `any` / `@ts-ignore`. Avoid defensive `try/catch` around `Animated.createAnimatedComponent` (it's reliable).
 
 ## Reload caveat (dev build on the simulator; Expo Go cannot run this repo)
