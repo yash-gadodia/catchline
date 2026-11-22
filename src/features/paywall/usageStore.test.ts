@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
-import { FREE_WEEK_KEY } from '../../data/freeLifts';
+import { FREE_USED_KEY, FREE_WEEK_KEY } from '../../data/freeLifts';
 import { nextClipGate, syncKeychainUsage } from './hooks';
 import { usePurchases } from '../purchases/usePurchases';
 import { useUsage } from './usageStore';
@@ -68,4 +68,12 @@ test('usage saved by the old version (3 for life) keeps its lifetime count and s
   await useUsage.persist.rehydrate();
   expect(useUsage.getState().usage).toEqual({ lifetime: 3, week: '', thisWeek: 0 });
   expect(nextClipGate(WED)).toBe('ok');
+});
+
+test('a reinstall does not hand the starter videos back: the Keychain lifetime count is adopted', async () => {
+  await SecureStore.setItemAsync(FREE_USED_KEY, '3');
+  await syncKeychainUsage();
+  expect(useUsage.getState().usage.lifetime).toBe(3);
+  useUsage.getState().adoptLifetime(1);
+  expect(useUsage.getState().usage.lifetime).toBe(3);
 });

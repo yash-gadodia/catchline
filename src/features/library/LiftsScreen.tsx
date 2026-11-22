@@ -1,7 +1,6 @@
 import { backendEnabled } from '../../data/backend';
 import { usePurchases } from '../purchases/usePurchases';
-import { FREE_PER_WEEK } from '../paywall/entitlements';
-import { useVideosLeft } from '../paywall/hooks';
+import { useVideosLeft, useVideosTotal } from '../paywall/hooks';
 import { useState } from 'react';
 import { Pressable, ScrollView, TextInput, View } from 'react-native';
 import Text from '../../components/Text';
@@ -41,7 +40,8 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
   const units = useOnboarding((s) => s.units);
   const lib = useLibrary();
   const tier = usePurchases((s) => s.tier);
-  const used = FREE_PER_WEEK - useVideosLeft();
+  const freeTotal = useVideosTotal();
+  const used = freeTotal - useVideosLeft();
   // With a backend, the live plan, so a purchase shows at once, not after the next library sync.
   // the kinds of lift in the list (Snatch, Clean and jerk): one tap keeps the list to a kind
   const shapes = useLiftNames((n) => n.shapes);
@@ -68,7 +68,7 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
         return matchesSearch(q, [d.name, kindOf(l), ...d.tags, d.note, liftDetail(l), ...load]);
       })
     : ofKind;
-  const chip = freeVideosLabel(backendEnabled() ? { plan: tier === 'free' ? 'free' : 'paid', freeVideosUsed: used } : lib);
+  const chip = freeVideosLabel(backendEnabled() ? { plan: tier === 'free' ? 'free' : 'paid', freeVideosUsed: used } : lib, backendEnabled() ? freeTotal : undefined);
   const header = (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', columnGap: space.s3 }}>
       <Title>{t('library.tabs.lifts')}</Title>
