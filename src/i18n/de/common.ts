@@ -8,4 +8,10 @@ export const common: Strings<typeof en> = {
   'common.launch.body': 'Deine Lifts sind sicher auf deinem Handy. Versuch es noch einmal.',
   // REVIEW
   'common.launch.retry': 'Erneut versuchen',
+  'common.update.title': "Catchline aktualisieren",
+  'common.update.body': "Diese Version von Catchline ist veraltet. Aktualisiere sie im App Store, um weiter zu tracken. Deine Lifts bleiben auf deinem Handy.",
+  'common.update.button': "Aktualisieren",
+  'common.update.soon.title': "Ein neues Catchline ist da",
+  'common.update.soon.body': "Aktualisiere für die neuesten Korrekturen. Deine Lifts bleiben auf deinem Handy.",
+  'common.update.later': "Nicht jetzt",
 };
