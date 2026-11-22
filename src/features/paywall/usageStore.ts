@@ -35,8 +35,9 @@ export const useUsage = create<UsageState>()(
         if (count > usage.lifetime) set({ usage: { ...usage, lifetime: count } });
       },
       reset: () => set({ usage: EMPTY_USAGE }),
-      // The week's free videos belong to the phone, not the account: leaving or deleting one keeps them used (#234).
-      forgetAccount: () => set(({ usage }) => ({ usage: { ...EMPTY_USAGE, week: usage.week, thisWeek: usage.thisWeek } })),
+      // The free videos belong to the phone, not the account: leaving or deleting one keeps the week's and the
+      // starter videos used (#234).
+      forgetAccount: () => set(({ usage }) => ({ usage: { ...EMPTY_USAGE, lifetime: usage.lifetime, week: usage.week, thisWeek: usage.thisWeek } })),
     }),
     {
       name: 'catchline-usage',
