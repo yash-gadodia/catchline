@@ -35,6 +35,7 @@ export const invite: Strings<typeof en> = {
   'invite.err.already_claimed': "Du hast schon den Code eines Freundes eingelöst.",
   'invite.err.too_late': "Codes funktionieren in deinen ersten 30 Tagen bei Catchline.",
   'invite.err.sign_in_required': "Melde dich zuerst mit Apple an und löse dann den Code ein.",
+  'invite.err.apple_sheet': "Die Anmeldung mit Apple hat nicht geklappt. Prüfe, ob du in den Einstellungen mit deinem Apple Account angemeldet bist, und versuch es noch einmal.",
   'invite.err.generic': "Catchline ist nicht erreichbar. Prüf deine Verbindung und versuch es noch mal.",
   'invite.afterShare': "Schenk einem Freund einen Monat Pro",
 };

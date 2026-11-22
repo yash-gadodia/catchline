@@ -9,8 +9,15 @@ import { hashNonce, rawNonce } from './nonce';
 
 export type AppleSignIn = { cancelled: true } | { cancelled: false; userId: string; transferred: boolean };
 
+// Apple's own sheet failed on this phone (no Apple Account signed in, Screen Time, Apple's error 1000), as opposed
+// to our server failing after Apple said yes. The caller can carry on without an account.
+export class AppleSheetError extends Error {}
+
+// the code does not always reach JS (22-11: a lifter's cancel came through as code-less "The user canceled the
+// authorization attempt" and was shown as a failure), so the message counts too
 export function isAppleCancel(e: unknown): boolean {
-  return (e as { code?: string } | null)?.code === 'ERR_REQUEST_CANCELED';
+  const err = e as { code?: string; message?: string } | null;
+  return err?.code === 'ERR_REQUEST_CANCELED' || /\bcancel(l)?ed\b/i.test(err?.message ?? '');
 }
 
 export function appleDisplayName(fullName: AppleAuthentication.AppleAuthenticationFullName | null): string | null {
@@ -45,7 +52,7 @@ export async function signInWithApple(): Promise<AppleSignIn> {
     if (isAppleCancel(e)) return { cancelled: true };
     // why a sign-in failed was never recorded (14-11: a lifter could not sign in and nothing said why)
     track(EVENTS.SIGN_IN_FAILED, { stage: 'apple', code: String((e as { code?: string } | null)?.code ?? 'unknown'), message: e instanceof Error ? e.message.slice(0, 200) : '' });
-    throw e;
+    throw new AppleSheetError(e instanceof Error ? e.message : 'Apple sign-in failed');
   }
   if (!credential.identityToken) {
     track(EVENTS.SIGN_IN_FAILED, { stage: 'apple', code: 'no_identity_token', message: '' });

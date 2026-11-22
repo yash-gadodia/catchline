@@ -9,7 +9,7 @@ import { colors, shape, space } from '../../design/tokens';
 import { display, fontFamily, type } from '../../design/typography';
 import { formatDate, t } from '../../i18n';
 import { EVENTS, track } from '../../lib/analytics';
-import { signInWithApple, type AppleSignIn } from '../auth/appleSignIn';
+import { AppleSheetError, signInWithApple, type AppleSignIn } from '../auth/appleSignIn';
 import { useAuthUser } from '../auth/authUser';
 import { usePurchases } from '../purchases/usePurchases';
 import * as defaultApi from './api';
@@ -68,8 +68,8 @@ export default function InviteScreen({
   const doSignIn = async () => {
     try {
       await signIn();
-    } catch {
-      setClaimNote(t('invite.err.sign_in_required'));
+    } catch (e) {
+      setClaimNote(t(e instanceof AppleSheetError ? 'invite.err.apple_sheet' : 'invite.err.generic'));
     }
   };
 
