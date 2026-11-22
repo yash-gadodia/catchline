@@ -4,7 +4,7 @@ import type { Analysis } from '../analysis/types';
 import type { ClipSubmission } from '../features/capture/submit';
 import { usePipeline, startLift } from './pipeline';
 import { analyseLoop, cancelDeviceLift, deviceLiftInFlight, failureReason, holdDeviceLift, nativeCode, readTrace, resumeDeviceLifts, retrackLift, startDeviceLift, toNativePlan, trackHeldLifts } from './devicePipeline';
-import { weekKey } from '../features/paywall/entitlements';
+import { STARTER_FREE, weekKey } from '../features/paywall/entitlements';
 import { strFromU8 } from 'fflate';
 import { AppState } from 'react-native';
 import * as Notifications from 'expo-notifications';
@@ -110,6 +110,8 @@ const INTERRUPTED = new Error('Could not analyse on device: interrupted: the sys
 
 describe('startDeviceLift, the happy path', () => {
   it('analyses on the phone with no server call first, keeps the result locally, counts it and queues the slim record', async () => {
+    // past the 3 starter videos, so this lift spends the week's one
+    useUsage.setState({ usage: { lifetime: STARTER_FREE, week: '', thisWeek: 0 } });
     await startDeviceLift(SUB);
     expect(prepareClip).toHaveBeenCalledTimes(1);
     expect(mockAnalyse).toHaveBeenCalledWith('file:///clip.mov.mp4', 'snatch', undefined, { title: 'Tracking your lift', subtitle: 'Keeps working in the background.', from: 0, to: 0.8 });
@@ -132,8 +134,8 @@ describe('startDeviceLift, the happy path', () => {
         analysedAt: expect.any(String),
       },
     });
-    expect(useUsage.getState().usage.lifetime).toBe(1);
-    expect(writeFreeUsed).toHaveBeenCalledWith(1);
+    expect(useUsage.getState().usage.lifetime).toBe(STARTER_FREE + 1);
+    expect(writeFreeUsed).toHaveBeenCalledWith(STARTER_FREE + 1);
     const job = usePipeline.getState().job;
     expect(job?.status).toBe('done');
     expect(job?.device).toBe(true);
@@ -294,6 +296,9 @@ describe('analyseLoop', () => {
 });
 
 describe('startDeviceLift when the lifter has left the app', () => {
+  // past the 3 starter videos, so a lift spends the week's one and sets the Monday reminder
+  beforeEach(() => useUsage.setState({ usage: { lifetime: STARTER_FREE, week: '', thisWeek: 0 } }));
+
   it('posts one local notification that opens the lift, when notifications are allowed', async () => {
     appState.currentState = 'background';
     // asked twice: once for the Monday reminder (the week's free video is used), once for this notification
@@ -566,7 +571,7 @@ describe('a lift the app is killed in the middle of (#250)', () => {
 });
 
 describe('a lift held by the weekly cap (#247: "Your video is saved and goes first")', () => {
-  const thisWeekUsed = () => useUsage.setState({ usage: { lifetime: 1, week: weekKey(new Date()), thisWeek: 1 } });
+  const thisWeekUsed = () => useUsage.setState({ usage: { lifetime: STARTER_FREE + 1, week: weekKey(new Date()), thisWeek: 1 } });
 
   it('is kept on disk, not tracked, while the week\'s free video is used', async () => {
     thisWeekUsed();
@@ -591,7 +596,7 @@ describe('a lift held by the weekly cap (#247: "Your video is saved and goes fir
   });
 
   it('goes first when the free video is back: the next launch in a new week tracks it', async () => {
-    useUsage.setState({ usage: { lifetime: 1, week: '2026-01-05', thisWeek: 1 } });
+    useUsage.setState({ usage: { lifetime: STARTER_FREE + 1, week: '2026-01-05', thisWeek: 1 } });
     holdDeviceLift(SUB);
     await resumeDeviceLifts();
     await deviceLiftInFlight()?.done;

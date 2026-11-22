@@ -3,7 +3,7 @@ import { newClip, useCapture } from './store';
 import { useOnboarding } from '../onboarding/store';
 import { usePurchases } from '../purchases/usePurchases';
 import { useUsage } from '../paywall/usageStore';
-import { weekKey } from '../paywall/entitlements';
+import { EMPTY_USAGE, STARTER_FREE, weekKey } from '../paywall/entitlements';
 import { startLift } from '../../data/pipeline';
 import * as SecureStore from 'expo-secure-store';
 import { usePendingLifts } from '../../data/pendingLifts';
@@ -22,7 +22,8 @@ beforeEach(() => {
   jest.clearAllMocks();
   useCapture.setState({ draft: null, lastWeight: '80' });
   useOnboarding.setState({ units: 'kg' });
-  useUsage.getState().reset();
+  // past the 3 starter videos, so these tests meet the weekly cap
+  useUsage.setState({ usage: { ...EMPTY_USAGE, lifetime: STARTER_FREE } });
   (SecureStore as unknown as { __reset: () => void }).__reset();
   mockAllowance.mockRejectedValue(new Error('offline'));
   usePendingLifts.setState({ items: [] });
@@ -109,7 +110,7 @@ test('at the cap the clip is saved, as the paywall says: held on disk with its t
   const mark = { x: 0.5, y: 0.6, r: 0.1 };
   useCapture.setState({ draft: { ...newClip({ uri: 'file:///clip.mov', durationS: 8, fps: 30, source: 'library', trim: { start: 1, end: 6 } }), plateMark: mark } });
   usePurchases.setState({ tier: 'free', period: null });
-  useUsage.setState({ usage: { lifetime: 1, week: weekKey(new Date()), thisWeek: 1 } });
+  useUsage.setState({ usage: { lifetime: STARTER_FREE + 1, week: weekKey(new Date()), thisWeek: 1 } });
 
   submitDraft({ replace: true });
   await flush();
@@ -146,7 +147,9 @@ test('the gate never waits on the server: a lower server count changes nothing (
 });
 
 test('a reinstall: this week’s Keychain count survives and gates the fourth lift', async () => {
+  useUsage.setState({ usage: EMPTY_USAGE });
   await SecureStore.setItemAsync('catchline.free_week', `${weekKey(new Date())}:3`);
+  await SecureStore.setItemAsync('catchline.free_used', '3');
   useCapture.setState({ draft: newClip({ uri: 'file:///clip.mov', durationS: 8, fps: 30, source: 'camera' }) });
   usePurchases.setState({ tier: 'free', period: null });
 
