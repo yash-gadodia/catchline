@@ -43,7 +43,7 @@ const press = async (el: Parameters<typeof fireEvent.press>[0]) => {
 };
 
 const initialAccount = useAccountStore.getState();
-const nav = { onDemo: jest.fn(), onWhatIsStored: jest.fn(), onDeleteAccount: jest.fn(), onPlan: jest.fn(), onReport: jest.fn(), onWhatsNew: jest.fn() };
+const nav = { onDemo: jest.fn(), onWhatIsStored: jest.fn(), onDeleteAccount: jest.fn(), onPlan: jest.fn(), onReport: jest.fn(), onWhatsNew: jest.fn(), onReplayWelcome: jest.fn() };
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -119,6 +119,9 @@ describe('YouScreen', () => {
     await press(screen.getByTestId('row-delete'));
     await press(screen.getByTestId('row-report'));
     await press(screen.getByTestId('row-whats-new'));
+    expect(screen.getByTestId('row-replay-welcome')).toHaveTextContent(/See the welcome again/);
+    await press(screen.getByTestId('row-replay-welcome'));
+    expect(nav.onReplayWelcome).toHaveBeenCalledTimes(1);
     expect(screen.queryByText('See how it works')).toBeNull();
     expect(nav.onWhatIsStored).toHaveBeenCalledTimes(1);
     expect(nav.onDeleteAccount).toHaveBeenCalledTimes(1);

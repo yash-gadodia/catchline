@@ -145,6 +145,7 @@ export const you: Strings<typeof en> = {
   // REVIEW
   'you.report.done': "Terminé",
   'you.whatsNew': "Nouveautés",
+  'you.replayWelcome': "Revoir l'écran d'accueil",
   // REVIEW
   'you.whatsNew.version': "Catchline {version}",
   'you.whatsNew.v408.1': "Tes 3 premières vidéos sont gratuites, puis 1 par semaine.",

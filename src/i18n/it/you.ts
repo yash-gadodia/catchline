@@ -130,6 +130,7 @@ export const you: Strings<typeof en> = {
   'you.report.queued': "Salvato. Parte appena torni online.",
   'you.report.done': "Fine",
   'you.whatsNew': "Novità",
+  'you.replayWelcome': "Rivedi il benvenuto",
   'you.whatsNew.version': "Catchline {version}",
   'you.whatsNew.v408.1': "I tuoi primi 3 video sono gratis, poi 1 a settimana.",
   'you.whatsNew.v408.2': "Dopo la seconda alzata, un tocco ci dice se Catchline funziona per te.",

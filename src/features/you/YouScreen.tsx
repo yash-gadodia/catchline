@@ -21,7 +21,7 @@ import { LANGUAGE_NAMES, LOCALES, t, type Language } from '../../i18n';
 import { accountRepository, signOutOfAccount, useAccountView, type DataExport } from './account';
 import { UNIT_LABELS, settingsOf, useSettings } from './settings';
 
-type Nav = { onDemo?: () => void; onWhatIsStored: () => void; onDeleteAccount: () => void; onPlan: () => void; onReport: () => void; onWhatsNew: () => void; onInvite?: () => void };
+type Nav = { onDemo?: () => void; onWhatIsStored: () => void; onDeleteAccount: () => void; onPlan: () => void; onReport: () => void; onWhatsNew: () => void; onReplayWelcome?: () => void; onInvite?: () => void };
 type Picker = 'name' | 'language' | 'units' | null;
 
 function options<T extends string>(labels: Record<T, string>): { value: T; label: string }[] {
@@ -166,6 +166,9 @@ export default function YouScreen({
           right={<Toggle value={shotPrompt} onChange={(v) => useScreenshotFeedback.getState().setEnabled(v)} testID="toggle-screenshot" />}
           testID="row-screenshot"
         />
+        {nav.onReplayWelcome ? (
+          <Row title={t('you.replayWelcome')} right={<Value>›</Value>} onPress={nav.onReplayWelcome} testID="row-replay-welcome" />
+        ) : null}
         <Row title={t('you.whatsNew')} right={<Value>›</Value>} onPress={nav.onWhatsNew} last testID="row-whats-new" />
         <BuildLine />
         <Text style={{ color: colors.text2, ...type.readout, paddingTop: space.s5 }} testID="you-made-by">

@@ -11,6 +11,7 @@ export default function YouRoute() {
         onPlan: () => router.push('/paywall'),
         onReport: () => router.push('/report' as Href),
         onWhatsNew: () => router.push('/whats-new' as Href),
+        onReplayWelcome: () => router.push('/onboarding?replay=1' as Href),
         onInvite: () => router.push('/you/invite' as Href),
       }}
     />
