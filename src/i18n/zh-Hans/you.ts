@@ -130,6 +130,7 @@ export const you: Strings<typeof en> = {
   'you.report.queued': "已保存。下次联网时发送。",
   'you.report.done': "完成",
   'you.whatsNew': "新功能",
+  'you.replayWelcome': "重新查看欢迎页",
   'you.whatsNew.version': "Catchline {version}",
   'you.whatsNew.v408.1': "前 3 个视频免费，之后每周 1 个。",
   'you.whatsNew.v408.2': "第二次试举后，轻点一下告诉我们 Catchline 好不好用。",

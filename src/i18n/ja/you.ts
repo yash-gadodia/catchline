@@ -130,6 +130,7 @@ export const you: Strings<typeof en> = {
   'you.report.queued': "保存しました。次にオンラインになったときに送信します。",
   'you.report.done': "完了",
   'you.whatsNew': "新機能",
+  'you.replayWelcome': "ようこそ画面をもう一度見る",
   'you.whatsNew.version': "Catchline {version}",
   'you.whatsNew.v408.1': "最初の3本の動画は無料、その後は週1本です。",
   'you.whatsNew.v408.2': "2本目のリフトのあと、ワンタップでCatchlineの使い心地を教えてください。",
