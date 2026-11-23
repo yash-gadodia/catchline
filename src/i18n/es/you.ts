@@ -147,6 +147,15 @@ export const you: Strings<typeof en> = {
   'you.whatsNew': "Novedades",
   // REVIEW
   'you.whatsNew.version': "Catchline {version}",
+  'you.whatsNew.v408.1': "Tus 3 primeros vídeos son gratis y después 1 a la semana.",
+  'you.whatsNew.v408.2': "Tras tu segundo levantamiento, un toque nos dice si Catchline te funciona.",
+  'you.whatsNew.v408.3': "Corregido un cierre en la tarjeta de resultado.",
+  'you.whatsNew.v408.4': "La app te avisa cuando hay una versión nueva.",
+  'you.whatsNew.v407.1': "Ordena tus levantamientos por tipo: arrancada, cargada, dominada o el tuyo. Deja tu correo si quieres respuesta, leo cada mensaje. El vídeo de historia muestra ahora la misma velocidad máxima de barra que el reproductor. Y una corrección para un doble toque en Rastrear.",
+  'you.whatsNew.v406.1': "¿Primera vez? Prueba Catchline con un levantamiento de muestra antes de elegir tu propio vídeo. Tu primer resultado ahora se abre con lo que se encontró en tu levantamiento, y la espera muestra cada paso. El botón Compartir está siempre en el reproductor.",
+  'you.whatsNew.v405.1': "Comparte tu levantamiento como historia 9:16: la velocidad máxima de la barra sube sobre el vídeo, la parte más rápida se repite a cámara lenta y la trayectoria de la barra lo cierra. Envíalo directo a Instagram, TikTok o Fotos, con un texto listo para pegar.",
+  'you.whatsNew.v404.1': "Regala un mes, gana un mes: invita a un amigo desde la pestaña Tú y, cuando analice su primer levantamiento, cada uno recibe un mes de Catchline Pro.",
+  'you.whatsNew.v404.2': "La versión gratuita ahora incluye 1 vídeo a la semana.",
   // REVIEW
   'you.whatsNew.v403.plate': "El disco se encuentra antes de empezar el seguimiento. Revisa el círculo, ajústalo si hace falta y rastrea.",
   'you.whatsNew.v403.share': "Los vídeos compartidos pueden llevar la gráfica de velocidad de la barra, la fecha y el peso, con toda la trayectoria dibujada tenue detrás de cada repetición.",

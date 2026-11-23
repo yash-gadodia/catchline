@@ -6,6 +6,28 @@ export type ChangelogEntry = { version: string; date?: string; items: Key[] };
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '4.0.8',
+    date: '2026-11-23',
+    items: ['you.whatsNew.v408.1', 'you.whatsNew.v408.2', 'you.whatsNew.v408.3', 'you.whatsNew.v408.4'],
+  },
+  {
+    version: '4.0.7',
+    date: '2026-11-22',
+    items: ['you.whatsNew.v407.1'],
+  },
+  {
+    version: '4.0.6',
+    items: ['you.whatsNew.v406.1'],
+  },
+  {
+    version: '4.0.5',
+    items: ['you.whatsNew.v405.1'],
+  },
+  {
+    version: '4.0.4',
+    items: ['you.whatsNew.v404.1', 'you.whatsNew.v404.2'],
+  },
+  {
     version: '4.0.3',
     items: ['you.whatsNew.v403.plate', 'you.whatsNew.v403.share', 'you.whatsNew.v403.tools', 'you.whatsNew.v403.notes', 'you.whatsNew.v403.languages'],
   },

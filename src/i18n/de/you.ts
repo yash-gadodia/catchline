@@ -147,6 +147,15 @@ export const you: Strings<typeof en> = {
   'you.whatsNew': "Neuigkeiten",
   // REVIEW
   'you.whatsNew.version': "Catchline {version}",
+  'you.whatsNew.v408.1': "Deine ersten 3 Videos sind gratis, danach 1 pro Woche.",
+  'you.whatsNew.v408.2': "Nach deinem zweiten Lift sagst du uns mit einem Tipp, ob Catchline für dich funktioniert.",
+  'you.whatsNew.v408.3': "Absturz auf der Ergebniskarte behoben.",
+  'you.whatsNew.v408.4': "Die App sagt dir, wenn eine neue Version bereitsteht.",
+  'you.whatsNew.v407.1': "Sortiere deine Lifts nach Art: Reißen, Umsetzen, Klimmzug oder deine eigene. Hinterlasse deine E-Mail, wenn du eine Antwort möchtest, ich lese jede Nachricht. Das Story-Video zeigt jetzt dieselbe Spitzengeschwindigkeit wie der Player. Und ein Fix für doppeltes Tippen auf Tracken.",
+  'you.whatsNew.v406.1': "Neu hier? Probiere Catchline mit einem Beispiel-Lift aus, bevor du dein eigenes Video wählst. Dein erstes Ergebnis zeigt jetzt zuerst, was in deinem Lift gefunden wurde, und beim Warten siehst du jeden Schritt. Die Teilen-Taste ist im Player immer sichtbar.",
+  'you.whatsNew.v405.1': "Teile deinen Lift als 9:16-Story: Die höchste Hantelgeschwindigkeit zählt über dem Video hoch, der schnellste Teil läuft noch einmal in Zeitlupe, und dein Hantelweg bildet den Abschluss. Sende sie direkt an Instagram, TikTok oder Fotos, mit einem Text zum Einfügen.",
+  'you.whatsNew.v404.1': "Schenk einen Monat, krieg einen Monat: Lade einen Freund über den Tab Du ein, und wenn er seinen ersten Lift trackt, bekommt ihr beide einen Monat Catchline Pro.",
+  'you.whatsNew.v404.2': "Kostenlos ist jetzt 1 Video pro Woche enthalten.",
   // REVIEW
   'you.whatsNew.v403.plate': "Die Scheibe wird vor dem Tracking gefunden. Prüf den Kreis, pass ihn an, falls er nicht stimmt, und tracke dann.",
   'you.whatsNew.v403.share': "Geteilte Videos können das Diagramm der Hantelgeschwindigkeit, das Datum und das Gewicht zeigen, mit dem ganzen Hantelweg blass hinter jeder Wiederholung.",
