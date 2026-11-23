@@ -28,6 +28,7 @@ On 11 Nov 2026 a build passed typecheck, 900 unit tests, the design guards and t
 
 ## 3. Before a store build
 
+0. **What's new**: write the version's "What's New" in App Store Connect for every language first, then `scripts/store/whats-new.py <version> --date <release day>` copies it into the app's What's new screen. `whatsNew.test.tsx` fails `npm run qa` while `app.json`'s version has no entry, so the build waits for it.
 1. `scripts/store-build.sh`: full gate on the build's commit (a replay is not enough), `npm run qa`, then it prints the EAS commands. It runs none of them.
 2. **Simulator, Release configuration** (`npx expo run:ios --configuration Release` on your own simulator udid; a debug build hides launch crashes and uses Metro). Fresh install, then watch each step and screenshot it: first launch and onboarding; pick a video; trim; mark the plate; track to the result; the player opens and plays with the path; share a video from the share sheet. Read every screenshot. Any red box, blank screen, stuck spinner or crash stops the release.
 3. **A real phone, by the owner, on TestFlight**, for anything touching the camera, tracking speed or native code. Ask for exactly this and record the answers: one clip filmed at 60 fps, one landscape clip, one clip over 20 seconds, each tracked to a result and played; quit the app mid-track and reopen it; share one video. You cannot do this step. Until the owner answers, it is NOT VERIFIED.

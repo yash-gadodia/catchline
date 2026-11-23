@@ -1,4 +1,5 @@
 import { act, fireEvent, render } from '@testing-library/react-native';
+import appJson from '../../../app.json';
 import { en } from '../../i18n/en';
 import { CHANGELOG } from './changelog';
 import { takeWhatsNew, useWhatsNew } from './store';
@@ -22,19 +23,29 @@ describe("What's new", () => {
   });
 
   it('lists versions newest first, each dated', () => {
-    expect(CHANGELOG.map((e) => [e.version, e.date])).toEqual([['4.0.3', undefined], ['4.0.2', '2026-11-14'], ['4.0', '2026-11-13'], ['3.1', '2026-10-22']]);
-    expect(en[CHANGELOG[0].items[0]]).toBe('The plate is found before tracking starts. Check the circle, adjust it if it is off, then track.');
-    expect(en[CHANGELOG[1].items[0]]).toBe('Each rep draws its own bar path, with your earlier reps faint underneath.');
+    expect(CHANGELOG.map((e) => e.version)).toEqual(['4.0.8', '4.0.7', '4.0.6', '4.0.5', '4.0.4', '4.0.3', '4.0.2', '4.0', '3.1']);
+    expect(CHANGELOG[0].date).toBe('2026-11-23');
+    expect(CHANGELOG[0].items.map((k) => en[k])).toEqual([
+      'Your first 3 videos are free, then 1 a week.',
+      'After your second lift, one tap tells us if Catchline is working for you.',
+      'Fixed a crash on the result card.',
+      'The app now tells you when a new version is ready.',
+    ]);
+    expect(en[CHANGELOG[5].items[0]]).toBe('The plate is found before tracking starts. Check the circle, adjust it if it is off, then track.');
   });
 
   it('keeps 3.1 with on-device analysis and the privacy line, word for word', () => {
-    expect(CHANGELOG[3].version).toBe('3.1');
-    expect(CHANGELOG[3].items.map((k) => en[k])).toEqual([
+    expect(CHANGELOG[8].version).toBe('3.1');
+    expect(CHANGELOG[8].items.map((k) => en[k])).toEqual([
       'Your lift is now analysed entirely on your iPhone, and analysis works with no signal.',
       'Your video never leaves your iPhone. Analysed on-device, never used to train AI.',
       'Sharper reads of lifts filmed at an angle and of hang lifts, and a full clean and jerk is read as one lift.',
       'Fixed: a bar that stalls at the hips no longer throws off the read.',
     ]);
+  });
+
+  it('has an entry for the version in app.json, so every release opens What\'s new (scripts/store/whats-new.py writes it)', () => {
+    expect(CHANGELOG[0].version).toBe(appJson.expo.version);
   });
 
   it('shows every entry from the changelog file and goes back', async () => {

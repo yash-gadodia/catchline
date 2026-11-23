@@ -147,6 +147,15 @@ export const you: Strings<typeof en> = {
   'you.whatsNew': "Novidades",
   // REVIEW
   'you.whatsNew.version': "Catchline {version}",
+  'you.whatsNew.v408.1': "Seus 3 primeiros vídeos são grátis, depois 1 por semana.",
+  'you.whatsNew.v408.2': "Depois do seu segundo levantamento, um toque nos diz se o Catchline está funcionando para você.",
+  'you.whatsNew.v408.3': "Corrigimos um travamento no card de resultado.",
+  'you.whatsNew.v408.4': "O app avisa quando há uma versão nova.",
+  'you.whatsNew.v407.1': "Organize seus levantamentos por tipo: arranco, clean, barra fixa ou o seu. Deixe seu e-mail se quiser resposta, eu leio cada mensagem. O vídeo de story agora mostra a mesma velocidade máxima da barra que o player. E uma correção para um toque duplo em Rastrear.",
+  'you.whatsNew.v406.1': "Primeira vez? Experimente o Catchline com um levantamento de exemplo antes de escolher seu próprio vídeo. Seu primeiro resultado agora abre com o que foi encontrado no seu levantamento, e a espera mostra cada etapa. O botão Compartilhar fica sempre no player.",
+  'you.whatsNew.v405.1': "Compartilhe seu levantamento como story 9:16: a velocidade máxima da barra sobe sobre o vídeo, a parte mais rápida repete em câmera lenta e a trajetória da barra fecha o vídeo. Envie direto para o Instagram, o TikTok ou Fotos, com uma legenda pronta para colar.",
+  'you.whatsNew.v404.1': "Dê um mês, ganhe um mês: convide um amigo pela aba Você e, quando ele analisar o primeiro levantamento, vocês dois ganham um mês de Catchline Pro.",
+  'you.whatsNew.v404.2': "O plano grátis agora inclui 1 vídeo por semana.",
   // REVIEW
   'you.whatsNew.v403.plate': "A anilha é encontrada antes do rastreio começar. Confira o círculo, ajuste se precisar e rastreie.",
   'you.whatsNew.v403.share': "Os vídeos compartilhados podem levar o gráfico de velocidade da barra, a data e a carga, com toda a trajetória desenhada de leve atrás de cada repetição.",
