@@ -6,17 +6,21 @@ import { colors } from '../../design/tokens';
 import { fontFamily, type } from '../../design/typography';
 import { t } from '../../i18n';
 
-export type TabName = 'index' | 'me';
+export type TabName = 'index' | 'learn' | 'me';
 
 const LIFTS = { name: 'index' as const, label: () => t('library.tabs.lifts') };
+const LEARN = { name: 'learn' as const, label: () => t('library.tabs.learn') };
 const YOU = { name: 'me' as const, label: () => t('library.tabs.you') };
 
 export default function TabBar({
   active,
+  learn = false,
   onTab,
   onImport,
 }: {
   active: TabName;
+  // the Learn tab, once it has lifts to show: Lifts and the + stay where they were
+  learn?: boolean;
   onTab: (name: TabName) => void;
   onImport: () => void;
 }) {
@@ -60,6 +64,7 @@ export default function TabBar({
           </View>
         </Btn>
       </View>
+      {learn ? tab(LEARN) : null}
       {tab(YOU)}
     </View>
   );
