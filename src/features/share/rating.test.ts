@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { requireOptionalNativeModule } from 'expo';
 import { usePipeline } from '../../data/pipeline';
-import { askForRatingOnce, declineRating, ratingDue } from './rating';
+import { askForRatingOnce } from './rating';
 import { claimSessionAsk, resetSessionAsk } from '../feedback/sessionAsk';
 
 jest.mock('expo', () => ({ requireOptionalNativeModule: jest.fn() }));
@@ -63,28 +63,16 @@ describe('askForRatingOnce', () => {
   });
 });
 
-describe('ratingDue and declineRating', () => {
-  it('is due once per version for a lift with a bar path, and Not now spends it', async () => {
-    present();
-    expect(await ratingDue(true)).toBe(true);
-    expect(await ratingDue(false)).toBe(false);
-    await declineRating();
-    expect(await AsyncStorage.getItem(KEY)).toBe('4.1.0');
-    expect(await ratingDue(true)).toBe(false);
-    expect(requestReview).not.toHaveBeenCalled();
-  });
-
-  it('is never due without the store review module', async () => {
-    present(false);
-    expect(await ratingDue(true)).toBe(false);
-  });
-
-  it('is not due in a run that already asked for feedback, and is again in the next run', async () => {
+describe('one ask per run', () => {
+  it('does not ask in a run that already asked for feedback, and does in the next run', async () => {
     present();
     expect(claimSessionAsk('feedback')).toBe(true);
-    expect(await ratingDue(true)).toBe(false);
+    expect(await askForRatingOnce(true)).toBe('skipped');
+    expect(requestReview).not.toHaveBeenCalled();
+    expect(await AsyncStorage.getItem(KEY)).toBeNull();
     resetSessionAsk();
-    expect(await ratingDue(true)).toBe(true);
+    expect(await askForRatingOnce(true)).toBe('asked');
+    expect(requestReview).toHaveBeenCalledTimes(1);
     expect(claimSessionAsk('feedback')).toBe(false);
   });
 });
