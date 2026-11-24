@@ -7,6 +7,8 @@ import WhatsNewScreen from './WhatsNewScreen';
 
 beforeEach(() => useWhatsNew.setState({ seen: null }));
 
+const entryFor = (version: string) => CHANGELOG.find((e) => e.version === version)!;
+
 describe("What's new", () => {
   it('opens once after an update to a version with an entry', () => {
     expect(takeWhatsNew(true, '3.1')).toBe(true);
@@ -22,21 +24,23 @@ describe("What's new", () => {
     expect(useWhatsNew.getState().seen).toBeNull();
   });
 
-  it('lists versions newest first, each dated', () => {
-    expect(CHANGELOG.map((e) => e.version)).toEqual(['4.0.8', '4.0.7', '4.0.6', '4.0.5', '4.0.4', '4.0.3', '4.0.2', '4.0', '3.1']);
-    expect(CHANGELOG[0].date).toBe('2026-11-23');
-    expect(CHANGELOG[0].items.map((k) => en[k])).toEqual([
+  it('lists versions newest first, each word in the catalogue', () => {
+    const versions = CHANGELOG.map((e) => e.version);
+    expect([...versions].sort((x, y) => y.localeCompare(x, undefined, { numeric: true }))).toEqual(versions);
+    expect(versions.slice(-9)).toEqual(['4.0.8', '4.0.7', '4.0.6', '4.0.5', '4.0.4', '4.0.3', '4.0.2', '4.0', '3.1']);
+    for (const entry of CHANGELOG) for (const k of entry.items) expect(en[k]).toBeTruthy();
+    expect(entryFor('4.0.8').date).toBe('2026-11-23');
+    expect(entryFor('4.0.8').items.map((k) => en[k])).toEqual([
       'Your first 3 videos are free, then 1 a week.',
       'After your second lift, one tap tells us if Catchline is working for you.',
       'Fixed a crash on the result card.',
       'The app now tells you when a new version is ready.',
     ]);
-    expect(en[CHANGELOG[5].items[0]]).toBe('The plate is found before tracking starts. Check the circle, adjust it if it is off, then track.');
+    expect(en[entryFor('4.0.3').items[0]]).toBe('The plate is found before tracking starts. Check the circle, adjust it if it is off, then track.');
   });
 
   it('keeps 3.1 with on-device analysis and the privacy line, word for word', () => {
-    expect(CHANGELOG[8].version).toBe('3.1');
-    expect(CHANGELOG[8].items.map((k) => en[k])).toEqual([
+    expect(entryFor('3.1').items.map((k) => en[k])).toEqual([
       'Your lift is now analysed entirely on your iPhone, and analysis works with no signal.',
       'Your video never leaves your iPhone. Analysed on-device, never used to train AI.',
       'Sharper reads of lifts filmed at an angle and of hang lifts, and a full clean and jerk is read as one lift.',

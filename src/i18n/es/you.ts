@@ -148,6 +148,8 @@ export const you: Strings<typeof en> = {
   'you.replayWelcome': "Ver la bienvenida otra vez",
   // REVIEW
   'you.whatsNew.version': "Catchline {version}",
+  'you.whatsNew.v409.1': "Puedes volver a ver la bienvenida desde la página Tú.",
+  'you.whatsNew.v409.2': "Corregido un error del primer inicio que podía crear una segunda cuenta vacía.",
   'you.whatsNew.v408.1': "Tus 3 primeros vídeos son gratis y después 1 a la semana.",
   'you.whatsNew.v408.2': "Tras tu segundo levantamiento, un toque nos dice si Catchline te funciona.",
   'you.whatsNew.v408.3': "Corregido un cierre en la tarjeta de resultado.",

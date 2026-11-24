@@ -132,6 +132,8 @@ export const you: Strings<typeof en> = {
   'you.whatsNew': "新機能",
   'you.replayWelcome': "ようこそ画面をもう一度見る",
   'you.whatsNew.version': "Catchline {version}",
+  'you.whatsNew.v409.1': "「あなた」ページからウェルカム画面をもう一度見られます。",
+  'you.whatsNew.v409.2': "初回起動時に空のアカウントがもう1つ作られることがある問題を修正しました。",
   'you.whatsNew.v408.1': "最初の3本の動画は無料、その後は週1本です。",
   'you.whatsNew.v408.2': "2本目のリフトのあと、ワンタップでCatchlineの使い心地を教えてください。",
   'you.whatsNew.v408.3': "結果カードのクラッシュを修正しました。",
