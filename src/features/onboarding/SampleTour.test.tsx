@@ -28,6 +28,12 @@ describe('the sample tour', () => {
     expect(onTrack).toHaveBeenCalledTimes(1);
   });
 
+  it('with Reduce Motion the video does not play', async () => {
+    await render(<SampleTour onTrack={jest.fn()} reduceMotion />);
+    const player = (useVideoPlayer as jest.Mock).mock.results[0].value;
+    expect(player.play).not.toHaveBeenCalled();
+  });
+
   it('the bundled sample has the plate size on its first frame (the circle) and along the path (bar speed)', () => {
     const path = SAMPLE_ANALYSIS.reps[0].path;
     expect(path[0].r).toBeGreaterThan(0);

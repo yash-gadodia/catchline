@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { View, useWindowDimensions } from 'react-native';
 import { useVideoPlayer, VideoView } from 'expo-video';
+import { useReducedMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Btn from '../../components/Btn';
 import Text from '../../components/Text';
@@ -13,9 +14,11 @@ import { coverBox, SAMPLE_ANALYSIS, SAMPLE_CLIP, SAMPLE_FOCUS } from './sample';
 // The two steps before the sample lift's tracked result, each one tap: the video as the lifter would pick it (and
 // that it stays on the phone), then the plate found on its first frame. `onTrack` goes on to the result, where the
 // path draws itself. About 15 seconds with the result: the app shown by doing it once.
-export default function SampleTour({ onTrack }: { onTrack: () => void }) {
+export default function SampleTour({ onTrack, reduceMotion }: { onTrack: () => void; reduceMotion?: boolean }) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const systemReduce = useReducedMotion();
+  const reduce = reduceMotion ?? systemReduce;
   const [step, setStep] = useState<1 | 2>(1);
   const analysis = SAMPLE_ANALYSIS;
   const start = analysis.reps[0]?.path[0];
@@ -23,7 +26,8 @@ export default function SampleTour({ onTrack }: { onTrack: () => void }) {
     p.muted = true;
     p.loop = true;
     p.timeUpdateEventInterval = 1 / 30;
-    p.play();
+    // with Reduce Motion the first step is one still of the lift
+    if (!reduce) p.play();
   });
   const box = { width, height: Math.max(height - 330, 240) };
   const [frame, setFrame] = useState(0);
