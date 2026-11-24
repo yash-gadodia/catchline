@@ -200,6 +200,12 @@ describe('TrackerScreen bar speed', () => {
     expect(getByTestId('speed-stats')).toHaveTextContent(/^now 0\.54 · avg up 0\.\d\d · min 0\.54 · max 1\.08 m\/s$/);
   });
 
+  it('charts the speed while the first look is still playing, not only after it', async () => {
+    const { getByTestId, queryByTestId } = await show(measured, body, { reveal: true });
+    expect(queryByTestId('first-look')).toBeNull();
+    expect(getByTestId('speed-chart')).toBeOnTheScreen();
+  });
+
   it('shows no speed on a lift whose plate was not measured', async () => {
     const { queryByTestId } = await show(marked);
     expect(queryByTestId('tracker-speed')).toBeNull();

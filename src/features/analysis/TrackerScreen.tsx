@@ -299,7 +299,8 @@ export default function TrackerScreen({
 
   // The divider: the video takes what the lifter gives it, down to a quarter of the screen and up to where the chart
   // under it would no longer fit (or the picture is as wide as the screen).
-  const charted = barSpeedOf !== null && revealing !== 'playing';
+  // there from the first frame, like Share: while the first look played, the bare space under the video looked broken
+  const charted = barSpeedOf !== null;
   const bottomH = useRef(0);
   const minBottom = space.s3 + SPEED_CHART_MIN_H + (onShare ? space.s2 + control.compactHeight : 0) + Math.max(insets.bottom, space.s4);
   const videoLimits = () => {
