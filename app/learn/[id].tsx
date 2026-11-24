@@ -3,6 +3,7 @@ import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import TrackerScreen from '../../src/features/analysis/TrackerScreen';
 import { LEARN_LIFTS } from '../../src/features/learn/lifts';
 import { EVENTS, track } from '../../src/lib/analytics';
+import { t } from '../../src/i18n';
 
 // A Learn lift in the real player: every control the lifter's own lifts have, and no Share (the video is not theirs).
 export default function LearnLiftRoute() {
@@ -13,5 +14,5 @@ export default function LearnLiftRoute() {
     if (lift) track(EVENTS.LEARN_OPENED, { lift: lift.id });
   }, [lift?.id]);
   if (!lift) return <Redirect href="/" />;
-  return <TrackerScreen analysis={lift.analysis} clipUri={lift.clip} body={lift.body} title={lift.lifter} onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))} />;
+  return <TrackerScreen analysis={lift.analysis} clipUri={lift.clip} body={lift.body} title={lift.lifter} back={t('library.tabs.learn')} onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))} />;
 }

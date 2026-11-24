@@ -17,6 +17,22 @@ describe('the Learn tab', () => {
     expect(onOpen).toHaveBeenCalledWith('b');
   });
 
+  it('narrows the list to one kind of lift, and back to all', async () => {
+    const screen = await render(<LearnScreen lifts={[lift('a'), lift('b', { kind: 'cleanJerk' }), lift('c')]} onOpen={jest.fn()} />);
+    await act(async () => fireEvent.press(screen.getByTestId('learn-kind-cleanJerk')));
+    expect(screen.queryByTestId('learn-a')).toBeNull();
+    expect(screen.getByTestId('learn-b')).toBeOnTheScreen();
+    await act(async () => fireEvent.press(screen.getByTestId('learn-kind-snatch')));
+    expect([screen.queryByTestId('learn-a'), screen.queryByTestId('learn-b'), screen.queryByTestId('learn-c')].map(Boolean)).toEqual([true, false, true]);
+    await act(async () => fireEvent.press(screen.getByTestId('learn-kind-all')));
+    expect(screen.getByTestId('learn-b')).toBeOnTheScreen();
+  });
+
+  it('has no chips when every lift is the same kind', async () => {
+    const screen = await render(<LearnScreen lifts={[lift('a'), lift('c')]} onOpen={jest.fn()} />);
+    expect(screen.queryByTestId('learn-kinds')).toBeNull();
+  });
+
   it('opens only once there are enough lifts to be worth a tab', () => {
     expect(learnOpen(Array.from({ length: LEARN_MIN - 1 }, (_, i) => lift(`${i}`)))).toBe(false);
     expect(learnOpen(Array.from({ length: LEARN_MIN }, (_, i) => lift(`${i}`)))).toBe(true);
