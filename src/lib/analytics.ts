@@ -44,8 +44,6 @@ export const EVENTS = {
   PURCHASE_STARTED: 'purchase_started',
   PURCHASE_NOT_COMPLETED: 'purchase_not_completed',
   RATING_ASK_SHOWN: 'rating_ask_shown',
-  RATING_ASK_RATE: 'rating_ask_rate',
-  RATING_ASK_LATER: 'rating_ask_later',
   // the feedback ask: the sheet on the second lift's result (answered Good / Not great, or later), and the one
   // notification for a lifter who did not come back
   FEEDBACK_ASK_SHOWN: 'feedback_ask_shown',

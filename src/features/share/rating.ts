@@ -8,10 +8,10 @@ const ASKED_KEY = '@catchline/rating_asked_version';
 
 type StoreReview = { isAvailableAsync?: () => Promise<boolean>; requestReview?: () => Promise<void> };
 
-// The App Store rating ask, after a share the lifter went through with, of a lift that has a bar path. Once per app
-// version, and never while the last tracking is a failed one. The share screen first shows why a rating matters
-// (ratingDue), then Apple's own prompt on "Rate Catchline" (askForRatingOnce); "Not now" spends the version's ask
-// (declineRating). Nothing is offered for a rating: Apple forbids it (3.2.2) and never says whether one was left.
+// The App Store rating ask: Apple's own prompt (stars, one tap, in place), straight after a share the lifter went
+// through with, of a lift that has a bar path. Once per app version, never while the last tracking is a failed one, and
+// not in a run that already asked for feedback. Apple shows it at most three times a year and never says whether a
+// rating was left. Nothing is offered for one: Apple forbids it (3.2.2).
 async function storeReview(): Promise<StoreReview | null> {
   const review = requireOptionalNativeModule<StoreReview>('ExpoStoreReview');
   return review?.requestReview && (await review.isAvailableAsync?.()) ? review : null;
@@ -19,23 +19,12 @@ async function storeReview(): Promise<StoreReview | null> {
 
 const version = () => Constants.expoConfig?.version ?? 'unknown';
 
-export async function ratingDue(barPath: boolean): Promise<boolean> {
-  if (!barPath || usePipeline.getState().job?.status === 'failed') return false;
-  if (!(await storeReview())) return false;
-  if ((await AsyncStorage.getItem(ASKED_KEY)) === version()) return false;
-  // not in a run that already asked for feedback
-  return claimSessionAsk('rating');
-}
-
-export async function declineRating(): Promise<void> {
-  await AsyncStorage.setItem(ASKED_KEY, version());
-}
-
 export async function askForRatingOnce(barPath: boolean): Promise<'asked' | 'skipped' | 'unavailable'> {
   if (!barPath || usePipeline.getState().job?.status === 'failed') return 'skipped';
   const review = await storeReview();
   if (!review?.requestReview) return 'unavailable';
   if ((await AsyncStorage.getItem(ASKED_KEY)) === version()) return 'skipped';
+  if (!claimSessionAsk('rating')) return 'skipped';
   await AsyncStorage.setItem(ASKED_KEY, version());
   await review.requestReview();
   return 'asked';
