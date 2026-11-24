@@ -12,11 +12,22 @@ export type Allowance = {
   remaining: number;
 };
 
+let starting: Promise<string> | null = null;
+
 /**
  * The app has no sign-in screen: the first backend call starts an anonymous
- * account (Apple/Google link to it later). Returns the user id.
+ * account (Apple/Google link to it later). Returns the user id. Several screens
+ * ask at once on first launch; they share one start, or each would create its
+ * own account and all but the last would be left empty.
  */
-export async function ensureSession(): Promise<string> {
+export function ensureSession(): Promise<string> {
+  starting ??= startSession().finally(() => {
+    starting = null;
+  });
+  return starting;
+}
+
+async function startSession(): Promise<string> {
   const { data } = await supabase.auth.getSession();
   if (data.session) return data.session.user.id;
   const { data: signed, error } = await supabase.auth.signInAnonymously();
