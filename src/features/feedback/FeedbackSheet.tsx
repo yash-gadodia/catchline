@@ -22,7 +22,7 @@ export default function FeedbackSheet() {
   const keyboard = useKeyboardHeight();
   const here = pathname === FEEDBACK_ROUTE;
   useEffect(() => {
-    if (open && !here) closeFeedback();
+    if (open && !here) closeFeedback(pathname);
   }, [open, here]);
   useEffect(() => {
     if (!open) setNote('');
@@ -57,7 +57,7 @@ export default function FeedbackSheet() {
               }}
             />
             <View style={{ flexDirection: 'row', gap: space.s3 }}>
-              <Btn kind="secondary" compact style={{ flex: 1 }} onPress={closeFeedback} testID="feedback-done">
+              <Btn kind="secondary" compact style={{ flex: 1 }} onPress={() => closeFeedback()} testID="feedback-done">
                 {t('you.report.done')}
               </Btn>
               <Btn compact style={{ flex: 1 }} disabled={note.trim().length === 0} onPress={() => sendFeedbackNote(note)} testID="feedback-send">
@@ -76,7 +76,7 @@ export default function FeedbackSheet() {
                 {t('you.feedback.down')}
               </Btn>
             </View>
-            <Btn kind="text" style={{ alignSelf: 'center' }} onPress={closeFeedback} testID="feedback-later">
+            <Btn kind="text" style={{ alignSelf: 'center' }} onPress={() => closeFeedback()} testID="feedback-later">
               {t('notifications.notNow')}
             </Btn>
           </>
