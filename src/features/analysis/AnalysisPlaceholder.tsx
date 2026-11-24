@@ -26,11 +26,10 @@ export default function AnalysisPlaceholder({ status, onBack }: { status: keyof 
         <Text style={[display(34), { color: colors.text }]}>{t(copy.title)}</Text>
         <Text style={{ color: colors.text2, ...type.callout }}>{t(copy.body)}</Text>
       </View>
-      {status === 'loading' ? null : (
-        <Btn kind="secondary" onPress={onBack} testID="analysis-back">
-          {t('analysis.placeholder.back')}
-        </Btn>
-      )}
+      {/* while loading too: a lift fetched on a bad connection has no timeout, and this was the only way out */}
+      <Btn kind="secondary" onPress={onBack} testID="analysis-back">
+        {t('analysis.placeholder.back')}
+      </Btn>
     </View>
   );
 }

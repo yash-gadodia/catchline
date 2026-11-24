@@ -4,9 +4,11 @@ import { barSpeed } from '../analysis/speed';
 // The lift as data (owner, 12-11: parity with WL Analysis): one row per frame of the bar path. Positions are 0..1 of
 // the picture (x from the left, y from the top), speed is the bar's vertical speed in m/s (up positive) where the
 // plate was measured, source says whether the plate or the hands gave the point. In the lift only, when one is marked.
-export function liftCsv(analysis: Analysis): string {
+// `clipFps` is the clip's real rate (frames over length): the recorded one is the shortest frame gap and runs fast on
+// a clip with uneven timing, which doubled every speed in the file.
+export function liftCsv(analysis: Analysis, clipFps?: number): string {
   const path = analysis.reps[0]?.path ?? [];
-  const fps = analysis.video.fps || 30;
+  const fps = clipFps || analysis.video.fps || 30;
   const speed = barSpeed(path, fps, analysis.lift);
   const inLift = (f: number) => !analysis.lift || (f >= analysis.lift.startFrame && f <= analysis.lift.endFrame);
   const rows = path

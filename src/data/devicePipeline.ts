@@ -342,7 +342,8 @@ async function runDeviceLift(item: PendingLift): Promise<void> {
     void notifyLiftReady(liftId, !!local.failure);
   } catch (e) {
     const code = e instanceof ClipTooLongError ? 'clip_too_long' : nativeCode(e);
-    track(EVENTS.ANALYSIS_FAILED, { movement: sub.movement, code });
+    // the lifter's own Cancel already sends track_cancelled: counted here too, it read as a tracking failure
+    if (code !== 'cancelled') track(EVENTS.ANALYSIS_FAILED, { movement: sub.movement, code });
     if (e instanceof ClipTooLongError) patch({ status: 'failed', error: 'clip_too_long', maxS: e.maxS });
     else if (code === 'cancelled' || code === MODELS_UNAVAILABLE) patch({ status: 'failed', error: code });
     else patch({ status: 'failed', error: 'analysis_failed', failureReason: failureReason(code), failureDetail: e instanceof Error ? e.message : String(e) });

@@ -28,8 +28,12 @@ export function ensureSession(): Promise<string> {
 }
 
 async function startSession(): Promise<string> {
-  const { data } = await supabase.auth.getSession();
+  const { data, error: refresh } = await supabase.auth.getSession();
   if (data.session) return data.session.user.id;
+  // A refresh that failed on the network (offline, a 5xx) comes back as "no session" while the account is still saved
+  // on the phone. Signing in here would write a new anonymous account over it: the lifter's lifts, plan and Apple
+  // sign-in would be gone. Fail instead; the next call tries the refresh again.
+  if (refresh?.name === 'AuthRetryableFetchError') throw new ApiError('not_authenticated', refresh.message);
   const { data: signed, error } = await supabase.auth.signInAnonymously();
   if (error || !signed.user) throw new ApiError('not_authenticated', error?.message);
   return signed.user.id;

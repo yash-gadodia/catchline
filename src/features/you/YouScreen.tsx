@@ -272,7 +272,7 @@ function Row({
       style={({ pressed }) => ({ minHeight: 48, paddingVertical: space.s2, opacity: pressed ? 0.7 : 1 })}
     >
       <View style={{ flex: 1, gap: 2 }}>
-        <Text numberOfLines={1} style={{ color: muted ? colors.text2 : colors.text, ...type.body, fontFamily: bold ? fontFamily.bodyBold : fontFamily.body }}>
+        <Text numberOfLines={2} style={{ color: muted ? colors.text2 : colors.text, ...type.body, fontFamily: bold ? fontFamily.bodyBold : fontFamily.body }}>
           {title}
         </Text>
         {value ? <Value>{value}</Value> : null}

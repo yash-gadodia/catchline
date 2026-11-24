@@ -377,6 +377,18 @@ describe('ensureSession', () => {
     mocked.auth.getSession.mockResolvedValue({ data: { session: { access_token: 'jwt-1' } } });
   });
 
+  it('does not start a new account when the saved one could not be refreshed for lack of network', async () => {
+    // what supabase returns then: no session and a retryable error, with the real session still saved on the phone
+    mocked.auth.getSession.mockResolvedValueOnce({ data: { session: null }, error: { name: 'AuthRetryableFetchError', status: 0, message: 'Network request failed' } });
+    await expect(ensureSession()).rejects.toMatchObject({ name: 'ApiError', code: 'not_authenticated' });
+    expect(mocked.auth.signInAnonymously).not.toHaveBeenCalled();
+  });
+
+  it('does start one when the saved session is gone for good', async () => {
+    mocked.auth.getSession.mockResolvedValueOnce({ data: { session: null }, error: { name: 'AuthApiError', status: 400, message: 'Invalid Refresh Token' } });
+    await expect(ensureSession()).resolves.toBe('anon-2');
+  });
+
   it('reuses the live session', async () => {
     mocked.auth.getSession.mockResolvedValueOnce({ data: { session: { access_token: 'jwt-1', user: { id: 'u1' } } } });
     await expect(ensureSession()).resolves.toBe('u1');
