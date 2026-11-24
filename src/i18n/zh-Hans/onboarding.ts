@@ -4,8 +4,9 @@ import type { onboarding as en } from '../en/onboarding';
 
 export const onboarding: Strings<typeof en> = {
   'onboarding.welcome.title': "这样看你的试举。",
-  'onboarding.welcome.body': "杠铃轨迹、杠铃速度和身体线条，直接画在你的视频上。",
-  'onboarding.welcome.private': "100% 私密。完全在你的 iPhone 上运行。任何内容都不会离开手机。",
+  'onboarding.welcome.private': "100% 私密。任何内容都不会离开你的 iPhone。",
+  'onboarding.welcome.sports': "举重和体操都能用。",
+  'onboarding.welcome.free': "杠铃轨迹和速度，免费开始。",
   'onboarding.welcome.agree': "继续即表示你确认已满 16 岁，并接受条款和隐私政策。",
   'onboarding.lifts.sub.barPath': "杠铃轨迹",
   'onboarding.lifts.sub.hipPath': "髋部轨迹",

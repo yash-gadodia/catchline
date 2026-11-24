@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { View, useWindowDimensions } from 'react-native';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useReducedMotion } from 'react-native-reanimated';
@@ -8,8 +8,8 @@ import Text from '../../components/Text';
 import { colors, space } from '../../design/tokens';
 import { display, type } from '../../design/typography';
 import { t } from '../../i18n';
-import { frameAt, timeOf } from '../analysis/tracker';
-import { coverBox, SAMPLE_ANALYSIS, SAMPLE_CLIP, SAMPLE_FOCUS } from './sample';
+import { timeOf } from '../analysis/tracker';
+import { fitBox, SAMPLE_ANALYSIS, SAMPLE_CLIP } from './sample';
 
 // The two steps before the sample lift's tracked result, each one tap: the video as the lifter would pick it (and
 // that it stays on the phone), then the plate found on its first frame. `onTrack` goes on to the result, where the
@@ -25,17 +25,11 @@ export default function SampleTour({ onTrack, reduceMotion }: { onTrack: () => v
   const player = useVideoPlayer(SAMPLE_CLIP, (p) => {
     p.muted = true;
     p.loop = true;
-    p.timeUpdateEventInterval = 1 / 30;
     // with Reduce Motion the first step is one still of the lift
     if (!reduce) p.play();
   });
-  const box = { width, height: Math.max(height - 330, 240) };
-  const [frame, setFrame] = useState(0);
-  useEffect(() => {
-    const sub = player.addListener('timeUpdate', ({ currentTime }) => setFrame(frameAt(currentTime, analysis.video.fps, analysis.video.frameCount)));
-    return () => sub.remove();
-  }, [player]);
-  const video = coverBox(analysis.video, box, SAMPLE_FOCUS[step === 2 ? (start?.frame ?? 0) : frame] ?? 0.5);
+  const box = { width, height: Math.max(height - 300, 240) };
+  const video = fitBox(analysis.video, box);
   // the plate's circle: its radius is a share of the video's height
   const size = (start?.r ?? 0) * video.height * 2;
   const ring = start && size ? { left: start.x * video.width - size / 2, top: start.y * video.height - size / 2 } : null;

@@ -3,8 +3,9 @@ import type { onboarding as en } from '../en/onboarding';
 
 export const onboarding: Strings<typeof en> = {
   'onboarding.welcome.title': "Sieh deinen Lift so.",
-  'onboarding.welcome.body': "Hantelweg, Hantelgeschwindigkeit und Körperlinien, auf deinem eigenen Video.",
-  'onboarding.welcome.private': "100 % privat. Läuft komplett auf deinem iPhone. Nichts verlässt es.",
+  'onboarding.welcome.private': "100 % privat. Nichts verlässt dein iPhone.",
+  'onboarding.welcome.sports': "Gewichtheben und Turnen.",
+  'onboarding.welcome.free': "Hantelweg und Hantelgeschwindigkeit, kostenlos starten.",
   'onboarding.welcome.agree': "Wenn du fortfährst, bestätigst du, dass du über 16 bist, und akzeptierst die Nutzungsbedingungen und den Datenschutz.",
   'onboarding.lifts.sub.barPath': "Stangenweg",
   'onboarding.lifts.sub.hipPath': "Hüftweg",

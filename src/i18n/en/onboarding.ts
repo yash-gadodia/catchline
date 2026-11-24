@@ -1,7 +1,8 @@
 export const onboarding = {
   'onboarding.welcome.title': "See your lift like this.",
-  'onboarding.welcome.body': "Bar path, bar speed and body lines, on your own video.",
-  'onboarding.welcome.private': "100% private. Runs fully on your iPhone. Nothing leaves it.",
+  'onboarding.welcome.private': "100% private. Nothing leaves your iPhone.",
+  'onboarding.welcome.sports': "Weightlifting and gymnastics.",
+  'onboarding.welcome.free': "Bar path and bar speed, free to start.",
   'onboarding.welcome.agree': "By continuing you confirm you are over 16 and accept the terms and privacy policy.",
   'onboarding.lifts.sub.barPath': "bar path",
   'onboarding.lifts.sub.hipPath': "hip path",

@@ -3,8 +3,9 @@ import type { onboarding as en } from '../en/onboarding';
 
 export const onboarding: Strings<typeof en> = {
   'onboarding.welcome.title': "Veja seu levantamento assim.",
-  'onboarding.welcome.body': "Trajetória da barra, velocidade da barra e linhas do corpo, no seu próprio vídeo.",
-  'onboarding.welcome.private': "100% privado. Roda inteiro no seu iPhone. Nada sai dele.",
+  'onboarding.welcome.private': "100% privado. Nada sai do seu iPhone.",
+  'onboarding.welcome.sports': "Levantamento de peso e ginástica.",
+  'onboarding.welcome.free': "Trajetória e velocidade da barra, grátis para começar.",
   'onboarding.welcome.agree': "Ao continuar, você confirma que tem mais de 16 anos e aceita os termos e a política de privacidade.",
   'onboarding.lifts.sub.barPath': "trajetória da barra",
   'onboarding.lifts.sub.hipPath': "trajetória do quadril",

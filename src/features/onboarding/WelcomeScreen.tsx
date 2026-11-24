@@ -10,14 +10,15 @@ import { PRIVACY_URL, TERMS_URL } from '../../lib/links';
 import { t } from '../../i18n';
 import SampleLift from './SampleLift';
 
-// All of onboarding: a tracked lift playing, the promise (what it draws, and that nothing leaves the phone), and two
-// buttons: a lift of the lifter's own, or the sample tour. No filming here: nobody installs mid-session at the bar.
+// All of onboarding: a tracked lift playing, what sets Catchline apart in three lines (private, both sports, bar
+// speed free), and two buttons: the 15-second sample tour first, a lift of the lifter's own second. No filming here:
+// nobody installs mid-session at the bar.
 // Going on accepts the terms named under the buttons.
 export default function WelcomeScreen({ onPick, onSample, reduceMotion }: { onPick: () => void; onSample: () => void; reduceMotion?: boolean }) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const systemReduce = useReducedMotion();
-  const box = { width, height: Math.max(height - 400, 240) };
+  const box = { width, height: Math.max(height - 430, 240) };
 
   return (
     <View testID="welcome-screen" style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'flex-end' }}>
@@ -30,22 +31,23 @@ export default function WelcomeScreen({ onPick, onSample, reduceMotion }: { onPi
         />
       </View>
       <View style={{ paddingHorizontal: space.gutter, paddingBottom: Math.max(insets.bottom, space.s4) + space.s2, gap: space.s4 }}>
-        <View style={{ gap: space.s2 }}>
+        <View style={{ gap: space.s3 }}>
           <Text style={[display(44), { color: colors.text }]}>{t('onboarding.welcome.title')}</Text>
-          <Text style={{ color: colors.text, ...type.body }}>{t('onboarding.welcome.body')}</Text>
           <View style={{ flexDirection: 'row', gap: space.s3, alignItems: 'stretch' }}>
             <View style={{ width: 3, backgroundColor: colors.flare }} />
-            <Text style={{ flex: 1, color: colors.text, ...type.body, fontFamily: fontFamily.bodyBold }} testID="welcome-private">
-              {t('onboarding.welcome.private')}
-            </Text>
+            <View style={{ flex: 1, gap: space.s1 }} testID="welcome-usp">
+              <Text style={{ color: colors.text, ...type.body, fontFamily: fontFamily.bodyBold }}>{t('onboarding.welcome.private')}</Text>
+              <Text style={{ color: colors.text, ...type.body }}>{t('onboarding.welcome.sports')}</Text>
+              <Text style={{ color: colors.text, ...type.body }}>{t('onboarding.welcome.free')}</Text>
+            </View>
           </View>
         </View>
         <View style={{ gap: space.s3 }}>
-          <Btn onPress={onPick} testID="welcome-pick">
-            {t('onboarding.welcome.pick')}
-          </Btn>
-          <Btn kind="secondary" compact onPress={onSample} testID="welcome-sample">
+          <Btn onPress={onSample} testID="welcome-sample">
             {t('onboarding.welcome.sample')}
+          </Btn>
+          <Btn kind="secondary" compact onPress={onPick} testID="welcome-pick">
+            {t('onboarding.welcome.pick')}
           </Btn>
         </View>
         <Text style={{ color: colors.text2, ...type.small, textAlign: 'center' }}>
@@ -58,6 +60,9 @@ export default function WelcomeScreen({ onPick, onSample, reduceMotion }: { onPi
           <Text style={{ color: colors.text2, textDecorationLine: 'underline' }} onPress={() => Linking.openURL(PRIVACY_URL)} accessibilityRole="link" testID="link-privacy">
             {t('onboarding.privacy.policy')}
           </Text>
+        </Text>
+        <Text style={{ color: colors.text2, ...type.small, textAlign: 'center' }} testID="welcome-made-by">
+          {t('you.madeBy')}
         </Text>
       </View>
     </View>
