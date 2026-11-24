@@ -4,8 +4,9 @@ import type { onboarding as en } from '../en/onboarding';
 
 export const onboarding: Strings<typeof en> = {
   'onboarding.welcome.title': "自分のリフトを、こう見る。",
-  'onboarding.welcome.body': "バーの軌道、バーの速度、身体のラインを、あなたの動画の上に。",
-  'onboarding.welcome.private': "100%プライベート。すべてiPhoneの中で動きます。何も外に出ません。",
+  'onboarding.welcome.private': "100%プライベート。何もiPhoneの外に出ません。",
+  'onboarding.welcome.sports': "ウエイトリフティングにも体操にも。",
+  'onboarding.welcome.free': "バーの軌道と速度を、まずは無料で。",
   'onboarding.welcome.agree': "続けると、16歳以上であることを確認し、利用規約とプライバシーポリシーに同意したことになります。",
   'onboarding.lifts.sub.barPath': "バーの軌道",
   'onboarding.lifts.sub.hipPath': "腰の軌道",
