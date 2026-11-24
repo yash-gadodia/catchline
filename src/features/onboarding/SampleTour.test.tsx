@@ -10,6 +10,8 @@ const press = async (el: Parameters<typeof fireEvent.press>[0]) => {
 };
 
 describe('the sample tour', () => {
+  beforeEach(() => jest.clearAllMocks());
+
   it('two taps: the video and that it stays on the phone, then the plate circled on its first frame, then on to tracking', async () => {
     const onTrack = jest.fn();
     const screen = await render(<SampleTour onTrack={onTrack} />);
