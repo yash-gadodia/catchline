@@ -362,6 +362,21 @@ describe('ensureSession', () => {
     expect(mocked.auth.signInAnonymously).toHaveBeenCalledTimes(1);
   });
 
+  it('starts one account when several callers arrive at first launch', async () => {
+    mocked.auth.getSession.mockResolvedValue({ data: { session: null } });
+    await expect(Promise.all([ensureSession(), ensureSession(), ensureSession()])).resolves.toEqual(['anon-2', 'anon-2', 'anon-2']);
+    expect(mocked.auth.signInAnonymously).toHaveBeenCalledTimes(1);
+    mocked.auth.getSession.mockResolvedValue({ data: { session: { access_token: 'jwt-1' } } });
+  });
+
+  it('tries again after a failed start', async () => {
+    mocked.auth.getSession.mockResolvedValue({ data: { session: null } });
+    mocked.auth.signInAnonymously.mockResolvedValueOnce({ data: { user: null }, error: { message: 'Network request failed' } });
+    await expect(ensureSession()).rejects.toMatchObject({ code: 'not_authenticated' });
+    await expect(ensureSession()).resolves.toBe('anon-2');
+    mocked.auth.getSession.mockResolvedValue({ data: { session: { access_token: 'jwt-1' } } });
+  });
+
   it('reuses the live session', async () => {
     mocked.auth.getSession.mockResolvedValueOnce({ data: { session: { access_token: 'jwt-1', user: { id: 'u1' } } } });
     await expect(ensureSession()).resolves.toBe('u1');
