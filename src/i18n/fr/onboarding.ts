@@ -3,8 +3,8 @@ import type { onboarding as en } from '../en/onboarding';
 
 export const onboarding: Strings<typeof en> = {
   'onboarding.welcome.title': "Vois ton mouvement comme ça.",
-  'onboarding.welcome.body': "Choisis une vidéo d'un mouvement. Ton téléphone y trace la trajectoire de barre et les lignes du corps.",
-  'onboarding.welcome.private': "Tout se passe sur ton téléphone. Ta vidéo ne le quitte jamais.",
+  'onboarding.welcome.body': "Trajectoire de barre, vitesse de barre et lignes du corps, sur ta propre vidéo.",
+  'onboarding.welcome.private': "100 % privé. Tout tourne sur ton iPhone. Rien ne le quitte.",
   'onboarding.welcome.agree': "En continuant, tu confirmes avoir plus de 16 ans et tu acceptes les conditions et la politique de confidentialité.",
   'onboarding.lifts.sub.barPath': "trajectoire de la barre",
   'onboarding.lifts.sub.hipPath': "trajectoire des hanches",
@@ -42,6 +42,12 @@ export const onboarding: Strings<typeof en> = {
   'onboarding.privacy.policy': "politique de confidentialité",
   'onboarding.privacy.terms': "conditions",
   'onboarding.welcome.pick': "Choisir un de tes mouvements",
-  'onboarding.welcome.film': "Filmer un mouvement maintenant",
-  'onboarding.welcome.sample': "Essayer sur un mouvement d'exemple",
+  'onboarding.welcome.sample': "Voir comment ça marche",
+  'onboarding.tour.step': "{n} sur 3",
+  'onboarding.tour.video.title': "Pars de n'importe quelle vidéo d'un mouvement",
+  'onboarding.tour.video.body': "Depuis ta photothèque ou filmée dans l'app. Elle ne quitte jamais ton iPhone.",
+  'onboarding.tour.plate.title': "Catchline trouve la barre",
+  'onboarding.tour.plate.body': "Il entoure le disque. Déplace le cercle s'il est décalé.",
+  'onboarding.tour.next': "Suivant",
+  'onboarding.tour.track': "Analyser",
 };

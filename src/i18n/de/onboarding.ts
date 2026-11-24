@@ -3,8 +3,8 @@ import type { onboarding as en } from '../en/onboarding';
 
 export const onboarding: Strings<typeof en> = {
   'onboarding.welcome.title': "Sieh deinen Lift so.",
-  'onboarding.welcome.body': "Wähle ein Video von einem Lift. Dein Handy zeichnet Hantelweg und Körperlinien darauf.",
-  'onboarding.welcome.private': "Alles läuft auf deinem Handy. Dein Video verlässt es nie.",
+  'onboarding.welcome.body': "Hantelweg, Hantelgeschwindigkeit und Körperlinien, auf deinem eigenen Video.",
+  'onboarding.welcome.private': "100 % privat. Läuft komplett auf deinem iPhone. Nichts verlässt es.",
   'onboarding.welcome.agree': "Wenn du fortfährst, bestätigst du, dass du über 16 bist, und akzeptierst die Nutzungsbedingungen und den Datenschutz.",
   'onboarding.lifts.sub.barPath': "Stangenweg",
   'onboarding.lifts.sub.hipPath': "Hüftweg",
@@ -42,6 +42,12 @@ export const onboarding: Strings<typeof en> = {
   'onboarding.privacy.policy': "Datenschutz",
   'onboarding.privacy.terms': "Nutzungsbedingungen",
   'onboarding.welcome.pick': "Einen deiner Lifts auswählen",
-  'onboarding.welcome.film': "Jetzt einen Lift filmen",
-  'onboarding.welcome.sample': "Mit einem Beispiel-Lift ausprobieren",
+  'onboarding.welcome.sample': "So funktioniert's",
+  'onboarding.tour.step': "{n} von 3",
+  'onboarding.tour.video.title': "Starte mit irgendeinem Lift-Video",
+  'onboarding.tour.video.body': "Aus deiner Mediathek oder in der App gefilmt. Es verlässt dein iPhone nie.",
+  'onboarding.tour.plate.title': "Catchline findet die Hantel",
+  'onboarding.tour.plate.body': "Es kreist die Scheibe ein. Verschiebe den Kreis, wenn er nicht passt.",
+  'onboarding.tour.next': "Weiter",
+  'onboarding.tour.track': "Tracken",
 };

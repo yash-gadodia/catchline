@@ -4,8 +4,8 @@ import type { onboarding as en } from '../en/onboarding';
 
 export const onboarding: Strings<typeof en> = {
   'onboarding.welcome.title': "내 리프트를 이렇게 보세요.",
-  'onboarding.welcome.body': "리프트 영상을 고르세요. 휴대폰이 영상 위에 바 궤적과 몸의 라인을 그려줘요.",
-  'onboarding.welcome.private': "모든 처리는 휴대폰에서 이뤄져요. 영상은 절대 밖으로 나가지 않아요.",
+  'onboarding.welcome.body': "바 궤적, 바 속도, 몸의 라인을 내 영상 위에.",
+  'onboarding.welcome.private': "100% 비공개. 전부 iPhone 안에서 실행돼요. 아무것도 밖으로 나가지 않아요.",
   'onboarding.welcome.agree': "계속하면 만 16세 이상임을 확인하고 이용약관과 개인정보 처리방침에 동의하는 것으로 간주돼요.",
   'onboarding.lifts.sub.barPath': "바 궤적",
   'onboarding.lifts.sub.hipPath': "골반 궤적",
@@ -43,6 +43,12 @@ export const onboarding: Strings<typeof en> = {
   'onboarding.privacy.policy': "개인정보 처리방침",
   'onboarding.privacy.terms': "이용약관",
   'onboarding.welcome.pick': "내 리프트 영상 고르기",
-  'onboarding.welcome.film': "지금 리프트 촬영",
-  'onboarding.welcome.sample': "샘플 리프팅으로 해 보기",
+  'onboarding.welcome.sample': "어떻게 되는지 보기",
+  'onboarding.tour.step': "{n} / 3",
+  'onboarding.tour.video.title': "리프트 영상 하나면 시작돼요",
+  'onboarding.tour.video.body': "사진 앱에서 고르거나 앱에서 바로 찍어요. 영상은 절대 iPhone 밖으로 나가지 않아요.",
+  'onboarding.tour.plate.title': "Catchline이 바를 찾아요",
+  'onboarding.tour.plate.body': "원판에 원을 그려요. 어긋나 있으면 원을 옮기면 돼요.",
+  'onboarding.tour.next': "다음",
+  'onboarding.tour.track': "추적하기",
 };

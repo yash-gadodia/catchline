@@ -4,8 +4,8 @@ import type { onboarding as en } from '../en/onboarding';
 
 export const onboarding: Strings<typeof en> = {
   'onboarding.welcome.title': "自分のリフトを、こう見る。",
-  'onboarding.welcome.body': "リフトの動画を選ぶだけ。iPhoneがバーの軌道と身体のラインを動画に描きます。",
-  'onboarding.welcome.private': "すべてiPhoneの中で処理します。動画が外に出ることはありません。",
+  'onboarding.welcome.body': "バーの軌道、バーの速度、身体のラインを、あなたの動画の上に。",
+  'onboarding.welcome.private': "100%プライベート。すべてiPhoneの中で動きます。何も外に出ません。",
   'onboarding.welcome.agree': "続けると、16歳以上であることを確認し、利用規約とプライバシーポリシーに同意したことになります。",
   'onboarding.lifts.sub.barPath': "バーの軌道",
   'onboarding.lifts.sub.hipPath': "腰の軌道",
@@ -43,6 +43,12 @@ export const onboarding: Strings<typeof en> = {
   'onboarding.privacy.policy': "プライバシーポリシー",
   'onboarding.privacy.terms': "利用規約",
   'onboarding.welcome.pick': "自分のリフトを選ぶ",
-  'onboarding.welcome.film': "今すぐリフトを撮影",
-  'onboarding.welcome.sample': "サンプルのリフトで試す",
+  'onboarding.welcome.sample': "使い方を見る",
+  'onboarding.tour.step': "{n} / 3",
+  'onboarding.tour.video.title': "まずはリフトの動画を1本",
+  'onboarding.tour.video.body': "カメラロールから選んでも、アプリで撮っても。動画がiPhoneの外に出ることはありません。",
+  'onboarding.tour.plate.title': "Catchlineがバーを見つけます",
+  'onboarding.tour.plate.body': "プレートを円で囲みます。ずれていたら円を動かせます。",
+  'onboarding.tour.next': "次へ",
+  'onboarding.tour.track': "トラッキングする",
 };

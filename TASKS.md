@@ -5,6 +5,7 @@ Owner decision 11-11: drop cues; the app tracks any lift or gymnastics clip and 
 ## Carried over from Apple Reminders (closed 24-11-2026)
 - [ ] (Yash) Sentry: sign in (`/mcp` → `plugin:sentry:sentry`) or paste a DSN. `src/lib/sentry.ts` is in the binary but off: EAS production has no `EXPO_PUBLIC_SENTRY_DSN`, so native crashes and app hangs are not reported (JS errors already reach PostHog as `$exception` with the update id).
 - [ ] (Yash) App Store header video: needs a screen recording of the app tracking a lift in airplane mode; then Claude cuts the 21:9 header and the 3:2 search asset (plan: liftcheck-research/launch/store-listing.md).
+- [ ] (Claude, next store build, native `StoryRenderer.swift`) 9:16 story share, owner 24-11: the big number counts up from 0 to the peak on an easing curve, so mid-lift it shows speeds the bar never had and read as nonsense ("numbers going up to 2"). Show the bar's real speed at each frame, then hold the peak; make "peak bar speed" large enough to read; add the bar speed graph (today the story drops it even with `graph` on).
 - [x] In-app changelog (What's new), in-app report and feedback (`/report`, `problem_reports`, Telegram alert), push ask (at notify time and once after a first lift), trim before tracking, launch recovery screen: all shipped by 4.0.8.
 - [x] Not doing: FP16 pose models (settled, accuracy fails; real download is 181 MB, under the 200 MB cellular limit), the 3.1.1 phase-label share video (replaced by the 4.0 share: path, body, graph, speed), Intercom + Fin (SDK removed in 4.0.7).
 
