@@ -1,3 +1,4 @@
+import { getLocale } from '../i18n';
 import type { TextStyle } from 'react-native';
 
 export const fontFamily = {
@@ -36,11 +37,15 @@ export const type = {
   caption: { fontFamily: fontFamily.mono, fontSize: 12, lineHeight: 16 },
 } satisfies Record<string, TextStyle>;
 
+// Big Shoulders has no Korean, Chinese or Japanese glyphs: iOS draws those from its own font, whose characters fill
+// the whole em. At the display leading (0.98 em) their tops were cut off; they get 1.25 em.
+const FULL_HEIGHT_SCRIPTS = ['ko', 'zh-Hans', 'ja'];
+
 export function display(size: number, black = false): TextStyle {
   return {
     fontFamily: black ? fontFamily.displayBlack : fontFamily.display,
     fontSize: size,
-    lineHeight: Math.round(size * 0.98),
+    lineHeight: Math.round(size * (FULL_HEIGHT_SCRIPTS.includes(getLocale()) ? 1.25 : 0.98)),
     letterSpacing: tracked(size, -0.02),
   };
 }
