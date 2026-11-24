@@ -2,6 +2,28 @@
 
 Owner decision 11-11: drop cues; the app tracks any lift or gymnastics clip and shows it on the real video, every frame. Keep it small.
 
+## Bug sweep 24-11-2026 (seven reviewers; shipped fixes are in PRs #278 and the one after it)
+Left to do, most valuable first. Each was reported with file:line; "read" = I checked the code, "claimed" = the reviewer's word only.
+- [ ] (Yash's go: purchase code) A subscriber offline at a cold start is shown as free for about 25 s: `usePurchases.ts:146` awaits `getSession()` (the auth library's refresh backoff) before `Purchases.configure`, and `tier` starts free and is not saved. One with no free video left is sent to the paywall in airplane mode. Claimed.
+- [ ] (Yash's go: purchase code) Entitlements are thrown away when offerings fail: `Promise.all([getCustomerInfo, getOfferings])` at `usePurchases.ts:157`. The paywall then shows hard-coded USD prices (`storePrices.ts:14`) for the whole session. Claimed.
+- [ ] (Yash's go: purchase code) Restore purchases says nothing when there is nothing to restore, offline, or on an error (`app/paywall/index.tsx:53`); the buy button has no in-flight guard; offline at buy and Ask to Buy both say "Nothing was charged"; success waits up to 12 s on `settleServerPlan`. Read (restore), claimed (rest).
+- [ ] Adjust plate → Track does nothing while another lift is tracking (`app/analysis/plate.tsx:30` ignores `retrackLift` returning null); the same screen is a bare black view with no Back when the analysis is missing. Read.
+- [ ] The plate check spins with no way out while a cancelled lift finishes its pass (`app/capture/plate.tsx:34`, `submit.ts:76`). Claimed.
+- [ ] Landscape share videos: every overlay size is 1.78x too big (`trackShare.ts:86` works in the 1080-tall analysis space, `TrackRenderer.swift:373` draws in clip pixels). Portrait is right. Claimed; needs a landscape lift shared on a phone.
+- [ ] Recorded fps instead of the clip's real rate in the share preview (`TrackShareScreen.tsx:86`), adjust plate (`app/analysis/plate.tsx:27`) and the story replay window (`trackShare.ts:133`). The CSV is fixed. Claimed.
+- [ ] Bar speed includes camera movement: it differentiates picture y, not the stabilised y (`speed.ts:62`, `pipeline.ts:522`). About 14% on a handheld clip that drifts 1% of its height. Needs the gate. Claimed.
+- [ ] Plate-follow gap is 6 frames, not 0.2 s (`plateNet.ts:41`, `PlateNet.swift:16`): half as forgiving at 60 fps. Native + gate. Claimed.
+- [ ] One clock change forward and back gives a free user unlimited videos until real time catches up (`freeLifts.ts:27`, `usageStore.ts:30`). Claimed.
+- [ ] Analytics: `share_exported` fires before anything is exported (`TrackShareScreen.tsx:253`); `paywall_viewed` counts subscribers opening Plan and carries no tier; only the founding card sends `paywall_plan_selected`; a resumed run sends `track_started` twice; four events have no call site (`SIGNUP_STARTED`, `SIGNUP_COMPLETED`, `ACCOUNT_DELETED`, `FRAMING_CHECKED`); offline events are dropped while the lift itself syncs later; Apple sign-in splits one lifter into two PostHog persons. Read (first two), claimed (rest).
+- [ ] Decimal point beside decimal comma: bar speed uses `.toFixed(2)` (`TrackerScreen.tsx:379,646`, `SpeedChart.tsx:103`, `FirstLook.tsx:64`, share) while times and loads use the locale; the native story number uses a dot too, so change both together. Claimed.
+- [ ] (next store build) iOS permission prompts are English in the 8 other languages: `app.json` has no `locales`. Claimed.
+- [ ] French "Enregistrer" breaks mid-word in the three-button share row with both apps installed (`TrackShareScreen.tsx:407`). Claimed.
+- [ ] Push re-ask only fires after a failed lift and is spent either way (`notifications/ask.ts:57`, `processing.tsx:192`); the invite line is marked prompted before it is visible (`TrackShareScreen.tsx:268`). Claimed.
+- [ ] Path / Body chips do nothing during the first look; Draw turned on then is stuck under the result card (`TrackerScreen.tsx:150`). Result card may overflow on an iPhone SE. Claimed.
+- [ ] Launch flushes of queued reports and the contact email read their stores before they load (`problemReports.ts:49`, `contact.ts:30`). Claimed.
+- [ ] Two concurrent Apple sign-ins void the account transfer (`appleSignIn.ts:33`; unguarded caller `InviteScreen.tsx:68`). Claimed.
+- [ ] Copy: Spanish "la App Store" / "el App Store" on the same video, Japanese keeps English "by" in share lines. Claimed.
+
 ## Carried over from Apple Reminders (closed 24-11-2026)
 - [ ] (Yash) Sentry: sign in (`/mcp` → `plugin:sentry:sentry`) or paste a DSN. `src/lib/sentry.ts` is in the binary but off: EAS production has no `EXPO_PUBLIC_SENTRY_DSN`, so native crashes and app hangs are not reported (JS errors already reach PostHog as `$exception` with the update id).
 - [ ] (Yash) App Store header video: needs a screen recording of the app tracking a lift in airplane mode; then Claude cuts the 21:9 header and the 3:2 search asset (plan: liftcheck-research/launch/store-listing.md).

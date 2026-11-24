@@ -91,6 +91,20 @@ describe('the library in airplane mode (3.1)', () => {
     expect(useLibraryStore.getState().lifts.map((l) => l.id)).toEqual(['l2']);
   });
 
+  it('keeps a lift that finished syncing while the server list was on its way: the list was asked before it', async () => {
+    useLiftOutbox.setState({ items: [{ id: 'l1', lift: LIFT }] });
+    local.listLocalAnalyses.mockResolvedValue([{ liftId: 'l1', analysis: { ...snatchMock, id: 'l1' } }]);
+    api.ensureSession.mockResolvedValue('u1');
+    // the answer does not hold l1; it is marked synced after the list was asked for and before it came back
+    api.listLifts.mockImplementation(async () => {
+      useLiftOutbox.getState().markSynced('l1');
+      return [];
+    });
+    await syncLibrary(new Date('2026-10-20T10:00:00Z'));
+    expect(useLiftOutbox.getState().items.map((i) => i.id)).toEqual(['l1']);
+    expect(useLibraryStore.getState().lifts.map((l) => l.id)).toEqual(['l1']);
+  });
+
   it('keeps a synced lift older than a full page of server lifts: the server just did not list that far back', async () => {
     useLiftOutbox.setState({ items: [{ id: 'l1', lift: { ...LIFT, analysedAt: '2026-01-01T09:00:00.000Z' }, synced: true }] });
     api.ensureSession.mockResolvedValue('u1');

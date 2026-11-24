@@ -42,7 +42,7 @@ export function GateBtn({
 export function DestructiveBtn({ children, onPress, testID }: { children: string; onPress: () => void; testID?: string }) {
   return (
     <Btn kind="destructive" onPress={onPress} testID={testID} style={{ paddingHorizontal: space.s4 }}>
-      <Text numberOfLines={1} style={[type.button, { color: colors.flare }]}>
+      <Text numberOfLines={2} style={[type.button, { color: colors.flare, textAlign: 'center' }]}>
         {children}
       </Text>
     </Btn>

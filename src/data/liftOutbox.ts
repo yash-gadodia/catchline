@@ -1,3 +1,4 @@
+import { captureError } from '../lib/analytics';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -56,6 +57,7 @@ export function flushLiftOutbox(): Promise<number> {
           const message = e instanceof Error ? e.message : '';
           // a record the server will never take (a refused value) is set aside, or it would hold back every lift after it
           if (!PERMANENT.includes(message) && !message.includes('violates check constraint')) break;
+          captureError(e, { where: 'lift_outbox_refused' });
         }
         useLiftOutbox.getState().markSynced(item.id);
         sent++;
