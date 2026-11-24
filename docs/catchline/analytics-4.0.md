@@ -49,7 +49,7 @@ Wanted: `bar path + body lines by Catchline https://apps.apple.com/app/id6785406
 
 ## Rating prompt
 
-`src/features/share/rating.ts` asks for the App Store rating after a share the lifter did not cancel, of a lift with a bar path, once per app version, and not while the last tracking is a failed one. It needs the native module of `expo-store-review`, which build 41 does not hold, so it does nothing today and records nothing. Adding the package to a store build turns it on with no further code change. The prompt never shows on TestFlight, and iOS itself shows it at most three times a year.
+`src/features/share/rating.ts` shows Apple's own rating prompt straight after a share the lifter did not cancel, of a lift with a bar path: once per app version, not while the last tracking is a failed one, and not in a run that already asked for feedback. `rating_ask_shown` is the only event; Apple never says whether a rating was left. Until 24 Nov 2026 a sheet of ours came first ("Help another lifter find Catchline"): 9 shown, 0 taps on Rate, so Apple's prompt had never been seen. The prompt never shows on TestFlight, and iOS itself shows it at most three times a year.
 
 ## Wordmark in the exported file
 
