@@ -29,6 +29,26 @@ describe('first-lift reminders', () => {
     expect(schedule).toHaveBeenCalledTimes(3);
   });
 
+  it('quiet permission is enough: expo reports it as undetermined and not granted', async () => {
+    request.mockResolvedValue({ status: 'undetermined', granted: false, canAskAgain: true, ios: { status: Notifications.IosAuthorizationStatus.PROVISIONAL } });
+    expect(await scheduleFirstLiftNudges(false)).toBe('scheduled');
+    expect(schedule).toHaveBeenCalledTimes(3);
+    expect(useNudges.getState().scheduled).toBe(true);
+  });
+
+  it('a request that fails does not spend the reminders: the next launch tries again', async () => {
+    request.mockRejectedValueOnce(new Error('no'));
+    expect(await scheduleFirstLiftNudges(false)).toBe('refused');
+    expect(useNudges.getState().scheduled).toBe(false);
+    expect(await scheduleFirstLiftNudges(false)).toBe('scheduled');
+  });
+
+  it('a phone marked scheduled while nothing was ever set gets its reminders', async () => {
+    const migrate = useNudges.persist.getOptions().migrate!;
+    expect(await migrate({ scheduled: true, lifted: false }, 0)).toEqual({ scheduled: false, lifted: false });
+    expect(await migrate({ scheduled: true, lifted: true }, 0)).toEqual({ scheduled: false, lifted: true });
+  });
+
   it('a phone that already has a lift gets none and is never asked', async () => {
     expect(await scheduleFirstLiftNudges(true)).toBe('skipped');
     expect(request).not.toHaveBeenCalled();

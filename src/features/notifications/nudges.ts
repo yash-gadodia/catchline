@@ -14,14 +14,30 @@ export const NUDGE_AFTER_S = [24 * HOUR, 72 * HOUR, 168 * HOUR];
 export const nudgeId = (n: number) => `catchline-first-lift-${n}`;
 export const isNudge = (id: string | undefined | null) => !!id && id.startsWith('catchline-first-lift-');
 
-// scheduled: the three are set (or permission was refused, so there is nothing to set). lifted: a lift was tracked.
+// Quiet (provisional) permission is what these reminders ask for, and expo-notifications reports it as status
+// 'undetermined' with `granted: false`: only a full "Allow" is granted. Reading `granted` alone took every quiet
+// permission for a refusal, so until 24-11-2026 none of the app's local reminders was ever set.
+export const canNotify = (p: Notifications.NotificationPermissionsStatus) => p.granted || p.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
+
+// scheduled: the three are set, or notifications are turned off (nothing to set, and not asked again). lifted: a
+// lift was tracked.
 type NudgeState = { scheduled: boolean; lifted: boolean };
 export const useNudges = create<NudgeState>()(
-  persist((): NudgeState => ({ scheduled: false, lifted: false }), { name: 'catchline-first-lift-nudges', storage: createJSONStorage(() => AsyncStorage) }),
+  persist((): NudgeState => ({ scheduled: false, lifted: false }), {
+    name: 'catchline-first-lift-nudges',
+    storage: createJSONStorage(() => AsyncStorage),
+    version: 1,
+    // before version 1 `scheduled` was set with nothing scheduled (see canNotify): those phones get their reminders
+    migrate: (saved) => ({ scheduled: false, lifted: !!(saved as Partial<NudgeState> | null)?.lifted }),
+  }),
 );
+
+// What the phone saved is read before deciding: at launch the store may not have loaded yet.
+const loaded = () => (useNudges.persist.hasHydrated() ? Promise.resolve() : new Promise<void>((done) => useNudges.persist.onFinishHydration(() => done())));
 
 // At launch: once per install, and never for a phone that has tracked a lift (`hasLift`).
 export async function scheduleFirstLiftNudges(hasLift: boolean): Promise<'scheduled' | 'skipped' | 'refused'> {
+  await loaded();
   const s = useNudges.getState();
   if (s.scheduled || s.lifted) return 'skipped';
   if (hasLift) {
@@ -30,9 +46,12 @@ export async function scheduleFirstLiftNudges(hasLift: boolean): Promise<'schedu
   }
   try {
     let p = await Notifications.getPermissionsAsync();
-    if (!p.granted && p.canAskAgain) p = await Notifications.requestPermissionsAsync({ ios: { allowProvisional: true } });
-    useNudges.setState({ scheduled: true });
-    if (!p.granted) return 'refused';
+    if (!canNotify(p) && p.canAskAgain) p = await Notifications.requestPermissionsAsync({ ios: { allowProvisional: true } });
+    if (!canNotify(p)) {
+      // turned off in Settings: nothing to set, now or later. Anything else (a dialog left unanswered) is tried again.
+      if (p.status === 'denied') useNudges.setState({ scheduled: true });
+      return 'refused';
+    }
     await Promise.all(
       NUDGE_AFTER_S.map((seconds, i) =>
         Notifications.scheduleNotificationAsync({
@@ -42,6 +61,7 @@ export async function scheduleFirstLiftNudges(hasLift: boolean): Promise<'schedu
         }),
       ),
     );
+    useNudges.setState({ scheduled: true });
     track(EVENTS.NUDGES_SCHEDULED, {});
     return 'scheduled';
   } catch {
@@ -62,8 +82,8 @@ export const FREE_BACK_ID = 'catchline-free-video-back';
 export async function scheduleFreeVideoBack(monday: Date): Promise<'scheduled' | 'refused'> {
   try {
     let p = await Notifications.getPermissionsAsync();
-    if (!p.granted && p.canAskAgain) p = await Notifications.requestPermissionsAsync({ ios: { allowProvisional: true } });
-    if (!p.granted) return 'refused';
+    if (!canNotify(p) && p.canAskAgain) p = await Notifications.requestPermissionsAsync({ ios: { allowProvisional: true } });
+    if (!canNotify(p)) return 'refused';
     const at = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate(), 9, 0, 0);
     await Notifications.scheduleNotificationAsync({
       identifier: FREE_BACK_ID,

@@ -28,6 +28,7 @@ import { syncConsent } from './backend';
 import { keepClip, localClipUri, readLocalAnalysis, saveLocalLift } from './localLifts';
 import { discardPickedCopy } from './clipCache';
 import { usePipeline, type Job } from './pipeline';
+import { sweepClipCache } from './clipCache';
 import { usePendingLifts, whenHydrated, type PendingLift } from './pendingLifts';
 import { detectedMade } from '../features/library/madeLog';
 import { rememberLiftShape } from '../features/library/liftNames';
@@ -258,6 +259,14 @@ function pumpDeviceLifts(): void {
 // killed in the middle of (or never got to), and is tracked now. One that is still tracking in this process (the app
 // was only in the background, iOS 26's continued run) is left alone: running is set, and nothing starts twice. A held
 // one goes once the week's free video is back (the count read from disk first, so it is never let through early).
+// At launch: what an earlier run left in the caches goes, unless a lift is still waiting to be tracked (killed
+// mid-track, or held at the weekly cap). Its picked clip and its prepared copy live in those same caches, so
+// sweeping first made the resume fail and the lift vanish with no word.
+export async function sweepClipCacheAtLaunch(): Promise<void> {
+  await whenHydrated(usePendingLifts);
+  if (usePendingLifts.getState().items.length === 0) sweepClipCache();
+}
+
 export async function resumeDeviceLifts(): Promise<void> {
   await Promise.all([whenHydrated(usePendingLifts), whenHydrated(useUsage)]);
   trackHeldLifts();
