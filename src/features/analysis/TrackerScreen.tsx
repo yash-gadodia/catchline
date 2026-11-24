@@ -56,6 +56,7 @@ export default function TrackerScreen({
   firstLift = false,
   sample = false,
   onAnother,
+  back,
   onTell,
   onResultViewed,
   lastLift,
@@ -80,6 +81,8 @@ export default function TrackerScreen({
   firstLift?: boolean;
   sample?: boolean;
   onAnother?: () => void;
+  // where Back goes, when not the Lifts tab (a Learn lift)
+  back?: string;
   onTell?: () => void;
   // the result card is up, after the first look played
   onResultViewed?: (kind: FirstLookKind) => void;
@@ -348,7 +351,7 @@ export default function TrackerScreen({
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top }} testID="tracker-screen">
-      <TopBar title={title} onBack={onBack} onMore={onMore} more={!!onMore} />
+      <TopBar title={title} back={back} onBack={onBack} onMore={onMore} more={!!onMore} />
       <View {...zoomHandlers} testID="tracker-stage" style={{ alignItems: 'center', backgroundColor: colors.surface }}>
         <Pressable
           onPress={togglePlay}

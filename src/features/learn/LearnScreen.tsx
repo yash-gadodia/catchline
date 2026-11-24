@@ -1,7 +1,8 @@
+import { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Text from '../../components/Text';
-import { colors, space } from '../../design/tokens';
+import { colors, control, shape, space, stroke } from '../../design/tokens';
 import { display, fontFamily, type } from '../../design/typography';
 import { formatLoad } from '../../analysis/format';
 import { t } from '../../i18n';
@@ -10,9 +11,14 @@ import { useOnboarding } from '../onboarding/store';
 import type { LearnLift } from './lifts';
 
 // The Learn tab: world-class lifts, each tracked the way the lifter's own are. A row opens the lift in the player.
+// The chips narrow the list to one kind of lift; they show once both kinds are in it.
 export default function LearnScreen({ lifts, onOpen }: { lifts: LearnLift[]; onOpen: (id: string) => void }) {
   const insets = useSafeAreaInsets();
   const units = useOnboarding((s) => s.units);
+  const [only, setOnly] = useState<LearnLift['kind'] | null>(null);
+  const kinds = (['snatch', 'cleanJerk'] as const).filter((k) => lifts.some((l) => l.kind === k));
+  const kindName = (k: LearnLift['kind']) => t(k === 'snatch' ? 'library.kind.snatch' : 'library.kind.cleanJerk');
+  const shown = only ? lifts.filter((l) => l.kind === only) : lifts;
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: colors.bg }}
@@ -23,10 +29,26 @@ export default function LearnScreen({ lifts, onOpen }: { lifts: LearnLift[]; onO
         <Text style={[display(36), { color: colors.text }]}>{t('library.learn.title')}</Text>
         <Text style={{ color: colors.text2, ...type.callout }}>{t('library.learn.body')}</Text>
       </View>
+      {kinds.length > 1 ? (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.s2 }} testID="learn-kinds">
+          {[null, ...kinds].map((k) => (
+            <Pressable
+              key={k ?? 'all'}
+              testID={`learn-kind-${k ?? 'all'}`}
+              accessibilityRole="button"
+              accessibilityState={{ selected: only === k }}
+              onPress={() => setOnly(k)}
+              style={{ minHeight: control.chipHeight, paddingHorizontal: space.s3, paddingVertical: space.s1, justifyContent: 'center', borderWidth: stroke.hairline, borderColor: only === k ? colors.text : colors.hairline, ...shape.control }}
+            >
+              <Text style={{ ...type.caption, color: only === k ? colors.text : colors.text2 }}>{k ? kindName(k) : t('library.lifts.allKinds')}</Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
       <View>
-        {lifts.map((lift) => {
+        {shown.map((lift) => {
           const peak = barSpeed(lift.analysis.reps[0]?.path ?? [], lift.analysis.video.fps || 30, lift.analysis.lift)?.peak ?? null;
-          const what = [t(lift.kind === 'snatch' ? 'library.kind.snatch' : 'library.kind.cleanJerk'), lift.loadKg === undefined ? null : formatLoad(lift.loadKg, units), lift.where ?? null].filter(Boolean).join(' · ');
+          const what = [kindName(lift.kind), lift.loadKg === undefined ? null : formatLoad(lift.loadKg, units), lift.where ?? null].filter(Boolean).join(' · ');
           return (
             <Pressable
               key={lift.id}
