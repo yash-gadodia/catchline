@@ -4,6 +4,10 @@ import type { library as en } from '../en/library';
 export const library: Strings<typeof en> = {
   'library.tabs.lifts': "Levantamientos",
   'library.tabs.you': "Tú",
+  'library.tabs.learn': "Aprender",
+  'library.learn.title': "Aprende de los mejores",
+  'library.learn.body': "Levantamientos de clase mundial, analizados igual que los tuyos.",
+  'library.learn.credit': "Vídeo: {owner}",
   'library.date.dayMonth': "{day} {month}",
   'library.date.dayMonthYear': "{day} {month} {year}",
   'library.free.all': { one: "{count} vídeo gratis", other: "{count} vídeos gratis" },

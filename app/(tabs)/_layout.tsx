@@ -8,6 +8,7 @@ import InFlightBar from '../../src/features/library/InFlightBar';
 import { useHydrated, useOnboarding } from '../../src/features/onboarding/store';
 import { colors } from '../../src/design/tokens';
 import TabBar, { type TabName } from '../../src/features/library/TabBar';
+import { learnOpen } from '../../src/features/learn/lifts';
 import { captureHref } from '../../src/features/paywall/hooks';
 import { takeWhatsNew, whenWhatsNewHydrated } from '../../src/features/whatsnew/store';
 
@@ -40,6 +41,7 @@ export default function TabsLayout() {
           <InFlightBar job={job} onOpen={() => router.push({ pathname: '/analysis/processing', params: { live: '1' } })} />
           <TabBar
             active={state.routes[state.index].name as TabName}
+            learn={learnOpen()}
             onTab={(name) => navigation.navigate(name)}
             onImport={() => router.push(captureHref('/capture/import') as Href)}
           />
@@ -47,6 +49,7 @@ export default function TabsLayout() {
       )}
     >
       <Tabs.Screen name="index" />
+      <Tabs.Screen name="learn" options={{ href: learnOpen() ? undefined : null }} />
       <Tabs.Screen name="me" />
     </Tabs>
   );

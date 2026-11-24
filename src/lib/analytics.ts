@@ -44,6 +44,8 @@ export const EVENTS = {
   PURCHASE_STARTED: 'purchase_started',
   PURCHASE_NOT_COMPLETED: 'purchase_not_completed',
   RATING_ASK_SHOWN: 'rating_ask_shown',
+  // a world-class lift opened from the Learn tab
+  LEARN_OPENED: 'learn_opened',
   // the feedback ask: the sheet on the second lift's result (answered Good / Not great, or later), and the one
   // notification for a lifter who did not come back
   FEEDBACK_ASK_SHOWN: 'feedback_ask_shown',

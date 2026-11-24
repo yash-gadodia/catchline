@@ -5,6 +5,10 @@ import type { library as en } from '../en/library';
 export const library: Strings<typeof en> = {
   'library.tabs.lifts': "リフト",
   'library.tabs.you': "あなた",
+  'library.tabs.learn': "学ぶ",
+  'library.learn.title': "トップ選手から学ぶ",
+  'library.learn.body': "世界トップクラスのリフトを、あなたと同じ方法で解析。",
+  'library.learn.credit': "動画：{owner}",
   'library.date.dayMonth': "{month}{day}日",
   'library.date.dayMonthYear': "{year}年{month}{day}日",
   'library.free.all': { one: "無料動画{count}本", other: "無料動画{count}本" },
