@@ -5,14 +5,15 @@ import { useReducedMotion } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import Btn from '../../components/Btn';
 import { colors, shade, space } from '../../design/tokens';
-import { display, type } from '../../design/typography';
+import { display, fontFamily, type } from '../../design/typography';
 import { PRIVACY_URL, TERMS_URL } from '../../lib/links';
 import { t } from '../../i18n';
 import SampleLift from './SampleLift';
 
-// All of onboarding: a tracked lift playing, the promise, and the two ways to a lift of the lifter's own. Going on
-// accepts the terms named under the buttons.
-export default function WelcomeScreen({ onPick, onFilm, onSample, reduceMotion }: { onPick: () => void; onFilm: () => void; onSample?: () => void; reduceMotion?: boolean }) {
+// All of onboarding: a tracked lift playing, the promise (what it draws, and that nothing leaves the phone), and two
+// buttons: a lift of the lifter's own, or the sample tour. No filming here: nobody installs mid-session at the bar.
+// Going on accepts the terms named under the buttons.
+export default function WelcomeScreen({ onPick, onSample, reduceMotion }: { onPick: () => void; onSample: () => void; reduceMotion?: boolean }) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const systemReduce = useReducedMotion();
@@ -32,21 +33,20 @@ export default function WelcomeScreen({ onPick, onFilm, onSample, reduceMotion }
         <View style={{ gap: space.s2 }}>
           <Text style={[display(44), { color: colors.text }]}>{t('onboarding.welcome.title')}</Text>
           <Text style={{ color: colors.text, ...type.body }}>{t('onboarding.welcome.body')}</Text>
-          <Text style={{ color: colors.text2, ...type.callout }}>{t('onboarding.welcome.private')}</Text>
+          <View style={{ flexDirection: 'row', gap: space.s3, alignItems: 'stretch' }}>
+            <View style={{ width: 3, backgroundColor: colors.flare }} />
+            <Text style={{ flex: 1, color: colors.text, ...type.body, fontFamily: fontFamily.bodyBold }} testID="welcome-private">
+              {t('onboarding.welcome.private')}
+            </Text>
+          </View>
         </View>
         <View style={{ gap: space.s3 }}>
           <Btn onPress={onPick} testID="welcome-pick">
             {t('onboarding.welcome.pick')}
           </Btn>
-          <Btn kind="secondary" compact onPress={onFilm} testID="welcome-film">
-            {t('onboarding.welcome.film')}
+          <Btn kind="secondary" compact onPress={onSample} testID="welcome-sample">
+            {t('onboarding.welcome.sample')}
           </Btn>
-          {onSample ? (
-            // no lift on the phone yet: the bundled one opens in the player
-            <Btn kind="secondary" compact onPress={onSample} testID="welcome-sample">
-              {t('onboarding.welcome.sample')}
-            </Btn>
-          ) : null}
         </View>
         <Text style={{ color: colors.text2, ...type.small, textAlign: 'center' }}>
           {t('onboarding.welcome.agree')}

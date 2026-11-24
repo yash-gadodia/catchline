@@ -16,36 +16,29 @@ const press = async (el: Parameters<typeof fireEvent.press>[0]) => {
 beforeEach(() => jest.clearAllMocks());
 
 describe('Welcome', () => {
-  it('plays a tracked lift, makes the promise, and offers a lift of the lifter’s own first and filming second', async () => {
+  it('plays a tracked lift, makes the promise with privacy in it, and has two buttons: your own lift, or how it works', async () => {
     const onPick = jest.fn();
-    const onFilm = jest.fn();
-    const screen = await render(<WelcomeScreen onPick={onPick} onFilm={onFilm} />);
+    const onSample = jest.fn();
+    const screen = await render(<WelcomeScreen onPick={onPick} onSample={onSample} />);
     expect(useVideoPlayer).toHaveBeenCalledWith(SAMPLE_CLIP, expect.any(Function));
     const player = (useVideoPlayer as jest.Mock).mock.results[0].value;
     expect(player).toMatchObject({ loop: true, muted: true, playbackRate: 0.5 });
     expect(player.play).toHaveBeenCalledTimes(1);
     expect(within(screen.getByTestId('sample-lift')).getByTestId('tracker-body')).toBeOnTheScreen();
     expect(screen.getByText('See your lift like this.')).toBeOnTheScreen();
-    expect(screen.getByText('Pick a video of a lift. Your phone draws the bar path and body lines on it.')).toBeOnTheScreen();
-    expect(screen.getByText('Everything runs on your phone. Your video never leaves it.')).toBeOnTheScreen();
+    expect(screen.getByText('Bar path, bar speed and body lines, on your own video.')).toBeOnTheScreen();
+    expect(screen.getByTestId('welcome-private')).toHaveTextContent('100% private. Runs fully on your iPhone. Nothing leaves it.');
     expect(screen.getByText(/By continuing you confirm you are over 16 and accept the terms and privacy policy\./)).toBeOnTheScreen();
-    expect(screen.queryByText(/cue|fix|sample|how it works/i)).toBeNull();
+    expect(screen.queryByText(/film/i)).toBeNull();
+    expect(screen.queryByTestId('welcome-film')).toBeNull();
     await press(screen.getByText('Pick one of your lifts'));
-    expect(onPick).toHaveBeenCalledTimes(1);
-    expect(onFilm).toHaveBeenCalledTimes(0);
-    await press(screen.getByText('Film a lift now'));
-    expect(onFilm).toHaveBeenCalledTimes(1);
-  });
-
-  it('offers the bundled sample lift to someone with no video of their own, when the screen is given it', async () => {
-    const onSample = jest.fn();
-    const screen = await render(<WelcomeScreen onPick={jest.fn()} onFilm={jest.fn()} onSample={onSample} />);
-    await press(screen.getByText('Try it on a sample lift'));
+    expect([onPick.mock.calls.length, onSample.mock.calls.length]).toEqual([1, 0]);
+    await press(screen.getByText('See how it works'));
     expect(onSample).toHaveBeenCalledTimes(1);
   });
 
   it('with Reduce Motion shows one still of the sample with its whole bar path', async () => {
-    const screen = await render(<WelcomeScreen onPick={jest.fn()} onFilm={jest.fn()} reduceMotion />);
+    const screen = await render(<WelcomeScreen onPick={jest.fn()} onSample={jest.fn()} reduceMotion />);
     const player = (useVideoPlayer as jest.Mock).mock.results[0].value;
     expect(player.play).not.toHaveBeenCalled();
     expect(player.loop).toBe(false);
@@ -56,7 +49,7 @@ describe('Welcome', () => {
 
   it('opens the published terms and privacy policy', async () => {
     const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
-    const screen = await render(<WelcomeScreen onPick={jest.fn()} onFilm={jest.fn()} />);
+    const screen = await render(<WelcomeScreen onPick={jest.fn()} onSample={jest.fn()} />);
     await press(screen.getByTestId('link-terms'));
     expect(open).toHaveBeenLastCalledWith('https://yash-gadodia.github.io/catchline/legal/terms.html');
     await press(screen.getByTestId('link-privacy'));

@@ -3,8 +3,8 @@ import type { onboarding as en } from '../en/onboarding';
 
 export const onboarding: Strings<typeof en> = {
   'onboarding.welcome.title': "Veja seu levantamento assim.",
-  'onboarding.welcome.body': "Escolha um vídeo de um levantamento. Seu celular desenha nele a trajetória da barra e as linhas do corpo.",
-  'onboarding.welcome.private': "Tudo roda no seu celular. Seu vídeo nunca sai dele.",
+  'onboarding.welcome.body': "Trajetória da barra, velocidade da barra e linhas do corpo, no seu próprio vídeo.",
+  'onboarding.welcome.private': "100% privado. Roda inteiro no seu iPhone. Nada sai dele.",
   'onboarding.welcome.agree': "Ao continuar, você confirma que tem mais de 16 anos e aceita os termos e a política de privacidade.",
   'onboarding.lifts.sub.barPath': "trajetória da barra",
   'onboarding.lifts.sub.hipPath': "trajetória do quadril",
@@ -42,6 +42,12 @@ export const onboarding: Strings<typeof en> = {
   'onboarding.privacy.policy': "política de privacidade",
   'onboarding.privacy.terms': "termos",
   'onboarding.welcome.pick': "Escolher um dos seus levantamentos",
-  'onboarding.welcome.film': "Filmar um levantamento agora",
-  'onboarding.welcome.sample': "Teste com um levantamento de exemplo",
+  'onboarding.welcome.sample': "Veja como funciona",
+  'onboarding.tour.step': "{n} de 3",
+  'onboarding.tour.video.title': "Comece com qualquer vídeo de um levantamento",
+  'onboarding.tour.video.body': "Do seu rolo da câmera ou filmado no app. Ele nunca sai do seu iPhone.",
+  'onboarding.tour.plate.title': "O Catchline encontra a barra",
+  'onboarding.tour.plate.body': "Ele circula a anilha. Mova o círculo se estiver fora.",
+  'onboarding.tour.next': "Próximo",
+  'onboarding.tour.track': "Rastrear",
 };
