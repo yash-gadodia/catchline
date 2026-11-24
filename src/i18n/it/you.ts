@@ -132,6 +132,8 @@ export const you: Strings<typeof en> = {
   'you.whatsNew': "Novità",
   'you.replayWelcome': "Rivedi il benvenuto",
   'you.whatsNew.version': "Catchline {version}",
+  'you.whatsNew.v409.1': "Puoi rivedere il benvenuto dalla pagina Tu.",
+  'you.whatsNew.v409.2': "Corretto un errore al primo avvio che poteva creare un secondo account vuoto.",
   'you.whatsNew.v408.1': "I tuoi primi 3 video sono gratis, poi 1 a settimana.",
   'you.whatsNew.v408.2': "Dopo la seconda alzata, un tocco ci dice se Catchline funziona per te.",
   'you.whatsNew.v408.3': "Corretto un arresto anomalo nella scheda del risultato.",
