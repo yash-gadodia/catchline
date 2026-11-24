@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import React from 'react';
 import { View } from 'react-native';
 import Text from './Text';
@@ -29,13 +30,13 @@ export class AppErrorBoundary extends React.Component<{ children: React.ReactNod
         style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', padding: space.gutter, gap: 16 }}
       >
         <Text style={{ color: colors.text, fontFamily: fontFamily.bodyBold, fontSize: 22, lineHeight: 28 }}>
-          Something broke on our side
+          {t('common.crash.title')}
         </Text>
         <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: 17, lineHeight: 24 }}>
-          Your lift is safe. Try again.
+          {t('common.crash.body')}
         </Text>
         <Btn kind="secondary" onPress={() => this.setState({ error: null })} testID="error-retry">
-          Try again
+          {t('common.launch.retry')}
         </Btn>
       </View>
     );

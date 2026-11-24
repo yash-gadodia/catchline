@@ -421,7 +421,7 @@ export default function TrackShareScreen({
           <Btn
             kind="secondary"
             compact
-            onPress={() => void deps.shareCsv(liftCsv(analysis), `catchline-${analysis.id}.csv`).catch(() => setNotice(t('share.shareFailed')))}
+            onPress={() => void deps.shareCsv(liftCsv(analysis, clipFps), `catchline-${analysis.id}.csv`).catch(() => setNotice(t('share.shareFailed')))}
             testID="share-csv-btn"
           >
             {t('share.shareData')}
