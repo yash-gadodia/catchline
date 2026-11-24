@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { t } from '../../i18n';
 import { EVENTS, track } from '../../lib/analytics';
 import { queueProblemReport } from '../../data/problemReports';
+import { canNotify } from '../notifications/nudges';
 import { claimSessionAsk } from './sessionAsk';
 
 // The feedback ask: on the result of a lifter's second tracked lift (or the next one, when the rating ask already had
@@ -32,9 +33,13 @@ export const useFeedbackAsk = create<AskState>()(
   persist((): AskState => ({ asked: false, offers: 0, notified: false, open: false, openedAt: 0, liftId: null, answer: null }), {
     name: 'catchline-feedback-ask',
     storage: createJSONStorage(() => AsyncStorage),
-    version: 1,
-    // before version 1 the sheet opening spent the ask, seen or not: those lifters are asked again
-    migrate: (saved) => ({ asked: false, offers: 0, notified: !!(saved as Partial<AskState> | null)?.notified }) as AskState,
+    version: 2,
+    // before version 1 the sheet opening spent the ask, seen or not: those lifters are asked again. Before version 2
+    // `notified` was set with no notification scheduled (nudges.ts canNotify): it is set again.
+    migrate: (saved, version) => {
+      const was = (saved ?? {}) as Partial<AskState>;
+      return (version < 1 ? { asked: false, offers: 0, notified: false } : { asked: !!was.asked, offers: was.offers ?? 0, notified: false }) as AskState;
+    },
     partialize: ({ asked, offers, notified }) => ({ asked, offers, notified }) as AskState,
   }),
 );
@@ -47,7 +52,6 @@ export function offerFeedback(lifts: number, liftId: string): boolean {
   if (asked || offers >= FEEDBACK_MAX_OFFERS || lifts < FEEDBACK_MIN_LIFTS) return false;
   if (!claimSessionAsk('feedback')) return false;
   useFeedbackAsk.setState({ offers: offers + 1, open: true, openedAt: Date.now(), liftId, answer: null });
-  void cancelNotification();
   track(EVENTS.FEEDBACK_ASK_SHOWN, { lifts, offer: offers + 1 });
   return true;
 }
@@ -55,6 +59,7 @@ export function offerFeedback(lifts: number, liftId: string): boolean {
 export function answerFeedback(answer: FeedbackAnswer): void {
   const { liftId } = useFeedbackAsk.getState();
   useFeedbackAsk.setState({ asked: true, answer });
+  void cancelNotification();
   track(EVENTS.FEEDBACK_ASK_ANSWERED, { answer });
   void queueProblemReport({ body: ANSWER_BODY[answer], context: answerContext(answer), ...(liftId ? { liftId } : {}) });
 }
@@ -75,6 +80,8 @@ export function closeFeedback(left?: string): void {
   const { open, answer, openedAt } = useFeedbackAsk.getState();
   if (!open) return;
   useFeedbackAsk.setState({ open: false, liftId: null, answer: null, ...(left === undefined ? { asked: true } : {}) });
+  // answered or "Not now": the notification has nothing left to ask. A sheet the lifter walked away from keeps it.
+  if (left === undefined) void cancelNotification();
   if (!answer) track(EVENTS.FEEDBACK_ASK_LATER, { how: left === undefined ? 'not_now' : 'left', to: left ?? '', open_ms: Date.now() - openedAt });
 }
 
@@ -84,20 +91,24 @@ export function feedbackNotificationOpened(): void {
   track(EVENTS.FEEDBACK_NOTIFICATION_OPENED, {});
 }
 
-// After a tracked lift: once per install, and not for a lifter the sheet has already opened for.
+// After a tracked lift: once per install, and not for a lifter who has answered the sheet or said "Not now".
 export async function scheduleFeedbackNotification(): Promise<'scheduled' | 'skipped' | 'refused'> {
   const s = useFeedbackAsk.getState();
-  if (s.asked || s.notified || s.offers > 0) return 'skipped';
-  useFeedbackAsk.setState({ notified: true });
+  if (s.asked || s.notified) return 'skipped';
   try {
     let p = await Notifications.getPermissionsAsync();
-    if (!p.granted && p.canAskAgain) p = await Notifications.requestPermissionsAsync({ ios: { allowProvisional: true } });
-    if (!p.granted) return 'refused';
+    if (!canNotify(p) && p.canAskAgain) p = await Notifications.requestPermissionsAsync({ ios: { allowProvisional: true } });
+    if (!canNotify(p)) {
+      // turned off in Settings: not tried again. Anything else is, after the next lift.
+      if (p.status === 'denied') useFeedbackAsk.setState({ notified: true });
+      return 'refused';
+    }
     await Notifications.scheduleNotificationAsync({
       identifier: FEEDBACK_ID,
       content: { title: t('notifications.feedback.title'), body: t('notifications.feedback.body') },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: FEEDBACK_AFTER_S },
     });
+    useFeedbackAsk.setState({ notified: true });
     return 'scheduled';
   } catch {
     return 'refused';

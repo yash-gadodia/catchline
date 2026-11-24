@@ -77,14 +77,27 @@ describe('analytics — enabled mode (key set)', () => {
     mockGetItem.mockResolvedValue('stored-anon-id');
   });
 
+  it('events that race at a first launch share one anonymous id', async () => {
+    // a new install: nothing stored yet, so the id is made on the first read
+    mockGetItem.mockResolvedValue(null);
+    const { init: initFn, track: trackFn } = require('./analytics');
+    initFn();
+    trackFn(EVENTS.APP_OPEN);
+    trackFn(EVENTS.WELCOME_VIEWED, {});
+    trackFn(EVENTS.WELCOME_CHOICE, { choice: 'sample' });
+    await flush();
+    const ids = (global.fetch as jest.Mock).mock.calls.map(([, opts]) => JSON.parse(opts.body).properties.distinct_id);
+    expect(ids).toHaveLength(3);
+    expect(new Set(ids).size).toBe(1);
+  });
+
   it('track POSTs to the default PostHog endpoint with correct shape', async () => {
     const { init: initFn, track: trackFn } = require('./analytics');
     initFn();
     trackFn(EVENTS.APP_OPEN);
 
     // track is fire-and-forget via getOrCreateAnonId (async); flush microtasks
-    await Promise.resolve();
-    await Promise.resolve();
+    await flush();
 
     expect(global.fetch).toHaveBeenCalledTimes(1);
     const [url, opts] = (global.fetch as jest.Mock).mock.calls[0];
@@ -102,8 +115,7 @@ describe('analytics — enabled mode (key set)', () => {
     initFn();
     trackFn(EVENTS.SIGNUP_STARTED);
 
-    await Promise.resolve();
-    await Promise.resolve();
+    await flush();
 
     const [url] = (global.fetch as jest.Mock).mock.calls[0];
     expect(url).toBe('https://my.posthog.io/capture');
@@ -114,8 +126,7 @@ describe('analytics — enabled mode (key set)', () => {
     initFn();
     trackFn(EVENTS.PAYWALL_VIEWED, { offline: true });
 
-    await Promise.resolve();
-    await Promise.resolve();
+    await flush();
 
     const body = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
     expect(body.properties.offline).toBe(true);
@@ -126,8 +137,7 @@ describe('analytics — enabled mode (key set)', () => {
     initFn();
     captureErrorFn(new Error('kaboom'), { screen: 'reveal' });
 
-    await Promise.resolve();
-    await Promise.resolve();
+    await flush();
 
     expect(global.fetch).toHaveBeenCalledTimes(1);
     const body = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
@@ -141,8 +151,7 @@ describe('analytics — enabled mode (key set)', () => {
     initFn();
     identifyFn('uid-abc');
 
-    await Promise.resolve();
-    await Promise.resolve();
+    await flush();
 
     expect(global.fetch).toHaveBeenCalledTimes(1);
     const body = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
@@ -159,8 +168,7 @@ describe('analytics — enabled mode (key set)', () => {
     const { init: initFn, track: trackFn } = require('./analytics');
     initFn();
     expect(() => trackFn(EVENTS.PAYWALL_VIEWED)).not.toThrow();
-    await Promise.resolve();
-    await Promise.resolve();
+    await flush();
     // No unhandled rejection — test passes cleanly
   });
 });

@@ -318,6 +318,15 @@ describe('TrackerScreen first look (reveal)', () => {
     expect(getByTestId('first-look-another')).toHaveTextContent('Now try your own lift');
   });
 
+  it('the sample keeps a way on to the lifter\'s own video once the result card is closed', async () => {
+    const onAnother = jest.fn();
+    const { getByTestId, queryByTestId } = await show(lifted, body, { reveal: true, reduceMotion: true, sample: true, onAnother });
+    await press(getByTestId('first-look-detail'));
+    expect(queryByTestId('first-look-another')).toBeNull();
+    await press(getByTestId('tracker-own'));
+    expect(onAnother).toHaveBeenCalledTimes(1);
+  });
+
   it('a real lift asks what it was on its result card, and More opens the details', async () => {
     const onDetails = jest.fn();
     const { getByTestId } = await show({ ...lifted, traceKind: 'hip' }, body, { reveal: true, reduceMotion: true, onShare: () => {}, onDetails });

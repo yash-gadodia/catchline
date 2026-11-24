@@ -29,7 +29,11 @@ export default function SampleRoute() {
       sample
       // straight to the picker: the welcome screen accepted the terms when the sample was opened (#237)
       onAnother={() => {
-        if (from !== 'import') useOnboarding.getState().complete();
+        if (from !== 'import') {
+          useOnboarding.getState().complete();
+          // the welcome is still under this screen: without it gone, Cancel in the picker lands back on it
+          if (router.canDismiss()) router.dismissAll();
+        }
         router.replace('/capture/import' as Href);
       }}
     />

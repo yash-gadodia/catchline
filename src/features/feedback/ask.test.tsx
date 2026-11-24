@@ -35,11 +35,12 @@ describe('the feedback ask', () => {
     expect(useFeedbackAsk.getState().open).toBe(false);
   });
 
-  it('is offered on the second lift, cancels the notification, and an answer ends it', () => {
+  it('is offered on the second lift; the notification stays until an answer, which ends both', () => {
     expect(offerFeedback(2, 'l2')).toBe(true);
     expect(track).toHaveBeenCalledWith('feedback_ask_shown', { lifts: 2, offer: 1 });
-    expect(cancel).toHaveBeenCalledWith(FEEDBACK_ID);
+    expect(cancel).not.toHaveBeenCalled();
     answerFeedback('up');
+    expect(cancel).toHaveBeenCalledWith(FEEDBACK_ID);
     closeFeedback();
     expect(offerFeedback(3, 'l3')).toBe(false);
   });
@@ -57,7 +58,37 @@ describe('the feedback ask', () => {
 
   it('a lifter the old sheet spent its ask on is asked again', async () => {
     const migrate = useFeedbackAsk.persist.getOptions().migrate!;
-    expect(await migrate({ asked: true, notified: true }, 0)).toEqual({ asked: false, offers: 0, notified: true });
+    expect(await migrate({ asked: true, notified: true }, 0)).toEqual({ asked: false, offers: 0, notified: false });
+  });
+
+  it('a phone marked notified while nothing was ever scheduled gets its notification, and keeps its answer', async () => {
+    const migrate = useFeedbackAsk.persist.getOptions().migrate!;
+    expect(await migrate({ asked: true, offers: 1, notified: true }, 1)).toEqual({ asked: true, offers: 1, notified: false });
+    expect(await migrate({ asked: false, offers: 2, notified: true }, 1)).toEqual({ asked: false, offers: 2, notified: false });
+  });
+
+  it('quiet permission is enough: expo reports it as undetermined and not granted', async () => {
+    request.mockResolvedValue({ status: 'undetermined', granted: false, canAskAgain: true, ios: { status: Notifications.IosAuthorizationStatus.PROVISIONAL } });
+    expect(await scheduleFeedbackNotification()).toBe('scheduled');
+    expect(schedule).toHaveBeenCalledTimes(1);
+    expect(useFeedbackAsk.getState().notified).toBe(true);
+  });
+
+  it('a request that fails does not spend the notification: the next lift tries again', async () => {
+    request.mockRejectedValueOnce(new Error('no'));
+    expect(await scheduleFeedbackNotification()).toBe('refused');
+    expect(useFeedbackAsk.getState().notified).toBe(false);
+    expect(await scheduleFeedbackNotification()).toBe('scheduled');
+  });
+
+  it('a sheet the lifter walked away from leaves the notification in place', async () => {
+    expect(await scheduleFeedbackNotification()).toBe('scheduled');
+    offerFeedback(2, 'l2');
+    closeFeedback('/share');
+    expect(cancel).not.toHaveBeenCalled();
+    offerFeedback(3, 'l3');
+    closeFeedback();
+    expect(cancel).toHaveBeenCalledWith(FEEDBACK_ID);
   });
 
   it('waits for the next run when the rating ask had this one, and then shows on the third lift', () => {
@@ -149,8 +180,9 @@ describe('the feedback ask', () => {
     expect(schedule).toHaveBeenCalledTimes(1);
   });
 
-  it('no notification for a lifter the sheet already asked, and no sheet after a tapped notification', async () => {
+  it('no notification for a lifter who answered, and no sheet after a tapped notification', async () => {
     offerFeedback(2, 'l2');
+    answerFeedback('down');
     expect(await scheduleFeedbackNotification()).toBe('skipped');
     useFeedbackAsk.setState({ asked: false, notified: false, open: false });
     resetSessionAsk();

@@ -29,10 +29,14 @@ export default function ReportProblemScreen({
   const insets = useSafeAreaInsets();
   const [text, setText] = useState('');
   const [result, setResult] = useState<'sent' | 'queued' | null>(null);
+  const [sending, setSending] = useState(false);
   const [email, setEmail] = useState(() => useContact.getState().email);
   const details = reportDetails();
   const feedback = context === 'feedback';
   const send = async () => {
+    // each call queues a report under a new id: a second tap while the first is on its way was a second report
+    if (sending) return;
+    setSending(true);
     const sent = await queueProblemReport({ body: text, liftId, context, ...(shot ? { shot } : {}) });
     if (validEmail(email)) void leaveContactEmail(email);
     setResult(sent > 0 ? 'sent' : 'queued');
@@ -129,7 +133,7 @@ export default function ReportProblemScreen({
                 style={{ height: 120, aspectRatio: 9 / 19.5, borderWidth: 1, borderColor: colors.hairline, ...shape.control }}
               />
             ) : null}
-            <Btn onPress={send} disabled={text.trim().length === 0} testID="report-send">
+            <Btn onPress={send} disabled={text.trim().length === 0 || sending} testID="report-send">
               {t('you.report.send')}
             </Btn>
           </>
