@@ -41,28 +41,9 @@ describe('onboarding is one screen', () => {
     expect(mockNav.replace.mock.calls).toEqual([['/capture/import']]);
   });
 
-  it('filming records the consent, asks for the camera, then finishes onboarding in the viewfinder', async () => {
-    mockCamera.request.mockResolvedValue('granted');
-    const view = await render(<WelcomeRoute />);
-    await press(view.getByText('Film a lift now'));
-    expect(hasConsent(useOnboarding.getState().consent)).toBe(true);
-    expect(mockCamera.request).toHaveBeenCalledTimes(1);
-    expect(useOnboarding.getState().completed).toBe(true);
-    expect(mockNav.replace.mock.calls).toEqual([['/capture']]);
-  });
-
-  it('a refused camera goes to the camera-off screen, onboarding not finished yet', async () => {
-    mockCamera.request.mockResolvedValue('denied');
-    const view = await render(<WelcomeRoute />);
-    await press(view.getByText('Film a lift now'));
-    expect(mockNav.replace).not.toHaveBeenCalled();
-    expect(mockNav.push.mock.calls).toEqual([['/onboarding/camera?state=denied']]);
-    expect(useOnboarding.getState().completed).toBe(false);
-  });
-
   it('opening the sample records the consent under the buttons, but onboarding is not finished yet (#237)', async () => {
     const view = await render(<WelcomeRoute />);
-    await press(view.getByText('Try it on a sample lift'));
+    await press(view.getByText('See how it works'));
     expect(hasConsent(useOnboarding.getState().consent)).toBe(true);
     expect(useOnboarding.getState().completed).toBe(false);
     expect(mockNav.push.mock.calls).toEqual([['/analysis/sample?from=welcome']]);

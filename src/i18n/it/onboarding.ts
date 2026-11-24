@@ -4,8 +4,8 @@ import type { onboarding as en } from '../en/onboarding';
 
 export const onboarding: Strings<typeof en> = {
   'onboarding.welcome.title': "Guarda la tua alzata così.",
-  'onboarding.welcome.body': "Scegli il video di un'alzata. Il telefono ci disegna sopra la traiettoria del bilanciere e le linee del corpo.",
-  'onboarding.welcome.private': "Tutto gira sul tuo telefono. Il video non esce mai da lì.",
+  'onboarding.welcome.body': "Traiettoria del bilanciere, velocità del bilanciere e linee del corpo, sul tuo video.",
+  'onboarding.welcome.private': "100% privato. Gira tutto sul tuo iPhone. Niente esce da lì.",
   'onboarding.welcome.agree': "Continuando confermi di avere più di 16 anni e accetti i termini e l'informativa sulla privacy.",
   'onboarding.lifts.sub.barPath': "traiettoria",
   'onboarding.lifts.sub.hipPath': "percorso anche",
@@ -43,6 +43,12 @@ export const onboarding: Strings<typeof en> = {
   'onboarding.privacy.policy': "informativa sulla privacy",
   'onboarding.privacy.terms': "termini",
   'onboarding.welcome.pick': "Scegli una tua alzata",
-  'onboarding.welcome.film': "Filma un'alzata ora",
-  'onboarding.welcome.sample': "Provalo su un sollevamento di esempio",
+  'onboarding.welcome.sample': "Guarda come funziona",
+  'onboarding.tour.step': "{n} di 3",
+  'onboarding.tour.video.title': "Parti da un qualsiasi video di un'alzata",
+  'onboarding.tour.video.body': "Dal rullino o girato nell'app. Non esce mai dal tuo iPhone.",
+  'onboarding.tour.plate.title': "Catchline trova il bilanciere",
+  'onboarding.tour.plate.body': "Cerchia il disco. Sposta il cerchio se non combacia.",
+  'onboarding.tour.next': "Avanti",
+  'onboarding.tour.track': "Traccia",
 };

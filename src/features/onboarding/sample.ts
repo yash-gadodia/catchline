@@ -28,3 +28,24 @@ export function focusY(analysis: Analysis, body: Body | null): number {
   if (!ys.length) return 0.5;
   return (Math.min(...ys) + Math.max(...ys)) / 2;
 }
+
+// Where the picture is centred on each frame, so a close-up lift stays in view as the bar goes from the floor to
+// overhead: half way between the bar and the middle of the body on that frame, smoothed over about a third of a second
+// each side so the picture glides. Frames with neither keep the whole lift's middle.
+export function focusByFrame(analysis: Analysis, body: Body | null): number[] {
+  const rest = focusY(analysis, body);
+  const bar = new Map((analysis.reps[0]?.path ?? []).map((p) => [p.frame, p.y]));
+  const raw = Array.from({ length: analysis.video.frameCount }, (_, f) => {
+    const ys = joints(body, f).flatMap((p) => (p ? [p.y] : []));
+    const mid = ys.length ? (Math.min(...ys) + Math.max(...ys)) / 2 : undefined;
+    const y = bar.get(f);
+    return y !== undefined && mid !== undefined ? (y + mid) / 2 : (y ?? mid ?? rest);
+  });
+  const reach = Math.round(analysis.video.fps / 3);
+  return raw.map((_, f) => {
+    const near = raw.slice(Math.max(0, f - reach), f + reach + 1);
+    return near.reduce((a, b) => a + b, 0) / near.length;
+  });
+}
+
+export const SAMPLE_FOCUS = focusByFrame(SAMPLE_ANALYSIS, SAMPLE_BODY);
