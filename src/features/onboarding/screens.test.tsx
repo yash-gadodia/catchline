@@ -16,7 +16,7 @@ const press = async (el: Parameters<typeof fireEvent.press>[0]) => {
 beforeEach(() => jest.clearAllMocks());
 
 describe('Welcome', () => {
-  it('plays a tracked lift, makes the promise with privacy in it, and has two buttons: your own lift, or how it works', async () => {
+  it('plays a tracked lift, says what sets it apart, and has two buttons: how it works first, your own lift second', async () => {
     const onPick = jest.fn();
     const onSample = jest.fn();
     const screen = await render(<WelcomeScreen onPick={onPick} onSample={onSample} />);
@@ -26,8 +26,8 @@ describe('Welcome', () => {
     expect(player.play).toHaveBeenCalledTimes(1);
     expect(within(screen.getByTestId('sample-lift')).getByTestId('tracker-body')).toBeOnTheScreen();
     expect(screen.getByText('See your lift like this.')).toBeOnTheScreen();
-    expect(screen.getByText('Bar path, bar speed and body lines, on your own video.')).toBeOnTheScreen();
-    expect(screen.getByTestId('welcome-private')).toHaveTextContent('100% private. Runs fully on your iPhone. Nothing leaves it.');
+    expect(screen.getByTestId('welcome-usp')).toHaveTextContent('100% private. Nothing leaves your iPhone.Weightlifting and gymnastics.Bar path and bar speed, free to start.');
+    expect(screen.getByText(/Made with ❤️ by Yash from Singapore/)).toBeOnTheScreen();
     expect(screen.getByText(/By continuing you confirm you are over 16 and accept the terms and privacy policy\./)).toBeOnTheScreen();
     expect(screen.queryByText(/film/i)).toBeNull();
     expect(screen.queryByTestId('welcome-film')).toBeNull();
