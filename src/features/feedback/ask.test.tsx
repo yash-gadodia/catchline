@@ -1,7 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import { act, fireEvent, render } from '@testing-library/react-native';
 import FeedbackSheet, { FEEDBACK_ROUTE } from './FeedbackSheet';
-import { FEEDBACK_AFTER_S, FEEDBACK_ID, feedbackNotificationOpened, offerFeedback, scheduleFeedbackNotification, useFeedbackAsk } from './ask';
+import { FEEDBACK_AFTER_S, FEEDBACK_ID, answerFeedback, closeFeedback, feedbackNotificationOpened, offerFeedback, scheduleFeedbackNotification, useFeedbackAsk } from './ask';
 import { claimSessionAsk, resetSessionAsk } from './sessionAsk';
 import { track } from '../../lib/analytics';
 import { queueProblemReport } from '../../data/problemReports';
@@ -23,7 +23,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockPath = FEEDBACK_ROUTE;
   resetSessionAsk();
-  useFeedbackAsk.setState({ asked: false, notified: false, open: false, liftId: null, answer: null });
+  useFeedbackAsk.setState({ asked: false, offers: 0, notified: false, open: false, openedAt: 0, liftId: null, answer: null });
   perms.mockResolvedValue({ status: 'undetermined', granted: false, canAskAgain: true });
   request.mockResolvedValue({ status: 'granted', granted: true, canAskAgain: false });
   cancel.mockResolvedValue(undefined);
@@ -35,12 +35,29 @@ describe('the feedback ask', () => {
     expect(useFeedbackAsk.getState().open).toBe(false);
   });
 
-  it('is offered once, on the second lift, and cancels the notification', () => {
+  it('is offered on the second lift, cancels the notification, and an answer ends it', () => {
     expect(offerFeedback(2, 'l2')).toBe(true);
-    expect(track).toHaveBeenCalledWith('feedback_ask_shown', { lifts: 2 });
+    expect(track).toHaveBeenCalledWith('feedback_ask_shown', { lifts: 2, offer: 1 });
     expect(cancel).toHaveBeenCalledWith(FEEDBACK_ID);
-    useFeedbackAsk.setState({ open: false });
+    answerFeedback('up');
+    closeFeedback();
     expect(offerFeedback(3, 'l3')).toBe(false);
+  });
+
+  it('leaving the result unanswered does not spend the ask: it is offered again, three times at most', () => {
+    for (const offer of [1, 2, 3]) {
+      expect(offerFeedback(2, 'l2')).toBe(true);
+      expect(track).toHaveBeenLastCalledWith('feedback_ask_shown', { lifts: 2, offer });
+      closeFeedback('/share');
+      expect(track).toHaveBeenLastCalledWith('feedback_ask_later', { how: 'left', to: '/share', open_ms: expect.any(Number) });
+      expect(useFeedbackAsk.getState()).toMatchObject({ asked: false, open: false, offers: offer });
+    }
+    expect(offerFeedback(2, 'l2')).toBe(false);
+  });
+
+  it('a lifter the old sheet spent its ask on is asked again', async () => {
+    const migrate = useFeedbackAsk.persist.getOptions().migrate!;
+    expect(await migrate({ asked: true, notified: true }, 0)).toEqual({ asked: false, offers: 0, notified: true });
   });
 
   it('waits for the next run when the rating ask had this one, and then shows on the third lift', () => {
@@ -109,7 +126,7 @@ describe('the feedback ask', () => {
     await act(async () => {
       fireEvent.press(getByTestId('feedback-later'));
     });
-    expect(track).toHaveBeenCalledWith('feedback_ask_later', {});
+    expect(track).toHaveBeenCalledWith('feedback_ask_later', { how: 'not_now', to: '', open_ms: expect.any(Number) });
     expect(queryByTestId('feedback-sheet')).toBeNull();
     expect(queued).not.toHaveBeenCalled();
     expect(useFeedbackAsk.getState().asked).toBe(true);
@@ -120,8 +137,8 @@ describe('the feedback ask', () => {
     mockPath = '/paywall';
     const { queryByTestId } = await render(<FeedbackSheet />);
     expect(queryByTestId('feedback-sheet')).toBeNull();
-    expect(useFeedbackAsk.getState().open).toBe(false);
-    expect(track).toHaveBeenCalledWith('feedback_ask_later', {});
+    expect(useFeedbackAsk.getState()).toMatchObject({ open: false, asked: false });
+    expect(track).toHaveBeenCalledWith('feedback_ask_later', { how: 'left', to: '/paywall', open_ms: expect.any(Number) });
   });
 
   it('one quiet notification three days after a tracked lift, once', async () => {
