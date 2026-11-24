@@ -85,8 +85,19 @@ function uuid(): string {
   });
 }
 
-async function getOrCreateAnonId(): Promise<string> {
-  if (anonId) return anonId;
+let anonLoading: Promise<string> | null = null;
+
+// Every event at a first launch asks before the id is saved: they share one read, or each made its own id and the
+// install showed up as several people.
+function getOrCreateAnonId(): Promise<string> {
+  if (anonId) return Promise.resolve(anonId);
+  anonLoading ??= loadAnonId().finally(() => {
+    anonLoading = null;
+  });
+  return anonLoading;
+}
+
+async function loadAnonId(): Promise<string> {
   try {
     const stored = await AsyncStorage.getItem(ANON_ID_KEY);
     if (stored) {
@@ -98,7 +109,9 @@ async function getOrCreateAnonId(): Promise<string> {
     anonId = fresh;
     return anonId;
   } catch {
-    return uuid();
+    // storage failed: one id for this run at least, not a new one per event
+    anonId = uuid();
+    return anonId;
   }
 }
 

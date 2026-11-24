@@ -302,7 +302,9 @@ export default function TrackerScreen({
   // there from the first frame, like Share: while the first look played, the bare space under the video looked broken
   const charted = barSpeedOf !== null;
   const bottomH = useRef(0);
-  const minBottom = space.s3 + SPEED_CHART_MIN_H + (onShare ? space.s2 + control.compactHeight : 0) + Math.max(insets.bottom, space.s4);
+  // the sample has no Share: its button under the chart is the way on to the lifter's own video
+  const onOwn = sample ? onAnother : undefined;
+  const minBottom = space.s3 + SPEED_CHART_MIN_H + (onShare || onOwn ? space.s2 + control.compactHeight : 0) + Math.max(insets.bottom, space.s4);
   const videoLimits = () => {
     const min = Math.round(height * VIDEO_MIN);
     const room = bottomH.current > 0 ? box.height + bottomH.current - minBottom : Math.round(height * VIDEO_MAX);
@@ -606,6 +608,11 @@ export default function TrackerScreen({
         {onShare ? (
           <Btn kind={revealing ? 'primary' : 'secondary'} compact={!revealing} onPress={onShare} testID="tracker-share">
             {t('analysis.player.share')}
+          </Btn>
+        ) : onOwn ? (
+          // touching the video or "See the detail" closes the result card for good: without this the tour dead-ends
+          <Btn compact onPress={onOwn} testID="tracker-own">
+            {t('analysis.reveal.sample.own')}
           </Btn>
         ) : null}
       </View>

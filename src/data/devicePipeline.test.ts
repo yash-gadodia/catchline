@@ -3,7 +3,7 @@ import { snatchMock } from '../analysis/fixtures';
 import type { Analysis } from '../analysis/types';
 import type { ClipSubmission } from '../features/capture/submit';
 import { usePipeline, startLift } from './pipeline';
-import { analyseLoop, cancelDeviceLift, deviceLiftInFlight, failureReason, holdDeviceLift, nativeCode, readTrace, resumeDeviceLifts, retrackLift, startDeviceLift, toNativePlan, trackHeldLifts } from './devicePipeline';
+import { analyseLoop, cancelDeviceLift, deviceLiftInFlight, failureReason, holdDeviceLift, nativeCode, readTrace, resumeDeviceLifts, retrackLift, startDeviceLift, sweepClipCacheAtLaunch, toNativePlan, trackHeldLifts } from './devicePipeline';
 import { STARTER_FREE, weekKey } from '../features/paywall/entitlements';
 import { strFromU8 } from 'fflate';
 import { AppState } from 'react-native';
@@ -50,7 +50,7 @@ jest.mock('../analysis/device/analyseTrace', () => {
   });
   return { ...mocks, trackTrace };
 });
-jest.mock('./clipCache', () => ({ discardPickedCopy: jest.fn() }));
+jest.mock('./clipCache', () => ({ discardPickedCopy: jest.fn(), sweepClipCache: jest.fn() }));
 jest.mock('expo-crypto', () => ({ randomUUID: jest.fn(() => 'lift-1') }));
 jest.mock('./liftOutbox', () => ({ queueLiftSync: jest.fn(async () => 1) }));
 jest.mock('./freeLifts', () => ({ writeFreeUsed: jest.fn(async () => undefined), writeFreeWeek: jest.fn(async () => undefined) }));
@@ -567,6 +567,25 @@ describe('a lift the app is killed in the middle of (#250)', () => {
 
     killed.reject(new Error('cancelled'));
     await before;
+  });
+});
+
+describe('the launch clean-up of the clip caches', () => {
+  const { sweepClipCache } = jest.requireMock('./clipCache') as { sweepClipCache: jest.Mock };
+
+  it('runs when no lift is waiting', async () => {
+    sweepClipCache.mockClear();
+    usePendingLifts.setState({ items: [] });
+    await sweepClipCacheAtLaunch();
+    expect(sweepClipCache).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves the caches alone while a lift is still to be tracked: its clip is in them', async () => {
+    sweepClipCache.mockClear();
+    usePendingLifts.setState({ items: [{ liftId: 'lift-1', sub: SUB, at: new Date().toISOString() }] });
+    await sweepClipCacheAtLaunch();
+    expect(sweepClipCache).not.toHaveBeenCalled();
+    usePendingLifts.setState({ items: [] });
   });
 });
 

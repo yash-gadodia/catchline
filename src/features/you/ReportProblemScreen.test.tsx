@@ -50,4 +50,20 @@ describe('ReportProblemScreen', () => {
     await act(async () => fireEvent.press(view.getByTestId('report-send')));
     expect(view.getByTestId('report-result')).toHaveTextContent('Sent. Thank you, we read every one.');
   });
+
+  it('a second tap on Send while the first is on its way does not send a second report', async () => {
+    let land: (sent: number) => void = () => {};
+    queueProblemReport.mockImplementationOnce(() => new Promise<number>((done) => (land = done)));
+    const view = await render(<ReportProblemScreen back="You" onBack={jest.fn()} />);
+    await act(async () => fireEvent.changeText(view.getByTestId('report-input'), 'the path jumps'));
+    // the press resolves only when the send does, so neither tap is awaited before the report lands
+    const taps = [fireEvent.press(view.getByTestId('report-send'))];
+    await act(async () => {});
+    taps.push(fireEvent.press(view.getByTestId('report-send')));
+    await act(async () => {});
+    expect(queueProblemReport).toHaveBeenCalledTimes(1);
+    await act(async () => land(1));
+    await Promise.all(taps);
+    view.unmount();
+  });
 });
