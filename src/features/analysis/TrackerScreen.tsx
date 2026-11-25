@@ -56,6 +56,7 @@ export default function TrackerScreen({
   firstLift = false,
   sample = false,
   onAnother,
+  onLearn,
   back,
   onTell,
   onResultViewed,
@@ -81,6 +82,8 @@ export default function TrackerScreen({
   firstLift?: boolean;
   sample?: boolean;
   onAnother?: () => void;
+  // the sample: on to the world-class lifts of the Learn tab, once it is open
+  onLearn?: () => void;
   // where Back goes, when not the Lifts tab (a Learn lift)
   back?: string;
   onTell?: () => void;
@@ -307,7 +310,7 @@ export default function TrackerScreen({
   const bottomH = useRef(0);
   // the sample has no Share: its button under the chart is the way on to the lifter's own video
   const onOwn = sample ? onAnother : undefined;
-  const minBottom = space.s3 + SPEED_CHART_MIN_H + (onShare || onOwn ? space.s2 + control.compactHeight : 0) + Math.max(insets.bottom, space.s4);
+  const minBottom = space.s3 + SPEED_CHART_MIN_H + (onShare || onOwn ? space.s2 + control.compactHeight : 0) + (onOwn && onLearn ? space.s2 + control.compactHeight : 0) + Math.max(insets.bottom, space.s4);
   const videoLimits = () => {
     const min = Math.round(height * VIDEO_MIN);
     const room = bottomH.current > 0 ? box.height + bottomH.current - minBottom : Math.round(height * VIDEO_MAX);
@@ -614,9 +617,16 @@ export default function TrackerScreen({
           </Btn>
         ) : onOwn ? (
           // touching the video or "See the detail" closes the result card for good: without this the tour dead-ends
-          <Btn compact onPress={onOwn} testID="tracker-own">
-            {t('analysis.reveal.sample.own')}
-          </Btn>
+          <View style={{ gap: space.s2 }}>
+            <Btn compact onPress={onOwn} testID="tracker-own">
+              {t('analysis.reveal.sample.own')}
+            </Btn>
+            {onLearn ? (
+              <Btn kind="secondary" compact onPress={onLearn} testID="tracker-learn">
+                {t('library.learn.more')}
+              </Btn>
+            ) : null}
+          </View>
         ) : null}
       </View>
       </>

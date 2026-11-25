@@ -16,8 +16,8 @@ export default function LearnScreen({ lifts, onOpen }: { lifts: LearnLift[]; onO
   const insets = useSafeAreaInsets();
   const units = useOnboarding((s) => s.units);
   const [only, setOnly] = useState<LearnLift['kind'] | null>(null);
-  const kinds = (['snatch', 'cleanJerk'] as const).filter((k) => lifts.some((l) => l.kind === k));
-  const kindName = (k: LearnLift['kind']) => t(k === 'snatch' ? 'library.kind.snatch' : 'library.kind.cleanJerk');
+  const kinds = (['snatch', 'cleanJerk', 'clean'] as const).filter((k) => lifts.some((l) => l.kind === k));
+  const kindName = (k: LearnLift['kind']) => t(`library.kind.${k}`);
   const shown = only ? lifts.filter((l) => l.kind === only) : lifts;
   return (
     <ScrollView

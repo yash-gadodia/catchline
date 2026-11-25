@@ -6,7 +6,7 @@ import type { Body } from '../../analysis/device/tracking';
 export type LearnLift = {
   id: string;
   lifter: string;
-  kind: 'snatch' | 'cleanJerk';
+  kind: 'snatch' | 'cleanJerk' | 'clean';
   loadKg?: number;
   // where and when: "World Championships 2023, training hall"
   where?: string;

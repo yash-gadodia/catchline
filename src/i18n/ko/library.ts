@@ -9,6 +9,7 @@ export const library: Strings<typeof en> = {
   'library.learn.title': "최고에게 배우기",
   'library.learn.body': "세계 정상급 리프트를 내 리프트와 같은 방식으로 분석했어요.",
   'library.learn.credit': "영상: {owner}",
+  'library.learn.more': "세계 정상급 리프트 더 보기",
   'library.date.dayMonth': "{month} {day}일",
   'library.date.dayMonthYear': "{year}년 {month} {day}일",
   'library.free.all': { one: "무료 영상 {count}개", other: "무료 영상 {count}개" },

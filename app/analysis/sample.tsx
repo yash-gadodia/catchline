@@ -3,6 +3,7 @@ import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import TrackerScreen from '../../src/features/analysis/TrackerScreen';
 import { SAMPLE_ANALYSIS, SAMPLE_BODY, SAMPLE_CLIP } from '../../src/features/onboarding/sample';
 import SampleTour from '../../src/features/onboarding/SampleTour';
+import { learnOpen } from '../../src/features/learn/lifts';
 import { EVENTS, track } from '../../src/lib/analytics';
 import { t } from '../../src/i18n';
 import { useOnboarding } from '../../src/features/onboarding/store';
@@ -28,6 +29,17 @@ export default function SampleRoute() {
       reveal
       sample
       // straight to the picker: the welcome screen accepted the terms when the sample was opened (#237)
+      onLearn={
+        learnOpen()
+          ? () => {
+              if (from !== 'import') {
+                useOnboarding.getState().complete();
+                if (router.canDismiss()) router.dismissAll();
+              }
+              router.replace('/learn' as Href);
+            }
+          : undefined
+      }
       onAnother={() => {
         if (from !== 'import') {
           useOnboarding.getState().complete();
