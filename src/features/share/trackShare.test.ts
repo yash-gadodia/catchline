@@ -252,6 +252,19 @@ describe('the number on the story', () => {
     expect(storyValue(hero, 300, 10)).toBe(2);
     expect(storyValue({ value: 2, peakFrame: 5 }, 10, 10)).toBe(2);
   });
+
+  it('given the bar\'s speeds, shows the fastest it has gone so far: it climbs with the lift, never drops back, and lands on the peak', () => {
+    const speeds: [number, number][] = [[10, 0], [20, 0.4], [30, 0.9], [40, 0.7], [50, 1.6], [60, 2], [70, 1.1]];
+    const real = { value: 2, peakFrame: 60, speeds };
+    expect(storyValue(real, 10, 10)).toBe(0);
+    expect(storyValue(real, 30, 10)).toBe(0.9);
+    // the bar slowed at frame 40: the number holds the 0.9 it reached, where the old count-up showed 1.95
+    expect(storyValue(real, 45, 10)).toBe(0.9);
+    expect(storyValue({ value: 2, peakFrame: 60 }, 45, 10)).toBeCloseTo(1.946, 3);
+    expect(storyValue(real, 55, 10)).toBe(1.6);
+    expect(storyValue(real, 60, 10)).toBe(2);
+    expect(storyValue(real, 70, 10)).toBe(2);
+  });
 });
 
 describe('the caption copied for the post', () => {

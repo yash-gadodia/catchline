@@ -17,7 +17,7 @@ export const shareSpeeds = (fast: boolean): ShareSpeed[] => (fast ? FAST_SHARE_S
 // with the bar speed graph (`graph`) and the lifter's own line, its date and weight (`caption`), where asked for.
 // `story` (a binary that draws it, 4.0.5 on): the 9:16 video for Stories, Reels and TikTok. `kicker` is the lifter's
 // line (date, weight), `title` the end card's headline, `code` their invite code if they have one.
-export type TrackShareOptions = { path: boolean; lines: boolean; body: boolean; watermark: boolean; speed: ShareSpeed; whole?: boolean; details?: { graph: boolean; caption: string | null }; story?: { kicker: string | null; title: string | null; code: string | null }; clipFps?: number };
+export type TrackShareOptions = { path: boolean; lines: boolean; body: boolean; watermark: boolean; speed: ShareSpeed; whole?: boolean; details?: { graph: boolean; caption: string | null }; story?: { kicker: string | null; title: string | null; code: string | null; realSpeed?: boolean }; clipFps?: number };
 
 // What modules/clip-transcoder TrackRenderer.swift draws on the lift's kept clip. Positions are 0..1 of the frame,
 // sizes are output pixels; a layer that is off is empty (or null), so the native side only draws what it is given.
@@ -55,7 +55,8 @@ export type TrackSpec = {
     width: number;
     height: number;
     focusX: number;
-    hero?: { value: number; unit: string; label: string; kicker: string; peakFrame: number };
+    // speeds (a binary that reads them, 4.0.10 on): the bar's speed per frame, [frame, m/s]
+    hero?: { value: number; unit: string; label: string; kicker: string; peakFrame: number; speeds?: [number, number][] };
     replay?: { from: number; to: number; speed: number };
     end: { title: string; lines: string[]; s: number };
     mark: string;
@@ -129,7 +130,9 @@ export function buildStory(analysis: Analysis, story: NonNullable<TrackShareOpti
   // the peak of the pull, as the player and the result card show it (#253): not the bar bouncing after it is dropped
   const bar = hasBarPath(analysis) ? barSpeed(analysis.reps[0].path, clipFps || analysis.video.fps, analysis.lift) : null;
   const peak = bar?.peak && bar.peak.frame >= first && bar.peak.frame <= last ? bar.peak : null;
-  const hero = peak ? { value: peak.v, unit: 'm/s', label: t('share.story.peak'), kicker: story.kicker ?? '', peakFrame: peak.frame } : undefined;
+  // only for a binary that reads them (story.realSpeed): an older one would still ease the number, and the preview must match the file
+  const speeds = story.realSpeed ? shareChart(analysis, first, last, clipFps)?.values : undefined;
+  const hero = peak ? { value: peak.v, unit: 'm/s', label: t('share.story.peak'), kicker: story.kicker ?? '', peakFrame: peak.frame, ...(speeds ? { speeds } : {}) } : undefined;
   const fps = analysis.video.fps || 30;
   const xs = (analysis.reps[0]?.path ?? []).map((p) => p.x);
   const title = story.title ?? (hero ? `${hero.value.toFixed(2)} ${hero.unit}` : t('share.story.path'));
@@ -170,9 +173,11 @@ export function storyPlacement(video: Size, focusX: number, pathTop: number | nu
   return { x: r3(x), y: r3(y), width: r3(width), height: r3(height), wide };
 }
 
-// The number on a frame: 0 at the lift's first frame, eased up to the peak (StoryRenderer.swift storyValue).
-export function storyValue(hero: { value: number; peakFrame: number }, frame: number, first: number): number {
-  if (hero.peakFrame <= first) return hero.value;
+// The number on a frame, as StoryRenderer.swift storyValue draws it: the fastest the bar has gone so far, landing on
+// the peak. Without the speeds (a binary before 4.0.10) it eases from 0 at the lift's first frame.
+export function storyValue(hero: { value: number; peakFrame: number; speeds?: [number, number][] }, frame: number, first: number): number {
+  if (hero.peakFrame <= first || frame >= hero.peakFrame) return hero.value;
+  if (hero.speeds?.length) return Math.min(hero.value, Math.max(0, ...hero.speeds.filter(([f]) => f <= frame).map(([, v]) => v)));
   const p = Math.min(1, Math.max(0, (frame - first) / (hero.peakFrame - first)));
   return hero.value * (1 - (1 - p) ** 3);
 }
