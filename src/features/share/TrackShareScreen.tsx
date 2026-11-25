@@ -17,9 +17,9 @@ import { display, fontFamily, type } from '../../design/typography';
 import { APP_STORE_URL } from '../../lib/links';
 import TrackOverlay from '../analysis/TrackOverlay';
 import { frameAt, liftRange, timeOf } from '../analysis/tracker';
-import { copyText, discardRender, fastShareSupported, installedShareApps, openShareApp, renderTrackImage, saveVideoToPhotos, shareBrandSupported, shareDetailsSupported, shareStorySupported, renderTrackVideo, shareFile, type ShareApp } from './exporter';
+import { copyText, discardRender, fastShareSupported, installedShareApps, openShareApp, renderTrackImage, saveVideoToPhotos, shareBrandSupported, shareDetailsSupported, shareStorySupported, storyGraphSupported, renderTrackVideo, shareFile, type ShareApp } from './exporter';
 import { fetchMyReferral, inviteLink } from '../referrals/api';
-import ShareDetails from './ShareDetails';
+import ShareDetails, { StoryGraph } from './ShareDetails';
 import { askForRatingOnce } from './rating';
 import Sheet from '../../components/Sheet';
 import { liftCsv } from './csv';
@@ -47,6 +47,7 @@ export type TrackShareDeps = {
   fastShare?: boolean;
   // tests: whether the binary renders the 9:16 story (default: ask ClipTranscoder)
   shareStory?: boolean;
+  storyGraph?: boolean;
   // the lifter's invite code for the story's end card; null when they have none (not signed in)
   inviteCode: () => Promise<string | null>;
   // tests: whether the binary draws the whole path, the graph and the caption (default: ask ClipTranscoder)
@@ -100,6 +101,8 @@ export default function TrackShareScreen({
   const [captioned, setCaptioned] = useState(analysis.loadKg != null);
   // 4.0.5 on: the video as a 9:16 story (the number, a slow replay, the path as the end card), on unless switched off
   const storyOk = deps.shareStory ?? shareStorySupported();
+  // 4.0.10 on: the story's number is the bar's real speed and the graph is drawn under it
+  const storyGraph = deps.storyGraph ?? storyGraphSupported();
   const [story, setStory] = useState(true);
   const [code, setCode] = useState<string | null>(null);
   useEffect(() => {
@@ -192,7 +195,7 @@ export default function TrackShareScreen({
   const maxH = room ?? Math.max(240, height - insets.top - insets.bottom - 380);
   const lockup = watermark && (deps.shareBrand ?? shareBrandSupported());
   const chart = details && graph ? shareChart(analysis, first, last, clipFps) : undefined;
-  const options: TrackShareOptions = { ...layers, body: layers.body && body !== null, watermark, speed, whole, ...(details ? { details: { graph, caption: captioned ? caption : null } } : {}), ...(storyOk && story ? { story: { kicker: captioned ? caption : null, title: analysis.loadKg != null ? formatLoad(analysis.loadKg, units) : null, code } } : {}), ...(clipFps ? { clipFps } : {}) };
+  const options: TrackShareOptions = { ...layers, body: layers.body && body !== null, watermark, speed, whole, ...(details ? { details: { graph, caption: captioned ? caption : null } } : {}), ...(storyOk && story ? { story: { kicker: captioned ? caption : null, title: analysis.loadKg != null ? formatLoad(analysis.loadKg, units) : null, code, ...(storyGraph ? { realSpeed: true } : {}) } } : {}), ...(clipFps ? { clipFps } : {}) };
   // the story as the video will carry it: the preview is the 9:16 canvas with the clip placed as StoryRenderer places it
   const storySpec = options.story ? buildStory(analysis, options.story, first, last, speed, clipFps) : null;
   const canvasW = Math.min(width, Math.round(maxH * STORY_ASPECT));
@@ -325,7 +328,13 @@ export default function TrackShareScreen({
                     <Text style={[display(canvas.width * 0.07), { color: colors.flare }]}> {storySpec.hero.unit}</Text>
                   </Text>
                   {/* design-ok: sizes follow the canvas, as the video draws them */}
-                  <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: canvas.width * 0.031, lineHeight: canvas.width * 0.045 }}>{storySpec.hero.label}</Text>
+                  <Text style={{ color: colors.text2, fontFamily: fontFamily.body, fontSize: canvas.width * (storyGraph ? 0.042 : 0.031), lineHeight: canvas.width * (storyGraph ? 0.056 : 0.045) }}>{storySpec.hero.label}</Text>
+                </View>
+              ) : null}
+              {storyGraph && chart ? (
+                // StoryRenderer drawStoryChart: the speed graph under the number, clear of the apps' reply bar
+                <View testID="share-story-graph" style={{ position: 'absolute', left: canvas.width * 0.067, top: canvas.height * 0.772 }}>
+                  <StoryGraph chart={chart} frame={frame} first={first} last={last} width={canvas.width * 0.62} height={canvas.height * 0.055} />
                 </View>
               ) : null}
             </View>

@@ -68,7 +68,8 @@ public class ClipTranscoderModule: Module {
     // supportsShareBrand: spec.brand draws the logo lockup and the end card (4.0.2 on)
     // supportsShareDetails: spec.ghost, repStarts, chart and caption are drawn (4.0.3 on)
     // supportsShareStory: spec.story renders the 9:16 story (4.0.5 on)
-    Constants(["supportsFastShare": true, "supportsShareBrand": true, "supportsShareDetails": true, "supportsShareStory": true])
+    // supportsStoryGraph: the story's number follows hero.speeds and spec.chart is drawn under it (4.0.10 on)
+    Constants(["supportsFastShare": true, "supportsShareBrand": true, "supportsShareDetails": true, "supportsShareStory": true, "supportsStoryGraph": true])
 
     Events("onProgress")
 
