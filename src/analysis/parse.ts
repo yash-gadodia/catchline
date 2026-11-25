@@ -28,6 +28,9 @@ export function parseAnalysis(json: unknown): Analysis {
   };
   if (!a || typeof a !== 'object') fail('not an object');
   if (a.version !== 1) fail(`version ${String(a.version)}`);
+  // a file written by another tool can say `lift: null` for "no lift window"; the app's own files leave the key out,
+  // and the player read the null as a window and crashed on it
+  if ((a as { lift?: unknown }).lift == null) delete a.lift;
   if (!MOVEMENTS.includes(a.movement)) fail(`movement ${a.movement}`);
   if (a.movementUsed != null && !MOVEMENTS.includes(a.movementUsed)) fail(`movementUsed ${a.movementUsed}`);
   if (a.detectedMovement && a.detectedMovement.movement !== 'unknown' && !MOVEMENTS.includes(a.detectedMovement.movement)) {
