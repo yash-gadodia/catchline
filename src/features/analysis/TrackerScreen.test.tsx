@@ -327,6 +327,16 @@ describe('TrackerScreen first look (reveal)', () => {
     expect(onAnother).toHaveBeenCalledTimes(1);
   });
 
+  it('the sample offers the Learn tab from its result card and from under the chart, when given it', async () => {
+    const onLearn = jest.fn();
+    const { getByTestId } = await show(lifted, body, { reveal: true, reduceMotion: true, sample: true, onAnother: () => {}, onLearn });
+    await press(getByTestId('first-look-learn'));
+    expect(onLearn).toHaveBeenCalledTimes(1);
+    await press(getByTestId('first-look-detail'));
+    await press(getByTestId('tracker-learn'));
+    expect(onLearn).toHaveBeenCalledTimes(2);
+  });
+
   it('a real lift asks what it was on its result card, and More opens the details', async () => {
     const onDetails = jest.fn();
     const { getByTestId } = await show({ ...lifted, traceKind: 'hip' }, body, { reveal: true, reduceMotion: true, onShare: () => {}, onDetails });

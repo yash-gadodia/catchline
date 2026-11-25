@@ -447,6 +447,7 @@ export default function TrackerScreen({
           onShare={onShare ? lookAction('share', onShare) : undefined}
           onDetail={lookAction('detail')}
           onAnother={onAnother ? lookAction('another', onAnother) : undefined}
+          onLearn={onLearn}
           onTell={onTell ? lookAction('tell', onTell) : undefined}
           liftId={sample ? undefined : analysis.id}
           onMoreKinds={onDetails}

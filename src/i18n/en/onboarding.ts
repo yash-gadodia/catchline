@@ -3,6 +3,7 @@ export const onboarding = {
   'onboarding.welcome.private': "100% private. Nothing leaves your iPhone.",
   'onboarding.welcome.sports': "Weightlifting and gymnastics.",
   'onboarding.welcome.free': "Bar path and bar speed, free to start.",
+  'onboarding.welcome.learn': "Learn from world champions' lifts.",
   'onboarding.welcome.agree': "By continuing you confirm you are over 16 and accept the terms and privacy policy.",
   'onboarding.lifts.sub.barPath': "bar path",
   'onboarding.lifts.sub.hipPath': "hip path",
