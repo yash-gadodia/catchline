@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Image, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Text from '../../components/Text';
 import { colors, control, shape, space, stroke } from '../../design/tokens';
@@ -9,6 +9,8 @@ import { t } from '../../i18n';
 import { barSpeed } from '../analysis/speed';
 import { useOnboarding } from '../onboarding/store';
 import type { LearnLift } from './lifts';
+
+const THUMB_W = 112;
 
 // The Learn tab: world-class lifts, each tracked the way the lifter's own are. A row opens the lift in the player.
 // The chips narrow the list to one kind of lift; they show once both kinds are in it.
@@ -55,14 +57,17 @@ export default function LearnScreen({ lifts, onOpen }: { lifts: LearnLift[]; onO
               onPress={() => onOpen(lift.id)}
               accessibilityRole="button"
               testID={`learn-${lift.id}`}
-              style={({ pressed }) => ({ paddingVertical: space.s4, borderBottomWidth: 1, borderBottomColor: colors.hairline, gap: space.s1, opacity: pressed ? 0.7 : 1 })}
+              style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: space.s3, paddingVertical: space.s3, borderBottomWidth: 1, borderBottomColor: colors.hairline, opacity: pressed ? 0.7 : 1 })}
             >
+              {lift.thumb ? <Image source={lift.thumb} style={{ width: THUMB_W, height: Math.round((THUMB_W * lift.analysis.video.height) / lift.analysis.video.width) }} testID={`learn-thumb-${lift.id}`} /> : null}
+              <View style={{ flex: 1, gap: space.s1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: space.s3 }}>
                 <Text style={{ flex: 1, color: colors.text, ...type.body, fontFamily: fontFamily.bodyBold }}>{lift.lifter}</Text>
                 {peak ? <Text style={{ color: colors.text, ...type.callout, fontFamily: fontFamily.monoMedium }}>{`${peak.v.toFixed(2)} m/s`}</Text> : null}
               </View>
               <Text style={{ color: colors.text2, ...type.callout }}>{what}</Text>
               <Text style={{ color: colors.text3, ...type.small }}>{t('library.learn.credit', { owner: lift.credit })}</Text>
+              </View>
             </Pressable>
           );
         })}

@@ -33,6 +33,13 @@ describe('the Learn tab', () => {
     expect(screen.queryByTestId('learn-kinds')).toBeNull();
   });
 
+  it('shows a lift\'s still beside it when it has one', async () => {
+    const screen = await render(<LearnScreen lifts={[lift('a', { thumb: 7 }), lift('b')]} onOpen={jest.fn()} />);
+    expect(screen.getByTestId('learn-thumb-a')).toBeOnTheScreen();
+    expect(screen.queryByTestId('learn-thumb-b')).toBeNull();
+    screen.unmount();
+  });
+
   it('opens only once there are enough lifts to be worth a tab', () => {
     expect(learnOpen(Array.from({ length: LEARN_MIN - 1 }, (_, i) => lift(`${i}`)))).toBe(false);
     expect(learnOpen(Array.from({ length: LEARN_MIN }, (_, i) => lift(`${i}`)))).toBe(true);

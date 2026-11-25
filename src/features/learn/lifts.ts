@@ -13,6 +13,8 @@ export type LearnLift = {
   // who owns the video; shown under the lift
   credit: string;
   clip: number;
+  // a still at the top of the lift with its path drawn (pipeline learn_pack.py writes it), for the list
+  thumb?: number;
   analysis: Analysis;
   body: Body;
 };
