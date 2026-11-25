@@ -62,24 +62,54 @@ private func meanScore(_ p: PosePerson) -> Double {
   p.scores.reduce(0.0) { $0 + Double($1) } / 26
 }
 
+// The seed is the one tallest, best-read person in the clip, which is the lifter unless someone walks close past the
+// lens for a moment (a user's clip, 25 Nov: a passer-by in the last 2.5 s of 17 took the seed and the lifter was never
+// followed). So a seed whose track lasts under SHORT_TRACK of the clip is not taken on trust: up to SEED_TRIES seeds
+// are followed, each from the frames no earlier track covered, and the track with the most presence (box height x
+// score, summed over its frames) wins. A first seed that lasts is used exactly as before.
+private let SHORT_TRACK = 0.2, SEED_TRIES = 3
+
 func selectLifter(_ people: [[PosePerson]], hanging: Bool) -> LifterTrack {
+  let n = people.count
+  var best = LifterTrack(kpts: Array(repeating: Array(repeating: Point(.nan, .nan), count: 26), count: n),
+                         scores: Array(repeating: Array(repeating: 0, count: 26), count: n),
+                         boxes: Array(repeating: [.nan, .nan, .nan, .nan], count: n))
+  var bestPresence = -1.0
+  var covered = Set<Int>()
+  for _ in 0 ..< SEED_TRIES {
+    guard let (sf, si) = seedOf(people, hanging: hanging, skipping: covered) else { break }
+    let (track, frames, presence) = follow(people, from: sf, seedI: si, hanging: hanging)
+    if presence > bestPresence { best = track; bestPresence = presence }
+    if Double(frames.count) >= SHORT_TRACK * Double(n) { break }
+    covered.formUnion(frames)
+  }
+  return best
+}
+
+private func seedOf(_ people: [[PosePerson]], hanging: Bool, skipping: Set<Int>) -> (Int, Int)? {
+  var seed: (Int, Int)?
+  var best = -1.0
+  for pref in (hanging ? [true, false] : [false]) {
+    for (f, ps) in people.enumerated() where !skipping.contains(f) {
+      for (i, p) in ps.enumerated() {
+        if pref && !handsUp(p) { continue }
+        let score = Double(p.box[3] - p.box[1]) * meanScore(p)
+        if score > best { best = score; seed = (f, i) }
+      }
+    }
+    if seed != nil { break }
+  }
+  return seed
+}
+
+// One seed followed forwards and backwards: its track, the frames it was found in, and its presence.
+private func follow(_ people: [[PosePerson]], from sf: Int, seedI: Int, hanging: Bool) -> (LifterTrack, Set<Int>, Double) {
   let n = people.count
   var track = LifterTrack(kpts: Array(repeating: Array(repeating: Point(.nan, .nan), count: 26), count: n),
                           scores: Array(repeating: Array(repeating: 0, count: 26), count: n),
                           boxes: Array(repeating: [.nan, .nan, .nan, .nan], count: n))
-  var seedF: Int?, seedI = 0
-  var best = -1.0
-  for pref in (hanging ? [true, false] : [false]) {
-    for (f, ps) in people.enumerated() {
-      for (i, p) in ps.enumerated() {
-        if pref && !handsUp(p) { continue }
-        let score = Double(p.box[3] - p.box[1]) * meanScore(p)
-        if score > best { best = score; seedF = f; seedI = i }
-      }
-    }
-    if seedF != nil { break }
-  }
-  guard let sf = seedF else { return track }
+  var frames = Set<Int>()
+  var presence = 0.0
   for direction in [Array(sf ..< n), Array((0 ..< sf).reversed())] {
     var prev = people[sf][seedI]
     var bar: Point? = hanging && handsUp(prev) ? topWrist(prev) : nil
@@ -113,6 +143,7 @@ func selectLifter(_ people: [[PosePerson]], hanging: Bool) -> LifterTrack {
       track.kpts[f] = (0 ..< 26).map { pt(c.p, $0) }
       track.scores[f] = c.p.scores.map { Double($0) }
       track.boxes[f] = c.p.box.map { Double($0) }
+      if frames.insert(f).inserted { presence += Double(c.p.box[3] - c.p.box[1]) * meanScore(c.p) }
       prev = c.p
       gap = 0
       if hanging {
@@ -120,5 +151,5 @@ func selectLifter(_ people: [[PosePerson]], hanging: Bool) -> LifterTrack {
       }
     }
   }
-  return track
+  return (track, frames, presence)
 }
