@@ -132,6 +132,8 @@ export const you: Strings<typeof en> = {
   'you.whatsNew': "Novità",
   'you.replayWelcome': "Rivedi il benvenuto",
   'you.whatsNew.version': "Catchline {version}",
+  'you.whatsNew.v410.1': "Il video da condividere mostra la velocità reale del bilanciere, con il grafico sotto.",
+  'you.whatsNew.v410.2': "Il tracciamento resta su di te quando qualcuno passa davanti alla fotocamera.",
   'you.whatsNew.v409.1': "Puoi rivedere il benvenuto dalla pagina Tu.",
   'you.whatsNew.v409.2': "Corretto un errore al primo avvio che poteva creare un secondo account vuoto.",
   'you.whatsNew.v408.1': "I tuoi primi 3 video sono gratis, poi 1 a settimana.",

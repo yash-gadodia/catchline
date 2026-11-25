@@ -128,6 +128,8 @@ export const you = {
   'you.whatsNew': "What's new",
   'you.replayWelcome': "See the welcome again",
   'you.whatsNew.version': "Catchline {version}",
+  'you.whatsNew.v410.1': "The share video shows your bar's real speed, with the speed graph under it.",
+  'you.whatsNew.v410.2': "Tracking stays on you when someone walks past the camera.",
   'you.whatsNew.v409.1': "You can watch the welcome again from the You page.",
   'you.whatsNew.v409.2': "Fixed a first-launch bug that could set up an empty second account.",
   'you.whatsNew.v408.1': "Your first 3 videos are free, then 1 a week.",

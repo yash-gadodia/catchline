@@ -148,6 +148,8 @@ export const you: Strings<typeof en> = {
   'you.replayWelcome': "Ver as boas-vindas de novo",
   // REVIEW
   'you.whatsNew.version': "Catchline {version}",
+  'you.whatsNew.v410.1': "O vídeo de compartilhar mostra a velocidade real da barra, com o gráfico embaixo.",
+  'you.whatsNew.v410.2': "O rastreamento continua em você quando alguém passa na frente da câmera.",
   'you.whatsNew.v409.1': "Você pode rever as boas-vindas na página Você.",
   'you.whatsNew.v409.2': "Corrigimos um erro da primeira abertura que podia criar uma segunda conta vazia.",
   'you.whatsNew.v408.1': "Seus 3 primeiros vídeos são grátis, depois 1 por semana.",
