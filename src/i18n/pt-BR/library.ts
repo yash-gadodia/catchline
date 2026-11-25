@@ -8,6 +8,7 @@ export const library: Strings<typeof en> = {
   'library.learn.title': "Aprenda com os melhores",
   'library.learn.body': "Levantamentos de nível mundial, analisados como os seus.",
   'library.learn.credit': "Vídeo: {owner}",
+  'library.learn.more': "Mais levantamentos de nível mundial",
   'library.date.dayMonth': "{day} de {month}",
   'library.date.dayMonthYear': "{day} de {month} de {year}",
   'library.free.all': { one: "{count} vídeo grátis", other: "{count} vídeos grátis" },

@@ -5,6 +5,7 @@ export const library = {
   'library.learn.title': "Learn from the best",
   'library.learn.body': "World-class lifts, tracked the same way as yours.",
   'library.learn.credit': "Video: {owner}",
+  'library.learn.more': "More world-class lifts",
   'library.date.dayMonth': '{day} {month}',
   'library.date.dayMonthYear': '{day} {month} {year}',
   'library.free.all': { one: '{count} free video', other: '{count} free videos' },

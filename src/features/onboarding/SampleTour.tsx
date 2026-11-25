@@ -9,7 +9,7 @@ import { colors, space } from '../../design/tokens';
 import { display, type } from '../../design/typography';
 import { t } from '../../i18n';
 import { timeOf } from '../analysis/tracker';
-import { fitBox, SAMPLE_ANALYSIS, SAMPLE_CLIP } from './sample';
+import { fitBox, SAMPLE_ANALYSIS, SAMPLE_CLIP, SAMPLE_FOCUS_X } from './sample';
 
 // The two steps before the sample lift's tracked result, each one tap: the video as the lifter would pick it (and
 // that it stays on the phone), then the plate found on its first frame. `onTrack` goes on to the result, where the
@@ -29,7 +29,7 @@ export default function SampleTour({ onTrack, reduceMotion }: { onTrack: () => v
     if (!reduce) p.play();
   });
   const box = { width, height: Math.max(height - 300, 240) };
-  const video = fitBox(analysis.video, box);
+  const video = fitBox(analysis.video, box, SAMPLE_FOCUS_X);
   // the plate's circle: its radius is a share of the video's height
   const size = (start?.r ?? 0) * video.height * 2;
   const ring = start && size ? { left: start.x * video.width - size / 2, top: start.y * video.height - size / 2 } : null;

@@ -9,6 +9,7 @@ export const library: Strings<typeof en> = {
   'library.learn.title': "向顶尖选手学习",
   'library.learn.body': "世界顶级试举，用和你一样的方式分析。",
   'library.learn.credit': "视频：{owner}",
+  'library.learn.more': "更多世界顶级试举",
   'library.date.dayMonth': "{month}{day}日",
   'library.date.dayMonthYear': "{year}年{month}{day}日",
   'library.free.all': { one: "{count} 个免费视频", other: "{count} 个免费视频" },

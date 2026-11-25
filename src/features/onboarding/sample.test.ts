@@ -16,8 +16,13 @@ describe('fitBox', () => {
     expect(b).toEqual({ left: expect.closeTo(59.375, 3), top: expect.closeTo(0, 3), width: expect.closeTo(281.25, 3), height: expect.closeTo(500, 3) });
   });
 
-  it('shows all of a wide video in a taller box: full width, centred down', () => {
-    const b = fitBox({ width: 1920, height: 1080 }, { width: 400, height: 500 });
-    expect(b).toEqual({ left: expect.closeTo(0, 3), top: expect.closeTo(137.5, 3), width: expect.closeTo(400, 3), height: expect.closeTo(225, 3) });
+
+  it('fills the height with a clip wider than the box, slid across to keep the lifter in the middle', () => {
+    // 1920 x 1080 in 400 x 500: scale 500/1080, width 888.9; the lifter at 0.3 across sits at 266.7, so left is 200 - 266.7
+    const b = fitBox({ width: 1920, height: 1080 }, { width: 400, height: 500 }, 0.3);
+    expect(b).toEqual({ left: expect.closeTo(-66.667, 3), top: expect.closeTo(0, 3), width: expect.closeTo(888.889, 3), height: expect.closeTo(500, 3) });
+    // never slid past an edge
+    expect(fitBox({ width: 1920, height: 1080 }, { width: 400, height: 500 }, 0.02).left).toBeCloseTo(0, 6);
+    expect(fitBox({ width: 1920, height: 1080 }, { width: 400, height: 500 }, 0.99).left).toBeCloseTo(400 - 888.889, 3);
   });
 });

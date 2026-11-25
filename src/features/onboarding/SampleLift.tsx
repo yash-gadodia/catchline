@@ -4,7 +4,7 @@ import { useVideoPlayer, VideoView } from 'expo-video';
 import type { Size } from '../../analysis/geometry';
 import TrackOverlay from '../analysis/TrackOverlay';
 import { frameAt, timeOf } from '../analysis/tracker';
-import { fitBox, SAMPLE_ANALYSIS, SAMPLE_BODY, SAMPLE_CLIP } from './sample';
+import { fitBox, SAMPLE_ANALYSIS, SAMPLE_BODY, SAMPLE_CLIP, SAMPLE_FOCUS_X } from './sample';
 
 const SHOW = { path: true, lines: false, body: true };
 
@@ -29,7 +29,7 @@ export default function SampleLift({ box, reduce }: { box: Size; reduce: boolean
     const sub = player.addListener('timeUpdate', ({ currentTime }) => setFrame(frameAt(currentTime, fps, frameCount)));
     return () => sub.remove();
   }, [player, reduce, fps, frameCount]);
-  const video = fitBox(analysis.video, box);
+  const video = fitBox(analysis.video, box, SAMPLE_FOCUS_X);
   return (
     <View testID="sample-lift" pointerEvents="none" style={{ width: box.width, height: box.height, overflow: 'hidden' }}>
       <View style={{ position: 'absolute', left: video.left, top: video.top, width: video.width, height: video.height }}>
