@@ -6,6 +6,11 @@ describe('parseAnalysis', () => {
     expect(parseAnalysis(mock).id).toBe('snatch-mock');
   });
 
+  it('reads a null lift window as none, as the app writes it (a file from another tool said null and the player crashed)', () => {
+    const parsed = parseAnalysis(JSON.parse(JSON.stringify({ ...mock, lift: null })));
+    expect('lift' in parsed).toBe(false);
+  });
+
   it('rejects pixel coordinates in the trace', () => {
     const bad = JSON.parse(JSON.stringify(mock));
     bad.reps[0].path[0].x = 412;
