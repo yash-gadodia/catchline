@@ -132,6 +132,8 @@ export const you: Strings<typeof en> = {
   'you.whatsNew': "새로운 기능",
   'you.replayWelcome': "환영 화면 다시 보기",
   'you.whatsNew.version': "Catchline {version}",
+  'you.whatsNew.v410.1': "공유 영상에 바의 실제 속도와 그 아래 속도 그래프가 표시돼요.",
+  'you.whatsNew.v410.2': "누군가 카메라 앞을 지나가도 계속 나를 따라가요.",
   'you.whatsNew.v409.1': "'나' 페이지에서 환영 화면을 다시 볼 수 있어요.",
   'you.whatsNew.v409.2': "처음 실행할 때 빈 계정이 하나 더 만들어질 수 있던 문제를 고쳤어요.",
   'you.whatsNew.v408.1': "처음 3개의 영상은 무료이고, 이후에는 주 1개예요.",

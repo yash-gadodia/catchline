@@ -28,6 +28,8 @@ struct StoryHero: Decodable {
   // movement, weight, date
   var kicker: String
   var peakFrame: Int
+  // the bar's speed, [frame, m/s] (4.0.10 on): the number is the fastest the bar has gone so far, not a count-up
+  var speeds: [[Double]]?
   // "Your fastest snatch", when it is
   var badge: String?
 }
@@ -131,7 +133,50 @@ private func drawStoryHero(_ ctx: CGContext, _ st: TrackStyle, _ story: TrackSto
   let number = storyLine(String(format: "%.2f", value), story.displayFonts, W * 0.2, cgColor(st.bone))
   drawText(ctx, number, baseline: CGPoint(x: x - W * 0.006, y: H * 0.705))
   drawText(ctx, storyLine(hero.unit, story.displayFonts, W * 0.07, cgColor(st.flare)), baseline: CGPoint(x: x + number.width + W * 0.012, y: H * 0.705))
-  drawText(ctx, storyLine(hero.label, story.bodyFonts, W * 0.031, soft), baseline: CGPoint(x: x, y: H * 0.742))
+  // large enough to read at a glance: at 0.031 the lifter took the number for a counter, not a peak
+  drawText(ctx, storyLine(hero.label, story.bodyFonts, W * 0.042, cgColor(st.bone, 0.92)), baseline: CGPoint(x: x, y: H * 0.748))
+}
+
+// Under the number, when the lifter asked for the graph: the bar speed over the lift, the line so far bone on a faint
+// whole, a flare dot where the bar is now. No plate behind it: the lower third is already dark.
+private func drawStoryChart(_ ctx: CGContext, _ spec: TrackSpec, _ story: TrackStory, frame: Int) {
+  guard let chart = spec.chart, chart.values.count > 1, chart.max > chart.min else { return }
+  let first = Double(spec.startFrame ?? 0)
+  let last = Double(spec.endFrame ?? max(spec.frameCount - 1, 1))
+  guard last > first else { return }
+  let st = spec.style
+  let W = Double(story.width)
+  let H = Double(story.height)
+  let f = Double(frame)
+  // clear of the apps' reply bar and caption, which cover the bottom sixth
+  let plot = CGRect(x: W * 0.067, y: H * 0.772, width: W * 0.62, height: H * 0.055)
+  let at = { (frame: Double, v: Double) in
+    CGPoint(x: plot.minX + (min(max(frame, first), last) - first) / (last - first) * plot.width, y: plot.maxY - (v - chart.min) / (chart.max - chart.min) * plot.height)
+  }
+  ctx.saveGState()
+  ctx.setLineCap(.round)
+  ctx.setLineJoin(.round)
+  if chart.min < 0 && chart.max > 0 {
+    ctx.setStrokeColor(cgColor(st.bone, 0.3))
+    ctx.setLineWidth(W * 0.002)
+    ctx.move(to: at(first, 0))
+    ctx.addLine(to: at(last, 0))
+    ctx.strokePath()
+  }
+  let shown = chart.values.filter { $0[0] >= first && $0[0] <= last }
+  for (alpha, pts) in [(0.35, shown), (1.0, shown.filter { $0[0] <= f })] where pts.count > 1 {
+    ctx.setStrokeColor(cgColor(st.bone, alpha))
+    ctx.setLineWidth(W * 0.005)
+    ctx.addLines(between: pts.map { at($0[0], $0[1]) })
+    ctx.strokePath()
+  }
+  if let now = shown.last(where: { $0[0] <= f }) {
+    let c = at(now[0], now[1])
+    let r = W * 0.011
+    ctx.setFillColor(cgColor(st.flare))
+    ctx.fillEllipse(in: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2))
+  }
+  ctx.restoreGState()
 }
 
 // The end card: black, the bar path drawn on as glowing art (over the first half of the card), the title with a flare
@@ -220,11 +265,17 @@ private func composeStory(
   ctx.restoreGState()
   drawStoryMark(ctx, spec.style, story, center: false)
   if let value { drawStoryHero(ctx, spec.style, story, value: value) }
+  drawStoryChart(ctx, spec, story, frame: frame)
 }
 
-// The number on a frame of the first pass: 0 at the lift's start, eased up to the full value at its peak.
+// The number on a frame of the first pass: the fastest the bar has gone so far, so it climbs as the lift does, never
+// drops back and lands on the peak. Without the speeds (an older spec) it eases from 0 at the lift's start.
 func storyValue(_ hero: StoryHero, frame: Int, first: Int) -> Double {
-  guard hero.peakFrame > first else { return hero.value }
+  guard hero.peakFrame > first, frame < hero.peakFrame else { return hero.value }
+  if let speeds = hero.speeds, !speeds.isEmpty {
+    let f = Double(frame)
+    return min(hero.value, max(0, speeds.lazy.filter { $0[0] <= f }.map { $0[1] }.max() ?? 0))
+  }
   let p = min(1, max(0, Double(frame - first) / Double(hero.peakFrame - first)))
   return hero.value * (1 - pow(1 - p, 3))
 }

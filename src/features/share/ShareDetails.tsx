@@ -48,3 +48,23 @@ export default function ShareDetails({ unit: u, width, caption, chart, frame, fi
     </View>
   );
 }
+
+// The story's speed graph (StoryRenderer.swift drawStoryChart): the line so far on a faint whole, a flare dot where the
+// bar is now. No plate and no number: the story's own number sits above it.
+export function StoryGraph({ chart, frame, first, last, width, height }: { chart: NonNullable<TrackSpec['chart']>; frame: number; first: number; last: number; width: number; height: number }) {
+  if (!(chart.max > chart.min) || last <= first) return null;
+  const at = (f: number, v: number) => ({ x: ((Math.min(Math.max(f, first), last) - first) / (last - first)) * width, y: height - ((v - chart.min) / (chart.max - chart.min)) * height });
+  const d = (pts: [number, number][]) => pts.map(([f, v], i) => `${i ? 'L' : 'M'}${at(f, v).x.toFixed(1)} ${at(f, v).y.toFixed(1)}`).join(' ');
+  const shown = chart.values.filter(([f]) => f >= first && f <= last);
+  if (shown.length < 2) return null;
+  const sofar = shown.filter(([f]) => f <= frame);
+  const now = sofar[sofar.length - 1];
+  return (
+    <Svg width={width} height={height}>
+      {chart.min < 0 && chart.max > 0 ? <Line x1={0} x2={width} y1={at(first, 0).y} y2={at(first, 0).y} stroke={colors.text} strokeWidth={stroke.hairline} opacity={0.3} /> : null}
+      <Path d={d(shown)} stroke={colors.text} strokeWidth={1.5} opacity={0.35} fill="none" strokeLinejoin="round" />
+      {sofar.length > 1 ? <Path d={d(sofar)} stroke={colors.text} strokeWidth={1.5} fill="none" strokeLinejoin="round" /> : null}
+      {now ? <Circle cx={at(now[0], now[1]).x} cy={at(now[0], now[1]).y} r={Math.max(2, width * 0.018)} fill={colors.flare} /> : null}
+    </Svg>
+  );
+}

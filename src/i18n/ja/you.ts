@@ -132,6 +132,8 @@ export const you: Strings<typeof en> = {
   'you.whatsNew': "新機能",
   'you.replayWelcome': "ようこそ画面をもう一度見る",
   'you.whatsNew.version': "Catchline {version}",
+  'you.whatsNew.v410.1': "シェア用の動画に、バーの実際の速度とその下に速度グラフが表示されます。",
+  'you.whatsNew.v410.2': "カメラの前を人が横切っても、あなたを追い続けます。",
   'you.whatsNew.v409.1': "「あなた」ページからウェルカム画面をもう一度見られます。",
   'you.whatsNew.v409.2': "初回起動時に空のアカウントがもう1つ作られることがある問題を修正しました。",
   'you.whatsNew.v408.1': "最初の3本の動画は無料、その後は週1本です。",
