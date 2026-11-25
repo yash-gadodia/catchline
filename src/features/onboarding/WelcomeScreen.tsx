@@ -8,17 +8,18 @@ import { colors, shade, space } from '../../design/tokens';
 import { display, fontFamily, type } from '../../design/typography';
 import { PRIVACY_URL, TERMS_URL } from '../../lib/links';
 import { t } from '../../i18n';
+import { learnOpen } from '../learn/lifts';
 import SampleLift from './SampleLift';
 
 // All of onboarding: a tracked lift playing, what sets Catchline apart in three lines (private, both sports, bar
 // speed free), and two buttons: the 15-second sample tour first, a lift of the lifter's own second. No filming here:
 // nobody installs mid-session at the bar.
 // Going on accepts the terms named under the buttons.
-export default function WelcomeScreen({ onPick, onSample, reduceMotion }: { onPick: () => void; onSample: () => void; reduceMotion?: boolean }) {
+export default function WelcomeScreen({ onPick, onSample, reduceMotion, learn = learnOpen() }: { onPick: () => void; onSample: () => void; reduceMotion?: boolean; learn?: boolean }) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const systemReduce = useReducedMotion();
-  const box = { width, height: Math.max(height - 430, 240) };
+  const box = { width, height: Math.max(height - (learn ? 456 : 430), 240) };
 
   return (
     <View testID="welcome-screen" style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'flex-end' }}>
@@ -39,6 +40,8 @@ export default function WelcomeScreen({ onPick, onSample, reduceMotion }: { onPi
               <Text style={{ color: colors.text, ...type.body, fontFamily: fontFamily.bodyBold }}>{t('onboarding.welcome.private')}</Text>
               <Text style={{ color: colors.text, ...type.body }}>{t('onboarding.welcome.sports')}</Text>
               <Text style={{ color: colors.text, ...type.body }}>{t('onboarding.welcome.free')}</Text>
+              {/* the Learn tab, once it has lifts: said here so a new lifter knows it is there */}
+              {learn ? <Text style={{ color: colors.text, ...type.body }}>{t('onboarding.welcome.learn')}</Text> : null}
             </View>
           </View>
         </View>

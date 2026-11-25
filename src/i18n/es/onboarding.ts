@@ -6,6 +6,7 @@ export const onboarding: Strings<typeof en> = {
   'onboarding.welcome.private': "100 % privado. Nada sale de tu iPhone.",
   'onboarding.welcome.sports': "Halterofilia y gimnasia.",
   'onboarding.welcome.free': "Trayectoria y velocidad de la barra, gratis para empezar.",
+  'onboarding.welcome.learn': "Aprende de los levantamientos de campeones del mundo.",
   'onboarding.welcome.agree': "Al continuar confirmas que tienes más de 16 años y aceptas los términos y la política de privacidad.",
   'onboarding.lifts.sub.barPath': "trayectoria de la barra",
   'onboarding.lifts.sub.hipPath': "trayectoria de la cadera",

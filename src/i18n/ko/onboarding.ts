@@ -7,6 +7,7 @@ export const onboarding: Strings<typeof en> = {
   'onboarding.welcome.private': "100% 비공개. 아무것도 iPhone 밖으로 나가지 않아요.",
   'onboarding.welcome.sports': "역도와 체조 모두.",
   'onboarding.welcome.free': "바 궤적과 바 속도, 무료로 시작.",
+  'onboarding.welcome.learn': "세계 챔피언의 리프트에서 배워요.",
   'onboarding.welcome.agree': "계속하면 만 16세 이상임을 확인하고 이용약관과 개인정보 처리방침에 동의하는 것으로 간주돼요.",
   'onboarding.lifts.sub.barPath': "바 궤적",
   'onboarding.lifts.sub.hipPath': "골반 궤적",

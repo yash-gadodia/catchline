@@ -25,6 +25,7 @@ export default function FirstLook({
   onShare,
   onDetail,
   onAnother,
+  onLearn,
   onTell,
   liftId,
   onMoreKinds,
@@ -44,6 +45,8 @@ export default function FirstLook({
   onShare?: () => void;
   onDetail: () => void;
   onAnother?: () => void;
+  // the sample: on to the Learn tab's world-class lifts
+  onLearn?: () => void;
   // the feedback form, where the lifter can also leave an email for a reply
   onTell?: () => void;
   // the lift the card asks the kind of (never the sample), and where "More" goes: the lift's details
@@ -137,6 +140,11 @@ export default function FirstLook({
         <Btn kind="secondary" compact onPress={onDetail} testID="first-look-detail">
           {t(kind === 'none' ? 'analysis.reveal.none.body' : 'analysis.reveal.detail')}
         </Btn>
+        {kind === 'sample' && onLearn ? (
+          <Btn kind="text" onPress={onLearn} testID="first-look-learn">
+            {t('library.learn.more')}
+          </Btn>
+        ) : null}
         {(kind === 'path' || kind === 'trail') && onAnother ? (
           <Btn kind="text" onPress={onAnother} testID="first-look-another">
             {t('analysis.reveal.another')}

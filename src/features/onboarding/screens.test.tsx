@@ -19,7 +19,7 @@ describe('Welcome', () => {
   it('plays a tracked lift, says what sets it apart, and has two buttons: how it works first, your own lift second', async () => {
     const onPick = jest.fn();
     const onSample = jest.fn();
-    const screen = await render(<WelcomeScreen onPick={onPick} onSample={onSample} />);
+    const screen = await render(<WelcomeScreen onPick={onPick} onSample={onSample} learn={false} />);
     expect(useVideoPlayer).toHaveBeenCalledWith(SAMPLE_CLIP, expect.any(Function));
     const player = (useVideoPlayer as jest.Mock).mock.results[0].value;
     expect(player).toMatchObject({ loop: true, muted: true, playbackRate: 0.5 });
@@ -130,5 +130,16 @@ describe('Privacy and consent (asked again only when the consent on this phone i
     await press(screen.getByTestId('link-terms'));
     expect(open).toHaveBeenLastCalledWith('https://yash-gadodia.github.io/catchline/legal/terms.html');
     open.mockRestore();
+  });
+});
+
+// last in the file: it renders twice, which unsettles tests that run after it
+describe('Welcome and the Learn tab', () => {
+  it('names the Learn tab among what sets it apart, once that tab is open', async () => {
+    const off = await render(<WelcomeScreen onPick={jest.fn()} onSample={jest.fn()} learn={false} />);
+    expect(off.queryByText("Learn from world champions' lifts.")).toBeNull();
+    off.unmount();
+    const on = await render(<WelcomeScreen onPick={jest.fn()} onSample={jest.fn()} learn />);
+    expect(on.getByTestId('welcome-usp')).toHaveTextContent(/free to start\.Learn from world champions' lifts\.$/);
   });
 });
