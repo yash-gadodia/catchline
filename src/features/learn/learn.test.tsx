@@ -49,13 +49,15 @@ describe('the Learn tab', () => {
     for (const l of LEARN_LIFTS) expect(l.credit.trim().length).toBeGreaterThan(0);
   });
 
-  it('the tab bar shows Learn between the + and You only when told to', async () => {
+  it('the tab bar shows Learn, and gives up its +, only when told to', async () => {
     const off = await render(<TabBar active="index" onTab={jest.fn()} onImport={jest.fn()} />);
     expect(off.queryByTestId('tab-learn')).toBeNull();
+    expect(off.getByTestId('tab-import')).toBeOnTheScreen();
     off.unmount();
     const onTab = jest.fn();
     const on = await render(<TabBar active="learn" learn onTab={onTab} onImport={jest.fn()} />);
     expect(on.getByTestId('tab-learn')).toHaveTextContent('Learn');
+    expect(on.queryByTestId('tab-import')).toBeNull();
     await act(async () => fireEvent.press(on.getByTestId('tab-learn')));
     expect(onTab).toHaveBeenCalledWith('learn');
   });

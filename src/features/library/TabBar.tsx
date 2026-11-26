@@ -1,10 +1,10 @@
 import { Pressable, View } from 'react-native';
 import Text from '../../components/Text';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Btn from '../../components/Btn';
 import { colors } from '../../design/tokens';
 import { fontFamily, type } from '../../design/typography';
 import { t } from '../../i18n';
+import { ImportButton } from './ui';
 
 export type TabName = 'index' | 'learn' | 'me';
 
@@ -19,7 +19,8 @@ export default function TabBar({
   onImport,
 }: {
   active: TabName;
-  // the Learn tab, once it has lifts to show: Lifts and the + stay where they were
+  // the Learn tab, once it has lifts to show: three tabs, and the + moves to the top of Lifts (a + beside three
+  // tabs sat off centre)
   learn?: boolean;
   onTab: (name: TabName) => void;
   onImport: () => void;
@@ -56,14 +57,11 @@ export default function TabBar({
       }}
     >
       {tab(LIFTS)}
-      <View style={{ flex: 1, alignItems: 'center' }}>
-        <Btn square onPress={onImport} accessibilityLabel={t('library.lifts.import')} testID="tab-import">
-          <View style={{ width: 22, height: 22, alignItems: 'center', justifyContent: 'center' }}>
-            <View style={{ position: 'absolute', width: 22, height: 3, backgroundColor: colors.onFlare }} />
-            <View style={{ position: 'absolute', width: 3, height: 22, backgroundColor: colors.onFlare }} />
-          </View>
-        </Btn>
-      </View>
+      {learn ? null : (
+        <View style={{ flex: 1, alignItems: 'center' }}>
+          <ImportButton onPress={onImport} testID="tab-import" />
+        </View>
+      )}
       {learn ? tab(LEARN) : null}
       {tab(YOU)}
     </View>

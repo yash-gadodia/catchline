@@ -8,6 +8,7 @@ import type { Point } from '../../analysis/types';
 import Btn from '../../components/Btn';
 import { colors } from '../../design/tokens';
 import { display, fontFamily, type } from '../../design/typography';
+import { t } from '../../i18n';
 
 const LIBRARY: Record<string, { color: ImageSourcePropType; gray?: ImageSourcePropType }> = {
   'mu-3-hip-drive': {
@@ -115,5 +116,17 @@ export function Title({ children }: { children: string }) {
     <Text style={[display(36), { color: colors.text }]}>
       {children}
     </Text>
+  );
+}
+
+// The +: import a video. In the tab bar, and at the top of Lifts once Learn is a tab.
+export function ImportButton({ onPress, testID }: { onPress: () => void; testID: string }) {
+  return (
+    <Btn square onPress={onPress} accessibilityLabel={t('library.lifts.import')} testID={testID}>
+      <View style={{ width: 22, height: 22, alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ position: 'absolute', width: 22, height: 3, backgroundColor: colors.onFlare }} />
+        <View style={{ position: 'absolute', width: 3, height: 22, backgroundColor: colors.onFlare }} />
+      </View>
+    </Btn>
   );
 }

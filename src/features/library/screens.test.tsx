@@ -282,6 +282,28 @@ describe('LiftsScreen', () => {
   });
 });
 
+describe('the + on Lifts', () => {
+  it('is in the header once Learn is a tab, and not before', async () => {
+    loadLibrary('seeded');
+    const before = await render(<LiftsScreen nav={liftsNav()} />);
+    expect(before.queryByTestId('lifts-import')).toBeNull();
+    const open = jest.spyOn(require('../learn/lifts'), 'learnOpen').mockReturnValue(true);
+    const nav = liftsNav();
+    const after = await render(<LiftsScreen nav={nav} />);
+    await press(after.getByTestId('lifts-import'));
+    expect(nav.onImport).toHaveBeenCalledTimes(1);
+    open.mockRestore();
+  });
+
+  it('leaves the empty screen to its Import button', async () => {
+    const open = jest.spyOn(require('../learn/lifts'), 'learnOpen').mockReturnValue(true);
+    loadLibrary('empty');
+    const empty = await render(<LiftsScreen nav={liftsNav()} />);
+    expect(empty.queryByTestId('lifts-import')).toBeNull();
+    open.mockRestore();
+  });
+});
+
 describe('TabBar', () => {
   it('marks the active tab and makes the centre button Import', async () => {
     const onTab = jest.fn();
