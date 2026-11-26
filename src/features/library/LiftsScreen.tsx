@@ -21,7 +21,8 @@ import FadeRow from '../analysis/FadeRow';
 import { t } from '../../i18n';
 import { useLibrary } from './repository';
 import type { Lift } from './types';
-import { Frame, Pulse, Title, Underlined } from './ui';
+import { learnOpen } from '../learn/lifts';
+import { Frame, ImportButton, Pulse, Title, Underlined } from './ui';
 
 export type LiftsNav = {
   onOpen: (lift: Lift) => void;
@@ -72,11 +73,15 @@ export default function LiftsScreen({ nav }: { nav: LiftsNav }) {
   const header = (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', columnGap: space.s3 }}>
       <Title>{t('library.tabs.lifts')}</Title>
-      {chip ? (
-        <Pressable onPress={nav.onUnlock} testID="free-chip" hitSlop={8} style={{ minHeight: 44, justifyContent: 'center' }}>
-          <Text style={{ color: colors.text2, ...type.readout }}>{chip}</Text>
-        </Pressable>
-      ) : null}
+      <View style={{ flexDirection: 'row', alignItems: 'center', columnGap: space.s3 }}>
+        {chip ? (
+          <Pressable onPress={nav.onUnlock} testID="free-chip" hitSlop={8} style={{ minHeight: 44, justifyContent: 'center' }}>
+            <Text style={{ color: colors.text2, ...type.readout }}>{chip}</Text>
+          </Pressable>
+        ) : null}
+        {/* with Learn a tab the bar has no +: it is here, except on the empty screen, whose first button it is */}
+        {learnOpen() && lib.lifts.length > 0 ? <ImportButton onPress={nav.onImport} testID="lifts-import" /> : null}
+      </View>
     </View>
   );
 
