@@ -15,7 +15,7 @@ import { formatWait } from '../../analysis/format';
 import { keyFrameForPhase, repByIndex } from '../../analysis/timeline';
 import Btn from '../../components/Btn';
 import Sheet from '../../components/Sheet';
-import { colors, space } from '../../design/tokens';
+import { colors, shape, space, stroke } from '../../design/tokens';
 import { display, fontFamily, type } from '../../design/typography';
 import { impact, success } from '../../lib/haptics';
 import Stage from './Stage';
@@ -53,6 +53,8 @@ type Props = {
   // On-device analysis: the lifter can stop the run (the lift is refunded) instead of hiding it.
   onCancel?: () => void;
   onNotify: () => void;
+  // On-device analysis, notifications not asked for yet: "Tell me when it's done", with the notification it brings.
+  onTellMe?: () => void;
   onKeepWaiting: () => void;
   onSee: () => void;
   onTrim?: () => void;
@@ -86,6 +88,7 @@ export default function ProcessingSheet({ analysis, clipUri, reduceMotion, meta,
           note={onServer ? <Queue etaSeconds={etaSeconds} ahead={ahead} /> : null}
           onHide={on.onHide}
           onCancel={on.onCancel}
+          onTellMe={on.onTellMe}
         />
       ) : null}
       {state === 'offline' ? (
@@ -248,6 +251,7 @@ function InProgress({
   note,
   onHide,
   onCancel,
+  onTellMe,
 }: {
   doing?: string;
   steps?: WaitStep[];
@@ -256,8 +260,10 @@ function InProgress({
   note: ReactNode;
   onHide: () => void;
   onCancel?: () => void;
+  onTellMe?: () => void;
 }) {
   const pct = progress == null ? null : Math.round(Math.min(Math.max(progress, 0), 1) * 100);
+  const roomy = useWindowDimensions().height >= 750;
   return (
     <Sheet testID="sheet-progress">
       <Header title={t('analysis.processing.watching')} meta={meta} />
@@ -290,6 +296,21 @@ function InProgress({
           </Text>
         </View>
       )}
+      {onTellMe ? (
+        <View testID="tell-me" style={{ gap: space.s3 }}>
+          {/* on a short phone the steps above leave room for the button only */}
+          {roomy ? (
+            <View testID="tell-me-preview" style={{ borderWidth: stroke.hairline, borderColor: colors.hairline, ...shape.control, padding: space.s3, gap: 2 }}>
+              <Text style={{ color: colors.text3, ...type.small }}>{t('analysis.processing.tellMePreview')}</Text>
+              <Text style={{ color: colors.text, ...type.callout, fontFamily: fontFamily.bodyMedium }}>{t('notifications.ready.title')}</Text>
+              <Text style={{ color: colors.text2, ...type.callout }}>{t('notifications.ready.body')}</Text>
+            </View>
+          ) : null}
+          <Btn kind="secondary" compact onPress={onTellMe} testID="tell-me-button">
+            {t('analysis.processing.tellMe')}
+          </Btn>
+        </View>
+      ) : null}
       <View style={{ alignItems: 'center', gap: 2 }}>
         <TextLink onPress={onCancel ?? onHide} testID={onCancel ? 'cancel' : 'hide'}>
           {onCancel ? t('analysis.processing.cancel') : t('analysis.processing.hide')}

@@ -62,6 +62,8 @@ export const analysis: Strings<typeof en> = {
   'analysis.processing.longTitle': "いつもより時間がかかっています",
   'analysis.processing.maxSeconds': "最大{max}秒",
   'analysis.processing.notifyMe': "通知を受け取る",
+  'analysis.processing.tellMe': "終わったら知らせる",
+  'analysis.processing.tellMePreview': "アプリを閉じても大丈夫です。この通知が届きます：",
   'analysis.processing.offlineTitle': "トラッキングを準備中",
   'analysis.processing.offlineBody': "トラッキングには初回のみダウンロードが必要ですが、完了しませんでした。接続（と省データモード）を確認して、もう一度お試しください。動画の回数は消費されていません。",
   'analysis.processing.retry': "もう一度試す",

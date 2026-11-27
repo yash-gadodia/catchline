@@ -8,8 +8,9 @@ import { queueProblemReport } from '../../data/problemReports';
 import { canNotify } from '../notifications/nudges';
 import { claimSessionAsk } from './sessionAsk';
 
-// The feedback ask: on the result of a lifter's second tracked lift (or the next one, when the rating ask already had
-// that run), a small sheet asks how Catchline is going. One tap answers (Good / Not great) and lands in problem_reports
+// The feedback ask: after a lifter's second tracked lift (or the next one, when the rating ask already had that run),
+// once they have looked at the result and are back on Lifts, a small sheet asks how Catchline is going. (Over the
+// result itself it was closed unanswered 12 times in 16: the lifter was there to look at the lift.) One tap answers (Good / Not great) and lands in problem_reports
 // at once; a line of their own words is optional after it. An answer or "Not now" spends the ask for good. Leaving
 // the result with the sheet unanswered does not: 6 of the first 7 sheets closed that way within about a second
 // (24-11-2026), so the lifter is asked again on a later result, FEEDBACK_MAX_OFFERS times at most. A lifter who does
@@ -46,7 +47,19 @@ export const useFeedbackAsk = create<AskState>()(
 
 const cancelNotification = () => Notifications.cancelScheduledNotificationAsync(FEEDBACK_ID).catch(() => undefined);
 
-// The result card of a tracked lift is up; `lifts` is how many tracked lifts the phone has, this one included.
+// The result of a tracked lift was seen: the ask waits for the lifter to be back on Lifts.
+let queued: { lifts: number; liftId: string } | null = null;
+export function queueFeedback(lifts: number, liftId: string): void {
+  queued = { lifts, liftId };
+}
+export function offerQueuedFeedback(): boolean {
+  if (!queued) return false;
+  const { lifts, liftId } = queued;
+  queued = null;
+  return offerFeedback(lifts, liftId);
+}
+
+// `lifts` is how many tracked lifts the phone has, the one just seen included.
 export function offerFeedback(lifts: number, liftId: string): boolean {
   const { asked, offers } = useFeedbackAsk.getState();
   if (asked || offers >= FEEDBACK_MAX_OFFERS || lifts < FEEDBACK_MIN_LIFTS) return false;

@@ -15,7 +15,7 @@ import { useLibrary, useLift } from '../../src/features/library/repository';
 import { openLiftActions, reportHref } from '../../src/features/analysis/liftActions';
 import { captureHref } from '../../src/features/paywall/hooks';
 import { useOnboarding } from '../../src/features/onboarding/store';
-import { offerFeedback } from '../../src/features/feedback/ask';
+import { queueFeedback } from '../../src/features/feedback/ask';
 
 export default function PlayerRoute() {
   // `reveal=1` comes from the tracking screen: the lift's first look plays itself (TrackerScreen).
@@ -54,7 +54,7 @@ export default function PlayerRoute() {
   const share = () => router.push({ pathname: '/share', params: { fixture: analysis.id } });
   if (clip) {
     if (!body.ready) return <AnalysisPlaceholder status="loading" onBack={back} />;
-    return <TrackerScreen key={analysis.id} analysis={analysis} clipUri={clip} body={body.body} title={lift ? liftTitle(lift, units) : ''} onBack={back} onShare={share} reveal={reveal === '1'} firstLift={tracked <= 1} onAnother={() => router.push(captureHref('/capture/import') as Href)} onTell={() => router.push({ pathname: '/report', params: { context: 'feedback', lift: analysis.id } } as Href)} onResultViewed={(kind) => (kind === 'path' || kind === 'trail') && offerFeedback(tracked, analysis.id)} lastLift={lastLift} onSideBySide={lastLift ? () => router.push({ pathname: '/analysis/compare', params: { a: analysis.id, b: lastLift.id } } as Href) : undefined}
+    return <TrackerScreen key={analysis.id} analysis={analysis} clipUri={clip} body={body.body} title={lift ? liftTitle(lift, units) : ''} onBack={back} onShare={share} reveal={reveal === '1'} firstLift={tracked <= 1} onAnother={() => router.push(captureHref('/capture/import') as Href)} onTell={() => router.push({ pathname: '/report', params: { context: 'feedback', lift: analysis.id } } as Href)} onResultViewed={(kind) => (kind === 'path' || kind === 'trail') && queueFeedback(tracked, analysis.id)} lastLift={lastLift} onSideBySide={lastLift ? () => router.push({ pathname: '/analysis/compare', params: { a: analysis.id, b: lastLift.id } } as Href) : undefined}
       onAdjustPlate={() => router.push({ pathname: '/analysis/plate', params: { id: analysis.id } } as Href)}
       onDetails={() => router.push({ pathname: '/analysis/details', params: { id: analysis.id } } as Href)}
     />;

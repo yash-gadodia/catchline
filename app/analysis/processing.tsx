@@ -9,7 +9,7 @@ import { etaSeconds, type Sample } from '../../src/features/analysis/eta';
 import { overallProgress } from '../../src/features/analysis/progress';
 import { formatWait } from '../../src/analysis/format';
 import { registerPushToken } from '../../src/features/notifications';
-import { maybeReaskForPush, noteAnalysisFinished } from '../../src/features/notifications/ask';
+import { askForPush, noteAnalysisFinished, pushStatus } from '../../src/features/notifications/ask';
 import { useUsage } from '../../src/features/paywall/usageStore';
 import { syncServerUsage } from '../../src/features/paywall/hooks';
 import { usePurchases } from '../../src/features/purchases/usePurchases';
@@ -118,6 +118,16 @@ function LiveProcessing() {
   const router = useRouter();
   const job = usePipeline((s) => s.job);
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
+  // The lifter is waiting for this lift: the moment "tell me when it's done" means something. Offered while iOS has
+  // not asked yet; a yes here is what brings up iOS's one prompt.
+  const [canAsk, setCanAsk] = useState(false);
+  useEffect(() => {
+    void pushStatus().then((s) => {
+      if (s !== 'undetermined') return;
+      setCanAsk(true);
+      track(EVENTS.PUSH_ASK_SHOWN, { where: 'wait', status: s });
+    });
+  }, []);
   // The clock counts from when this lift was started (the job id is its start time), so reopening keeps it.
   const startedAt = job ? Number(job.id.replace('job-', '')) || null : null;
   const since = () => (startedAt ? Math.max(0, Math.floor((Date.now() - startedAt) / 1000)) : 0);
@@ -186,10 +196,13 @@ function LiveProcessing() {
         home();
       }}
       onNotify={home}
+      onTellMe={canAsk && state === 'progress' ? () => {
+        setCanAsk(false);
+        void askForPush('wait');
+      } : undefined}
       onKeepWaiting={home}
       onSee={() => {
         if (!analysis) return;
-        void maybeReaskForPush();
         router.replace({ pathname: '/analysis/player', params: { fixture: analysis.id } });
       }}
       onTrim={() => router.replace('/capture/trim')}

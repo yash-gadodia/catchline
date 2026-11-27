@@ -1,7 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import { act, fireEvent, render } from '@testing-library/react-native';
 import FeedbackSheet, { FEEDBACK_ROUTE } from './FeedbackSheet';
-import { FEEDBACK_AFTER_S, FEEDBACK_ID, answerFeedback, closeFeedback, feedbackNotificationOpened, offerFeedback, scheduleFeedbackNotification, useFeedbackAsk } from './ask';
+import { FEEDBACK_AFTER_S, FEEDBACK_ID, answerFeedback, closeFeedback, feedbackNotificationOpened, offerFeedback, offerQueuedFeedback, queueFeedback, scheduleFeedbackNotification, useFeedbackAsk } from './ask';
 import { claimSessionAsk, resetSessionAsk } from './sessionAsk';
 import { track } from '../../lib/analytics';
 import { queueProblemReport } from '../../data/problemReports';
@@ -163,7 +163,15 @@ describe('the feedback ask', () => {
     expect(useFeedbackAsk.getState().asked).toBe(true);
   });
 
-  it('shows on the result only, and leaving the result closes it (never over the paywall)', async () => {
+  it('waits for the lifter to be back on Lifts: seeing the result only queues it, once', () => {
+    queueFeedback(2, 'l2');
+    expect(useFeedbackAsk.getState().open).toBe(false);
+    expect(offerQueuedFeedback()).toBe(true);
+    expect(useFeedbackAsk.getState()).toMatchObject({ open: true, liftId: 'l2' });
+    expect(offerQueuedFeedback()).toBe(false);
+  });
+
+  it('shows on Lifts only, and leaving it closes the sheet (never over the paywall)', async () => {
     offerFeedback(2, 'l2');
     mockPath = '/paywall';
     const { queryByTestId } = await render(<FeedbackSheet />);

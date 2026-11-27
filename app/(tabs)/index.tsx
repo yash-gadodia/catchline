@@ -6,6 +6,8 @@ import { t } from '../../src/i18n';
 import { liftLink } from '../../src/features/library/derive';
 import LiftsScreen from '../../src/features/library/LiftsScreen';
 import { captureHref } from '../../src/features/paywall/hooks';
+import { offerQueuedFeedback } from '../../src/features/feedback/ask';
+import { maybeReaskForPush } from '../../src/features/notifications/ask';
 
 export default function LiftsRoute() {
   const router = useRouter();
@@ -13,6 +15,8 @@ export default function LiftsRoute() {
   useFocusEffect(
     useCallback(() => {
       syncLibrary().catch(() => undefined);
+      // back from a lift's result: the notification ask after the first one, else the feedback ask when it is due
+      void maybeReaskForPush().then((asked) => asked || offerQueuedFeedback());
       const sub = AppState.addEventListener('change', (s) => {
         if (s === 'active') syncLibrary().catch(() => undefined);
       });

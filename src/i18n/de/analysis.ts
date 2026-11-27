@@ -64,6 +64,8 @@ export const analysis: Strings<typeof en> = {
   'analysis.processing.longTitle': 'Dauert länger als üblich',
   'analysis.processing.maxSeconds': 'max. {max} s',
   'analysis.processing.notifyMe': 'Benachrichtige mich',
+  'analysis.processing.tellMe': "Sag mir Bescheid, wenn es fertig ist",
+  'analysis.processing.tellMePreview': "Du kannst die App verlassen. Du bekommst das:",
   'analysis.processing.trackingPct': 'Tracking {pct} %',
   'analysis.processing.preparingPct': 'Vorbereitung {pct} %',
   'analysis.processing.uploadingPct': 'Hochladen {pct} %',

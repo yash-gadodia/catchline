@@ -53,6 +53,11 @@ export const EVENTS = {
   FEEDBACK_ASK_LATER: 'feedback_ask_later',
   FEEDBACK_NOTIFICATION_OPENED: 'feedback_notification_opened',
   FEEDBACK_SENT: 'feedback_sent',
+  // the notification ask: shown (where: wait, the tracking screen; reask, the alert after the first lift), a yes on
+  // ours, and what iOS then says
+  PUSH_ASK_SHOWN: 'push_ask_shown',
+  PUSH_ASK_ACCEPTED: 'push_ask_accepted',
+  PUSH_ASK_RESULT: 'push_ask_result',
   // force update: this binary is below feature_flags min_app_version (required) or recommended_app_version, the
   // recommended sheet closed for the day, and the App Store opened from either
   UPDATE_NEEDED: 'update_needed',

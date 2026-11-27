@@ -58,6 +58,8 @@ export const analysis = {
   'analysis.processing.longTitle': 'Taking longer than usual',
   'analysis.processing.maxSeconds': 'max {max} s',
   'analysis.processing.notifyMe': 'Notify me',
+  'analysis.processing.tellMe': "Tell me when it's done",
+  'analysis.processing.tellMePreview': "You can leave the app. You'll get this:",
   'analysis.processing.offlineTitle': "Getting the tracking ready",
   'analysis.processing.offlineBody': "The tracking needs a one-time download that did not finish. Check your connection (and Low Data Mode) and try again. This did not use one of your videos.",
   'analysis.processing.retry': 'Try again',
