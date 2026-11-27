@@ -39,6 +39,18 @@ describe('ProcessingSheet', () => {
     expect(getByTestId('processing-doing')).toHaveTextContent('Following the bar and your body, frame by frame.');
   });
 
+  it('offers "Tell me when it\'s done" with the notification it brings, only when there is something to ask', async () => {
+    const onTellMe = jest.fn();
+    const { getByTestId, getByText, queryByTestId, rerender } = await render(
+      <ProcessingSheet analysis={null} state="progress" step={2} elapsed={6} progress={0.3} {...handlers} />
+    );
+    expect(queryByTestId('tell-me')).toBeNull();
+    await rerender(<ProcessingSheet analysis={null} state="progress" step={2} elapsed={6} progress={0.3} {...handlers} onTellMe={onTellMe} />);
+    expect(getByText('Your lift is ready')).toBeOnTheScreen();
+    await act(async () => fireEvent.press(getByTestId('tell-me-button')));
+    expect(onTellMe).toHaveBeenCalledTimes(1);
+  });
+
   it('in French the time left wraps under the title instead of running into it', async () => {
     const { setLanguage } = require('../../i18n');
     setLanguage('fr');

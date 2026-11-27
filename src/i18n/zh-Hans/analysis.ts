@@ -62,6 +62,8 @@ export const analysis: Strings<typeof en> = {
   'analysis.processing.longTitle': "比平时慢一些",
   'analysis.processing.maxSeconds': "最长 {max} 秒",
   'analysis.processing.notifyMe': "通知我",
+  'analysis.processing.tellMe': "完成后通知我",
+  'analysis.processing.tellMePreview': "可以离开 App，你会收到这条通知：",
   'analysis.processing.offlineTitle': "正在准备追踪",
   'analysis.processing.offlineBody': "追踪需要一次性下载，但下载没有完成。请检查网络（以及低数据模式）后重试。这次没有占用你的视频额度。",
   'analysis.processing.retry': "重试",

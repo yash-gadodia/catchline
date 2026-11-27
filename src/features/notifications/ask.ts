@@ -4,6 +4,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { t } from '../../i18n';
+import { EVENTS, track } from '../../lib/analytics';
 import { registerPushToken } from './index';
 
 export type PushStatus = 'granted' | 'undetermined' | 'denied';
@@ -22,11 +23,15 @@ export async function pushStatus(): Promise<PushStatus> {
   }
 }
 
-export async function askForPush(): Promise<PushStatus> {
+// A yes on our own ask (`where` it was), and only then iOS's one prompt.
+export async function askForPush(where: 'wait' | 'reask' = 'reask'): Promise<PushStatus> {
   const status = await pushStatus();
+  track(EVENTS.PUSH_ASK_ACCEPTED, { where, status });
   if (status === 'undetermined') {
     await registerPushToken(true);
-    return pushStatus();
+    const now = await pushStatus();
+    track(EVENTS.PUSH_ASK_RESULT, { where, granted: now === 'granted' });
+    return now;
   }
   if (status === 'denied') await Linking.openSettings().catch(() => undefined);
   return status;
@@ -48,13 +53,14 @@ export function noteAnalysisFinished(): void {
   analysisFinished = true;
 }
 
-// Once, after the first lift this phone analysed, if notifications are still off.
+// Once, when the lifter is back on Lifts after the first lift this phone analysed, if notifications are still off.
 export async function maybeReaskForPush(alert: typeof Alert.alert = Alert.alert): Promise<boolean> {
   if (!analysisFinished || usePushAsk.getState().reasked) return false;
   analysisFinished = false;
   const status = await pushStatus();
   if (status === 'granted') return false;
   usePushAsk.setState({ reasked: true });
+  track(EVENTS.PUSH_ASK_SHOWN, { where: 'reask', status });
   alert(t('notifications.reask.title'), t('notifications.reask.body'), [
     { text: t('notifications.reask.notNow'), style: 'cancel' },
     {

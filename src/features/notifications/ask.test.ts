@@ -4,6 +4,8 @@ import { askForPush, maybeReaskForPush, noteAnalysisFinished, pushStatus, usePus
 import { registerPushToken } from './index';
 
 jest.mock('./index', () => ({ registerPushToken: jest.fn(async () => undefined) }));
+jest.mock('../../lib/analytics', () => ({ ...jest.requireActual('../../lib/analytics'), track: jest.fn() }));
+const track = jest.requireMock('../../lib/analytics').track as jest.Mock;
 
 const perms = Notifications.getPermissionsAsync as jest.Mock;
 const openSettings = jest.spyOn(Linking, 'openSettings').mockResolvedValue(undefined);
@@ -35,6 +37,16 @@ describe('push ask', () => {
     expect(await askForPush()).toBe('denied');
     expect(registerPushToken).toHaveBeenCalledTimes(1);
     expect(openSettings).toHaveBeenCalledTimes(1);
+  });
+
+  it('counts the ask: shown, a yes on ours, and what iOS said', async () => {
+    unasked();
+    noteAnalysisFinished();
+    await maybeReaskForPush(jest.fn());
+    expect(track).toHaveBeenCalledWith('push_ask_shown', { where: 'reask', status: 'undetermined' });
+    await askForPush('wait');
+    expect(track).toHaveBeenCalledWith('push_ask_accepted', { where: 'wait', status: 'undetermined' });
+    expect(track).toHaveBeenCalledWith('push_ask_result', { where: 'wait', granted: false });
   });
 
   it('re-asks once after the first finished analysis, with a Settings link when refused', async () => {

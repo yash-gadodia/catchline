@@ -62,6 +62,8 @@ export const analysis: Strings<typeof en> = {
   'analysis.processing.longTitle': "Ci vuole più del solito",
   'analysis.processing.maxSeconds': "max {max} s",
   'analysis.processing.notifyMe': "Avvisami",
+  'analysis.processing.tellMe': "Avvisami quando è pronto",
+  'analysis.processing.tellMePreview': "Puoi uscire dall'app. Riceverai questo:",
   'analysis.processing.offlineTitle': "Preparo il tracciamento",
   'analysis.processing.offlineBody': "Il tracciamento richiede un download iniziale che non è terminato. Controlla la connessione (e la modalità Risparmio dati) e riprova. Non è stato scalato nessuno dei tuoi video.",
   'analysis.processing.retry': "Riprova",

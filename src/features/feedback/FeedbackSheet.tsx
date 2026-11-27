@@ -9,11 +9,11 @@ import { t } from '../../i18n';
 import { SheetTitle } from '../share/ui';
 import { answerFeedback, closeFeedback, sendFeedbackNote, useFeedbackAsk } from './ask';
 
-export const FEEDBACK_ROUTE = '/analysis/player';
+export const FEEDBACK_ROUTE = '/';
 export const NOTE_MAX = 280;
 
-// The feedback ask, on a lift's result only: no veil, so the lift above stays in view and in reach. One tap answers;
-// then one optional line. Leaving the result closes it. Mounted once, over the whole app.
+// The feedback ask, on the Lifts tab only: no veil, so the list above stays in view and in reach. One tap answers;
+// then one optional line. Leaving Lifts closes it. Mounted once, over the whole app.
 export default function FeedbackSheet() {
   const pathname = usePathname();
   const open = useFeedbackAsk((s) => s.open);

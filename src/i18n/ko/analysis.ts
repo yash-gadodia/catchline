@@ -62,6 +62,8 @@ export const analysis: Strings<typeof en> = {
   'analysis.processing.longTitle': "평소보다 오래 걸리고 있어요",
   'analysis.processing.maxSeconds': "최대 {max}초",
   'analysis.processing.notifyMe': "알림 받기",
+  'analysis.processing.tellMe': "끝나면 알려주기",
+  'analysis.processing.tellMePreview': "앱을 나가도 괜찮아요. 이런 알림이 와요:",
   'analysis.processing.offlineTitle': "트래킹 준비 중",
   'analysis.processing.offlineBody': "트래킹에는 처음 한 번 다운로드가 필요한데 완료되지 않았어요. 연결(과 저데이터 모드)을 확인하고 다시 시도해 주세요. 영상 횟수는 차감되지 않았어요.",
   'analysis.processing.retry': "다시 시도",
