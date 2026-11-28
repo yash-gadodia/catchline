@@ -125,7 +125,8 @@ const PASS_STARTS = PASS_WEIGHTS.map((_, i) => PASS_WEIGHTS.slice(0, i).reduce((
 
 // plateMark: the lifter's mark on the plate, on that frame of the clip at `uri` (frame 0 when not given; null: none).
 // plateSkipped: the lifter said at the plate check that the lift has no barbell.
-export async function analyseLoop(uri: string, movement: Movement, liftId: string, onProgress: Progress, isCancelled: () => boolean = () => false, plateMark: (PlateMark & { frame?: number }) | null = null, plateSkipped = false): Promise<LoopResult> {
+// fps: the clip's frame rate as the transcoder read it, for a trace whose own is impossible (clipFps).
+export async function analyseLoop(uri: string, movement: Movement, liftId: string, onProgress: Progress, isCancelled: () => boolean = () => false, plateMark: (PlateMark & { frame?: number }) | null = null, plateSkipped = false, fps?: number): Promise<LoopResult> {
   const native = PoseCoreML;
   if (!native) throw new Error('no_native');
   const words = { title: t('library.inFlight.title'), subtitle: t('analysis.processing.background') };
@@ -144,7 +145,7 @@ export async function analyseLoop(uri: string, movement: Movement, liftId: strin
       }
       if (isCancelled()) throw new Error('cancelled');
       stills = { ...stills, ...result.stills };
-      tracked = trackTrace(await readTrace(result.tracePath), { analysisId: liftId, assetPrefix: liftId, ...(plateMark ? { plateMark: { frame: plateMark.frame ?? 0, x: plateMark.x, y: plateMark.y, r: plateMark.r } } : {}), ...(plateSkipped ? { plateSkipped } : {}) });
+      tracked = trackTrace(await readTrace(result.tracePath), { analysisId: liftId, assetPrefix: liftId, ...(plateMark ? { plateMark: { frame: plateMark.frame ?? 0, x: plateMark.x, y: plateMark.y, r: plateMark.r } } : {}), ...(fps ? { fps } : {}), ...(plateSkipped ? { plateSkipped } : {}) });
       if (tracked.misses.length === 0) break;
       plan = toNativePlan(tracked.plan);
     }
@@ -312,7 +313,7 @@ async function runDeviceLift(item: PendingLift): Promise<void> {
     patch({ status: 'analysing', prepared: 1 });
     // the mark was made atS into the trimmed clip: that is this frame of the prepared one
     const marked = sub.plateMark ? { ...sub.plateMark, frame: Math.max(0, Math.round((sub.plateMark.atS ?? 0) * (clip.fps || 30))) } : null;
-    const loop = await analyseLoop(clip.uri, sub.movement, liftId, (stage, fraction) => patch({ stage, fraction }), () => cancelledRun === liftId, marked, sub.plateSkipped === true);
+    const loop = await analyseLoop(clip.uri, sub.movement, liftId, (stage, fraction) => patch({ stage, fraction }), () => cancelledRun === liftId, marked, sub.plateSkipped === true, clip.fps);
     const analysis = finishAnalysis(parseAnalysis(loop.analysis), liftId, sub);
     const local = saveLocalLift(liftId, analysis, loop.tracePath, loop.stills, loop.body);
     // 4.0: the clip stays on the phone with its lift (the player draws on the real video); deleted with the lift.
@@ -379,7 +380,7 @@ async function runRetrack(liftId: string, uri: string, movement: Movement, plate
   activateKeepAwakeAsync(KEEP_AWAKE_TAG).catch(() => undefined);
   try {
     const before = await readLocalAnalysis(liftId);
-    const loop = await analyseLoop(uri, movement, liftId, (stage, fraction) => patch({ stage, fraction }), () => cancelledRun === liftId, plateMark);
+    const loop = await analyseLoop(uri, movement, liftId, (stage, fraction) => patch({ stage, fraction }), () => cancelledRun === liftId, plateMark, false, before?.video.fps);
     const parsed = parseAnalysis(loop.analysis);
     const analysis: Analysis = { ...parsed, id: liftId, movement, ...(before?.loadKg != null ? { loadKg: before.loadKg } : {}) };
     if (analysis.failure) {
